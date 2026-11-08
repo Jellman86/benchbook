@@ -9,6 +9,8 @@ namespace GrowLog.Api.Buying;
 /// <summary>Money out. For the owner.</summary>
 internal static class PurchaseEndpoints
 {
+    private const int MaxReceiptBytes = 10 * 1024 * 1024;
+
     public static void MapPurchaseEndpoints(this IEndpointRouteBuilder app)
     {
         var purchases = app.MapGroup("/api/purchases").RequireAuthorization(AccountServices.OwnerPolicy);
@@ -16,6 +18,8 @@ internal static class PurchaseEndpoints
         purchases.MapPost("/", AddAsync).Produces<PurchaseCreated>(StatusCodes.Status201Created);
         purchases.MapPost("/{id:guid}/paid", SetPaidAsync);
         purchases.MapPost("/{id:guid}/void", VoidAsync);
+        purchases.MapPost("/{id:guid}/receipts", AddReceiptAsync).Produces<PurchaseCreated>(StatusCodes.Status201Created);
+        purchases.MapGet("/receipts/{id:guid}", GetReceiptAsync);
     }
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -42,6 +46,14 @@ internal static class PurchaseEndpoints
 
         var supplierNames = await db.Suppliers.AsNoTracking().ToDictionaryAsync(supplier => supplier.Id, supplier => supplier.Name, cancellationToken);
 
+        var receipts = (await db.PurchaseReceipts.AsNoTracking().OrderBy(receipt => receipt.Id).Select(receipt => new { receipt.Id, receipt.PurchaseId }).ToListAsync(cancellationToken))
+            .ToLookup(receipt => receipt.PurchaseId, receipt => receipt.Id);
+
+        var batchCounts = await db.Batches.AsNoTracking()
+            .Where(batch => batch.PurchaseLineId != null)
+            .GroupBy(batch => batch.PurchaseLineId!.Value)
+            .ToDictionaryAsync(group => group.Key, group => group.Count(), cancellationToken);
+
         return purchases.ConvertAll(purchase => new PurchaseResponse(
             purchase.Id,
             purchase.SupplierId,
@@ -53,7 +65,8 @@ internal static class PurchaseEndpoints
             purchase.VoidedAt is not null,
             purchase.Lines.Sum(line => line.NetCost),
             purchase.Lines.Sum(line => line.Vat),
-            purchase.Lines.Select(line => new LineResponse(line.Description, line.Quantity, line.NetCost, line.Vat)).ToList()));
+            purchase.Lines.OrderBy(line => line.Id).Select(line => new LineResponse(line.Id, line.Description, line.Quantity, line.NetCost, line.Vat, batchCounts.GetValueOrDefault(line.Id))).ToList(),
+            receipts[purchase.Id].ToList()));
     }
 
     private static async Task<IResult> AddAsync(PurchaseRequest request, ClaimsPrincipal user, GrowLogDbContext db, CancellationToken cancellationToken)
@@ -119,6 +132,74 @@ internal static class PurchaseEndpoints
         return TypedResults.NoContent();
     }
 
+    /// <summary>Goes by the file's own first bytes, so a mislabelled file can't be served as something else.</summary>
+    private static string? DetectContentType(ReadOnlySpan<byte> content)
+    {
+        if (content.StartsWith<byte>([0xFF, 0xD8, 0xFF]))
+        {
+            return "image/jpeg";
+        }
+
+        if (content.StartsWith<byte>([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]))
+        {
+            return "image/png";
+        }
+
+        return content.StartsWith("%PDF-"u8) ? "application/pdf" : null;
+    }
+
+    private static async Task<IResult> AddReceiptAsync(Guid id, HttpRequest request, ClaimsPrincipal user, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        if (!await db.Purchases.AnyAsync(purchase => purchase.Id == id && purchase.VoidedAt == null, cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        using var body = new MemoryStream();
+        var buffer = new byte[81920];
+        int read;
+
+        while ((read = await request.Body.ReadAsync(buffer, cancellationToken)) > 0)
+        {
+            body.Write(buffer, 0, read);
+
+            if (body.Length > MaxReceiptBytes)
+            {
+                return TypedResults.StatusCode(StatusCodes.Status413PayloadTooLarge);
+            }
+        }
+
+        var content = body.ToArray();
+
+        if (DetectContentType(content) is not { } contentType)
+        {
+            return TypedResults.StatusCode(StatusCodes.Status415UnsupportedMediaType);
+        }
+
+        var receipt = new PurchaseReceipt
+        {
+            PurchaseId = id,
+            ContentType = contentType,
+            Content = content,
+            UploadedBy = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!),
+        };
+
+        db.PurchaseReceipts.Add(receipt);
+        await db.SaveChangesAsync(cancellationToken);
+        return TypedResults.Created($"/api/purchases/receipts/{receipt.Id}", new PurchaseCreated(receipt.Id));
+    }
+
+    private static async Task<IResult> GetReceiptAsync(Guid id, HttpContext context, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        if (await db.PurchaseReceipts.AsNoTracking().FirstOrDefaultAsync(receipt => receipt.Id == id, cancellationToken) is not { } receipt)
+        {
+            return TypedResults.NotFound();
+        }
+
+        context.Response.Headers.XContentTypeOptions = "nosniff";
+        return TypedResults.File(receipt.Content, receipt.ContentType);
+    }
+
     internal sealed record LineRequest(string Description, int? Quantity, decimal NetCost, decimal Vat);
 
     internal sealed record PurchaseRequest(Guid SupplierId, DateOnly PurchasedOn, string? Reference, string? Notes, IReadOnlyList<LineRequest> Lines);
@@ -127,7 +208,7 @@ internal static class PurchaseEndpoints
 
     internal sealed record PaidRequest(DateOnly? PaidOn);
 
-    internal sealed record LineResponse(string Description, int? Quantity, decimal NetCost, decimal Vat);
+    internal sealed record LineResponse(Guid Id, string Description, int? Quantity, decimal NetCost, decimal Vat, int BatchCount);
 
     internal sealed record PurchaseResponse(
         Guid Id,
@@ -140,5 +221,6 @@ internal static class PurchaseEndpoints
         bool Voided,
         decimal NetTotal,
         decimal VatTotal,
-        IReadOnlyList<LineResponse> Lines);
+        IReadOnlyList<LineResponse> Lines,
+        IReadOnlyList<Guid> ReceiptIds);
 }

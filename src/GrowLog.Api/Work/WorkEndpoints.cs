@@ -116,6 +116,7 @@ internal static class WorkEndpoints
             Source = request.Source,
             SourceReference = Clean(request.SourceReference),
             SupplierId = request.SupplierId,
+            PurchaseLineId = request.PurchaseLineId,
             ParentBatchId = request.ParentBatchId,
             MotherPlant = Clean(request.MotherPlant),
             OriginCountry = request.OriginCountry.Trim().ToUpperInvariant(),
@@ -435,7 +436,8 @@ internal static class WorkEndpoints
         string OriginCountry,
         ContainerKind ContainerKind,
         Guid? LocationId,
-        Guid? PotSizeId);
+        Guid? PotSizeId,
+        Guid? PurchaseLineId);
 
     internal sealed record GerminatedRequest(Guid EventId, DateTimeOffset OccurredAt);
 

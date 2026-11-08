@@ -1,5 +1,6 @@
 <script lang="ts">
   import { manageSections, type ManageSection } from "../lib/sections";
+  import type { BatchPrefill } from "../lib/work";
   import Figures from "./manage/Figures.svelte";
   import Locations from "./manage/Locations.svelte";
   import Plants from "./manage/Plants.svelte";
@@ -14,11 +15,13 @@
     onSection,
     onBack,
     onBecameStation,
+    onStartBatch,
   }: {
     section: ManageSection | null;
     onSection: (section: ManageSection | null) => void;
     onBack: () => void;
     onBecameStation: () => void;
+    onStartBatch: (prefill: BatchPrefill) => void;
   } = $props();
 
   const back = () => onSection(null);
@@ -27,7 +30,7 @@
 {#if section === "figures"}
   <Figures onBack={back} />
 {:else if section === "purchases"}
-  <Purchases onBack={back} />
+  <Purchases onBack={back} {onStartBatch} />
 {:else if section === "staff"}
   <Staff onBack={back} />
 {:else if section === "plants"}

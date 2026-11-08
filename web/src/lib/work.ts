@@ -125,6 +125,14 @@ export function percent(rate: number | string | null | undefined): string {
     : `${Math.round(Number(rate) * 100)}%`;
 }
 
+/** What a purchase line already knows about the batch it becomes. */
+export interface BatchPrefill {
+  supplierId: string;
+  quantity: number;
+  purchaseLineId: string;
+  description: string;
+}
+
 export function money(value: number): string {
   return `£${value.toFixed(2)}`;
 }
@@ -202,6 +210,7 @@ export function repeatOf(action: Schemas["RecentAction"]): WorkRequest | null {
       containerKind: action.containerKind,
       locationId: action.locationId,
       potSizeId: action.potSizeId,
+      purchaseLineId: null,
     });
   }
 

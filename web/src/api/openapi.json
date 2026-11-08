@@ -1942,6 +1942,59 @@
         }
       }
     },
+    "/api/purchases/{id}/receipts": {
+      "post": {
+        "tags": [
+          "PurchaseEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseCreated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/purchases/receipts/{id}": {
+      "get": {
+        "tags": [
+          "PurchaseEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/demo": {
       "get": {
         "tags": [
@@ -2431,13 +2484,19 @@
       },
       "LineResponse": {
         "required": [
+          "id",
           "description",
           "quantity",
           "netCost",
-          "vat"
+          "vat",
+          "batchCount"
         ],
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
           "description": {
             "type": "string"
           },
@@ -2465,6 +2524,14 @@
               "string"
             ],
             "format": "double"
+          },
+          "batchCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -3170,7 +3237,8 @@
           "voided",
           "netTotal",
           "vatTotal",
-          "lines"
+          "lines",
+          "receiptIds"
         ],
         "type": "object",
         "properties": {
@@ -3231,6 +3299,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/LineResponse"
+            }
+          },
+          "receiptIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         }
@@ -3515,7 +3590,8 @@
           "originCountry",
           "containerKind",
           "locationId",
-          "potSizeId"
+          "potSizeId",
+          "purchaseLineId"
         ],
         "type": "object",
         "properties": {
@@ -3582,6 +3658,13 @@
             "format": "uuid"
           },
           "potSizeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "purchaseLineId": {
             "type": [
               "null",
               "string"

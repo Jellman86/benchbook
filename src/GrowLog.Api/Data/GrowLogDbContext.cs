@@ -19,6 +19,8 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<PurchaseLine> PurchaseLines => Set<PurchaseLine>();
 
+    public DbSet<PurchaseReceipt> PurchaseReceipts => Set<PurchaseReceipt>();
+
     public DbSet<Event> Events => Set<Event>();
 
     public DbSet<Plant> Plants => Set<Plant>();
@@ -97,6 +99,15 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.RecordedBy).OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<PurchaseReceipt>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.HasIndex(e => e.PurchaseId);
+            entity.HasOne<Purchase>().WithMany().HasForeignKey(e => e.PurchaseId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.UploadedBy).OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<PurchaseLine>(entity =>
         {
             entity.ToTable(table =>
@@ -130,6 +141,7 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.HasOne<Plant>().WithMany().HasForeignKey(e => e.PlantId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Supplier>().WithMany().HasForeignKey(e => e.SupplierId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Batch>().WithMany().HasForeignKey(e => e.ParentBatchId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<PurchaseLine>().WithMany().HasForeignKey(e => e.PurchaseLineId).OnDelete(DeleteBehavior.Restrict);
         });
 
         var containerKinds = string.Join(", ", Enum.GetNames<ContainerKind>().Select(name => $"'{name}'"));

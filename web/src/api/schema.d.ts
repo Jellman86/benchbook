@@ -2418,6 +2418,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/purchases/{id}/receipts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PurchaseCreated"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchases/receipts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/demo": {
         parameters: {
             query?: never;
@@ -2615,6 +2687,8 @@ export interface components {
             vat: number | string;
         };
         LineResponse: {
+            /** Format: uuid */
+            id: string;
             description: string;
             /** Format: int32 */
             quantity: null | number | string;
@@ -2622,6 +2696,8 @@ export interface components {
             netCost: number | string;
             /** Format: double */
             vat: number | string;
+            /** Format: int32 */
+            batchCount: number | string;
         };
         /** @enum {unknown} */
         LocationKind: "Site" | "Greenhouse" | "Polytunnel" | "Bench" | "Bay";
@@ -2815,6 +2891,7 @@ export interface components {
             /** Format: double */
             vatTotal: number | string;
             lines: components["schemas"]["LineResponse"][];
+            receiptIds: string[];
         };
         /** @enum {unknown} */
         ReceivedPassportStatus: "Held" | "UsedUp" | "NoLongerValid";
@@ -2906,6 +2983,8 @@ export interface components {
             locationId: null | string;
             /** Format: uuid */
             potSizeId: null | string;
+            /** Format: uuid */
+            purchaseLineId: null | string;
         };
         StationSummary: {
             /** Format: uuid */

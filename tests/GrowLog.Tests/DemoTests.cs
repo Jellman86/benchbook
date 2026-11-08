@@ -72,6 +72,7 @@ public sealed class DemoTests(PostgresFixture database)
         await using var nursery = await TwoPersonNursery.CreateAsync(database, demo: true);
         await PostForTextAsync(nursery.Owner, "/api/plants", new { commonName = "Real plant", xylellaHost = false, protectedVariety = false });
 
+        Assert.False(await AvailableAsync(nursery.Owner));
         Assert.Equal(HttpStatusCode.Conflict, await PostStatusAsync(nursery.Owner, "/api/demo/load"));
     }
 
