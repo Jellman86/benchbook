@@ -20,6 +20,7 @@ internal static class WorkEndpoints
 
         var containers = app.MapGroup("/api/containers");
         containers.MapGet("/by-label/{label}", FindByLabelAsync).Produces<ContainerResponse>();
+        containers.MapGet("/active", ListActiveAsync);
         containers.MapPost("/{id:guid}/germinated", RecordGerminatedAsync).ProducesWork();
         containers.MapPost("/{id:guid}/losses", RecordLossAsync).ProducesWork();
         containers.MapPost("/{id:guid}/move", MoveAsync).ProducesWork();
@@ -179,6 +180,42 @@ internal static class WorkEndpoints
         var potSizeName = await db.PotSizes.Where(size => size.Id == state.PotSizeId).Select(size => size.Name).FirstOrDefaultAsync(cancellationToken);
 
         return TypedResults.Ok(new ContainerResponse(container.Id, container.LabelCode, container.Kind, contents, state.LocationId, locationName, state.PotSizeId, potSizeName));
+    }
+
+    /// <summary>Every container with plants in it, so a device can still open a label with no signal.</summary>
+    private static async Task<List<ContainerResponse>> ListActiveAsync(GrowLogDbContext db, EventStore store, CancellationToken cancellationToken)
+    {
+        var stock = await store.GetStockAsync(cancellationToken);
+        var containerIds = stock.Select(row => row.ContainerId).Distinct().ToList();
+
+        var containers = await db.Containers.Where(container => containerIds.Contains(container.Id)).ToListAsync(cancellationToken);
+        var batches = await db.Batches
+            .Where(batch => db.EventLines.Any(line => line.BatchId == batch.Id && containerIds.Contains(line.ContainerId)))
+            .Join(db.Plants, batch => batch.PlantId, plant => plant.Id, (batch, plant) => new { batch.Id, batch.TraceabilityCode, PlantId = plant.Id, plant.CommonName, plant.Variety })
+            .ToDictionaryAsync(batch => batch.Id, cancellationToken);
+        var places = await store.GetPlacementsAsync(containerIds, cancellationToken);
+        var locationNames = await db.Locations.ToDictionaryAsync(location => location.Id, location => location.Name, cancellationToken);
+        var potSizeNames = await db.PotSizes.ToDictionaryAsync(size => size.Id, size => size.Name, cancellationToken);
+
+        return containers.ConvertAll(container =>
+        {
+            var placement = places.GetValueOrDefault(container.Id);
+
+            var contents = stock
+                .Where(row => row.ContainerId == container.Id)
+                .Select(row => new ContainerLine(row.BatchId, batches[row.BatchId].TraceabilityCode, batches[row.BatchId].PlantId, batches[row.BatchId].CommonName, batches[row.BatchId].Variety, row.Quantity))
+                .ToList();
+
+            return new ContainerResponse(
+                container.Id,
+                container.LabelCode,
+                container.Kind,
+                contents,
+                placement?.LocationId,
+                placement?.LocationId is { } locationId ? locationNames[locationId] : null,
+                placement?.PotSizeId,
+                placement?.PotSizeId is { } potSizeId ? potSizeNames[potSizeId] : null);
+        });
     }
 
     private static Task<IResult> RecordGerminatedAsync(Guid id, GerminatedRequest request, ClaimsPrincipal user, EventStore store, CancellationToken cancellationToken) =>

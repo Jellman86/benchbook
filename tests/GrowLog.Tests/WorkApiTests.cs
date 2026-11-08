@@ -501,6 +501,27 @@ public sealed class WorkApiTests(PostgresFixture database)
     }
 
     [Fact]
+    public async Task The_active_list_gives_a_device_what_it_needs_to_work_with_no_signal()
+    {
+        await using var scene = await CreateSceneAsync();
+        var kept = await StartAsync(scene, 10);
+        var emptied = await StartAsync(scene, 5);
+        await LoseAsync(scene, kept, 4);
+        await LoseAsync(scene, emptied, 5);
+        await PostStatusAsync(scene.Staff, $"/api/containers/{kept.ContainerId}/move", new { eventId = Guid.NewGuid(), occurredAt = Now, locationId = scene.Bench2 });
+
+        var active = await scene.Staff.GetFromJsonAsync<JsonElement>(Route("/api/containers/active"), Cancellation);
+
+        var container = active.EnumerateArray().Single();
+        Assert.Equal(kept.LabelCode, container.GetProperty("labelCode").GetString());
+        Assert.Equal("Bench 2", container.GetProperty("locationName").GetString());
+        Assert.Equal("9cm", container.GetProperty("potSizeName").GetString());
+        var line = container.GetProperty("contents")[0];
+        Assert.Equal(6, line.GetProperty("quantity").GetInt32());
+        Assert.Equal("Lavender", line.GetProperty("commonName").GetString());
+    }
+
+    [Fact]
     public async Task Recent_actions_respect_the_limit()
     {
         await using var scene = await CreateSceneAsync();

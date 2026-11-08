@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { recordWork } from "../../lib/queue";
   import type { Schemas } from "../../lib/types";
-  import { outcomeProblem, plantName, submit, work } from "../../lib/work";
+  import { isRecorded, outcomeProblem, plantName, work } from "../../lib/work";
   import ActionFrame from "./ActionFrame.svelte";
   import BatchChoice from "./BatchChoice.svelte";
   import Stepper from "./Stepper.svelte";
@@ -28,12 +29,12 @@
 
   async function record() {
     busy = true;
-    const outcome = await submit(
+    const outcome = await recordWork(
       work.count(container.id, { batchId: line.batchId, counted }),
     );
     busy = false;
 
-    if (outcome.kind === "stored") {
+    if (isRecorded(outcome)) {
       onDone(
         `Counted ${counted} ${plantName(line.commonName, line.variety)}`,
         outcome.eventId,

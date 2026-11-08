@@ -12,6 +12,10 @@ export default ts.config(
   ...svelte.configs.recommended,
   { languageOptions: { globals: globals.browser } },
   {
+    files: ["public/sw.js"],
+    languageOptions: { globals: globals.serviceworker },
+  },
+  {
     files: ["**/*.svelte"],
     languageOptions: { parserOptions: { parser: ts.parser } },
   },
