@@ -2184,6 +2184,7 @@ export interface components {
             /** Format: uuid */
             containerId: null | string;
             labelCode: null | string;
+            containerKind: null | components["schemas"]["ContainerKind"];
             /** Format: uuid */
             locationId: null | string;
             locationName: null | string;

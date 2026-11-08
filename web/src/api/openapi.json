@@ -2347,6 +2347,7 @@
           "occurredAt",
           "containerId",
           "labelCode",
+          "containerKind",
           "locationId",
           "locationName",
           "potSizeId",
@@ -2378,6 +2379,16 @@
             "type": [
               "null",
               "string"
+            ]
+          },
+          "containerKind": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ContainerKind"
+              }
             ]
           },
           "locationId": {

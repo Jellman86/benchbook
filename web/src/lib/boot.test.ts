@@ -18,7 +18,15 @@ describe("chooseStart", () => {
       null,
     );
 
-    expect(start).toEqual({ screen: "home", me });
+    expect(start).toEqual({ screen: "home", me, atBench: true });
+  });
+
+  it("knows a signed-in person on their own device isn't at a bench", async () => {
+    expect(await chooseStart(probes({ me: async () => me }), null)).toEqual({
+      screen: "home",
+      me,
+      atBench: false,
+    });
   });
 
   it("shows the name list on a bench station with nobody signed in", async () => {
