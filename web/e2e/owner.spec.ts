@@ -312,6 +312,27 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Done").click();
   await expect(page.getByRole("status")).toContainText("Note added");
 
+  // A received passport, filled in from what's known and copied from the label.
+  await scan(label);
+  await button(page, "Passports").click();
+  await expect(page.getByText("No passports recorded")).toBeVisible();
+  await button(page, "Add a passport").click();
+  await expect(page.getByLabel("A: Botanical name")).toHaveValue(
+    "Lavandula angustifolia",
+  );
+  await expect(page.getByLabel("D: Origin")).toHaveValue("GB");
+  await page.getByLabel("B: Registration number").fill("12345");
+  await page.getByLabel("C: Traceability code").fill("LOT-77");
+  await button(page, "Save passport").click();
+  await expect(page.getByText("B: 12345")).toBeVisible();
+  await expect(page.getByText("potted on since")).toBeVisible();
+  await button(page, "Used up").click();
+  await expect(
+    page.locator(".card strong", { hasText: "Used up" }),
+  ).toBeVisible();
+  await button(page, "Back").click();
+  await button(page, "Back").click();
+
   // An unknown label says so and goes back to scanning.
   await scan("NOPE");
   await expect(page.getByRole("alert")).toContainText(

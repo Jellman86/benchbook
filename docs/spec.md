@@ -43,7 +43,7 @@ Labels must survive wet conditions: polypropylene or polyester stock with resin 
 - **Batch:** lineage only. One plant raised together, with a traceability code, source (seed lot, bought-in plants or cuttings), parent batch or mother plant, and original origin country.
 - **Container:** the physical unit: tray, pot group or bench lot. It has a label, location, pot size, count, and the batch or batches it holds. A mixed tray is one container with several batch lines.
 - **Event:** sown, received (bought-in plants), cuttings taken, germinated, pricked out, potted on, moved, lost, split, treated, examined, sold, stock counted, corrected, note. May carry a photo.
-- **Received passport:** Parts A to D copied exactly from the supplier's label, with supplier, date received and status: held, used up or no longer valid.
+- **Received passport:** the parts copied exactly from the supplier's label, with who supplied it, date received and status: held, used up or no longer valid. Part C may be absent on plants ready for final sale, and Part E is usually blank. What was printed can never be changed afterwards.
 - **Consignment:** a sale or movement. Contains **packages,** the smallest unit transported, whose lines reference batches and quantities.
 - **Issued passport:** belongs to a package. May list several species. Every Part C code must resolve to every batch in the package.
 - **Sale, customer, task, treatment record:** described below.
@@ -82,7 +82,7 @@ Source: GOV.UK, "Issuing plant passports to trade plants in Great Britain", upda
 - Every passport issue is preceded by a recorded examination.
 - A received passport cannot be reused once its batch has been split, repotted or grown on, or if traceability is lost or plants are not pest and disease free. A new passport must be issued.
 - Sales of ornamental propagating material to professionals also need a supplier document, which cannot be replaced by a passport.
-- Records kept for 3 years: who supplied each passported unit, who it went to, and the passport's information. Records must allow APHA to investigate outbreaks.
+- Who supplied every received passport must be recorded. Issued passports are recorded for 3 years, with who they went to. GOV.UK sets no period for received passports, so GrowLog keeps them permanently. Records must allow APHA to investigate outbreaks.
 - Authorisation is renewed yearly, with a chargeable inspection. The system reminds the owner.
 
 The system validates botanical names before issue; retains records for at least 3 years and blocks earlier deletion; flags Xylella hosts; warns when taking cuttings from a protected variety; records suspected quarantine pests and prompts a call to APHA; and produces inspection, trace-back and trace-forward reports.

@@ -9,6 +9,7 @@
   import Lose from "./Lose.svelte";
   import Move from "./Move.svelte";
   import Note from "./Note.svelte";
+  import Passports from "./Passports.svelte";
   import Transfer from "./Transfer.svelte";
   import Treat from "./Treat.svelte";
 
@@ -25,7 +26,14 @@
   } = $props();
 
   type Action =
-    "lost" | "move" | "potOn" | "prickOut" | "count" | "treat" | "note";
+    | "lost"
+    | "move"
+    | "potOn"
+    | "prickOut"
+    | "count"
+    | "treat"
+    | "note"
+    | "passports";
 
   let container = $state<Schemas["ContainerResponse"] | null>(null);
   let action = $state<Action | null>(null);
@@ -86,6 +94,8 @@
   <Count {container} {onDone} onCancel={back} />
 {:else if action === "treat"}
   <Treat {container} {onDone} onCancel={back} />
+{:else if action === "passports"}
+  <Passports {container} onCancel={back} />
 {:else if action === "note"}
   <Note {container} {onDone} onCancel={back} />
 {:else}
@@ -115,6 +125,7 @@
         <button onclick={() => (action = "prickOut")}>Prick out</button>
         <button disabled={busy} onclick={germinated}>Germinated</button>
         <button onclick={() => (action = "count")}>Count</button>
+        <button onclick={() => (action = "passports")}>Passports</button>
       {/if}
       <button onclick={() => (action = "move")}>Move</button>
       <button onclick={() => (action = "treat")}>Treated</button>

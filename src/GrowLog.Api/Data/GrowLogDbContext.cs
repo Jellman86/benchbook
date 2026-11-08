@@ -60,6 +60,20 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.ChangedBy).OnDelete(DeleteBehavior.Restrict);
         });
 
+        var passportStatuses = string.Join(", ", Enum.GetNames<ReceivedPassportStatus>().Select(name => $"'{name}'"));
+
+        modelBuilder.Entity<ReceivedPassport>(entity =>
+        {
+            entity.ToTable("received_passports", table => table.HasCheckConstraint("ck_received_passports_status", $"status IN ({passportStatuses})"));
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Status).HasConversion<string>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.HasIndex(e => e.BatchId);
+            entity.HasOne<Batch>().WithMany().HasForeignKey(e => e.BatchId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Supplier>().WithMany().HasForeignKey(e => e.SupplierId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.RecordedBy).OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<BenchStation>(entity =>
         {
             entity.Property(e => e.Id).ValueGeneratedNever();
