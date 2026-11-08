@@ -1,6 +1,6 @@
 namespace GrowLog.Api.Data;
 
-internal sealed class PotSize
+internal sealed class PotSize : IAudited, IArchivable
 {
     public Guid Id { get; init; } = Guid.CreateVersion7();
 

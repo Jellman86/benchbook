@@ -1,15 +1,23 @@
+using System.Text.Json.Serialization;
 using GrowLog.Api;
 using GrowLog.Api.Accounts;
+using GrowLog.Api.Catalogue;
 using GrowLog.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
+builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<CatalogueAuditInterceptor>();
 builder.Services.AddDbContext<GrowLogDbContext>((services, options) =>
+{
     GrowLogDbContext.Configure(
         options,
         services.GetRequiredService<IConfiguration>().GetConnectionString("GrowLog")
-            ?? throw new InvalidOperationException("Connection string 'GrowLog' is not configured.")));
+            ?? throw new InvalidOperationException("Connection string 'GrowLog' is not configured."));
+    options.AddInterceptors(services.GetRequiredService<CatalogueAuditInterceptor>());
+});
 builder.Services.AddScoped<EventStore>();
 builder.Services.AddGrowLogAccounts();
 
@@ -30,6 +38,7 @@ app.MapGet("/api/health", () => TypedResults.Ok(new HealthResponse("ok"))).Allow
 app.MapAccountEndpoints();
 app.MapStaffEndpoints();
 app.MapBenchEndpoints();
+app.MapCatalogueEndpoints();
 
 await app.RunAsync();
 

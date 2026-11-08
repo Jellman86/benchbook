@@ -211,6 +211,54 @@ namespace GrowLog.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.CatalogueChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("action");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid>("ChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by");
+
+                    b.Property<string>("Changes")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("changes");
+
+                    b.Property<string>("Entity")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("entity");
+
+                    b.Property<string>("EntityKey")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("entity_key");
+
+                    b.HasKey("Id")
+                        .HasName("pk_catalogue_changes");
+
+                    b.HasIndex("ChangedBy")
+                        .HasDatabaseName("ix_catalogue_changes_changed_by");
+
+                    b.HasIndex("Entity", "EntityKey")
+                        .HasDatabaseName("ix_catalogue_changes_entity_entity_key");
+
+                    b.ToTable("catalogue_changes", (string)null);
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.Container", b =>
                 {
                     b.Property<Guid>("Id")
@@ -791,6 +839,16 @@ namespace GrowLog.Api.Data.Migrations
                         .HasForeignKey("SupplierId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_batches_suppliers_supplier_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.CatalogueChange", b =>
+                {
+                    b.HasOne("GrowLog.Api.Accounts.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("ChangedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_catalogue_changes_asp_net_users_changed_by");
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.Event", b =>
