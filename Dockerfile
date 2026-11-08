@@ -7,7 +7,7 @@ RUN npm run build
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:212fe4cb74627d5adf9817a4088906ae3edff1bd853bb27565d4b46731efe61e AS api
 WORKDIR /src
-COPY global.json Directory.Build.props Directory.Packages.props ./
+COPY global.json Directory.Build.props Directory.Packages.props .editorconfig ./
 COPY src/ src/
 RUN dotnet publish src/BenchBook.Api/BenchBook.Api.csproj --configuration Release --output /app
 
