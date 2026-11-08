@@ -100,7 +100,7 @@ public sealed class ReceivedPassportTests(PostgresFixture database)
     public async Task A_passport_needs_a_known_supplier_and_batch()
     {
         await using var scene = await CreateSceneAsync();
-        var body = new { batchId = scene.Batch, supplierId = Guid.NewGuid(), receivedOn = Today, partA = "A", partB = "B", partC = (string?)null, partD = "NL", partE = (string?)null };
+        var body = new { batchId = scene.Batch, supplierId = Guid.NewGuid(), receivedOn = Today, partA = "A", partB = "B", partD = "NL" };
 
         Assert.Equal(HttpStatusCode.BadRequest, await PostStatusAsync(scene.Staff, "/api/received-passports", body));
     }
