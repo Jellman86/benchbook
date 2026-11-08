@@ -28,6 +28,8 @@ app.UseAuthorization();
 app.MapOpenApi().AllowAnonymous();
 app.MapGet("/api/health", () => TypedResults.Ok(new HealthResponse("ok"))).AllowAnonymous();
 app.MapAccountEndpoints();
+app.MapStaffEndpoints();
+app.MapBenchEndpoints();
 
 await app.RunAsync();
 

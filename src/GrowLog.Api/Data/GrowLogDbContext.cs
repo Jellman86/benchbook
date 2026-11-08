@@ -11,6 +11,8 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 {
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
+    public DbSet<BenchStation> BenchStations => Set<BenchStation>();
+
     public DbSet<Event> Events => Set<Event>();
 
     public DbSet<Plant> Plants => Set<Plant>();
@@ -42,6 +44,12 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         ConfigureEvents(modelBuilder);
         ConfigureCatalogue(modelBuilder);
         ConfigureStock(modelBuilder);
+
+        modelBuilder.Entity<BenchStation>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        });
     }
 
     private static void ConfigureStock(ModelBuilder modelBuilder)

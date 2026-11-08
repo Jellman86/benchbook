@@ -1,4 +1,5 @@
 using GrowLog.Api.Data;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
@@ -8,10 +9,17 @@ namespace GrowLog.Api.Accounts;
 internal static class AccountServices
 {
     public const string OwnerRole = "Owner";
+    public const string OwnerPolicy = "Owner";
+    public const string BenchPolicy = "BenchStation";
+    public const string BenchScheme = "BenchStation";
 
     public static void ConfigureIdentity(IdentityOptions options)
     {
         options.User.AllowedUserNameCharacters = string.Empty;
+
+        // A short PIN is only safe with a firm limit on guesses.
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
 
         // Version 3 adds the passkey table.
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
@@ -22,7 +30,18 @@ internal static class AccountServices
         // Kept in the database, so a redeploy of the container does not sign everyone out.
         services.AddDataProtection().SetApplicationName("GrowLog").PersistKeysToDbContext<GrowLogDbContext>();
 
-        services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies();
+        var authentication = services.AddAuthentication(IdentityConstants.ApplicationScheme);
+        authentication.AddIdentityCookies();
+        authentication.AddCookie(BenchScheme, options =>
+        {
+            options.Cookie.Name = "growlog.bench";
+            options.Cookie.SameSite = SameSiteMode.Strict;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.ExpireTimeSpan = TimeSpan.FromDays(365);
+            options.SlidingExpiration = true;
+            AnswerWithStatusCodes(options);
+        });
+
         services.ConfigureApplicationCookie(options =>
         {
             options.Cookie.Name = "growlog.session";
@@ -30,27 +49,21 @@ internal static class AccountServices
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
             options.ExpireTimeSpan = TimeSpan.FromDays(30);
             options.SlidingExpiration = true;
-
-            // This is an API, so answer with a status code rather than redirecting to a page.
-            options.Events.OnRedirectToLogin = context =>
-            {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                return Task.CompletedTask;
-            };
-            options.Events.OnRedirectToAccessDenied = context =>
-            {
-                context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                return Task.CompletedTask;
-            };
+            AnswerWithStatusCodes(options);
         });
 
         services.AddAuthorizationBuilder()
-            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
+            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
+            .AddPolicy(OwnerPolicy, policy => policy.RequireRole(OwnerRole))
+            .AddPolicy(BenchPolicy, policy => policy.AddAuthenticationSchemes(BenchScheme).RequireAuthenticatedUser());
 
         services.AddIdentityCore<AppUser>(ConfigureIdentity)
             .AddRoles<IdentityRole<Guid>>()
             .AddEntityFrameworkStores<GrowLogDbContext>()
-            .AddSignInManager();
+            .AddSignInManager()
+            .AddDefaultTokenProviders();
+
+        services.Configure<DataProtectionTokenProviderOptions>(options => options.TokenLifespan = TimeSpan.FromDays(7));
 
         services.AddOptions<IdentityPasskeyOptions>().Configure<IConfiguration>((options, configuration) =>
         {
@@ -65,5 +78,20 @@ internal static class AccountServices
         });
 
         return services;
+    }
+
+    /// <summary>This is an API, so it answers with a status code rather than redirecting to a page.</summary>
+    private static void AnswerWithStatusCodes(CookieAuthenticationOptions options)
+    {
+        options.Events.OnRedirectToLogin = context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        };
     }
 }
