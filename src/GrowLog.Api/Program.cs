@@ -3,6 +3,7 @@ using GrowLog.Api;
 using GrowLog.Api.Accounts;
 using GrowLog.Api.Catalogue;
 using GrowLog.Api.Data;
+using GrowLog.Api.Work;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,6 +40,7 @@ app.MapAccountEndpoints();
 app.MapStaffEndpoints();
 app.MapBenchEndpoints();
 app.MapCatalogueEndpoints();
+app.MapWorkEndpoints();
 
 await app.RunAsync();
 
