@@ -335,6 +335,7 @@ internal static class WorkEndpoints
                 e.OccurredAt,
                 e.ContainerId,
                 LabelCode = db.Containers.Where(c => c.Id == e.ContainerId).Select(c => c.LabelCode).FirstOrDefault(),
+                ContainerKind = db.Containers.Where(c => c.Id == e.ContainerId).Select(c => (ContainerKind?)c.Kind).FirstOrDefault(),
                 e.LocationId,
                 LocationName = db.Locations.Where(l => l.Id == e.LocationId).Select(l => l.Name).FirstOrDefault(),
                 e.PotSizeId,
@@ -343,8 +344,26 @@ internal static class WorkEndpoints
             })
             .ToListAsync(cancellationToken);
 
-        var eventIds = rows.Select(row => row.Id).ToList();
+        var lines = await LoadRecentLinesAsync(rows.ConvertAll(row => row.Id), db, cancellationToken);
 
+        return rows
+            .ConvertAll(row => new RecentAction(
+                row.Id,
+                row.Type,
+                row.OccurredAt,
+                row.ContainerId,
+                row.LabelCode,
+                row.ContainerKind,
+                row.LocationId,
+                row.LocationName,
+                row.PotSizeId,
+                row.PotSizeName,
+                JsonSerializer.Deserialize<JsonElement>(row.Payload),
+                lines[row.Id].ToList()));
+    }
+
+    private static async Task<ILookup<Guid, RecentLine>> LoadRecentLinesAsync(List<Guid> eventIds, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
         var lines = await db.EventLines
             .Where(line => eventIds.Contains(line.EventId))
             .Join(db.Batches, line => line.BatchId, batch => batch.Id, (line, batch) => new { line, batch })
@@ -365,19 +384,7 @@ internal static class WorkEndpoints
             })
             .ToListAsync(cancellationToken);
 
-        return rows
-            .ConvertAll(row => new RecentAction(
-                row.Id,
-                row.Type,
-                row.OccurredAt,
-                row.ContainerId,
-                row.LabelCode,
-                row.LocationId,
-                row.LocationName,
-                row.PotSizeId,
-                row.PotSizeName,
-                JsonSerializer.Deserialize<JsonElement>(row.Payload),
-                lines.Where(line => line.EventId == row.Id).Select(line => line.Line).ToList()));
+        return lines.ToLookup(line => line.EventId, line => line.Line);
     }
 
     internal sealed record WorkRecorded(Guid EventId);
@@ -457,6 +464,7 @@ internal static class WorkEndpoints
         DateTimeOffset OccurredAt,
         Guid? ContainerId,
         string? LabelCode,
+        ContainerKind? ContainerKind,
         Guid? LocationId,
         string? LocationName,
         Guid? PotSizeId,

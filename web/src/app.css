@@ -156,6 +156,34 @@ select:focus-visible {
   font-family: monospace;
 }
 
+h2 {
+  margin: 0.5rem 0 0;
+  font-size: 1.2rem;
+}
+
+.done {
+  border-width: 3px;
+  border-color: var(--primary);
+}
+
+.stepper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stepper-value {
+  font-size: 3rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.stepper-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
 .pin-display {
   min-height: 2.5rem;
   font-size: 2rem;

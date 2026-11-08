@@ -56,7 +56,7 @@
     <button onclick={() => load()}>Try again</button>
   </main>
 {:else if start?.screen === "home"}
-  <Home me={start.me} onSignedOut={finished} />
+  <Home me={start.me} atBench={start.atBench} onSignedOut={finished} />
 {:else if start?.screen === "bench"}
   <Bench people={start.people} onSignedIn={finished} />
 {:else if start?.screen === "setup"}

@@ -19,6 +19,13 @@ async function addPasskeySupport(page: Page) {
 const button = (page: Page, name: string) =>
   page.getByRole("button", { name, exact: true });
 
+// A drop-down's accessible name includes its options, so find it by the label's start.
+const chooser = (page: Page, name: string) =>
+  page
+    .locator("label")
+    .filter({ hasText: new RegExp(`^\\s*${name}`) })
+    .locator("select");
+
 async function openManage(page: Page, section: string) {
   await button(page, "Manage").click();
   await button(page, section).click();
@@ -188,6 +195,126 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(
     page.getByRole("heading", { name: "Hello, Alex Moss" }),
   ).toBeVisible();
+
+  // Start a batch.
+  await button(page, "New batch").click();
+  await chooser(page, "Plant").selectOption({ label: "Lavender 'Munstead'" });
+  await button(page, "40").click();
+  await chooser(page, "Supplier").selectOption({ label: "Hillside Plants" });
+  await chooser(page, "Place").selectOption({ label: "Greenhouse 2, Bench 1" });
+  await chooser(page, "Pot size").selectOption({ label: "9cm" });
+  await button(page, "Start batch").click();
+  const started = page.getByRole("status");
+  await expect(started).toContainText("Started 40 Lavender 'Munstead'");
+  const label = /Label: (C\d+)/.exec((await started.innerText()) ?? "")![1];
+
+  // The scan box is ready straight away, as a USB scanner needs it to be.
+  await expect(page.getByLabel("Scan a label")).toBeFocused();
+
+  async function scan(code: string) {
+    await page.getByLabel("Scan a label").fill(code);
+    await page.getByLabel("Scan a label").press("Enter");
+  }
+
+  // Scan, Lost, how many, why. Then undo it.
+  await scan(label);
+  await expect(page.getByRole("heading", { name: label })).toBeVisible();
+  await expect(page.getByText("40 Lavender 'Munstead'")).toBeVisible();
+  await expect(
+    page.getByText("Greenhouse 2, Bench 1").or(page.getByText("Bench 1, 9cm")),
+  ).toBeVisible();
+  await button(page, "Lost").click();
+  await button(page, "+1").click();
+  await button(page, "+1").click();
+  await expect(page.getByTestId("quantity")).toHaveText("3");
+  await button(page, "Pest").click();
+  await expect(page.getByRole("status")).toContainText(
+    "Lost 3 Lavender 'Munstead' (Pest)",
+  );
+
+  await scan(label);
+  await expect(page.getByText("37 Lavender 'Munstead'")).toBeVisible();
+  await button(page, "Back").click();
+
+  await scan(label);
+  await button(page, "Lost").click();
+  await button(page, "Frost").click();
+  await button(page, "Undo").click();
+  await expect(page.getByRole("status")).toHaveCount(0);
+  await scan(label);
+  await expect(page.getByText("37 Lavender 'Munstead'")).toBeVisible();
+
+  // More than are there can't be lost: the stepper stops at what's there.
+  await button(page, "Lost").click();
+  await button(page, "+10").click();
+  await button(page, "+10").click();
+  await button(page, "+10").click();
+  await button(page, "+10").click();
+  await expect(page.getByTestId("quantity")).toHaveText("37");
+  await button(page, "Back").click();
+
+  // Move it.
+  await button(page, "Move").click();
+  await button(page, "Greenhouse 2").click();
+  await expect(page.getByRole("status")).toContainText(
+    `Moved ${label} to Greenhouse 2`,
+  );
+
+  // Pot on part of it, which makes a new label.
+  await scan(label);
+  await button(page, "Pot on").click();
+  await button(page, "+10").click();
+  await button(page, "Done").click();
+  await expect(page.getByRole("status")).toContainText("Potted on 11");
+  const newLabel = /New label: (C\d+)/.exec(
+    await page.getByRole("status").innerText(),
+  )![1];
+  expect(newLabel).not.toBe(label);
+
+  await scan(newLabel);
+  await expect(page.getByText("11 Lavender 'Munstead'")).toBeVisible();
+  await button(page, "Back").click();
+
+  // Count what's left.
+  await scan(label);
+  await expect(page.getByText("26 Lavender 'Munstead'")).toBeVisible();
+  await button(page, "Count").click();
+  await expect(page.getByTestId("quantity")).toHaveText("26");
+  await button(page, "−1").click();
+  await button(page, "Done").click();
+  await expect(page.getByRole("status")).toContainText("Counted 25");
+
+  // A treatment, then a note.
+  await scan(label);
+  await button(page, "Treated").click();
+  await page.getByLabel("Product").fill("Neem oil");
+  await page.getByLabel("Dose").fill("5ml per litre");
+  await page.getByLabel("Area or crop treated").fill("Tray");
+  await button(page, "Done").click();
+  await expect(page.getByRole("status")).toContainText("with Neem oil");
+
+  await scan(label);
+  await button(page, "Note").click();
+  await page.getByLabel("Note", { exact: true }).fill("Looking strong");
+  await button(page, "Done").click();
+  await expect(page.getByRole("status")).toContainText("Note added");
+
+  // An unknown label says so and goes back to scanning.
+  await scan("NOPE");
+  await expect(page.getByRole("alert")).toContainText(
+    "No container has the label NOPE",
+  );
+
+  // One press repeats a recent action.
+  await page
+    .locator(".card", { hasText: "Sowed 40 Lavender 'Munstead'" })
+    .getByRole("button", { name: "Again" })
+    .click();
+  await expect(page.getByRole("status")).toContainText("Again: Sowed 40");
+  const repeated = /Label: (C\d+)/.exec(
+    await page.getByRole("status").innerText(),
+  )![1];
+  expect(repeated).not.toBe(label);
 
   // Finishing returns to the name list, not to sign-in.
   await button(page, "Finished").click();

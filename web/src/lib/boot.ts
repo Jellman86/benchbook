@@ -15,7 +15,7 @@ export interface Invite {
 
 export type Start =
   | { screen: "invite"; invite: Invite }
-  | { screen: "home"; me: Me }
+  | { screen: "home"; me: Me; atBench: boolean }
   | { screen: "bench"; people: Person[] }
   | { screen: "setup" }
   | { screen: "signIn" };
@@ -49,12 +49,11 @@ export async function chooseStart(
   }
 
   const me = await probes.me();
+  const people = await probes.benchPeople();
 
   if (me) {
-    return { screen: "home", me };
+    return { screen: "home", me, atBench: people !== null };
   }
-
-  const people = await probes.benchPeople();
 
   if (people) {
     return { screen: "bench", people };
