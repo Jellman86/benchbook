@@ -6,6 +6,8 @@ namespace GrowLog.Api.Demo;
 /// <summary>A believable, entirely made-up nursery, recorded through the same paths as real work.</summary>
 internal sealed class ExampleData(GrowLogDbContext db, EventStore store)
 {
+    private static readonly string[] PotSizeNames = ["9cm", "1L", "2L", "3L"];
+
     private static readonly PlantSeed[] PlantSeeds =
     [
         new("Lavender", "Hidcote", "Lavandula angustifolia", "Perennial", "Full sun", "Low once established", "H5", XylellaHost: true, Protected: false, 4.50m, 8.95m),
@@ -56,12 +58,9 @@ internal sealed class ExampleData(GrowLogDbContext db, EventStore store)
 
     private async Task AddCatalogueAsync(CancellationToken cancellationToken)
     {
-        foreach (var name in new[] { "9cm", "1L", "2L", "3L" })
-        {
-            var size = new PotSize { Name = name };
-            db.PotSizes.Add(size);
-            potSizes.Add(size.Id);
-        }
+        var sizes = PotSizeNames.Select(name => new PotSize { Name = name }).ToList();
+        db.PotSizes.AddRange(sizes);
+        potSizes.AddRange(sizes.Select(size => size.Id));
 
         var site = new Location { Name = "Example Nursery", Kind = LocationKind.Site };
         var greenhouse1 = new Location { Name = "Greenhouse 1", Kind = LocationKind.Greenhouse, ParentId = site.Id };
@@ -69,19 +68,16 @@ internal sealed class ExampleData(GrowLogDbContext db, EventStore store)
         var tunnel = new Location { Name = "Polytunnel", Kind = LocationKind.Polytunnel, ParentId = site.Id };
         db.Locations.AddRange(site, greenhouse1, greenhouse2, tunnel);
 
-        foreach (var (parent, name, kind) in new[]
+        var places = new[]
         {
-            (greenhouse1, "Bench A", LocationKind.Bench),
-            (greenhouse1, "Bench B", LocationKind.Bench),
-            (greenhouse2, "Bench A", LocationKind.Bench),
-            (greenhouse2, "Bench B", LocationKind.Bench),
-            (tunnel, "Bay 1", LocationKind.Bay),
-        })
-        {
-            var bench = new Location { Name = name, Kind = kind, ParentId = parent.Id };
-            db.Locations.Add(bench);
-            benches.Add(bench.Id);
-        }
+            new Location { Name = "Bench A", Kind = LocationKind.Bench, ParentId = greenhouse1.Id },
+            new Location { Name = "Bench B", Kind = LocationKind.Bench, ParentId = greenhouse1.Id },
+            new Location { Name = "Bench A", Kind = LocationKind.Bench, ParentId = greenhouse2.Id },
+            new Location { Name = "Bench B", Kind = LocationKind.Bench, ParentId = greenhouse2.Id },
+            new Location { Name = "Bay 1", Kind = LocationKind.Bay, ParentId = tunnel.Id },
+        };
+        db.Locations.AddRange(places);
+        benches.AddRange(places.Select(place => place.Id));
 
         suppliers.AddRange(
             new Supplier { Name = "Example Seeds Ltd", Supplies = "Seed", TypicalLeadTimeDays = 7, PassportRegistrationNumber = "10001" },
@@ -89,27 +85,28 @@ internal sealed class ExampleData(GrowLogDbContext db, EventStore store)
             new Supplier { Name = "Demo Sundries", Supplies = "Compost and pots", TypicalLeadTimeDays = 3 });
         db.Suppliers.AddRange(suppliers);
 
-        foreach (var seed in PlantSeeds)
-        {
-            var plant = new Plant
-            {
-                CommonName = seed.CommonName,
-                Variety = seed.Variety,
-                BotanicalName = seed.Botanical,
-                Category = seed.Category,
-                Position = seed.Position,
-                Watering = seed.Watering,
-                Hardiness = seed.Hardiness,
-                XylellaHost = seed.XylellaHost,
-                ProtectedVariety = seed.Protected,
-            };
-            plant.Prices.Add(new PlantPrice { PotSizeId = potSizes[0], Price = seed.SmallPrice });
-            plant.Prices.Add(new PlantPrice { PotSizeId = potSizes[1], Price = seed.LargePrice });
-            plants.Add(plant);
-        }
-
+        plants.AddRange(PlantSeeds.Select(ToPlant));
         db.Plants.AddRange(plants);
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private Plant ToPlant(PlantSeed seed)
+    {
+        var plant = new Plant
+        {
+            CommonName = seed.CommonName,
+            Variety = seed.Variety,
+            BotanicalName = seed.Botanical,
+            Category = seed.Category,
+            Position = seed.Position,
+            Watering = seed.Watering,
+            Hardiness = seed.Hardiness,
+            XylellaHost = seed.XylellaHost,
+            ProtectedVariety = seed.Protected,
+        };
+        plant.Prices.Add(new PlantPrice { PotSizeId = potSizes[0], Price = seed.SmallPrice });
+        plant.Prices.Add(new PlantPrice { PotSizeId = potSizes[1], Price = seed.LargePrice });
+        return plant;
     }
 
     private Event NewEvent(EventType type, int daysAgo, Guid containerId, Guid? locationId = null, Guid? potSizeId = null, object? details = null) => new()
