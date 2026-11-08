@@ -1,9 +1,16 @@
+using GrowLog.Api.Accounts;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace GrowLog.Api.Data;
 
-internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> options) : DbContext(options)
+internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> options)
+    : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>(options), IDataProtectionKeyContext
 {
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
+
     public DbSet<Event> Events => Set<Event>();
 
     public DbSet<Plant> Plants => Set<Plant>();
@@ -27,6 +34,8 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
         // Names in drop-down lists are unique regardless of capitals.
         modelBuilder.HasPostgresExtension("citext");
 
@@ -147,6 +156,7 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.Property(e => e.Type).HasConversion<string>();
             entity.Property(e => e.RecordedAt).HasDefaultValueSql("now()");
             entity.Property(e => e.Payload).HasColumnType("jsonb");
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.RecordedBy).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Container>().WithMany().HasForeignKey(e => e.ContainerId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Location>().WithMany().HasForeignKey(e => e.LocationId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<PotSize>().WithMany().HasForeignKey(e => e.PotSizeId).OnDelete(DeleteBehavior.Restrict);
