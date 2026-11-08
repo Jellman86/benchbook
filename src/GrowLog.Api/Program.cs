@@ -1,4 +1,5 @@
 using GrowLog.Api;
+using GrowLog.Api.Accounts;
 using GrowLog.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +11,7 @@ builder.Services.AddDbContext<GrowLogDbContext>((services, options) =>
         services.GetRequiredService<IConfiguration>().GetConnectionString("GrowLog")
             ?? throw new InvalidOperationException("Connection string 'GrowLog' is not configured.")));
 builder.Services.AddScoped<EventStore>();
+builder.Services.AddGrowLogAccounts();
 
 var app = builder.Build();
 
@@ -18,10 +20,14 @@ await using (var scope = app.Services.CreateAsyncScope())
     await scope.ServiceProvider.GetRequiredService<GrowLogDbContext>().Database.MigrateAsync();
 }
 
-app.MapOpenApi();
-app.MapGet("/api/health", () => TypedResults.Ok(new HealthResponse("ok")));
 app.UseDefaultFiles();
 app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapOpenApi().AllowAnonymous();
+app.MapGet("/api/health", () => TypedResults.Ok(new HealthResponse("ok"))).AllowAnonymous();
+app.MapAccountEndpoints();
 
 await app.RunAsync();
 

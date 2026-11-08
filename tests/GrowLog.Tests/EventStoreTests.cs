@@ -10,12 +10,12 @@ public sealed class EventStoreTests(PostgresFixture database)
 {
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    private static Event NewEvent(EventType type = EventType.Note, Guid? corrects = null, string payload = "{}") => new()
+    private Event NewEvent(EventType type = EventType.Note, Guid? corrects = null, string payload = "{}") => new()
     {
         Id = Guid.NewGuid(),
         Type = type,
         OccurredAt = DateTimeOffset.UtcNow,
-        RecordedBy = Guid.NewGuid(),
+        RecordedBy = database.UserId,
         CorrectsEventId = corrects,
         Payload = payload,
     };
@@ -62,7 +62,7 @@ public sealed class EventStoreTests(PostgresFixture database)
             Id = original.Id,
             Type = EventType.Lost,
             OccurredAt = DateTimeOffset.UtcNow,
-            RecordedBy = Guid.NewGuid(),
+            RecordedBy = database.UserId,
             Payload = """{"count": 99}""",
         };
 
@@ -82,7 +82,7 @@ public sealed class EventStoreTests(PostgresFixture database)
             Id = Guid.NewGuid(),
             Type = EventType.Note,
             OccurredAt = bst,
-            RecordedBy = Guid.NewGuid(),
+            RecordedBy = database.UserId,
         };
 
         await AppendAsync(newEvent);

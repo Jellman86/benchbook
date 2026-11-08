@@ -12,7 +12,7 @@ public sealed class ContainerStockTests(PostgresFixture database)
 
     private static string Unique(string name) => $"{name} {Guid.NewGuid():N}";
 
-    private static Event Work(
+    private Event Work(
         EventType type,
         Guid? container = null,
         Guid? corrects = null,
@@ -23,7 +23,7 @@ public sealed class ContainerStockTests(PostgresFixture database)
             Id = Guid.NewGuid(),
             Type = type,
             OccurredAt = occurredAt ?? DateTimeOffset.UtcNow,
-            RecordedBy = Guid.NewGuid(),
+            RecordedBy = database.UserId,
             ContainerId = container,
             CorrectsEventId = corrects,
             LocationId = location,
