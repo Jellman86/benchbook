@@ -12,7 +12,7 @@ public sealed class WebAppTests(PostgresFixture database) : IDisposable
 
     private async Task<TestApp> CreateAppAsync()
     {
-        await File.WriteAllTextAsync(Path.Combine(webRoot, "index.html"), "<title>GrowLog page</title>", Cancellation);
+        await File.WriteAllTextAsync(Path.Join(webRoot, "index.html"), "<title>GrowLog page</title>", Cancellation);
 
         return new TestApp(("ConnectionStrings:GrowLog", database.ConnectionString), ("webroot", webRoot));
     }
