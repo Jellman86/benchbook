@@ -1,0 +1,37 @@
+name: Publish
+
+on:
+  push:
+    branches: [dev]
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/jellman86/growlog
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build the container image
+        run: docker build --tag "$IMAGE:$GITHUB_SHA" --tag "$IMAGE:$GITHUB_REF_NAME" --label "org.opencontainers.image.source=https://github.com/Jellman86/growlog" .
+      - name: Sign in to the registry
+        run: echo "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+        env:
+          REGISTRY_TOKEN: ${{ github.token }}
+      - name: Publish the image
+        run: |
+          docker push "$IMAGE:$GITHUB_SHA"
+          docker push "$IMAGE:$GITHUB_REF_NAME"
