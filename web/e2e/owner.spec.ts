@@ -207,6 +207,15 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(started).toContainText("Started 40 Lavender 'Munstead'");
   const label = /Label: (C\d+)/.exec((await started.innerText()) ?? "")![1];
 
+  // A new batch offers its label, and it really is a PDF.
+  const pdf = await page.request.get(
+    (await page
+      .getByRole("link", { name: "Print label" })
+      .getAttribute("href"))!,
+  );
+  expect(pdf.status()).toBe(200);
+  expect((await pdf.body()).subarray(0, 4).toString()).toBe("%PDF");
+
   // The scan box is ready straight away, as a USB scanner needs it to be.
   await expect(page.getByLabel("Scan a label")).toBeFocused();
 

@@ -4,6 +4,7 @@ using GrowLog.Api;
 using GrowLog.Api.Accounts;
 using GrowLog.Api.Catalogue;
 using GrowLog.Api.Data;
+using GrowLog.Api.Labels;
 using GrowLog.Api.Work;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,6 +29,7 @@ builder.Services.AddDbContext<GrowLogDbContext>((services, options) =>
     options.AddInterceptors(services.GetRequiredService<CatalogueAuditInterceptor>());
 });
 builder.Services.AddScoped<EventStore>();
+builder.Services.AddSingleton<LabelPrinter>();
 builder.Services.AddGrowLogAccounts();
 
 var app = builder.Build();
@@ -44,6 +46,7 @@ app.MapStaffEndpoints();
 app.MapBenchEndpoints();
 app.MapCatalogueEndpoints();
 app.MapWorkEndpoints();
+app.MapLabelEndpoints();
 
 // Deep links load the web app. Unknown API paths must not.
 app.MapFallbackToFile("{*path:nonfile:regex(^(?!api/).*$)}", "index.html").AllowAnonymous();

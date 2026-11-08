@@ -11,7 +11,7 @@ Do not commit directly to `main`.
 
 ## Backend tests and migrations
 
-The backend tests start a throwaway PostgreSQL container, so they need Docker.
+The backend tests start a throwaway PostgreSQL container, so they need Docker. They also print real labels, so they need [Typst](https://typst.app) on the path, or `Typst__Path` set to it.
 
 To add a migration, run `dotnet tool restore`, then:
 

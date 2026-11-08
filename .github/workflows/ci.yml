@@ -24,6 +24,13 @@ jobs:
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
+      - name: Install Typst
+        run: |
+          curl -fsSL -o /tmp/typst.tar.xz https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz
+          echo "a6d077d0a95eed5a2eba715b2dae06be954f624ccbf85758a03f389ded33118c  /tmp/typst.tar.xz" | sha256sum -c -
+          mkdir -p "$HOME/.local/bin"
+          tar -xJf /tmp/typst.tar.xz --strip-components=1 -C "$HOME/.local/bin" typst-x86_64-unknown-linux-musl/typst
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Restore, with dependency audit
         run: dotnet restore GrowLog.slnx
       - name: Check formatting
@@ -82,6 +89,13 @@ jobs:
         with:
           node-version: "26"
           package-manager-cache: false
+      - name: Install Typst
+        run: |
+          curl -fsSL -o /tmp/typst.tar.xz https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz
+          echo "a6d077d0a95eed5a2eba715b2dae06be954f624ccbf85758a03f389ded33118c  /tmp/typst.tar.xz" | sha256sum -c -
+          mkdir -p "$HOME/.local/bin"
+          tar -xJf /tmp/typst.tar.xz --strip-components=1 -C "$HOME/.local/bin" typst-x86_64-unknown-linux-musl/typst
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - run: npm ci
       - name: Build the web app
         run: npm run build

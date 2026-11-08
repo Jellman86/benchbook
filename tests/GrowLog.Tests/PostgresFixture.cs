@@ -18,7 +18,8 @@ public sealed class PostgresFixture : IAsyncLifetime
     private const string Image =
         "postgres:18.6-alpine@sha256:123b17998ccaf47e53b502e8c6a1e79afd8f579c6f3eec83c563da026f957395";
 
-    private readonly PostgreSqlContainer container = new PostgreSqlBuilder(Image).Build();
+    // Every test application keeps its own pool of connections, and many run at once.
+    private readonly PostgreSqlContainer container = new PostgreSqlBuilder(Image).WithCommand("-c", "max_connections=1000").Build();
 
     // The Identity tables in the model depend on these options, as they do in the application.
     private readonly ServiceProvider services = new ServiceCollection()
@@ -46,7 +47,7 @@ public sealed class PostgresFixture : IAsyncLifetime
     {
         var name = $"isolated_{Guid.NewGuid():N}";
         var result = await container.ExecScriptAsync($"CREATE DATABASE {name};", TestContext.Current.CancellationToken);
-        Assert.Equal(0, result.ExitCode);
+        Assert.True(result.ExitCode == 0, result.Stderr);
 
         return new NpgsqlConnectionStringBuilder(ConnectionString) { Database = name }.ConnectionString;
     }

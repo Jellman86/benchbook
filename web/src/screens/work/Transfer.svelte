@@ -15,7 +15,7 @@
   }: {
     container: Schemas["ContainerResponse"];
     type: "PottedOn" | "PrickedOut";
-    onDone: (message: string, eventId: string) => void;
+    onDone: (message: string, eventId: string, newLabel?: string) => void;
     onCancel: () => void;
   } = $props();
 
@@ -56,6 +56,7 @@
       onDone(
         `${verb} ${quantity} ${plantName(line.commonName, line.variety)}. New label: ${outcome.labelCode}`,
         outcome.eventId,
+        outcome.labelCode,
       );
     } else {
       problem = outcomeProblem(outcome);

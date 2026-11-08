@@ -1608,6 +1608,82 @@
           }
         }
       }
+    },
+    "/api/labels/containers/{label}": {
+      "get": {
+        "tags": [
+          "LabelEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "label",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/labels/plants/{id}": {
+      "get": {
+        "tags": [
+          "LabelEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "potSizeId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/labels/bench-cards/{id}": {
+      "get": {
+        "tags": [
+          "LabelEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3020,6 +3096,9 @@
     },
     {
       "name": "CatalogueEndpoints"
+    },
+    {
+      "name": "LabelEndpoints"
     }
   ]
 }
