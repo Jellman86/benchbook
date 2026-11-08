@@ -1,6 +1,6 @@
-# BenchBook: product specification
+# GrowLog: product specification
 
-Status: draft, revised after independent review and user feedback. BenchBook is an open-source record-keeping system for small plant nurseries. The first release targets England and Wales; Scotland, which has a separate authority, is not yet verified.
+Status: draft, revised after independent review and user feedback. GrowLog is an open-source record-keeping system for small plant nurseries. The first release targets England and Wales; Scotland, which has a separate authority, is not yet verified.
 
 ## Why it exists
 

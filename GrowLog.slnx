@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GrowLog.Api/GrowLog.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GrowLog.Tests/GrowLog.Tests.csproj" />
+  </Folder>
+</Solution>

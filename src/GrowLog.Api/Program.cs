@@ -1,4 +1,4 @@
-using BenchBook.Api;
+using GrowLog.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();

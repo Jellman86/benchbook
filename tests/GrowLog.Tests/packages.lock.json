@@ -445,7 +445,7 @@
           "xunit.v3.runner.common": "[4.0.2]"
         }
       },
-      "benchbook.api": {
+      "growlog.api": {
         "type": "Project",
         "dependencies": {
           "Microsoft.AspNetCore.OpenApi": "[10.0.14, )"
