@@ -112,7 +112,7 @@ internal static class AccountEndpoints
     {
         var assertion = await signIn.PerformPasskeyAssertionAsync(request.Credential.GetRawText());
 
-        if (!assertion.Succeeded)
+        if (!assertion.Succeeded || await users.IsLockedOutAsync(assertion.User))
         {
             return TypedResults.Unauthorized();
         }

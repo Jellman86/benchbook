@@ -1,80 +1,19 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
+using static GrowLog.Tests.AccountHarness;
 
 namespace GrowLog.Tests;
 
 // Setup only works on an empty system, so each test gets its own database.
 public sealed class AccountTests(PostgresFixture database)
 {
-    private const string SetupToken = "correct-setup-token";
-
-    private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
-
-    private async Task<WebApplicationFactory<Program>> CreateAppAsync(string? setupToken = SetupToken)
-    {
-        var connectionString = await database.CreateDatabaseAsync();
-
-        return new TestApp(
-            ("ConnectionStrings:GrowLog", connectionString),
-            ("Passkeys:ServerDomain", "localhost"),
-            ("Setup:Token", setupToken));
-    }
-
-    private static HttpClient Client(WebApplicationFactory<Program> app) =>
-        app.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
-
-    private static Uri Path(string path) => new(path, UriKind.Relative);
-
-    private static async Task<string> SetupOptionsAsync(HttpClient client, string token = SetupToken)
-    {
-        using var response = await client.PostAsJsonAsync(
-            Path("/api/setup/passkey-options"),
-            new { token, name = "Sam Fielding" },
-            Cancellation);
-
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync(Cancellation);
-    }
-
-    private static async Task<HttpResponseMessage> CompleteSetupAsync(HttpClient client, string credential, string token = SetupToken) =>
-        await client.PostAsJsonAsync(
-            Path("/api/setup/complete"),
-            new { token, credential = JsonDocument.Parse(credential).RootElement },
-            Cancellation);
-
-    private static async Task SetUpOwnerAsync(HttpClient client, TestAuthenticator authenticator)
-    {
-        var options = await SetupOptionsAsync(client);
-        using var response = await CompleteSetupAsync(client, authenticator.Register(options));
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
-    }
-
-    private static async Task<HttpStatusCode> SignInAsync(HttpClient client, TestAuthenticator authenticator)
-    {
-        using var optionsResponse = await client.PostAsync(Path("/api/account/passkey-options"), content: null, Cancellation);
-        optionsResponse.EnsureSuccessStatusCode();
-        var options = await optionsResponse.Content.ReadAsStringAsync(Cancellation);
-
-        using var response = await client.PostAsJsonAsync(
-            Path("/api/account/sign-in"),
-            new { credential = JsonDocument.Parse(authenticator.Authenticate(options)).RootElement },
-            Cancellation);
-
-        return response.StatusCode;
-    }
-
-    private static async Task<HttpStatusCode> MeStatusAsync(HttpClient client)
-    {
-        using var response = await client.GetAsync(Path("/api/account/me"), Cancellation);
-        return response.StatusCode;
-    }
+    private Task<TestApp> CreateAppAsync(string? setupToken = SetupToken) => AccountHarness.CreateAppAsync(database, setupToken);
 
     private static async Task<bool> NeedsSetupAsync(HttpClient client)
     {
-        var status = await client.GetFromJsonAsync<JsonElement>(Path("/api/setup/status"), Cancellation);
+        var status = await client.GetFromJsonAsync<JsonElement>(Route("/api/setup/status"), Cancellation);
         return status.GetProperty("needsSetup").GetBoolean();
     }
 
@@ -96,7 +35,7 @@ public sealed class AccountTests(PostgresFixture database)
 
         await SetUpOwnerAsync(client, authenticator);
 
-        var me = await client.GetFromJsonAsync<JsonElement>(Path("/api/account/me"), Cancellation);
+        var me = await client.GetFromJsonAsync<JsonElement>(Route("/api/account/me"), Cancellation);
         Assert.Equal("Sam Fielding", me.GetProperty("name").GetString());
         Assert.True(me.GetProperty("isOwner").GetBoolean());
         Assert.False(await NeedsSetupAsync(client));
@@ -110,7 +49,7 @@ public sealed class AccountTests(PostgresFixture database)
         using var authenticator = new TestAuthenticator();
         await SetUpOwnerAsync(client, authenticator);
 
-        using var signOut = await client.PostAsync(Path("/api/account/sign-out"), content: null, Cancellation);
+        using var signOut = await PostAsync(client, "/api/account/sign-out");
         Assert.Equal(HttpStatusCode.Unauthorized, await MeStatusAsync(client));
 
         Assert.Equal(HttpStatusCode.NoContent, await SignInAsync(client, authenticator));
@@ -125,7 +64,7 @@ public sealed class AccountTests(PostgresFixture database)
         using var owner = new TestAuthenticator();
         using var stranger = new TestAuthenticator();
         await SetUpOwnerAsync(client, owner);
-        using var signOut = await client.PostAsync(Path("/api/account/sign-out"), content: null, Cancellation);
+        using var signOut = await PostAsync(client, "/api/account/sign-out");
 
         Assert.Equal(HttpStatusCode.Unauthorized, await SignInAsync(client, stranger));
         Assert.Equal(HttpStatusCode.Unauthorized, await MeStatusAsync(client));
@@ -152,7 +91,7 @@ public sealed class AccountTests(PostgresFixture database)
         using var client = Client(app);
 
         using var response = await client.PostAsJsonAsync(
-            Path("/api/setup/passkey-options"),
+            Route("/api/setup/passkey-options"),
             new { token = "wrong", name = "Intruder" },
             Cancellation);
 
@@ -180,7 +119,7 @@ public sealed class AccountTests(PostgresFixture database)
         using var client = Client(app);
 
         using var response = await client.PostAsJsonAsync(
-            Path("/api/setup/passkey-options"),
+            Route("/api/setup/passkey-options"),
             new { token = string.Empty, name = "Intruder" },
             Cancellation);
 
@@ -196,7 +135,7 @@ public sealed class AccountTests(PostgresFixture database)
         await SetUpOwnerAsync(client, authenticator);
 
         using var response = await client.PostAsJsonAsync(
-            Path("/api/setup/passkey-options"),
+            Route("/api/setup/passkey-options"),
             new { token = SetupToken, name = "Second owner" },
             Cancellation);
 
