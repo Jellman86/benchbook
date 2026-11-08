@@ -20,6 +20,7 @@ namespace GrowLog.Api.Data.Migrations
                 .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "citext");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("GrowLog.Api.Data.Event", b =>
@@ -71,6 +72,219 @@ namespace GrowLog.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.Location", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("citext")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_locations");
+
+                    b.HasIndex("ParentId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_locations_parent_id_name");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("ParentId", "Name"), false);
+
+                    b.ToTable("locations", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_locations_kind", "kind IN ('Site', 'Greenhouse', 'Polytunnel', 'Bench', 'Bay')");
+
+                            t.HasCheckConstraint("ck_locations_parent", "(kind = 'Site') = (parent_id IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.Plant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
+                    b.Property<string>("BotanicalName")
+                        .HasColumnType("text")
+                        .HasColumnName("botanical_name");
+
+                    b.Property<string>("Category")
+                        .HasColumnType("text")
+                        .HasColumnName("category");
+
+                    b.Property<string>("CommonName")
+                        .IsRequired()
+                        .HasColumnType("citext")
+                        .HasColumnName("common_name");
+
+                    b.Property<string>("Hardiness")
+                        .HasColumnType("text")
+                        .HasColumnName("hardiness");
+
+                    b.Property<string>("Position")
+                        .HasColumnType("text")
+                        .HasColumnName("position");
+
+                    b.Property<bool>("ProtectedVariety")
+                        .HasColumnType("boolean")
+                        .HasColumnName("protected_variety");
+
+                    b.Property<string>("Variety")
+                        .HasColumnType("citext")
+                        .HasColumnName("variety");
+
+                    b.Property<string>("Watering")
+                        .HasColumnType("text")
+                        .HasColumnName("watering");
+
+                    b.Property<bool>("XylellaHost")
+                        .HasColumnType("boolean")
+                        .HasColumnName("xylella_host");
+
+                    b.HasKey("Id")
+                        .HasName("pk_plants");
+
+                    b.HasIndex("CommonName", "Variety")
+                        .IsUnique()
+                        .HasDatabaseName("ix_plants_common_name_variety");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("CommonName", "Variety"), false);
+
+                    b.ToTable("plants", (string)null);
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.PlantPrice", b =>
+                {
+                    b.Property<Guid>("PlantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("plant_id");
+
+                    b.Property<Guid>("PotSizeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("pot_size_id");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("price");
+
+                    b.HasKey("PlantId", "PotSizeId")
+                        .HasName("pk_plant_prices");
+
+                    b.HasIndex("PotSizeId")
+                        .HasDatabaseName("ix_plant_prices_pot_size_id");
+
+                    b.ToTable("plant_prices", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_plant_prices_price", "price >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.PotSize", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("citext")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_pot_sizes");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_pot_sizes_name");
+
+                    b.ToTable("pot_sizes", (string)null);
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.Supplier", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AccountReference")
+                        .HasColumnType("text")
+                        .HasColumnName("account_reference");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("text")
+                        .HasColumnName("address");
+
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
+                    b.Property<string>("ContactName")
+                        .HasColumnType("text")
+                        .HasColumnName("contact_name");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("text")
+                        .HasColumnName("email");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("citext")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<string>("PassportRegistrationNumber")
+                        .HasColumnType("text")
+                        .HasColumnName("passport_registration_number");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("text")
+                        .HasColumnName("phone");
+
+                    b.Property<string>("Supplies")
+                        .HasColumnType("text")
+                        .HasColumnName("supplies");
+
+                    b.Property<int?>("TypicalLeadTimeDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("typical_lead_time_days");
+
+                    b.HasKey("Id")
+                        .HasName("pk_suppliers");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_suppliers_name");
+
+                    b.ToTable("suppliers", (string)null);
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.Event", b =>
                 {
                     b.HasOne("GrowLog.Api.Data.Event", null)
@@ -78,6 +292,37 @@ namespace GrowLog.Api.Data.Migrations
                         .HasForeignKey("GrowLog.Api.Data.Event", "CorrectsEventId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_events_events_corrects_event_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.Location", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Location", null)
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_locations_locations_parent_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.PlantPrice", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Plant", null)
+                        .WithMany("Prices")
+                        .HasForeignKey("PlantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_plant_prices_plants_plant_id");
+
+                    b.HasOne("GrowLog.Api.Data.PotSize", null)
+                        .WithMany()
+                        .HasForeignKey("PotSizeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_plant_prices_pot_sizes_pot_size_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.Plant", b =>
+                {
+                    b.Navigation("Prices");
                 });
 #pragma warning restore 612, 618
         }
