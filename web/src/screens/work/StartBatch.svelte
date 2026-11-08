@@ -16,7 +16,7 @@
     onDone,
     onCancel,
   }: {
-    onDone: (message: string, eventId: string) => void;
+    onDone: (message: string, eventId: string, newLabel?: string) => void;
     onCancel: () => void;
   } = $props();
 
@@ -75,6 +75,7 @@
       onDone(
         `Started ${quantity} ${plant ? plantName(plant.commonName, plant.variety) : ""}. Label: ${outcome.labelCode}`,
         outcome.eventId,
+        outcome.labelCode,
       );
     } else {
       problem = outcomeProblem(outcome);

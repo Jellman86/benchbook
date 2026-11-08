@@ -143,6 +143,29 @@
       {#if plant.botanicalName}<em>{plant.botanicalName}</em>{/if}
       <div class="row">
         <button class="secondary" onclick={() => edit(plant)}>Change</button>
+        <a
+          class="button secondary"
+          href="/api/labels/bench-cards/{plant.id}"
+          target="_blank"
+          rel="noopener">Bench card</a
+        >
+        {#each plant.prices as price (price.potSizeId)}
+          <a
+            class="button secondary"
+            href="/api/labels/plants/{plant.id}?potSizeId={price.potSizeId}"
+            target="_blank"
+            rel="noopener"
+            >Plant label: {potSizes.find((size) => size.id === price.potSizeId)
+              ?.name}</a
+          >
+        {:else}
+          <a
+            class="button secondary"
+            href="/api/labels/plants/{plant.id}"
+            target="_blank"
+            rel="noopener">Plant label</a
+          >
+        {/each}
         <button class="secondary" onclick={() => archive(plant.id)}
           >No longer grown</button
         >

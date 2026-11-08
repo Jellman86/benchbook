@@ -11,11 +11,19 @@ COPY global.json Directory.Build.props Directory.Packages.props .editorconfig ./
 COPY src/ src/
 RUN dotnet publish src/GrowLog.Api/GrowLog.Api.csproj --configuration Release --output /app
 
+# Makes label PDFs. Update the version and checksum together.
+FROM alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf AS typst
+ADD --checksum=sha256:a6d077d0a95eed5a2eba715b2dae06be954f624ccbf85758a03f389ded33118c https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz /tmp/typst.tar.xz
+RUN tar -xJf /tmp/typst.tar.xz -C /tmp --strip-components=1
+
 # Chiseled: no shell or package manager. "extra" keeps ICU and time zones for UK dates.
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra@sha256:a9298ccc39c6258ae71228479e2f3f8d2ceb6639a9927262a4b0ff7d319a0e7e
 WORKDIR /app
 COPY --from=api /app ./
 COPY --from=web /src/web/dist ./wwwroot
+COPY --from=typst /tmp/typst /usr/local/bin/typst
+COPY --from=typst /tmp/LICENSE /usr/share/licenses/typst/LICENSE
+ENV Typst__Path=/usr/local/bin/typst
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
 USER $APP_UID

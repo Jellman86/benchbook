@@ -42,7 +42,11 @@
   let label = $state("");
   let scanBox = $state<HTMLInputElement | null>(null);
   let recent = $state<Schemas["RecentAction"][]>([]);
-  let done = $state<{ message: string; eventId: string } | null>(null);
+  let done = $state<{
+    message: string;
+    eventId: string;
+    newLabel?: string;
+  } | null>(null);
   let problem = $state("");
   let offline = $state(false);
   let waiting = $state(queue.waiting);
@@ -106,7 +110,7 @@
     void sendWaiting();
   }
 
-  function finishWork(message: string, eventId: string) {
+  function finishWork(message: string, eventId: string, newLabel?: string) {
     const saved = queue.has(eventId);
 
     if (saved) {
@@ -116,6 +120,7 @@
     done = {
       message: saved ? `${message}. Saved on this device for now.` : message,
       eventId,
+      newLabel,
     };
     problem = "";
     void goHome();
@@ -152,7 +157,11 @@
         outcome.kind === "stored" && outcome.labelCode
           ? `. Label: ${outcome.labelCode}`
           : "";
-      finishWork(`Again: ${describeRecent(action)}${suffix}`, outcome.eventId);
+      finishWork(
+        `Again: ${describeRecent(action)}${suffix}`,
+        outcome.eventId,
+        outcome.kind === "stored" ? outcome.labelCode : undefined,
+      );
     } else {
       done = null;
       problem = outcomeProblem(outcome);
@@ -273,6 +282,14 @@
     {#if done}
       <div class="card done" role="status">
         <strong>{done.message}</strong>
+        {#if done.newLabel}
+          <a
+            class="button"
+            href="/api/labels/containers/{encodeURIComponent(done.newLabel)}"
+            target="_blank"
+            rel="noopener">Print label</a
+          >
+        {/if}
         <button class="secondary" onclick={() => undo(done!.eventId)}
           >Undo</button
         >

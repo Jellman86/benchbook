@@ -19,7 +19,7 @@
     onNotFound,
   }: {
     label: string;
-    onDone: (message: string, eventId: string) => void;
+    onDone: (message: string, eventId: string, newLabel?: string) => void;
     onCancel: () => void;
     onNotFound: (message: string) => void;
   } = $props();
@@ -120,6 +120,12 @@
       <button onclick={() => (action = "treat")}>Treated</button>
       <button onclick={() => (action = "note")}>Note</button>
     </div>
+    <a
+      class="button secondary"
+      href="/api/labels/containers/{encodeURIComponent(container.labelCode)}"
+      target="_blank"
+      rel="noopener">Print label</a
+    >
     <button class="secondary" onclick={onCancel}>Back</button>
   </main>
 {/if}

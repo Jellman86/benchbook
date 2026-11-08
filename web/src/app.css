@@ -86,6 +86,31 @@ button {
   cursor: pointer;
 }
 
+a.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--target);
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--primary);
+  border-radius: 0.5rem;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+a.button.secondary {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.row a.button {
+  flex: 1 1 8rem;
+}
+
 button.secondary {
   background: var(--surface);
   color: var(--text);
