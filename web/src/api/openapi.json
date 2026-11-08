@@ -73,6 +73,25 @@
         }
       }
     },
+    "/api/figures": {
+      "get": {
+        "tags": [
+          "FigureEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Figures"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/setup/status": {
       "get": {
         "tags": [
@@ -2014,6 +2033,27 @@
           "Note"
         ]
       },
+      "Figures": {
+        "required": [
+          "plants",
+          "losses"
+        ],
+        "type": "object",
+        "properties": {
+          "plants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlantFigures"
+            }
+          },
+          "losses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LossFigures"
+            }
+          }
+        }
+      },
       "GerminatedRequest": {
         "required": [
           "eventId",
@@ -2131,6 +2171,26 @@
           },
           "archived": {
             "type": "boolean"
+          }
+        }
+      },
+      "LossFigures": {
+        "required": [
+          "reason",
+          "quantity"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -2266,6 +2326,85 @@
           },
           "name": {
             "type": "string"
+          }
+        }
+      },
+      "PlantFigures": {
+        "required": [
+          "plantId",
+          "commonName",
+          "variety",
+          "started",
+          "lost",
+          "adjusted",
+          "alive",
+          "germinationRate",
+          "survivalRate"
+        ],
+        "type": "object",
+        "properties": {
+          "plantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "commonName": {
+            "type": "string"
+          },
+          "variety": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "started": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lost": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "adjusted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "alive": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "germinationRate": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "survivalRate": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
           }
         }
       },
@@ -3084,6 +3223,9 @@
     },
     {
       "name": "WorkEndpoints"
+    },
+    {
+      "name": "FigureEndpoints"
     },
     {
       "name": "AccountEndpoints"

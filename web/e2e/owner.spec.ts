@@ -131,6 +131,11 @@ test("the owner sets up the nursery and staff can sign in", async ({
   ).toBeVisible();
   await leaveManage(page);
 
+  // Figures open, with nothing recorded yet.
+  await openManage(page, "Figures");
+  await expect(page.getByText("Nothing recorded yet.")).toBeVisible();
+  await leaveManage(page);
+
   // Staff, with a refused PIN first.
   await openManage(page, "Staff");
   await page.getByLabel("Name", { exact: true }).fill("Alex Moss");
