@@ -122,6 +122,25 @@
         }
       }
     },
+    "/api/backups/status": {
+      "get": {
+        "tags": [
+          "BackupStatusEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupHealth"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/setup/status": {
       "get": {
         "tags": [
@@ -2144,6 +2163,37 @@
           },
           "pin": {
             "type": "string"
+          }
+        }
+      },
+      "BackupHealth": {
+        "required": [
+          "known",
+          "healthy",
+          "lastDumpAt",
+          "lastTransferAt"
+        ],
+        "type": "object",
+        "properties": {
+          "known": {
+            "type": "boolean"
+          },
+          "healthy": {
+            "type": "boolean"
+          },
+          "lastDumpAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastTransferAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -4216,6 +4266,9 @@
     },
     {
       "name": "ReceivedPassportEndpoints"
+    },
+    {
+      "name": "BackupStatusEndpoints"
     },
     {
       "name": "AccountEndpoints"

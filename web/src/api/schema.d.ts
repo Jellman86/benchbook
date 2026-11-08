@@ -168,6 +168,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/backups/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BackupHealth"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/setup/status": {
         parameters: {
             query?: never;
@@ -2726,6 +2761,14 @@ export interface components {
         AddStaffRequest: {
             name: string;
             pin: string;
+        };
+        BackupHealth: {
+            known: boolean;
+            healthy: boolean;
+            /** Format: date-time */
+            lastDumpAt: null | string;
+            /** Format: date-time */
+            lastTransferAt: null | string;
         };
         /** @enum {unknown} */
         BatchSource: "SeedLot" | "BoughtIn" | "Cuttings";
