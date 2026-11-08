@@ -117,7 +117,7 @@ Users asked for simple record keeping for buying and selling, so this covers mor
 - **Summaries:** income and spending by month, and what is owed or owing.
 - **Export:** CSV for an accountant or bookkeeper.
 
-A purchase is not edited once recorded: a mistake is voided and entered again.
+Purchases and daily till totals are not edited once recorded: a mistake is voided and entered again.
 
 This is single-entry record keeping, not a full accounting package. It does not take payments, and it does not file tax returns or submit anything to HMRC. Square remains the record of card payments.
 

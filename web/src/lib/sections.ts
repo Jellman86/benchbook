@@ -6,10 +6,12 @@ export type ManageSection =
   | "places"
   | "stations"
   | "figures"
-  | "purchases";
+  | "purchases"
+  | "money";
 
 export const manageSections: { section: ManageSection; label: string }[] = [
   { section: "figures", label: "Figures" },
+  { section: "money", label: "Money" },
   { section: "purchases", label: "Purchases" },
   { section: "plants", label: "Plants" },
   { section: "potSizes", label: "Pot sizes" },

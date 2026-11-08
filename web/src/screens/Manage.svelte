@@ -3,6 +3,7 @@
   import type { BatchPrefill } from "../lib/work";
   import Figures from "./manage/Figures.svelte";
   import Locations from "./manage/Locations.svelte";
+  import Money from "./manage/Money.svelte";
   import Plants from "./manage/Plants.svelte";
   import PotSizes from "./manage/PotSizes.svelte";
   import Purchases from "./manage/Purchases.svelte";
@@ -29,6 +30,8 @@
 
 {#if section === "figures"}
   <Figures onBack={back} />
+{:else if section === "money"}
+  <Money onBack={back} />
 {:else if section === "purchases"}
   <Purchases onBack={back} {onStartBatch} />
 {:else if section === "staff"}

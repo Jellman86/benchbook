@@ -2490,6 +2490,167 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/money/takings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TakingResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TakingRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TakingCreated"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/money/takings/{id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/money/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MoneySummary"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/money/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/demo": {
         parameters: {
             query?: never;
@@ -2733,6 +2894,18 @@ export interface components {
             /** Format: int32 */
             quantity: number | string;
             reason: components["schemas"]["LossReason"];
+        };
+        MoneySummary: {
+            months: components["schemas"]["MonthFigures"][];
+            /** Format: double */
+            owed: number | string;
+        };
+        MonthFigures: {
+            month: string;
+            /** Format: double */
+            income: number | string;
+            /** Format: double */
+            spending: number | string;
         };
         MoveRequest: {
             /** Format: uuid */
@@ -3023,6 +3196,26 @@ export interface components {
             passportRegistrationNumber: null | string;
             notes: null | string;
             archived: boolean;
+        };
+        TakingCreated: {
+            /** Format: uuid */
+            id: string;
+        };
+        TakingRequest: {
+            /** Format: date */
+            takenOn: string;
+            /** Format: double */
+            amount: number | string;
+            notes: null | string;
+        };
+        TakingResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            takenOn: string;
+            /** Format: double */
+            amount: number | string;
+            notes: null | string;
         };
         TransferRequest: {
             /** Format: uuid */

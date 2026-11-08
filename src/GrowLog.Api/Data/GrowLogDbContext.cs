@@ -21,6 +21,8 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<PurchaseReceipt> PurchaseReceipts => Set<PurchaseReceipt>();
 
+    public DbSet<TillTaking> TillTakings => Set<TillTaking>();
+
     public DbSet<Event> Events => Set<Event>();
 
     public DbSet<Plant> Plants => Set<Plant>();
@@ -96,6 +98,16 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
             entity.HasOne<Supplier>().WithMany().HasForeignKey(e => e.SupplierId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.RecordedBy).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<TillTaking>(entity =>
+        {
+            entity.ToTable(table => table.HasCheckConstraint("ck_till_takings_amount", "amount >= 0"));
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Amount).HasPrecision(10, 2);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.HasIndex(e => e.TakenOn).IsUnique().HasFilter("voided_at IS NULL");
             entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.RecordedBy).OnDelete(DeleteBehavior.Restrict);
         });
 

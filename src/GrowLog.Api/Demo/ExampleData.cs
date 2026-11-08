@@ -50,6 +50,8 @@ internal sealed class ExampleData(GrowLogDbContext db, EventStore store)
         }
 
         await AddPurchasesAsync(cancellationToken);
+        AddTakings();
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     private static DateTimeOffset DaysAgo(int days) => DateTimeOffset.UtcNow.AddDays(-days);
@@ -218,6 +220,15 @@ internal sealed class ExampleData(GrowLogDbContext db, EventStore store)
         }
 
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private void AddTakings()
+    {
+        // Enough days across recent months to fill the summary.
+        foreach (var daysAgo in Enumerable.Range(1, 40).Where(day => day % 2 == 0))
+        {
+            db.TillTakings.Add(new TillTaking { TakenOn = DateDaysAgo(daysAgo), Amount = 120m + (daysAgo * 7.25m), RecordedBy = recordedBy });
+        }
     }
 
     private sealed record PlantSeed(string CommonName, string? Variety, string Botanical, string Category, string Position, string Watering, string Hardiness, bool XylellaHost, bool Protected, decimal SmallPrice, decimal LargePrice);

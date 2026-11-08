@@ -58,10 +58,18 @@ public sealed class PostgresFixture : IAsyncLifetime
         await container.DisposeAsync();
     }
 
-    internal GrowLogDbContext CreateContext()
+    /// <summary>A database of its own, for tests whose table locks would block everyone else's.</summary>
+    internal async Task<GrowLogDbContext> CreateMigratedDatabaseAsync()
+    {
+        var db = CreateContext(await CreateDatabaseAsync());
+        await db.Database.MigrateAsync(TestContext.Current.CancellationToken);
+        return db;
+    }
+
+    internal GrowLogDbContext CreateContext(string? connectionString = null)
     {
         var options = new DbContextOptionsBuilder<GrowLogDbContext>();
-        GrowLogDbContext.Configure(options, ConnectionString);
+        GrowLogDbContext.Configure(options, connectionString ?? ConnectionString);
         options.UseApplicationServiceProvider(services);
         return new GrowLogDbContext(options.Options);
     }

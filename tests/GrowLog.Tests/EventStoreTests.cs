@@ -133,7 +133,7 @@ public sealed class EventStoreTests(PostgresFixture database)
     [Fact]
     public async Task Truncating_events_is_refused()
     {
-        await using var db = database.CreateContext();
+        await using var db = await database.CreateMigratedDatabaseAsync();
 
         var exception = await Assert.ThrowsAsync<PostgresException>(() =>
             db.Database.ExecuteSqlRawAsync("TRUNCATE events CASCADE", Cancellation));
