@@ -21,7 +21,7 @@ ConnectionStrings__GrowLog=Host=localhost dotnet ef migrations add <Name> --proj
 
 The command only needs a connection string to be set. It does not connect to a database. The application applies migrations when it starts.
 
-Once a migration is merged it may already have run somewhere, so never edit it: add a new one. CI enforces this. Prefer changes that keep existing data, and split anything destructive into separate releases.
+Once a migration is merged it may already have run somewhere, so never edit it: add a new one. A new migration must also be newer than every migration on the target branch, so if another one lands first, update your branch and regenerate yours. CI enforces both. Prefer changes that keep existing data, and split anything destructive into separate releases.
 
 ## Browser tests
 
