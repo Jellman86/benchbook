@@ -553,6 +553,80 @@ namespace GrowLog.Api.Data.Migrations
                     b.ToTable("pot_sizes", (string)null);
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.ReceivedPassport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("batch_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("PartA")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("part_a");
+
+                    b.Property<string>("PartB")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("part_b");
+
+                    b.Property<string>("PartC")
+                        .HasColumnType("text")
+                        .HasColumnName("part_c");
+
+                    b.Property<string>("PartD")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("part_d");
+
+                    b.Property<string>("PartE")
+                        .HasColumnType("text")
+                        .HasColumnName("part_e");
+
+                    b.Property<DateOnly>("ReceivedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("received_on");
+
+                    b.Property<Guid>("RecordedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recorded_by");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("supplier_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_received_passports");
+
+                    b.HasIndex("BatchId")
+                        .HasDatabaseName("ix_received_passports_batch_id");
+
+                    b.HasIndex("RecordedBy")
+                        .HasDatabaseName("ix_received_passports_recorded_by");
+
+                    b.HasIndex("SupplierId")
+                        .HasDatabaseName("ix_received_passports_supplier_id");
+
+                    b.ToTable("received_passports", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_received_passports_status", "status IN ('Held', 'UsedUp', 'NoLongerValid')");
+                        });
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.Supplier", b =>
                 {
                     b.Property<Guid>("Id")
@@ -937,6 +1011,30 @@ namespace GrowLog.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_plant_prices_pot_sizes_pot_size_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.ReceivedPassport", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Batch", null)
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_received_passports_batches_batch_id");
+
+                    b.HasOne("GrowLog.Api.Accounts.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("RecordedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_received_passports_asp_net_users_recorded_by");
+
+                    b.HasOne("GrowLog.Api.Data.Supplier", null)
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_received_passports_suppliers_supplier_id");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
