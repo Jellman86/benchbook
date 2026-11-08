@@ -48,6 +48,8 @@ Labels must survive wet conditions: polypropylene or polyester stock with resin 
 - **Issued passport:** belongs to a package. May list several species. Every Part C code must resolve to every batch in the package.
 - **Sale, customer, task, treatment record:** described below.
 
+Plants, suppliers, locations and pot sizes are archived rather than deleted, so older records keep their meaning. Names in these lists are unique regardless of capitals.
+
 Partial potting-on creates a new container from the same batch, and no new batch. A split creates a new batch only when lineage truly forks, such as different treatment, destination or passporting.
 
 ## Main flows
