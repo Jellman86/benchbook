@@ -13,9 +13,9 @@ internal static class StaffEndpoints
     {
         var staff = app.MapGroup("/api/staff").RequireAuthorization(AccountServices.OwnerPolicy);
         staff.MapGet("/", ListAsync);
-        staff.MapPost("/", AddAsync);
+        staff.MapPost("/", AddAsync).Produces<StaffCreated>(StatusCodes.Status201Created);
         staff.MapPost("/{id:guid}/pin", SetPinAsync);
-        staff.MapPost("/{id:guid}/invite", InviteAsync);
+        staff.MapPost("/{id:guid}/invite", InviteAsync).Produces<InviteCreated>();
         staff.MapPost("/{id:guid}/archive", ArchiveAsync);
 
         var invites = app.MapGroup("/api/invites").AllowAnonymous();

@@ -16,22 +16,25 @@ internal static class WorkEndpoints
 
     public static void MapWorkEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/batches", StartBatchAsync);
+        app.MapPost("/api/batches", StartBatchAsync).Produces<BatchStarted>(StatusCodes.Status201Created).Produces<BatchStarted>().Produces<WorkRefused>(StatusCodes.Status409Conflict);
 
         var containers = app.MapGroup("/api/containers");
-        containers.MapGet("/by-label/{label}", FindByLabelAsync);
-        containers.MapPost("/{id:guid}/germinated", RecordGerminatedAsync);
-        containers.MapPost("/{id:guid}/losses", RecordLossAsync);
-        containers.MapPost("/{id:guid}/move", MoveAsync);
-        containers.MapPost("/{id:guid}/transfer", TransferAsync);
-        containers.MapPost("/{id:guid}/count", CountAsync);
-        containers.MapPost("/{id:guid}/treatments", RecordTreatmentAsync);
-        containers.MapPost("/{id:guid}/notes", RecordNoteAsync);
+        containers.MapGet("/by-label/{label}", FindByLabelAsync).Produces<ContainerResponse>();
+        containers.MapPost("/{id:guid}/germinated", RecordGerminatedAsync).ProducesWork();
+        containers.MapPost("/{id:guid}/losses", RecordLossAsync).ProducesWork();
+        containers.MapPost("/{id:guid}/move", MoveAsync).ProducesWork();
+        containers.MapPost("/{id:guid}/transfer", TransferAsync).Produces<ContainerCreated>(StatusCodes.Status201Created).Produces<ContainerCreated>().Produces<WorkRefused>(StatusCodes.Status409Conflict);
+        containers.MapPost("/{id:guid}/count", CountAsync).ProducesWork();
+        containers.MapPost("/{id:guid}/treatments", RecordTreatmentAsync).ProducesWork();
+        containers.MapPost("/{id:guid}/notes", RecordNoteAsync).ProducesWork();
 
         var events = app.MapGroup("/api/events");
         events.MapGet("/recent", RecentAsync);
-        events.MapPost("/{id:guid}/correct", CorrectAsync);
+        events.MapPost("/{id:guid}/correct", CorrectAsync).ProducesWork();
     }
+
+    private static RouteHandlerBuilder ProducesWork(this RouteHandlerBuilder builder) =>
+        builder.Produces<WorkRecorded>(StatusCodes.Status201Created).Produces<WorkRecorded>().Produces<WorkRefused>(StatusCodes.Status409Conflict);
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 

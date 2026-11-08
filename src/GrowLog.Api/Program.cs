@@ -1,13 +1,21 @@
+using System.Reflection;
 using System.Text.Json.Serialization;
 using GrowLog.Api;
 using GrowLog.Api.Accounts;
 using GrowLog.Api.Catalogue;
 using GrowLog.Api.Data;
 using GrowLog.Api.Work;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
+
+// First, so the tables exist before anything else that starts with the application reads them.
+// The build-time OpenAPI tool starts the application too, but has no database.
+if (Assembly.GetEntryAssembly()?.GetName().Name is not "GetDocument.Insider")
+{
+    builder.Services.AddHostedService<DatabaseMigrator>();
+}
+
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<CatalogueAuditInterceptor>();
@@ -24,11 +32,6 @@ builder.Services.AddGrowLogAccounts();
 
 var app = builder.Build();
 
-await using (var scope = app.Services.CreateAsyncScope())
-{
-    await scope.ServiceProvider.GetRequiredService<GrowLogDbContext>().Database.MigrateAsync();
-}
-
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseAuthentication();
@@ -41,6 +44,9 @@ app.MapStaffEndpoints();
 app.MapBenchEndpoints();
 app.MapCatalogueEndpoints();
 app.MapWorkEndpoints();
+
+// Deep links load the web app. Unknown API paths must not.
+app.MapFallbackToFile("{*path:nonfile:regex(^(?!api/).*$)}", "index.html").AllowAnonymous();
 
 await app.RunAsync();
 
