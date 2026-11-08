@@ -44,6 +44,34 @@ jobs:
           dotnet build src/GrowLog.Api --configuration Release --no-restore -p:OpenApiGenerateDocumentsOnBuild=true
           git diff --exit-code web/src/api/openapi.json
 
+  migrations:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Refuse changes to migrations that are already merged
+        run: |
+          changed=$(git diff --name-status --diff-filter=MDR "origin/$GITHUB_BASE_REF...HEAD" -- src/GrowLog.Api/Data/Migrations ':!src/GrowLog.Api/Data/Migrations/GrowLogDbContextModelSnapshot.cs')
+          if [ -n "$changed" ]; then
+            echo "$changed"
+            echo "::error::A merged migration may already have run. Add a new migration instead."
+            exit 1
+          fi
+      - name: Keep migrations in one straight line
+        run: |
+          ids() { sed -n 's#.*/\([0-9]\{14\}\)_.*#\1#p' | sort -u; }
+          newest=$(git ls-tree --name-only "origin/$GITHUB_BASE_REF" src/GrowLog.Api/Data/Migrations/ | ids | tail -1)
+          for id in $(git diff --name-only --diff-filter=A "origin/$GITHUB_BASE_REF...HEAD" -- src/GrowLog.Api/Data/Migrations | ids); do
+            if [ "$id" -le "$newest" ]; then
+              echo "::error::Migration $id is older than $newest on $GITHUB_BASE_REF. Update this branch and regenerate it."
+              exit 1
+            fi
+          done
+
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 15
