@@ -1,7 +1,7 @@
 namespace GrowLog.Api.Data;
 
 /// <summary>A plant's default price in one pot size.</summary>
-internal sealed class PlantPrice
+internal sealed class PlantPrice : IAudited
 {
     public Guid PlantId { get; init; }
 

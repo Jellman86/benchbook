@@ -13,6 +13,8 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<BenchStation> BenchStations => Set<BenchStation>();
 
+    public DbSet<CatalogueChange> CatalogueChanges => Set<CatalogueChange>();
+
     public DbSet<Event> Events => Set<Event>();
 
     public DbSet<Plant> Plants => Set<Plant>();
@@ -44,6 +46,15 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         ConfigureEvents(modelBuilder);
         ConfigureCatalogue(modelBuilder);
         ConfigureStock(modelBuilder);
+
+        modelBuilder.Entity<CatalogueChange>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.ChangedAt).HasDefaultValueSql("now()");
+            entity.Property(e => e.Changes).HasColumnType("jsonb");
+            entity.HasIndex(e => new { e.Entity, e.EntityKey });
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.ChangedBy).OnDelete(DeleteBehavior.Restrict);
+        });
 
         modelBuilder.Entity<BenchStation>(entity =>
         {
