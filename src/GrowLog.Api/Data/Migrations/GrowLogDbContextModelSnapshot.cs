@@ -23,15 +23,129 @@ namespace GrowLog.Api.Data.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "citext");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("GrowLog.Api.Data.Batch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("MotherPlant")
+                        .HasColumnType("text")
+                        .HasColumnName("mother_plant");
+
+                    b.Property<string>("OriginCountry")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("origin_country");
+
+                    b.Property<Guid?>("ParentBatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_batch_id");
+
+                    b.Property<Guid>("PlantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("plant_id");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("source");
+
+                    b.Property<string>("SourceReference")
+                        .HasColumnType("text")
+                        .HasColumnName("source_reference");
+
+                    b.Property<Guid?>("SupplierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("supplier_id");
+
+                    b.Property<string>("TraceabilityCode")
+                        .IsRequired()
+                        .HasColumnType("citext")
+                        .HasColumnName("traceability_code");
+
+                    b.HasKey("Id")
+                        .HasName("pk_batches");
+
+                    b.HasIndex("ParentBatchId")
+                        .HasDatabaseName("ix_batches_parent_batch_id");
+
+                    b.HasIndex("PlantId")
+                        .HasDatabaseName("ix_batches_plant_id");
+
+                    b.HasIndex("SupplierId")
+                        .HasDatabaseName("ix_batches_supplier_id");
+
+                    b.HasIndex("TraceabilityCode")
+                        .IsUnique()
+                        .HasDatabaseName("ix_batches_traceability_code");
+
+                    b.ToTable("batches", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_batches_origin_country", "origin_country ~ '^[A-Z]{2}$'");
+
+                            t.HasCheckConstraint("ck_batches_source", "source IN ('SeedLot', 'BoughtIn', 'Cuttings')");
+                        });
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.Container", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("LabelCode")
+                        .IsRequired()
+                        .HasColumnType("citext")
+                        .HasColumnName("label_code");
+
+                    b.HasKey("Id")
+                        .HasName("pk_containers");
+
+                    b.HasIndex("LabelCode")
+                        .IsUnique()
+                        .HasDatabaseName("ix_containers_label_code");
+
+                    b.ToTable("containers", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_containers_kind", "kind IN ('Tray', 'PotGroup', 'BenchLot')");
+                        });
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.Event", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid?>("ContainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("container_id");
+
                     b.Property<Guid?>("CorrectsEventId")
                         .HasColumnType("uuid")
                         .HasColumnName("corrects_event_id");
+
+                    b.Property<Guid?>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
 
                     b.Property<DateTimeOffset>("OccurredAt")
                         .HasColumnType("timestamp with time zone")
@@ -41,6 +155,10 @@ namespace GrowLog.Api.Data.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb")
                         .HasColumnName("payload");
+
+                    b.Property<Guid?>("PotSizeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("pot_size_id");
 
                     b.Property<DateTimeOffset>("RecordedAt")
                         .ValueGeneratedOnAdd()
@@ -60,9 +178,18 @@ namespace GrowLog.Api.Data.Migrations
                     b.HasKey("Id")
                         .HasName("pk_events");
 
+                    b.HasIndex("ContainerId")
+                        .HasDatabaseName("ix_events_container_id");
+
                     b.HasIndex("CorrectsEventId")
                         .IsUnique()
                         .HasDatabaseName("ix_events_corrects_event_id");
+
+                    b.HasIndex("LocationId")
+                        .HasDatabaseName("ix_events_location_id");
+
+                    b.HasIndex("PotSizeId")
+                        .HasDatabaseName("ix_events_pot_size_id");
 
                     b.ToTable("events", null, t =>
                         {
@@ -70,6 +197,36 @@ namespace GrowLog.Api.Data.Migrations
 
                             t.HasCheckConstraint("ck_events_type", "type IN ('Sown', 'Germinated', 'PrickedOut', 'PottedOn', 'Moved', 'Lost', 'Split', 'Treated', 'Examined', 'Sold', 'StockCounted', 'Corrected', 'Note')");
                         });
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.EventLine", b =>
+                {
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
+
+                    b.Property<Guid>("ContainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("container_id");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("batch_id");
+
+                    b.Property<int>("QuantityChange")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity_change");
+
+                    b.HasKey("EventId", "ContainerId", "BatchId")
+                        .HasName("pk_event_lines");
+
+                    b.HasIndex("BatchId")
+                        .HasDatabaseName("ix_event_lines_batch_id");
+
+                    b.HasIndex("ContainerId", "BatchId")
+                        .HasDatabaseName("ix_event_lines_container_id_batch_id");
+
+                    b.ToTable("event_lines", (string)null);
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.Location", b =>
@@ -285,13 +442,77 @@ namespace GrowLog.Api.Data.Migrations
                     b.ToTable("suppliers", (string)null);
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.Batch", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Batch", null)
+                        .WithMany()
+                        .HasForeignKey("ParentBatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_batches_batches_parent_batch_id");
+
+                    b.HasOne("GrowLog.Api.Data.Plant", null)
+                        .WithMany()
+                        .HasForeignKey("PlantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_batches_plants_plant_id");
+
+                    b.HasOne("GrowLog.Api.Data.Supplier", null)
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_batches_suppliers_supplier_id");
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.Event", b =>
                 {
+                    b.HasOne("GrowLog.Api.Data.Container", null)
+                        .WithMany()
+                        .HasForeignKey("ContainerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_events_containers_container_id");
+
                     b.HasOne("GrowLog.Api.Data.Event", null)
                         .WithOne()
                         .HasForeignKey("GrowLog.Api.Data.Event", "CorrectsEventId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_events_events_corrects_event_id");
+
+                    b.HasOne("GrowLog.Api.Data.Location", null)
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_events_locations_location_id");
+
+                    b.HasOne("GrowLog.Api.Data.PotSize", null)
+                        .WithMany()
+                        .HasForeignKey("PotSizeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_events_pot_sizes_pot_size_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.EventLine", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Batch", null)
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_event_lines_batches_batch_id");
+
+                    b.HasOne("GrowLog.Api.Data.Container", null)
+                        .WithMany()
+                        .HasForeignKey("ContainerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_event_lines_containers_container_id");
+
+                    b.HasOne("GrowLog.Api.Data.Event", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_event_lines_events_event_id");
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.Location", b =>
@@ -318,6 +539,11 @@ namespace GrowLog.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_plant_prices_pot_sizes_pot_size_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.Event", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.Plant", b =>

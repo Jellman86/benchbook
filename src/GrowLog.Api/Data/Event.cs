@@ -23,6 +23,17 @@ internal sealed class Event
     /// <summary>The event this one reverses. Set only on <see cref="EventType.Corrected"/> events.</summary>
     public Guid? CorrectsEventId { get; init; }
 
+    /// <summary>The container the event happened to.</summary>
+    public Guid? ContainerId { get; init; }
+
+    /// <summary>Where the container is from this event onwards, if the event moved it.</summary>
+    public Guid? LocationId { get; init; }
+
+    /// <summary>The container's pot size from this event onwards, if the event set it.</summary>
+    public Guid? PotSizeId { get; init; }
+
     /// <summary>Details specific to the event type, as JSON. Must not contain personal data, which has to stay erasable.</summary>
     public string Payload { get; init; } = "{}";
+
+    public ICollection<EventLine> Lines { get; } = new List<EventLine>();
 }

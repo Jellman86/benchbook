@@ -1,0 +1,12 @@
+namespace GrowLog.Api.Data;
+
+internal enum AppendResult
+{
+    Stored,
+
+    /// <summary>An event with this identifier exists, so an offline client can safely resend.</summary>
+    AlreadyStored,
+
+    /// <summary>Nothing was stored. The person needs to make a correction or count the stock.</summary>
+    BelowZero,
+}
