@@ -122,8 +122,9 @@ internal sealed class EventStore(GrowLogDbContext db)
             .Distinct()
             .ToArray();
 
-        await db.Database.ExecuteSqlAsync(
-            $"SELECT 1 FROM containers WHERE id = ANY({containerIds}) ORDER BY id FOR UPDATE",
+        await db.Database.ExecuteSqlRawAsync(
+            "SELECT 1 FROM containers WHERE id = ANY({0}) ORDER BY id FOR UPDATE",
+            [containerIds],
             cancellationToken);
     }
 
