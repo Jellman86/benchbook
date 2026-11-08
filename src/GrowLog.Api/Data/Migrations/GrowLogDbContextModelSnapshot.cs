@@ -832,6 +832,56 @@ namespace GrowLog.Api.Data.Migrations
                     b.ToTable("suppliers", (string)null);
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.TillTaking", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<Guid>("RecordedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recorded_by");
+
+                    b.Property<DateOnly>("TakenOn")
+                        .HasColumnType("date")
+                        .HasColumnName("taken_on");
+
+                    b.Property<DateTimeOffset?>("VoidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("voided_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_till_takings");
+
+                    b.HasIndex("RecordedBy")
+                        .HasDatabaseName("ix_till_takings_recorded_by");
+
+                    b.HasIndex("TakenOn")
+                        .IsUnique()
+                        .HasDatabaseName("ix_till_takings_taken_on")
+                        .HasFilter("voided_at IS NULL");
+
+                    b.ToTable("till_takings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_till_takings_amount", "amount >= 0");
+                        });
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
                 {
                     b.Property<int>("Id")
@@ -1229,6 +1279,16 @@ namespace GrowLog.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_received_passports_suppliers_supplier_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.TillTaking", b =>
+                {
+                    b.HasOne("GrowLog.Api.Accounts.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("RecordedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_till_takings_asp_net_users_recorded_by");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

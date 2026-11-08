@@ -325,11 +325,19 @@ public sealed class ContainerStockTests(PostgresFixture database)
         var update = await Assert.ThrowsAsync<PostgresException>(() =>
             lines.ExecuteUpdateAsync(set => set.SetProperty(l => l.QuantityChange, 50), Cancellation));
         var delete = await Assert.ThrowsAsync<PostgresException>(() => lines.ExecuteDeleteAsync(Cancellation));
-        var truncate = await Assert.ThrowsAsync<PostgresException>(() =>
-            db.Database.ExecuteSqlRawAsync("TRUNCATE event_lines", Cancellation));
 
         Assert.Contains("append-only", update.MessageText, StringComparison.Ordinal);
         Assert.Contains("append-only", delete.MessageText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Event_lines_cannot_be_truncated()
+    {
+        await using var db = await database.CreateMigratedDatabaseAsync();
+
+        var truncate = await Assert.ThrowsAsync<PostgresException>(() =>
+            db.Database.ExecuteSqlRawAsync("TRUNCATE event_lines", Cancellation));
+
         Assert.Contains("append-only", truncate.MessageText, StringComparison.Ordinal);
     }
 

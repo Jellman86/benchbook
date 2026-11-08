@@ -9,6 +9,7 @@ using GrowLog.Api.Demo;
 using GrowLog.Api.Figures;
 using GrowLog.Api.Labels;
 using GrowLog.Api.Passports;
+using GrowLog.Api.Selling;
 using GrowLog.Api.Work;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -54,6 +55,7 @@ app.MapLabelEndpoints();
 app.MapFigureEndpoints();
 app.MapReceivedPassportEndpoints();
 app.MapPurchaseEndpoints();
+app.MapMoneyEndpoints();
 app.MapDemoEndpoints();
 
 // Deep links load the web app. Unknown API paths must not.

@@ -151,6 +151,18 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(page.getByText("Still owed: £0.00")).toBeVisible();
   await leaveManage(page);
 
+  // Money in: a day's takings show in the month's figures, with the purchase.
+  await openManage(page, "Money");
+  await page.getByLabel("Amount taken (£)").fill("123.45");
+  await button(page, "Save takings").click();
+  await expect(page.getByText("Income: £123.45")).toBeVisible();
+  await expect(page.getByText("Spending: £54.60")).toBeVisible();
+  await expect(page.getByText("Still owed to suppliers: £0.00")).toBeVisible();
+  await page.getByLabel("Amount taken (£)").fill("10");
+  await button(page, "Save takings").click();
+  await expect(page.getByRole("alert")).toContainText("already entered");
+  await leaveManage(page);
+
   // Figures open, with nothing recorded yet.
   await openManage(page, "Figures");
   await expect(page.getByText("Nothing recorded yet.")).toBeVisible();
