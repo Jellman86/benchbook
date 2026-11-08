@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
@@ -18,12 +17,10 @@ public sealed class AccountTests(PostgresFixture database)
     {
         var connectionString = await database.CreateDatabaseAsync();
 
-        return new WebApplicationFactory<Program>().WithWebHostBuilder(host =>
-        {
-            host.UseSetting("ConnectionStrings:GrowLog", connectionString);
-            host.UseSetting("Passkeys:ServerDomain", "localhost");
-            host.UseSetting("Setup:Token", setupToken);
-        });
+        return new TestApp(
+            ("ConnectionStrings:GrowLog", connectionString),
+            ("Passkeys:ServerDomain", "localhost"),
+            ("Setup:Token", setupToken));
     }
 
     private static HttpClient Client(WebApplicationFactory<Program> app) =>
