@@ -1941,6 +1941,37 @@
           }
         }
       }
+    },
+    "/api/demo": {
+      "get": {
+        "tags": [
+          "DemoEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/demo/load": {
+      "post": {
+        "tags": [
+          "DemoEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2236,6 +2267,17 @@
             "type": "string"
           },
           "isOwner": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DemoStatus": {
+        "required": [
+          "available"
+        ],
+        "type": "object",
+        "properties": {
+          "available": {
             "type": "boolean"
           }
         }
@@ -3881,6 +3923,9 @@
     },
     {
       "name": "PurchaseEndpoints"
+    },
+    {
+      "name": "DemoEndpoints"
     }
   ]
 }
