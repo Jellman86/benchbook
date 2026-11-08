@@ -29,7 +29,7 @@ Small nurseries keep propagation records in spreadsheets. A spreadsheet row cann
 Mainly large greenhouses, possibly a polytunnel later.
 
 - **Bench station:** a tablet or inexpensive PC in the potting area, with a USB or Bluetooth barcode scanner and the label printer. This is the primary input point, because wet hands, gloves, glare and condensation make touchscreens and phone cameras unreliable.
-- **Walk-round device:** a phone, using an installable web app with camera scanning. A native iPhone app follows once the flows are proven. Offline capture queues events using client-generated identifiers, as a safety net rather than a headline feature.
+- **Walk-round device:** a phone, using an installable web app with camera scanning. A native iPhone app follows once the flows are proven. Offline capture queues events using client-generated identifiers, as a safety net rather than a headline feature. Design and test for iPhone Safari first, assuming queued events send only while the app is open, so the screen must show what is still waiting.
 
 Labels must survive wet conditions: polypropylene or polyester stock with resin thermal transfer, or laser-printed plastic tags. Direct thermal labels fade and peel. Printer and stock must be chosen before stage 1 ships.
 
@@ -43,7 +43,7 @@ Labels must survive wet conditions: polypropylene or polyester stock with resin 
 - **Batch:** lineage only. One plant raised together, with a traceability code, source (seed lot, bought-in plants or cuttings), parent batch or mother plant, and original origin country.
 - **Container:** the physical unit: tray, pot group or bench lot. It has a label, location, pot size, count, and the batch or batches it holds. A mixed tray is one container with several batch lines.
 - **Event:** sown, germinated, pricked out, potted on, moved, lost, split, treated, examined, sold, stock counted, corrected, note. May carry a photo.
-- **Received passport:** Parts A to D copied exactly from the supplier's label, with supplier and date received.
+- **Received passport:** Parts A to D copied exactly from the supplier's label, with supplier, date received and status: held, used up or no longer valid.
 - **Consignment:** a sale or movement. Contains **packages,** the smallest unit transported, whose lines reference batches and quantities.
 - **Issued passport:** belongs to a package. May list several species. Every Part C code must resolve to every batch in the package.
 - **Sale, customer, task, treatment record:** described below.
@@ -144,13 +144,11 @@ AGPL-3.0-or-later. Dependencies and bundled fonts must use open-source licences 
 
 ## Delivery stages
 
-1. **Records.** Plants, suppliers, locations, batches, containers, events, losses, drop-down lists and one-press repeats, labels, received-passport records, import from the existing spreadsheet, basic germination and survival figures, backups.
-2. **Buying and selling.** Purchases, sales, consignments, passport issue, invoices, simple accounts, reminders, trace reports.
+1. **Records.** Sign-in, plants, suppliers, locations, batches, containers, events, losses, treatment records, drop-down lists and one-press repeats, phone camera scanning, offline capture, labels, received-passport records, basic germination and survival figures, backups.
+2. **Buying and selling.** Purchases, sales, consignments, passport issue, invoices, simple accounts, reminders, trace reports. Trade sales follow once retail and online selling work.
 3. **Extras.** Native iPhone app, enrichment beyond names, online shop stock synchronisation, and voice if still wanted.
 
 ## Open questions
 
 - Label printer and stock.
-- Whether trade sales will happen, and how soon.
-- Whether staff have iPhones or a mix of phones.
-- Passport status values and any further records the nursery's inspector expects.
+- Whether the nursery's inspector accepts the received-passport status values, the status values for issued passports, and any further records they expect.
