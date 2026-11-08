@@ -3,6 +3,8 @@ namespace GrowLog.Api.Data;
 internal enum EventType
 {
     Sown,
+    Received,
+    CuttingsTaken,
     Germinated,
     PrickedOut,
     PottedOn,

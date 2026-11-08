@@ -42,7 +42,7 @@ Labels must survive wet conditions: polypropylene or polyester stock with resin 
 - **Location:** site, greenhouse or polytunnel, bench or bay.
 - **Batch:** lineage only. One plant raised together, with a traceability code, source (seed lot, bought-in plants or cuttings), parent batch or mother plant, and original origin country.
 - **Container:** the physical unit: tray, pot group or bench lot. It has a label, location, pot size, count, and the batch or batches it holds. A mixed tray is one container with several batch lines.
-- **Event:** sown, germinated, pricked out, potted on, moved, lost, split, treated, examined, sold, stock counted, corrected, note. May carry a photo.
+- **Event:** sown, received (bought-in plants), cuttings taken, germinated, pricked out, potted on, moved, lost, split, treated, examined, sold, stock counted, corrected, note. May carry a photo.
 - **Received passport:** Parts A to D copied exactly from the supplier's label, with supplier, date received and status: held, used up or no longer valid.
 - **Consignment:** a sale or movement. Contains **packages,** the smallest unit transported, whose lines reference batches and quantities.
 - **Issued passport:** belongs to a package. May list several species. Every Part C code must resolve to every batch in the package.

@@ -43,6 +43,10 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         // Names in drop-down lists are unique regardless of capitals.
         modelBuilder.HasPostgresExtension("citext");
 
+        // Short numbers for traceability codes and labels, so they stay easy to read and scan.
+        modelBuilder.HasSequence<long>("batch_numbers");
+        modelBuilder.HasSequence<long>("container_numbers");
+
         ConfigureEvents(modelBuilder);
         ConfigureCatalogue(modelBuilder);
         ConfigureStock(modelBuilder);

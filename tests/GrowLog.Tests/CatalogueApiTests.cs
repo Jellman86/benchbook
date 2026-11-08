@@ -12,55 +12,6 @@ namespace GrowLog.Tests;
 
 public sealed class CatalogueApiTests(PostgresFixture database)
 {
-    private sealed class Nursery : IAsyncDisposable
-    {
-        private readonly TestAuthenticator ownerKey = new();
-        private readonly TestAuthenticator staffKey = new();
-
-        private Nursery(TestApp app)
-        {
-            App = app;
-            Owner = Client(app);
-            Staff = Client(app);
-        }
-
-        public TestApp App { get; }
-
-        public HttpClient Owner { get; }
-
-        public HttpClient Staff { get; }
-
-        public static async Task<Nursery> CreateAsync(PostgresFixture database)
-        {
-            var nursery = new Nursery(await CreateAppAsync(database));
-            await SetUpOwnerAsync(nursery.Owner, nursery.ownerKey);
-
-            var userId = Json(await PostForTextAsync(nursery.Owner, "/api/staff", new { name = "Alex Moss", pin = "4821" })).GetProperty("id").GetGuid();
-            var token = Json(await PostForTextAsync(nursery.Owner, $"/api/staff/{userId}/invite")).GetProperty("token").GetString();
-            var options = await PostForTextAsync(nursery.Staff, "/api/invites/passkey-options", new { userId, token });
-            Assert.Equal(
-                HttpStatusCode.NoContent,
-                await PostStatusAsync(nursery.Staff, "/api/invites/complete", new { userId, token, credential = Json(nursery.staffKey.Register(options)) }));
-
-            return nursery;
-        }
-
-        public async Task<Guid> OwnerIdAsync()
-        {
-            var staff = await Owner.GetFromJsonAsync<JsonElement>(Route("/api/staff"), Cancellation);
-            return staff.EnumerateArray().Single(s => string.Equals(s.GetProperty("name").GetString(), "Sam Fielding", StringComparison.Ordinal)).GetProperty("id").GetGuid();
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            Owner.Dispose();
-            Staff.Dispose();
-            ownerKey.Dispose();
-            staffKey.Dispose();
-            await App.DisposeAsync();
-        }
-    }
-
     private static object PlantBody(string commonName, object[]? prices = null) => new
     {
         commonName,
@@ -88,7 +39,7 @@ public sealed class CatalogueApiTests(PostgresFixture database)
     [Fact]
     public async Task A_plant_is_added_with_its_prices_and_listed()
     {
-        await using var nursery = await Nursery.CreateAsync(database);
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
         var potSize = await AddAsync(nursery.Owner, "/api/pot-sizes", new { name = "9cm" });
 
         await AddAsync(nursery.Owner, "/api/plants", PlantBody("Lavender", [new { potSizeId = potSize, price = 4.5m }]));
@@ -102,7 +53,7 @@ public sealed class CatalogueApiTests(PostgresFixture database)
     [Fact]
     public async Task Someone_not_signed_in_cannot_see_or_change_the_catalogue()
     {
-        await using var nursery = await Nursery.CreateAsync(database);
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
         using var stranger = Client(nursery.App);
 
         Assert.Equal(HttpStatusCode.Unauthorized, await GetStatusAsync(stranger, "/api/plants"));
@@ -112,7 +63,7 @@ public sealed class CatalogueApiTests(PostgresFixture database)
     [Fact]
     public async Task Staff_can_add_entries_but_only_the_owner_can_change_or_archive_them()
     {
-        await using var nursery = await Nursery.CreateAsync(database);
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
 
         var id = await AddAsync(nursery.Staff, "/api/plants", PlantBody("Lavender"));
 
@@ -124,7 +75,7 @@ public sealed class CatalogueApiTests(PostgresFixture database)
     [Fact]
     public async Task Adding_a_duplicate_answers_with_a_conflict()
     {
-        await using var nursery = await Nursery.CreateAsync(database);
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
         await AddAsync(nursery.Owner, "/api/plants", PlantBody("Lavender"));
 
         Assert.Equal(HttpStatusCode.Conflict, await PostStatusAsync(nursery.Owner, "/api/plants", PlantBody("LAVENDER")));
@@ -133,7 +84,7 @@ public sealed class CatalogueApiTests(PostgresFixture database)
     [Fact]
     public async Task Invalid_entries_are_refused()
     {
-        await using var nursery = await Nursery.CreateAsync(database);
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
         var potSize = await AddAsync(nursery.Owner, "/api/pot-sizes", new { name = "9cm" });
 
         Assert.Equal(HttpStatusCode.BadRequest, await PostStatusAsync(nursery.Owner, "/api/plants", PlantBody("   ")));
@@ -147,7 +98,7 @@ public sealed class CatalogueApiTests(PostgresFixture database)
     [Fact]
     public async Task Updating_a_plant_replaces_its_prices()
     {
-        await using var nursery = await Nursery.CreateAsync(database);
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
         var small = await AddAsync(nursery.Owner, "/api/pot-sizes", new { name = "9cm" });
         var large = await AddAsync(nursery.Owner, "/api/pot-sizes", new { name = "2L" });
         var id = await AddAsync(nursery.Owner, "/api/plants", PlantBody("Lavender", [new { potSizeId = small, price = 4m }]));
@@ -162,7 +113,7 @@ public sealed class CatalogueApiTests(PostgresFixture database)
     [Fact]
     public async Task An_archived_entry_leaves_the_list_and_can_be_restored()
     {
-        await using var nursery = await Nursery.CreateAsync(database);
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
         var id = await AddAsync(nursery.Owner, "/api/suppliers", new { name = "Hillside Plants" });
 
         Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(nursery.Owner, $"/api/suppliers/{id}/archive"));
@@ -176,7 +127,7 @@ public sealed class CatalogueApiTests(PostgresFixture database)
     [Fact]
     public async Task Lists_show_what_was_used_most_recently_first_then_by_name()
     {
-        await using var nursery = await Nursery.CreateAsync(database);
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
         var aster = await AddAsync(nursery.Owner, "/api/plants", PlantBody("Aster"));
         var geum = await AddAsync(nursery.Owner, "/api/plants", PlantBody("Geum"));
         var salvia = await AddAsync(nursery.Owner, "/api/plants", PlantBody("Salvia"));
@@ -205,7 +156,7 @@ public sealed class CatalogueApiTests(PostgresFixture database)
     [InlineData("Site", true)]
     public async Task A_location_must_sit_at_the_right_level(string kind, bool underSite)
     {
-        await using var nursery = await Nursery.CreateAsync(database);
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
         var site = await AddAsync(nursery.Owner, "/api/locations", new { name = "Croft", kind = "Site" });
 
         var status = await PostStatusAsync(nursery.Owner, "/api/locations", new { name = "Wrong", kind, parentId = underSite ? site : (Guid?)null });
@@ -216,7 +167,7 @@ public sealed class CatalogueApiTests(PostgresFixture database)
     [Fact]
     public async Task A_bench_cannot_sit_directly_on_a_site()
     {
-        await using var nursery = await Nursery.CreateAsync(database);
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
         var site = await AddAsync(nursery.Owner, "/api/locations", new { name = "Croft", kind = "Site" });
 
         Assert.Equal(HttpStatusCode.BadRequest, await PostStatusAsync(nursery.Owner, "/api/locations", new { name = "Bench 1", kind = "Bench", parentId = site }));
@@ -225,7 +176,7 @@ public sealed class CatalogueApiTests(PostgresFixture database)
     [Fact]
     public async Task Locations_build_from_site_to_greenhouse_to_bench()
     {
-        await using var nursery = await Nursery.CreateAsync(database);
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
         var site = await AddAsync(nursery.Owner, "/api/locations", new { name = "Croft", kind = "Site" });
         var greenhouse = await AddAsync(nursery.Owner, "/api/locations", new { name = "Greenhouse 2", kind = "Greenhouse", parentId = site });
         var bench = await AddAsync(nursery.Owner, "/api/locations", new { name = "Bench 1", kind = "Bench", parentId = greenhouse });
@@ -239,7 +190,7 @@ public sealed class CatalogueApiTests(PostgresFixture database)
     [Fact]
     public async Task Every_change_records_who_made_it_and_what_changed()
     {
-        await using var nursery = await Nursery.CreateAsync(database);
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
         var id = await AddAsync(nursery.Owner, "/api/plants", PlantBody("Lavender"));
         await PutStatusAsync(nursery.Owner, $"/api/plants/{id}", PlantBody("English Lavender"));
         await PostStatusAsync(nursery.Owner, $"/api/plants/{id}/archive");
@@ -261,7 +212,7 @@ public sealed class CatalogueApiTests(PostgresFixture database)
     [Fact]
     public async Task A_suppliers_contact_details_are_not_kept_in_the_change_history()
     {
-        await using var nursery = await Nursery.CreateAsync(database);
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
         var id = await AddAsync(nursery.Owner, "/api/suppliers", new { name = "Hillside Plants", contactName = "Jo Private", email = "jo@private.example", phone = "07700900123", address = "1 Private Lane" });
 
         await using var scope = nursery.App.Services.CreateAsyncScope();
@@ -277,7 +228,7 @@ public sealed class CatalogueApiTests(PostgresFixture database)
     [Fact]
     public async Task The_change_history_cannot_be_altered()
     {
-        await using var nursery = await Nursery.CreateAsync(database);
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
         await AddAsync(nursery.Owner, "/api/plants", PlantBody("Lavender"));
 
         await using var scope = nursery.App.Services.CreateAsyncScope();
