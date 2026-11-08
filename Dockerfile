@@ -11,7 +11,8 @@ COPY global.json Directory.Build.props Directory.Packages.props .editorconfig ./
 COPY src/ src/
 RUN dotnet publish src/BenchBook.Api/BenchBook.Api.csproj --configuration Release --output /app
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:1a48394b6f29d3a32c79d9edecd4abda0ecbe8776d567dbfc4590ed6979c740c
+# Chiseled: no shell or package manager. "extra" keeps ICU and time zones for UK dates.
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra@sha256:a9298ccc39c6258ae71228479e2f3f8d2ceb6639a9927262a4b0ff7d319a0e7e
 WORKDIR /app
 COPY --from=api /app ./
 COPY --from=web /src/web/dist ./wwwroot
