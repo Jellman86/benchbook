@@ -53,6 +53,8 @@
   let offline = $state(false);
   let waiting = $state(queue.waiting);
   let failed = $state<FailedWork[]>(queue.failed);
+  let demoAvailable = $state(false);
+  let loadingDemo = $state(false);
   let sending = false;
 
   function showQueue() {
@@ -64,6 +66,8 @@
   async function refresh() {
     try {
       recent = (await api.GET("/api/events/recent")).data ?? [];
+      demoAvailable =
+        me.isOwner && ((await api.GET("/api/demo")).data?.available ?? false);
       const containers = (await api.GET("/api/containers/active")).data;
       const places = (await api.GET("/api/locations")).data;
 
@@ -187,6 +191,19 @@
       await refresh();
     } else {
       problem = outcomeProblem(outcome);
+    }
+  }
+
+  async function loadExampleData() {
+    loadingDemo = true;
+    const { response } = await api.POST("/api/demo/load");
+    loadingDemo = false;
+
+    if (response.ok) {
+      problem = "";
+      await refresh();
+    } else {
+      problem = "The example data couldn't be loaded.";
     }
   }
 
@@ -333,6 +350,19 @@
         </section>
 
         <section>
+          {#if demoAvailable}
+            <div class="card">
+              <strong>See GrowLog with example data</strong>
+              <span class="muted"
+                >Adds made-up plants, batches, suppliers and purchases, so you
+                can see the screens filled in.</span
+              >
+              <button disabled={loadingDemo} onclick={loadExampleData}
+                >Load example data</button
+              >
+            </div>
+          {/if}
+
           {#if recent.length > 0}
             <h2>Recent</h2>
             {#each recent as action (action.id)}

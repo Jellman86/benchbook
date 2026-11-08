@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
 using GrowLog.Api.Data;
@@ -98,15 +97,6 @@ internal static class WorkEndpoints
     private static Task<IResult> StoreSimpleAsync(EventStore store, Event work, CancellationToken cancellationToken) =>
         StoreAsync(() => store.AppendAsync(work, cancellationToken), () => Task.FromResult<object>(new WorkRecorded(work.Id)));
 
-    private static async Task<string> NextCodeAsync(GrowLogDbContext db, string prefix, FormattableString nextValue, CancellationToken cancellationToken)
-    {
-        var value = (await db.Database.SqlQuery<long>(nextValue).ToListAsync(cancellationToken)).Single();
-        return string.Create(CultureInfo.InvariantCulture, $"{prefix}{value:D6}");
-    }
-
-    private static Task<string> NextContainerLabelAsync(GrowLogDbContext db, CancellationToken cancellationToken) =>
-        NextCodeAsync(db, "C", $"SELECT nextval('container_numbers') AS \"Value\"", cancellationToken);
-
     private static async Task<IResult> StartBatchAsync(
         StartBatchRequest request,
         ClaimsPrincipal user,
@@ -122,7 +112,7 @@ internal static class WorkEndpoints
         var batch = new Batch
         {
             PlantId = request.PlantId,
-            TraceabilityCode = await NextCodeAsync(db, "B", $"SELECT nextval('batch_numbers') AS \"Value\"", cancellationToken),
+            TraceabilityCode = await LabelCodes.NextBatchAsync(db, cancellationToken),
             Source = request.Source,
             SourceReference = Clean(request.SourceReference),
             SupplierId = request.SupplierId,
@@ -130,7 +120,7 @@ internal static class WorkEndpoints
             MotherPlant = Clean(request.MotherPlant),
             OriginCountry = request.OriginCountry.Trim().ToUpperInvariant(),
         };
-        var container = new Container { LabelCode = await NextContainerLabelAsync(db, cancellationToken), Kind = request.ContainerKind };
+        var container = new Container { LabelCode = await LabelCodes.NextContainerAsync(db, cancellationToken), Kind = request.ContainerKind };
 
         var type = request.Source switch
         {
@@ -251,7 +241,7 @@ internal static class WorkEndpoints
         }
 
         var locationId = request.LocationId ?? (await store.GetContainerStateAsync(id, cancellationToken)).LocationId;
-        var target = new Container { LabelCode = await NextContainerLabelAsync(db, cancellationToken), Kind = request.ContainerKind };
+        var target = new Container { LabelCode = await LabelCodes.NextContainerAsync(db, cancellationToken), Kind = request.ContainerKind };
 
         var work = NewEvent(request.EventId, request.Type, request.OccurredAt, user, target.Id, locationId, request.PotSizeId);
         AddLine(work, id, request.BatchId, -request.Quantity);
