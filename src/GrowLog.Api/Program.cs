@@ -4,6 +4,7 @@ using GrowLog.Api;
 using GrowLog.Api.Accounts;
 using GrowLog.Api.Catalogue;
 using GrowLog.Api.Data;
+using GrowLog.Api.Figures;
 using GrowLog.Api.Labels;
 using GrowLog.Api.Work;
 
@@ -47,6 +48,7 @@ app.MapBenchEndpoints();
 app.MapCatalogueEndpoints();
 app.MapWorkEndpoints();
 app.MapLabelEndpoints();
+app.MapFigureEndpoints();
 
 // Deep links load the web app. Unknown API paths must not.
 app.MapFallbackToFile("{*path:nonfile:regex(^(?!api/).*$)}", "index.html").AllowAnonymous();

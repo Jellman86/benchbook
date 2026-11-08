@@ -3,6 +3,7 @@ import type { Schemas } from "./types";
 import {
   describeRecent,
   outcomeProblem,
+  percent,
   placeLabel,
   plantName,
   repeatOf,
@@ -45,6 +46,18 @@ const loss = action({
   type: "Lost",
   details: { reason: "DampingOff" },
   lines: [{ ...line, quantityChange: -3 }],
+});
+
+describe("percent", () => {
+  it("shows a whole percentage", () => {
+    expect(percent(0.925)).toBe("93%");
+    expect(percent(1)).toBe("100%");
+    expect(percent(0)).toBe("0%");
+  });
+
+  it("shows a dash when there's nothing to go on", () => {
+    expect(percent(null)).toBe("–");
+  });
 });
 
 describe("plantName", () => {

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Figures from "./manage/Figures.svelte";
   import Locations from "./manage/Locations.svelte";
   import Plants from "./manage/Plants.svelte";
   import PotSizes from "./manage/PotSizes.svelte";
@@ -12,7 +13,13 @@
   }: { onBack: () => void; onBecameStation: () => void } = $props();
 
   type View =
-    "staff" | "plants" | "potSizes" | "suppliers" | "places" | "stations";
+    | "staff"
+    | "plants"
+    | "potSizes"
+    | "suppliers"
+    | "places"
+    | "stations"
+    | "figures";
 
   const items: { view: View; label: string }[] = [
     { view: "staff", label: "Staff" },
@@ -21,13 +28,16 @@
     { view: "suppliers", label: "Suppliers" },
     { view: "places", label: "Places" },
     { view: "stations", label: "Bench stations" },
+    { view: "figures", label: "Figures" },
   ];
 
   let view = $state<View | null>(null);
   const back = () => (view = null);
 </script>
 
-{#if view === "staff"}
+{#if view === "figures"}
+  <Figures onBack={back} />
+{:else if view === "staff"}
   <Staff onBack={back} />
 {:else if view === "plants"}
   <Plants onBack={back} />

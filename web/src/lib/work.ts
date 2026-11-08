@@ -118,6 +118,13 @@ export function plantName(commonName: string, variety?: string | null): string {
   return variety ? `${commonName} '${variety}'` : commonName;
 }
 
+/** A rate as a whole percentage, or a dash when there's nothing to go on yet. */
+export function percent(rate: number | string | null | undefined): string {
+  return rate === null || rate === undefined
+    ? "–"
+    : `${Math.round(Number(rate) * 100)}%`;
+}
+
 export const lossReasons: { reason: Schemas["LossReason"]; label: string }[] = [
   { reason: "FailedToGerminate", label: "Didn't germinate" },
   { reason: "DampingOff", label: "Damping off" },

@@ -96,6 +96,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/figures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Figures"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/setup/status": {
         parameters: {
             query?: never;
@@ -2207,6 +2242,10 @@ export interface components {
         };
         /** @enum {unknown} */
         EventType: "Sown" | "Received" | "CuttingsTaken" | "Germinated" | "PrickedOut" | "PottedOn" | "Moved" | "Lost" | "Split" | "Treated" | "Examined" | "Sold" | "StockCounted" | "Corrected" | "Note";
+        Figures: {
+            plants: components["schemas"]["PlantFigures"][];
+            losses: components["schemas"]["LossFigures"][];
+        };
         GerminatedRequest: {
             /** Format: uuid */
             eventId: string;
@@ -2241,6 +2280,11 @@ export interface components {
             /** Format: uuid */
             parentId: null | string;
             archived: boolean;
+        };
+        LossFigures: {
+            reason: string;
+            /** Format: int32 */
+            quantity: number | string;
         };
         /** @enum {unknown} */
         LossReason: "FailedToGerminate" | "DampingOff" | "Pest" | "Disease" | "Frost" | "Other";
@@ -2283,6 +2327,24 @@ export interface components {
             /** Format: uuid */
             id: string;
             name: string;
+        };
+        PlantFigures: {
+            /** Format: uuid */
+            plantId: string;
+            commonName: string;
+            variety: null | string;
+            /** Format: int32 */
+            started: number | string;
+            /** Format: int32 */
+            lost: number | string;
+            /** Format: int32 */
+            adjusted: number | string;
+            /** Format: int32 */
+            alive: number | string;
+            /** Format: double */
+            germinationRate: null | number | string;
+            /** Format: double */
+            survivalRate: null | number | string;
         };
         PlantPriceDto: {
             /** Format: uuid */
