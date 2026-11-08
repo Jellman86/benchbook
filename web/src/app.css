@@ -1,0 +1,136 @@
+/* Built for greenhouses: high contrast, large text, targets big enough for gloved hands. */
+:root {
+  color-scheme: light dark;
+  --background: #f7f7f2;
+  --text: #16210f;
+  --muted: #4a5642;
+  --primary: #1f6b2e;
+  --on-primary: #ffffff;
+  --surface: #ffffff;
+  --border: #5c6b52;
+  --problem: #a11212;
+  --target: 4rem;
+  font-family: system-ui, sans-serif;
+  font-size: 20px;
+  line-height: 1.4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #11160e;
+    --text: #f2f6ee;
+    --muted: #bcc7b3;
+    --primary: #7fd68f;
+    --on-primary: #0b1a0e;
+    --surface: #1e261a;
+    --border: #8fa084;
+    --problem: #ff9c9c;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 3rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+p {
+  margin: 0;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+
+input {
+  min-height: var(--target);
+  padding: 0 0.75rem;
+  border: 2px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+}
+
+button {
+  min-height: var(--target);
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--primary);
+  border-radius: 0.5rem;
+  background: var(--primary);
+  color: var(--on-primary);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--text);
+  outline-offset: 2px;
+}
+
+.problem {
+  color: var(--problem);
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pin-display {
+  min-height: 2.5rem;
+  font-size: 2rem;
+  letter-spacing: 0.5rem;
+  text-align: center;
+}
+
+.pin-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.pin-pad button {
+  min-height: 5rem;
+  font-size: 1.5rem;
+}

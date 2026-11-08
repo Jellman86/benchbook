@@ -21,6 +21,15 @@ ConnectionStrings__GrowLog=Host=localhost dotnet ef migrations add <Name> --proj
 
 The command only needs a connection string to be set. It does not connect to a database. The application applies migrations when it starts.
 
+## API contract
+
+The web client is generated from the API. After changing an endpoint, refresh it, and commit both generated files in `web/src/api`:
+
+```sh
+dotnet build src/GrowLog.Api -p:OpenApiGenerateDocumentsOnBuild=true
+npm --prefix web run generate:api
+```
+
 ## Before opening a pull request
 
 Keep each change small and focused, and update [the specification](docs/spec.md) if behaviour changes. Do not commit credentials, customer data or nursery records.

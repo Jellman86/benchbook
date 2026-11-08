@@ -20,7 +20,7 @@ internal static class BenchEndpoints
         stations.MapPost("/{id:guid}/revoke", RevokeStationAsync);
 
         var bench = app.MapGroup("/api/bench").RequireAuthorization(AccountServices.BenchPolicy);
-        bench.MapGet("/people", ListPeopleAsync);
+        bench.MapGet("/people", ListPeopleAsync).Produces<List<Person>>();
         bench.MapPost("/sign-in", SignInAsync);
     }
 

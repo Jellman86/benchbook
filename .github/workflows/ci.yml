@@ -32,6 +32,10 @@ jobs:
         run: dotnet build GrowLog.slnx --configuration Release --no-restore
       - name: Test
         run: dotnet test --solution GrowLog.slnx --configuration Release --no-build
+      - name: Check the API contract is current
+        run: |
+          dotnet build src/GrowLog.Api --configuration Release --no-restore -p:OpenApiGenerateDocumentsOnBuild=true
+          git diff --exit-code web/src/api/openapi.json
 
   frontend:
     runs-on: ubuntu-latest
@@ -48,6 +52,10 @@ jobs:
           node-version: "26"
           package-manager-cache: false
       - run: npm ci
+      - name: Check the generated API client is current
+        run: |
+          npm run generate:api
+          git diff --exit-code src/api/schema.d.ts
       - name: Lint and check formatting
         run: npm run lint
       - name: Check Svelte and TypeScript

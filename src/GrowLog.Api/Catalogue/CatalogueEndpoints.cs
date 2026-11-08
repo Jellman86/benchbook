@@ -13,25 +13,25 @@ internal static class CatalogueEndpoints
     {
         var plants = app.MapGroup("/api/plants");
         plants.MapGet("/", ListPlantsAsync);
-        plants.MapPost("/", AddPlantAsync);
+        plants.MapPost("/", AddPlantAsync).Produces<EntryCreated>(StatusCodes.Status201Created);
         plants.MapPut("/{id:guid}", UpdatePlantAsync).RequireAuthorization(AccountServices.OwnerPolicy);
         MapArchiving<Plant>(plants);
 
         var potSizes = app.MapGroup("/api/pot-sizes");
         potSizes.MapGet("/", ListPotSizesAsync);
-        potSizes.MapPost("/", AddPotSizeAsync);
+        potSizes.MapPost("/", AddPotSizeAsync).Produces<EntryCreated>(StatusCodes.Status201Created);
         potSizes.MapPut("/{id:guid}", UpdatePotSizeAsync).RequireAuthorization(AccountServices.OwnerPolicy);
         MapArchiving<PotSize>(potSizes);
 
         var suppliers = app.MapGroup("/api/suppliers");
         suppliers.MapGet("/", ListSuppliersAsync);
-        suppliers.MapPost("/", AddSupplierAsync);
+        suppliers.MapPost("/", AddSupplierAsync).Produces<EntryCreated>(StatusCodes.Status201Created);
         suppliers.MapPut("/{id:guid}", UpdateSupplierAsync).RequireAuthorization(AccountServices.OwnerPolicy);
         MapArchiving<Supplier>(suppliers);
 
         var locations = app.MapGroup("/api/locations");
         locations.MapGet("/", ListLocationsAsync);
-        locations.MapPost("/", AddLocationAsync);
+        locations.MapPost("/", AddLocationAsync).Produces<EntryCreated>(StatusCodes.Status201Created);
         locations.MapPut("/{id:guid}", RenameLocationAsync).RequireAuthorization(AccountServices.OwnerPolicy);
         MapArchiving<Location>(locations);
     }
