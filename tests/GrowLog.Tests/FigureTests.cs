@@ -43,7 +43,7 @@ public sealed class FigureTests(PostgresFixture database)
         PostStatusAsync(client, $"/api/containers/{batch.ContainerId}/germinated", new { eventId = Guid.NewGuid(), occurredAt = Now });
 
     private static Task<HttpStatusCode> CorrectAsync(HttpClient client, Guid original, int? quantity = null) =>
-        PostStatusAsync(client, $"/api/events/{original}/correct", new { eventId = Guid.NewGuid(), occurredAt = Now, quantity, locationId = (Guid?)null });
+        PostStatusAsync(client, $"/api/events/{original}/correct", new { eventId = Guid.NewGuid(), occurredAt = Now, quantity });
 
     private static Task<JsonElement> FiguresAsync(HttpClient owner) =>
         owner.GetFromJsonAsync<JsonElement>(Route("/api/figures"), Cancellation);
