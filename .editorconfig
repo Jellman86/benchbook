@@ -15,6 +15,10 @@ dotnet_sort_system_directives_first = true
 # ASP.NET Core has no synchronisation context.
 dotnet_diagnostic.MA0004.severity = none
 
+[src/GrowLog.Api/Data/Migrations/**.cs]
+# Written by dotnet ef, with timestamped file names.
+generated_code = true
+
 [tests/**.cs]
 # Test method names read better with underscores.
 dotnet_diagnostic.CA1707.severity = none

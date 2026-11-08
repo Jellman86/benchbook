@@ -136,7 +136,7 @@ Reminders, cuttings from mother plants, pest and disease notes with photos, rese
 | Printing | QRCoder and Typst, producing PDFs |
 | Deployment | One application container plus PostgreSQL, using Docker Compose |
 
-Events are the source of truth, and current counts are derived projections.
+Events are the source of truth, and current counts are derived projections. The database itself refuses any update or delete of an event, so a mistake is put right with a new corrected event. Event details must not hold personal data, which has to stay erasable.
 
 ## Licence
 
