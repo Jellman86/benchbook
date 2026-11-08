@@ -1,8 +1,10 @@
 <script lang="ts">
+  import { rememberedPlaces } from "../../lib/offline";
+  import { recordWork } from "../../lib/queue";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import type { Schemas } from "../../lib/types";
-  import { outcomeProblem, submit, work, workPlaces } from "../../lib/work";
+  import { isRecorded, outcomeProblem, work, workPlaces } from "../../lib/work";
   import ActionFrame from "./ActionFrame.svelte";
 
   let {
@@ -20,20 +22,27 @@
   let busy = $state(false);
 
   onMount(async () => {
-    const { data } = await api.GET("/api/locations");
-    places = workPlaces(data ?? []).filter(
+    let all;
+
+    try {
+      all = (await api.GET("/api/locations")).data ?? [];
+    } catch {
+      all = rememberedPlaces();
+    }
+
+    places = workPlaces(all).filter(
       (place) => place.id !== container.locationId,
     );
   });
 
   async function move(place: { id: string; label: string }) {
     busy = true;
-    const outcome = await submit(
+    const outcome = await recordWork(
       work.move(container.id, { locationId: place.id }),
     );
     busy = false;
 
-    if (outcome.kind === "stored") {
+    if (isRecorded(outcome)) {
       onDone(`Moved ${container.labelCode} to ${place.label}`, outcome.eventId);
     } else {
       problem = outcomeProblem(outcome);

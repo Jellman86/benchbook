@@ -184,6 +184,12 @@ h2 {
   gap: 0.5rem;
 }
 
+.camera {
+  width: 100%;
+  border-radius: 0.5rem;
+  background: #000;
+}
+
 .pin-display {
   min-height: 2.5rem;
   font-size: 2rem;

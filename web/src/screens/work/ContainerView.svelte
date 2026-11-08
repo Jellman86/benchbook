@@ -2,7 +2,9 @@
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import type { Schemas } from "../../lib/types";
-  import { outcomeProblem, plantName, submit, work } from "../../lib/work";
+  import { rememberedContainer } from "../../lib/offline";
+  import { recordWork } from "../../lib/queue";
+  import { isRecorded, outcomeProblem, plantName, work } from "../../lib/work";
   import Count from "./Count.svelte";
   import Lose from "./Lose.svelte";
   import Move from "./Move.svelte";
@@ -45,7 +47,11 @@
         onNotFound(`No container has the label ${label}.`);
       }
     } catch {
-      onNotFound("Can't reach GrowLog. Check the connection and try again.");
+      container = rememberedContainer(label);
+
+      if (!container) {
+        onNotFound(`No connection, and ${label} isn't saved on this device.`);
+      }
     }
   });
 
@@ -55,10 +61,10 @@
     }
 
     busy = true;
-    const outcome = await submit(work.germinated(container.id));
+    const outcome = await recordWork(work.germinated(container.id));
     busy = false;
 
-    if (outcome.kind === "stored") {
+    if (isRecorded(outcome)) {
       onDone(`${container.labelCode} germinated`, outcome.eventId);
     } else {
       problem = outcomeProblem(outcome);

@@ -2,15 +2,19 @@
   import { onMount, tick } from "svelte";
   import { api } from "../api/client";
   import type { Me } from "../lib/boot";
+  import { rememberContainers, rememberPlaces } from "../lib/offline";
+  import { flush, recordWork, useQueue, type FailedWork } from "../lib/queue";
   import type { Schemas } from "../lib/types";
   import {
     describeRecent,
+    isRecorded,
     outcomeProblem,
     repeatOf,
     submit,
     work,
   } from "../lib/work";
   import Manage from "./Manage.svelte";
+  import Camera from "./work/Camera.svelte";
   import ContainerView from "./work/ContainerView.svelte";
   import StartBatch from "./work/StartBatch.svelte";
 
@@ -21,12 +25,18 @@
   }: { me: Me; atBench: boolean; onSignedOut: () => void } = $props();
 
   const benchIdleLimit = 5 * 60 * 1000;
+  const sendEvery = 30 * 1000;
+  const cameraAvailable = !!navigator.mediaDevices?.getUserMedia;
 
   type View =
     | { name: "home" }
     | { name: "container"; label: string }
     | { name: "start" }
+    | { name: "camera" }
     | { name: "manage" };
+
+  // svelte-ignore state_referenced_locally
+  const queue = useQueue(me.name);
 
   let view = $state<View>({ name: "home" });
   let label = $state("");
@@ -34,12 +44,54 @@
   let recent = $state<Schemas["RecentAction"][]>([]);
   let done = $state<{ message: string; eventId: string } | null>(null);
   let problem = $state("");
+  let offline = $state(false);
+  let waiting = $state(queue.waiting);
+  let failed = $state<FailedWork[]>(queue.failed);
+  let sending = false;
 
-  async function loadRecent() {
+  function showQueue() {
+    waiting = queue.waiting;
+    failed = queue.failed;
+  }
+
+  // Refreshes what the device keeps for working with no signal.
+  async function refresh() {
     try {
       recent = (await api.GET("/api/events/recent")).data ?? [];
+      const containers = (await api.GET("/api/containers/active")).data;
+      const places = (await api.GET("/api/locations")).data;
+
+      if (containers) {
+        rememberContainers(containers);
+      }
+
+      if (places) {
+        rememberPlaces(places);
+      }
+
+      offline = false;
     } catch {
-      problem = "Can't reach GrowLog. Check the connection and try again.";
+      offline = true;
+    }
+  }
+
+  async function sendWaiting() {
+    if (sending) {
+      return;
+    }
+
+    sending = true;
+
+    try {
+      const before = queue.waiting;
+      await flush(queue, submit, outcomeProblem);
+      showQueue();
+
+      if (queue.waiting < before) {
+        await refresh();
+      }
+    } finally {
+      sending = false;
     }
   }
 
@@ -47,26 +99,41 @@
   async function goHome() {
     view = { name: "home" };
     label = "";
-    await loadRecent();
+    showQueue();
+    await refresh();
     await tick();
     scanBox?.focus();
+    void sendWaiting();
   }
 
   function finishWork(message: string, eventId: string) {
-    done = { message, eventId };
+    const saved = queue.has(eventId);
+
+    if (saved) {
+      queue.describe(eventId, message);
+    }
+
+    done = {
+      message: saved ? `${message}. Saved on this device for now.` : message,
+      eventId,
+    };
     problem = "";
     void goHome();
   }
 
-  function scan(event: SubmitEvent) {
-    event.preventDefault();
-    const scanned = label.trim();
+  function open(code: string) {
+    const scanned = code.trim();
 
     if (scanned) {
       done = null;
       problem = "";
       view = { name: "container", label: scanned };
     }
+  }
+
+  function scan(event: SubmitEvent) {
+    event.preventDefault();
+    open(label);
   }
 
   async function repeat(action: Schemas["RecentAction"]) {
@@ -76,10 +143,15 @@
       return;
     }
 
-    const outcome = await submit(item);
+    const outcome = await (item.url === "/api/batches"
+      ? submit(item)
+      : recordWork(item));
 
-    if (outcome.kind === "stored") {
-      const suffix = outcome.labelCode ? `. Label: ${outcome.labelCode}` : "";
+    if (isRecorded(outcome)) {
+      const suffix =
+        outcome.kind === "stored" && outcome.labelCode
+          ? `. Label: ${outcome.labelCode}`
+          : "";
       finishWork(`Again: ${describeRecent(action)}${suffix}`, outcome.eventId);
     } else {
       done = null;
@@ -88,15 +160,28 @@
   }
 
   async function undo(eventId: string) {
-    const outcome = await submit(work.undo(eventId));
+    if (queue.has(eventId)) {
+      queue.remove(eventId);
+      done = null;
+      showQueue();
+      return;
+    }
 
-    if (outcome.kind === "stored") {
+    const outcome = await recordWork(work.undo(eventId));
+
+    if (isRecorded(outcome)) {
       done = null;
       problem = "";
-      await loadRecent();
+      showQueue();
+      await refresh();
     } else {
       problem = outcomeProblem(outcome);
     }
+  }
+
+  function dismiss(eventId: string) {
+    queue.dismiss(eventId);
+    showQueue();
   }
 
   async function signOut() {
@@ -107,22 +192,32 @@
   onMount(() => {
     void goHome();
 
+    const send = () => void sendWaiting();
+    const timer = setInterval(send, sendEvery);
+    window.addEventListener("online", send);
+
+    const stopSending = () => {
+      clearInterval(timer);
+      window.removeEventListener("online", send);
+    };
+
     if (!atBench) {
-      return;
+      return stopSending;
     }
 
     // Requests would keep the session alive, so idleness is judged here on the device.
-    let timer = setTimeout(signOut, benchIdleLimit);
+    let idle = setTimeout(signOut, benchIdleLimit);
     const activity = () => {
-      clearTimeout(timer);
-      timer = setTimeout(signOut, benchIdleLimit);
+      clearTimeout(idle);
+      idle = setTimeout(signOut, benchIdleLimit);
     };
 
     window.addEventListener("pointerdown", activity);
     window.addEventListener("keydown", activity);
 
     return () => {
-      clearTimeout(timer);
+      stopSending();
+      clearTimeout(idle);
       window.removeEventListener("pointerdown", activity);
       window.removeEventListener("keydown", activity);
     };
@@ -133,6 +228,8 @@
   <Manage onBack={goHome} onBecameStation={onSignedOut} />
 {:else if view.name === "start"}
   <StartBatch onDone={finishWork} onCancel={goHome} />
+{:else if view.name === "camera"}
+  <Camera onScan={open} onCancel={goHome} />
 {:else if view.name === "container"}
   {#key view.label}
     <ContainerView
@@ -148,6 +245,30 @@
 {:else}
   <main>
     <h1>Hello, {me.name}</h1>
+
+    {#if offline}
+      <p class="card" data-testid="offline">
+        No connection. Work you record is saved on this device.
+      </p>
+    {/if}
+
+    {#if waiting > 0}
+      <p class="card" data-testid="waiting">
+        {waiting}
+        {waiting === 1 ? "thing" : "things"} waiting to send. Keep GrowLog open when
+        you're back in signal.
+      </p>
+    {/if}
+
+    {#each failed as item (item.eventId)}
+      <div class="card" role="alert">
+        <strong>Couldn't be saved: {item.description}</strong>
+        <span>{item.reason}</span>
+        <button class="secondary" onclick={() => dismiss(item.eventId)}
+          >OK</button
+        >
+      </div>
+    {/each}
 
     {#if done}
       <div class="card done" role="status">
@@ -171,6 +292,10 @@
       </label>
       <button type="submit">Open</button>
     </form>
+
+    {#if cameraAvailable}
+      <button onclick={() => (view = { name: "camera" })}>Use camera</button>
+    {/if}
 
     <button onclick={() => (view = { name: "start" })}>New batch</button>
 

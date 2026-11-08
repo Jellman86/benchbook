@@ -9,6 +9,8 @@ export interface WorkRequest {
 
 export type Outcome =
   | { kind: "stored"; eventId: string; labelCode?: string }
+  | { kind: "queued"; eventId: string }
+  | { kind: "signedOut" }
   | { kind: "refused"; problem: string }
   | { kind: "rejected" }
   | { kind: "unreachable" };
@@ -67,6 +69,7 @@ export async function submit(item: WorkRequest): Promise<Outcome> {
 
   if (response.status === 401) {
     window.dispatchEvent(new Event(sessionEnded));
+    return { kind: "signedOut" };
   }
 
   if (response.ok) {
@@ -86,11 +89,20 @@ export async function submit(item: WorkRequest): Promise<Outcome> {
   return { kind: "rejected" };
 }
 
+export function isRecorded(
+  outcome: Outcome,
+): outcome is Extract<Outcome, { kind: "stored" | "queued" }> {
+  return outcome.kind === "stored" || outcome.kind === "queued";
+}
+
 /** Plain words for an outcome that didn't record anything. */
 export function outcomeProblem(outcome: Outcome): string {
   switch (outcome.kind) {
     case "stored":
+    case "queued":
       return "";
+    case "signedOut":
+      return "You've been signed out. Please sign in again.";
     case "refused":
       return outcome.problem === "BelowZero"
         ? "There aren't that many here. Check the number, or count the stock."

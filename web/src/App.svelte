@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api, sessionEnded } from "./api/client";
+  import { rememberMe, rememberedMe } from "./lib/offline";
   import { chooseStart, readInvite, type Start } from "./lib/boot";
   import Bench from "./screens/Bench.svelte";
   import Home from "./screens/Home.svelte";
@@ -16,9 +17,22 @@
       unreachable = false;
       start = await chooseStart(
         {
-          me: async () => (await api.GET("/api/account/me")).data ?? null,
-          benchPeople: async () =>
-            (await api.GET("/api/bench/people")).data ?? null,
+          me: async () => {
+            try {
+              const me = (await api.GET("/api/account/me")).data ?? null;
+              rememberMe(me);
+              return me;
+            } catch {
+              return rememberedMe();
+            }
+          },
+          benchPeople: async () => {
+            try {
+              return (await api.GET("/api/bench/people")).data ?? null;
+            } catch {
+              return null;
+            }
+          },
           needsSetup: async () =>
             (await api.GET("/api/setup/status")).data?.needsSetup ?? false,
         },

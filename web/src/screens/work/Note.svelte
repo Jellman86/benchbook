@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { recordWork } from "../../lib/queue";
   import type { Schemas } from "../../lib/types";
-  import { outcomeProblem, submit, work } from "../../lib/work";
+  import { isRecorded, outcomeProblem, work } from "../../lib/work";
   import ActionFrame from "./ActionFrame.svelte";
 
   let {
@@ -20,10 +21,10 @@
   async function record(event: SubmitEvent) {
     event.preventDefault();
     busy = true;
-    const outcome = await submit(work.note(container.id, { note }));
+    const outcome = await recordWork(work.note(container.id, { note }));
     busy = false;
 
-    if (outcome.kind === "stored") {
+    if (isRecorded(outcome)) {
       onDone(`Note added to ${container.labelCode}`, outcome.eventId);
     } else {
       problem = outcomeProblem(outcome);

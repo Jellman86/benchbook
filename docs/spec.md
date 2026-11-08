@@ -29,7 +29,7 @@ Small nurseries keep propagation records in spreadsheets. A spreadsheet row cann
 Mainly large greenhouses, possibly a polytunnel later.
 
 - **Bench station:** a tablet or inexpensive PC in the potting area, with a USB or Bluetooth barcode scanner and the label printer. This is the primary input point, because wet hands, gloves, glare and condensation make touchscreens and phone cameras unreliable.
-- **Walk-round device:** a phone, using an installable web app with camera scanning. A native iPhone app follows once the flows are proven. Offline capture queues events using client-generated identifiers, as a safety net rather than a headline feature. Design and test for iPhone Safari first, assuming queued events send only while the app is open, so the screen must show what is still waiting.
+- **Walk-round device:** a phone, using an installable web app with camera scanning. A native iPhone app follows once the flows are proven. Offline capture queues events using client-generated identifiers, as a safety net rather than a headline feature. Design and test for iPhone Safari first, assuming queued events send only while the app is open, so the screen must show what is still waiting. Work waits per person, so it is only ever sent under the name of whoever recorded it. A device keeps recent container details so labels can still be opened. New batches and potting on need a connection, because they create new labels.
 
 Labels must survive wet conditions: polypropylene or polyester stock with resin thermal transfer, or laser-printed plastic tags. Direct thermal labels fade and peel. Printer and stock must be chosen before stage 1 ships.
 

@@ -64,6 +64,36 @@ internal sealed class EventStore(GrowLogDbContext db)
         return new ContainerState(contents, locationId, potSizeId);
     }
 
+    /// <summary>Every batch in every container that still has plants.</summary>
+    public async Task<List<ContainerStock>> GetStockAsync(CancellationToken cancellationToken) =>
+        await ActiveLines(ignoring: null)
+            .GroupBy(line => new { line.ContainerId, line.BatchId })
+            .Where(group => group.Sum(line => line.QuantityChange) > 0)
+            .Select(group => new ContainerStock(group.Key.ContainerId, group.Key.BatchId, group.Sum(line => line.QuantityChange)))
+            .ToListAsync(cancellationToken);
+
+    /// <summary>Where each container is and what pot size it's in, as its events have left it.</summary>
+    public async Task<Dictionary<Guid, ContainerPlacement>> GetPlacementsAsync(List<Guid> containerIds, CancellationToken cancellationToken)
+    {
+        var events = await db.Events
+            .Where(e => e.ContainerId != null
+                && containerIds.Contains(e.ContainerId.Value)
+                && (e.LocationId != null || e.PotSizeId != null)
+                && !db.Events.Any(c => c.CorrectsEventId == e.Id))
+            .OrderByDescending(e => e.OccurredAt)
+            .ThenByDescending(e => e.RecordedAt)
+            .Select(e => new { ContainerId = e.ContainerId!.Value, e.LocationId, e.PotSizeId })
+            .ToListAsync(cancellationToken);
+
+        return events
+            .GroupBy(e => e.ContainerId)
+            .ToDictionary(
+                group => group.Key,
+                group => new ContainerPlacement(
+                    group.Select(e => e.LocationId).FirstOrDefault(id => id != null),
+                    group.Select(e => e.PotSizeId).FirstOrDefault(id => id != null)));
+    }
+
     private async Task<AppendResult> AppendCoreAsync(Event newEvent, Func<Task>? prepare, CancellationToken cancellationToken)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);

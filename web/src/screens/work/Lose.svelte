@@ -1,10 +1,11 @@
 <script lang="ts">
+  import { recordWork } from "../../lib/queue";
   import type { Schemas } from "../../lib/types";
   import {
     lossReasons,
+    isRecorded,
     outcomeProblem,
     plantName,
-    submit,
     work,
     type WorkRequest,
   } from "../../lib/work";
@@ -39,10 +40,10 @@
       quantity,
       reason,
     });
-    const outcome = await submit(item);
+    const outcome = await recordWork(item);
     busy = false;
 
-    if (outcome.kind === "stored") {
+    if (isRecorded(outcome)) {
       onDone(
         `Lost ${quantity} ${plantName(line.commonName, line.variety)} (${label})`,
         outcome.eventId,

@@ -166,7 +166,6 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(phonePage.getByRole("alert")).toContainText(
     "expired or been used",
   );
-  await phone.close();
 
   await leaveManage(page);
 
@@ -315,6 +314,51 @@ test("the owner sets up the nursery and staff can sign in", async ({
     await page.getByRole("status").innerText(),
   )![1];
   expect(repeated).not.toBe(label);
+
+  // On someone's own phone with no signal: the app still opens and work waits to send.
+  await phonePage.evaluate(() => navigator.serviceWorker.ready);
+  await phonePage.goto("/");
+  await expect(
+    phonePage.getByRole("heading", { name: "Hello, Alex Moss" }),
+  ).toBeVisible();
+  await phonePage.waitForFunction(() =>
+    (localStorage.getItem("growlog.containers") ?? "").includes("C"),
+  );
+
+  await phone.setOffline(true);
+  await phonePage.reload();
+  await expect(
+    phonePage.getByRole("heading", { name: "Hello, Alex Moss" }),
+  ).toBeVisible();
+  await expect(phonePage.getByTestId("offline")).toBeVisible();
+
+  await phonePage.getByLabel("Scan a label").fill(label);
+  await phonePage.getByLabel("Scan a label").press("Enter");
+  await expect(phonePage.getByText("25 Lavender 'Munstead'")).toBeVisible();
+  await button(phonePage, "Lost").click();
+  await button(phonePage, "Pest").click();
+  await expect(phonePage.getByRole("status")).toContainText(
+    "Saved on this device",
+  );
+  await expect(phonePage.getByTestId("waiting")).toContainText(
+    "1 thing waiting",
+  );
+
+  // Waiting work survives the app being closed and opened again.
+  await phonePage.reload();
+  await expect(phonePage.getByTestId("waiting")).toContainText(
+    "1 thing waiting",
+  );
+
+  // Back in signal, it sends by itself.
+  await phone.setOffline(false);
+  await expect(phonePage.getByTestId("waiting")).toHaveCount(0, {
+    timeout: 40_000,
+  });
+  await phonePage.getByLabel("Scan a label").fill(label);
+  await phonePage.getByLabel("Scan a label").press("Enter");
+  await expect(phonePage.getByText("24 Lavender 'Munstead'")).toBeVisible();
+  await phone.close();
 
   // Finishing returns to the name list, not to sign-in.
   await button(page, "Finished").click();
