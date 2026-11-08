@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using GrowLog.Api;
 using GrowLog.Api.Accounts;
+using GrowLog.Api.Buying;
 using GrowLog.Api.Catalogue;
 using GrowLog.Api.Data;
 using GrowLog.Api.Figures;
@@ -51,6 +52,7 @@ app.MapWorkEndpoints();
 app.MapLabelEndpoints();
 app.MapFigureEndpoints();
 app.MapReceivedPassportEndpoints();
+app.MapPurchaseEndpoints();
 
 // Deep links load the web app. Unknown API paths must not.
 app.MapFallbackToFile("{*path:nonfile:regex(^(?!api/).*$)}", "index.html").AllowAnonymous();

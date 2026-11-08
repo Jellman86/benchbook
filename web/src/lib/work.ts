@@ -125,6 +125,10 @@ export function percent(rate: number | string | null | undefined): string {
     : `${Math.round(Number(rate) * 100)}%`;
 }
 
+export function money(value: number): string {
+  return `£${value.toFixed(2)}`;
+}
+
 export const lossReasons: { reason: Schemas["LossReason"]; label: string }[] = [
   { reason: "FailedToGerminate", label: "Didn't germinate" },
   { reason: "DampingOff", label: "Damping off" },

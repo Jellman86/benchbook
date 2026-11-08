@@ -4,6 +4,7 @@
   import Locations from "./manage/Locations.svelte";
   import Plants from "./manage/Plants.svelte";
   import PotSizes from "./manage/PotSizes.svelte";
+  import Purchases from "./manage/Purchases.svelte";
   import Staff from "./manage/Staff.svelte";
   import Stations from "./manage/Stations.svelte";
   import Suppliers from "./manage/Suppliers.svelte";
@@ -25,6 +26,8 @@
 
 {#if section === "figures"}
   <Figures onBack={back} />
+{:else if section === "purchases"}
+  <Purchases onBack={back} />
 {:else if section === "staff"}
   <Staff onBack={back} />
 {:else if section === "plants"}

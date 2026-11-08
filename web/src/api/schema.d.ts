@@ -2284,6 +2284,140 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/purchases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    includeVoided?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PurchaseResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PurchaseRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PurchaseCreated"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchases/{id}/paid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PaidRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchases/{id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2400,6 +2534,24 @@ export interface components {
             token: string;
         };
         JsonElement: unknown;
+        LineRequest: {
+            description: string;
+            /** Format: int32 */
+            quantity: null | number | string;
+            /** Format: double */
+            netCost: number | string;
+            /** Format: double */
+            vat: number | string;
+        };
+        LineResponse: {
+            description: string;
+            /** Format: int32 */
+            quantity: null | number | string;
+            /** Format: double */
+            netCost: number | string;
+            /** Format: double */
+            vat: number | string;
+        };
         /** @enum {unknown} */
         LocationKind: "Site" | "Greenhouse" | "Polytunnel" | "Bench" | "Bay";
         LocationRequest: {
@@ -2458,6 +2610,10 @@ export interface components {
             /** Format: date-time */
             occurredAt: string;
             note: string;
+        };
+        PaidRequest: {
+            /** Format: date */
+            paidOn: null | string;
         };
         PassportCreated: {
             /** Format: uuid */
@@ -2556,6 +2712,38 @@ export interface components {
             protectedVariety: boolean;
             archived: boolean;
             prices: components["schemas"]["PlantPriceDto"][];
+        };
+        PurchaseCreated: {
+            /** Format: uuid */
+            id: string;
+        };
+        PurchaseRequest: {
+            /** Format: uuid */
+            supplierId: string;
+            /** Format: date */
+            purchasedOn: string;
+            reference: null | string;
+            notes: null | string;
+            lines: components["schemas"]["LineRequest"][];
+        };
+        PurchaseResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            supplierId: string;
+            supplierName: string;
+            /** Format: date */
+            purchasedOn: string;
+            reference: null | string;
+            notes: null | string;
+            /** Format: date */
+            paidOn: null | string;
+            voided: boolean;
+            /** Format: double */
+            netTotal: number | string;
+            /** Format: double */
+            vatTotal: number | string;
+            lines: components["schemas"]["LineResponse"][];
         };
         /** @enum {unknown} */
         ReceivedPassportStatus: "Held" | "UsedUp" | "NoLongerValid";

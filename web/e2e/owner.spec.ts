@@ -131,6 +131,20 @@ test("the owner sets up the nursery and staff can sign in", async ({
   ).toBeVisible();
   await leaveManage(page);
 
+  // Money out: a purchase with its VAT, then paying it.
+  await openManage(page, "Purchases");
+  await chooser(page, "Supplier").selectOption({ label: "Hillside Plants" });
+  await page.getByLabel("Invoice reference").fill("INV-204");
+  await page.getByLabel("Item").fill("Compost");
+  await page.getByLabel("Cost before VAT (£)").fill("45.50");
+  await page.getByLabel("VAT (£)", { exact: true }).fill("9.10");
+  await button(page, "Save purchase").click();
+  await expect(page.getByText("Hillside Plants: £54.60")).toBeVisible();
+  await expect(page.getByText("Still owed: £54.60")).toBeVisible();
+  await button(page, "Mark paid").click();
+  await expect(page.getByText("Still owed: £0.00")).toBeVisible();
+  await leaveManage(page);
+
   // Figures open, with nothing recorded yet.
   await openManage(page, "Figures");
   await expect(page.getByText("Nothing recorded yet.")).toBeVisible();
