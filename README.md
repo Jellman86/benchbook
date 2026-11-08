@@ -1,8 +1,8 @@
-# BenchBook
+# GrowLog
 
 Simple, open-source record keeping for small plant nurseries.
 
-BenchBook is for the people doing the work. Scan a label, press what happened, and get on with the day. Stock counts, survival figures, plant labels and plant health records come from that, with no separate paperwork.
+GrowLog is for the people doing the work. Scan a label, press what happened, and get on with the day. Stock counts, survival figures, plant labels and plant health records come from that, with no separate paperwork.
 
 **Status: planning.** There is no working software yet. The [product specification](docs/spec.md) describes what is being built.
 

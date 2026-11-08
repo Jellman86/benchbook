@@ -43,7 +43,7 @@ jobs:
           node-version: "26"
           package-manager-cache: false
       - name: Audit NuGet packages
-        run: dotnet restore BenchBook.slnx --force-evaluate
+        run: dotnet restore GrowLog.slnx --force-evaluate
         env:
           CI: "false"
       - name: Audit npm packages
@@ -78,10 +78,10 @@ jobs:
         with:
           persist-credentials: false
       - name: Build the container image
-        run: docker build --tag benchbook:scan .
+        run: docker build --tag growlog:scan .
       - uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
         with:
-          image: benchbook:scan
+          image: growlog:scan
           fail-build: true
           severity-cutoff: high
           only-fixed: true

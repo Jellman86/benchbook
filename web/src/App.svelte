@@ -1,3 +1,3 @@
 <main>
-  <h1>BenchBook</h1>
+  <h1>GrowLog</h1>
 </main>
