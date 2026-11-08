@@ -81,12 +81,8 @@ public sealed class WorkApiTests(PostgresFixture database)
     private static Task<JsonElement> RecentAsync(HttpClient client, string query = "") =>
         client.GetFromJsonAsync<JsonElement>(Route($"/api/events/recent{query}"), Cancellation);
 
-    private static Task<HttpResponseMessage> CorrectAsync(Scene scene, Guid original, object? changes = null)
-    {
-        var quantity = changes?.GetType().GetProperty("quantity")?.GetValue(changes);
-        var locationId = changes?.GetType().GetProperty("locationId")?.GetValue(changes);
-        return PostAsync(scene.Staff, $"/api/events/{original}/correct", new { eventId = Guid.NewGuid(), occurredAt = Now, quantity, locationId });
-    }
+    private static Task<HttpResponseMessage> CorrectAsync(Scene scene, Guid original, int? quantity = null, Guid? locationId = null) =>
+        PostAsync(scene.Staff, $"/api/events/{original}/correct", new { eventId = Guid.NewGuid(), occurredAt = Now, quantity, locationId });
 
     [Fact]
     public async Task Starting_a_batch_creates_a_labelled_container_a_scan_can_find()
@@ -388,7 +384,7 @@ public sealed class WorkApiTests(PostgresFixture database)
         var loss = Guid.NewGuid();
         await LoseAsync(scene, batch, 5, loss, "Frost");
 
-        using var response = await CorrectAsync(scene, loss, new { quantity = (int?)2 });
+        using var response = await CorrectAsync(scene, loss, quantity: 2);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.Equal(38, await QuantityAsync(scene, batch.LabelCode));
@@ -407,7 +403,7 @@ public sealed class WorkApiTests(PostgresFixture database)
         var transfer = Guid.NewGuid();
         var moved = Json(await PostForTextAsync(scene.Staff, $"/api/containers/{batch.ContainerId}/transfer", TransferBody(scene, batch, transfer, 15)));
 
-        using var response = await CorrectAsync(scene, transfer, new { quantity = (int?)10 });
+        using var response = await CorrectAsync(scene, transfer, quantity: 10);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.Equal(30, await QuantityAsync(scene, batch.LabelCode));
@@ -421,7 +417,7 @@ public sealed class WorkApiTests(PostgresFixture database)
         var batch = await StartAsync(scene);
         var recent = await RecentAsync(scene.Staff);
 
-        using var response = await CorrectAsync(scene, recent[0].GetProperty("id").GetGuid(), new { locationId = (Guid?)scene.Bench2 });
+        using var response = await CorrectAsync(scene, recent[0].GetProperty("id").GetGuid(), locationId: scene.Bench2);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var scanned = await ScanAsync(scene, batch.LabelCode);
@@ -452,7 +448,7 @@ public sealed class WorkApiTests(PostgresFixture database)
         var recent = await RecentAsync(scene.Staff);
         var start = recent.EnumerateArray().Single(a => string.Equals(a.GetProperty("type").GetString(), "Sown", StringComparison.Ordinal)).GetProperty("id").GetGuid();
 
-        using var response = await CorrectAsync(scene, start, new { quantity = (int?)10 });
+        using var response = await CorrectAsync(scene, start, quantity: 10);
 
         Assert.Equal("BelowZero", await ProblemAsync(response));
     }
@@ -465,7 +461,7 @@ public sealed class WorkApiTests(PostgresFixture database)
         var count = Guid.NewGuid();
         await PostStatusAsync(scene.Staff, $"/api/containers/{batch.ContainerId}/count", new { eventId = count, occurredAt = Now, batchId = batch.BatchId, counted = 31 });
 
-        using var withQuantity = await CorrectAsync(scene, count, new { quantity = (int?)20 });
+        using var withQuantity = await CorrectAsync(scene, count, quantity: 20);
         Assert.Equal(HttpStatusCode.BadRequest, withQuantity.StatusCode);
 
         using var undo = await CorrectAsync(scene, count);
