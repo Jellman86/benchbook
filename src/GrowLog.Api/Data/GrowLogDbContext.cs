@@ -16,6 +16,12 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<Location> Locations => Set<Location>();
 
+    public DbSet<Batch> Batches => Set<Batch>();
+
+    public DbSet<Container> Containers => Set<Container>();
+
+    public DbSet<EventLine> EventLines => Set<EventLine>();
+
     public static void Configure(DbContextOptionsBuilder options, string connectionString) =>
         options.UseNpgsql(connectionString).UseSnakeCaseNamingConvention();
 
@@ -26,6 +32,50 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
         ConfigureEvents(modelBuilder);
         ConfigureCatalogue(modelBuilder);
+        ConfigureStock(modelBuilder);
+    }
+
+    private static void ConfigureStock(ModelBuilder modelBuilder)
+    {
+        var batchSources = string.Join(", ", Enum.GetNames<BatchSource>().Select(name => $"'{name}'"));
+
+        modelBuilder.Entity<Batch>(entity =>
+        {
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint("ck_batches_source", $"source IN ({batchSources})");
+                table.HasCheckConstraint("ck_batches_origin_country", "origin_country ~ '^[A-Z]{2}$'");
+            });
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.TraceabilityCode).HasColumnType("citext");
+            entity.Property(e => e.Source).HasConversion<string>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.HasIndex(e => e.TraceabilityCode).IsUnique();
+            entity.HasOne<Plant>().WithMany().HasForeignKey(e => e.PlantId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Supplier>().WithMany().HasForeignKey(e => e.SupplierId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Batch>().WithMany().HasForeignKey(e => e.ParentBatchId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        var containerKinds = string.Join(", ", Enum.GetNames<ContainerKind>().Select(name => $"'{name}'"));
+
+        modelBuilder.Entity<Container>(entity =>
+        {
+            entity.ToTable(table => table.HasCheckConstraint("ck_containers_kind", $"kind IN ({containerKinds})"));
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.LabelCode).HasColumnType("citext");
+            entity.Property(e => e.Kind).HasConversion<string>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.HasIndex(e => e.LabelCode).IsUnique();
+        });
+
+        modelBuilder.Entity<EventLine>(entity =>
+        {
+            entity.HasKey(e => new { e.EventId, e.ContainerId, e.BatchId });
+            entity.HasIndex(e => new { e.ContainerId, e.BatchId });
+            entity.HasOne<Event>().WithMany(e => e.Lines).HasForeignKey(e => e.EventId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Container>().WithMany().HasForeignKey(e => e.ContainerId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Batch>().WithMany().HasForeignKey(e => e.BatchId).OnDelete(DeleteBehavior.Restrict);
+        });
     }
 
     private static void ConfigureCatalogue(ModelBuilder modelBuilder)
@@ -97,6 +147,9 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.Property(e => e.Type).HasConversion<string>();
             entity.Property(e => e.RecordedAt).HasDefaultValueSql("now()");
             entity.Property(e => e.Payload).HasColumnType("jsonb");
+            entity.HasOne<Container>().WithMany().HasForeignKey(e => e.ContainerId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Location>().WithMany().HasForeignKey(e => e.LocationId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<PotSize>().WithMany().HasForeignKey(e => e.PotSizeId).OnDelete(DeleteBehavior.Restrict);
 
             // One-to-one, so an event can be reversed only once and counts cannot be adjusted twice.
             entity.HasOne<Event>()

@@ -67,6 +67,8 @@ Partial potting-on creates a new container from the same batch, and no new batch
 
 A **corrected** event references the event it reverses and carries the replacement. **Stock counted** sets the count, and the difference is recorded as an **adjustment,** separate from losses in statistics. A derived count can never go below zero: the interface asks for a correction or a stock count instead.
 
+A container's location, pot size and contents are derived from its events. Location and pot size follow the order the work happened, so events arriving late from an offline device fall into place.
+
 ## Plant passports and plant health
 
 Source: GOV.UK, "Issuing plant passports to trade plants in Great Britain", updated 14 October 2026, applying to England and Wales.

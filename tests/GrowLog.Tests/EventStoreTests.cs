@@ -20,7 +20,7 @@ public sealed class EventStoreTests(PostgresFixture database)
         Payload = payload,
     };
 
-    private async Task<bool> AppendAsync(Event newEvent)
+    private async Task<AppendResult> AppendAsync(Event newEvent)
     {
         await using var db = database.CreateContext();
         return await new EventStore(db).AppendAsync(newEvent, Cancellation);
@@ -44,7 +44,7 @@ public sealed class EventStoreTests(PostgresFixture database)
         var before = DateTimeOffset.UtcNow.AddMinutes(-1);
         var newEvent = NewEvent();
 
-        Assert.True(await AppendAsync(newEvent));
+        Assert.Equal(AppendResult.Stored, await AppendAsync(newEvent));
 
         var stored = await ReadAsync(newEvent.Id);
         Assert.Equal(newEvent.RecordedBy, stored.RecordedBy);
@@ -66,7 +66,7 @@ public sealed class EventStoreTests(PostgresFixture database)
             Payload = """{"count": 99}""",
         };
 
-        Assert.False(await AppendAsync(resent));
+        Assert.Equal(AppendResult.AlreadyStored, await AppendAsync(resent));
 
         var stored = await ReadAsync(original.Id);
         Assert.Equal(EventType.Note, stored.Type);
@@ -136,7 +136,7 @@ public sealed class EventStoreTests(PostgresFixture database)
         await using var db = database.CreateContext();
 
         var exception = await Assert.ThrowsAsync<PostgresException>(() =>
-            db.Database.ExecuteSqlRawAsync("TRUNCATE events", Cancellation));
+            db.Database.ExecuteSqlRawAsync("TRUNCATE events CASCADE", Cancellation));
 
         Assert.Contains("append-only", exception.MessageText, StringComparison.Ordinal);
     }
@@ -148,7 +148,7 @@ public sealed class EventStoreTests(PostgresFixture database)
         await AppendAsync(original);
         var correction = NewEvent(EventType.Corrected, original.Id);
 
-        Assert.True(await AppendAsync(correction));
+        Assert.Equal(AppendResult.Stored, await AppendAsync(correction));
 
         Assert.Equal(original.Id, (await ReadAsync(correction.Id)).CorrectsEventId);
     }
