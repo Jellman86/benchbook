@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { manageSections, type ManageSection } from "../lib/sections";
   import Figures from "./manage/Figures.svelte";
   import Locations from "./manage/Locations.svelte";
   import Plants from "./manage/Plants.svelte";
@@ -8,53 +9,40 @@
   import Suppliers from "./manage/Suppliers.svelte";
 
   let {
+    section,
+    onSection,
     onBack,
     onBecameStation,
-  }: { onBack: () => void; onBecameStation: () => void } = $props();
+  }: {
+    section: ManageSection | null;
+    onSection: (section: ManageSection | null) => void;
+    onBack: () => void;
+    onBecameStation: () => void;
+  } = $props();
 
-  type View =
-    | "staff"
-    | "plants"
-    | "potSizes"
-    | "suppliers"
-    | "places"
-    | "stations"
-    | "figures";
-
-  const items: { view: View; label: string }[] = [
-    { view: "staff", label: "Staff" },
-    { view: "plants", label: "Plants" },
-    { view: "potSizes", label: "Pot sizes" },
-    { view: "suppliers", label: "Suppliers" },
-    { view: "places", label: "Places" },
-    { view: "stations", label: "Bench stations" },
-    { view: "figures", label: "Figures" },
-  ];
-
-  let view = $state<View | null>(null);
-  const back = () => (view = null);
+  const back = () => onSection(null);
 </script>
 
-{#if view === "figures"}
+{#if section === "figures"}
   <Figures onBack={back} />
-{:else if view === "staff"}
+{:else if section === "staff"}
   <Staff onBack={back} />
-{:else if view === "plants"}
+{:else if section === "plants"}
   <Plants onBack={back} />
-{:else if view === "potSizes"}
+{:else if section === "potSizes"}
   <PotSizes onBack={back} />
-{:else if view === "suppliers"}
+{:else if section === "suppliers"}
   <Suppliers onBack={back} />
-{:else if view === "places"}
+{:else if section === "places"}
   <Locations onBack={back} />
-{:else if view === "stations"}
+{:else if section === "stations"}
   <Stations onBack={back} {onBecameStation} />
 {:else}
   <main>
     <h1>Manage</h1>
     <div class="stack">
-      {#each items as item (item.view)}
-        <button class="secondary" onclick={() => (view = item.view)}
+      {#each manageSections as item (item.section)}
+        <button class="secondary" onclick={() => onSection(item.section)}
           >{item.label}</button
         >
       {/each}

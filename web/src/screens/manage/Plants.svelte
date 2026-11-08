@@ -107,71 +107,84 @@
 <main>
   <h1>Plants</h1>
 
-  <form class="stack" onsubmit={save}>
-    <label>Common name <input bind:value={form.commonName} required /></label>
-    <label>Variety <input bind:value={form.variety} /></label>
-    <label>Botanical name <input bind:value={form.botanicalName} /></label>
-    <label>Category <input bind:value={form.category} /></label>
-    <label>Position <input bind:value={form.position} /></label>
-    <label>Watering <input bind:value={form.watering} /></label>
-    <label>Hardiness <input bind:value={form.hardiness} /></label>
-    <label class="tick">
-      <input type="checkbox" bind:checked={form.xylellaHost} /> Xylella host
-    </label>
-    <label class="tick">
-      <input type="checkbox" bind:checked={form.protectedVariety} /> Protected variety
-    </label>
-    {#each potSizes as size (size.id)}
-      <label
-        >Price for {size.name} (£)
-        <input bind:value={prices[size.id]} inputmode="decimal" />
-      </label>
-    {/each}
-    <button type="submit">{editing ? "Save changes" : "Add"}</button>
-    {#if editing}
-      <button type="button" class="secondary" onclick={reset}>Cancel</button>
-    {/if}
-  </form>
-
-  {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
-
-  {#each plants as plant (plant.id)}
-    <div class="card">
-      <strong
-        >{plant.commonName}{plant.variety ? ` '${plant.variety}'` : ""}</strong
-      >
-      {#if plant.botanicalName}<em>{plant.botanicalName}</em>{/if}
-      <div class="row">
-        <button class="secondary" onclick={() => edit(plant)}>Change</button>
-        <a
-          class="button secondary"
-          href="/api/labels/bench-cards/{plant.id}"
-          target="_blank"
-          rel="noopener">Bench card</a
+  <div class="split">
+    <section>
+      <form class="stack" onsubmit={save}>
+        <label
+          >Common name <input bind:value={form.commonName} required /></label
         >
-        {#each plant.prices as price (price.potSizeId)}
-          <a
-            class="button secondary"
-            href="/api/labels/plants/{plant.id}?potSizeId={price.potSizeId}"
-            target="_blank"
-            rel="noopener"
-            >Plant label: {potSizes.find((size) => size.id === price.potSizeId)
-              ?.name}</a
-          >
-        {:else}
-          <a
-            class="button secondary"
-            href="/api/labels/plants/{plant.id}"
-            target="_blank"
-            rel="noopener">Plant label</a
-          >
+        <label>Variety <input bind:value={form.variety} /></label>
+        <label>Botanical name <input bind:value={form.botanicalName} /></label>
+        <label>Category <input bind:value={form.category} /></label>
+        <label>Position <input bind:value={form.position} /></label>
+        <label>Watering <input bind:value={form.watering} /></label>
+        <label>Hardiness <input bind:value={form.hardiness} /></label>
+        <label class="tick">
+          <input type="checkbox" bind:checked={form.xylellaHost} /> Xylella host
+        </label>
+        <label class="tick">
+          <input type="checkbox" bind:checked={form.protectedVariety} /> Protected
+          variety
+        </label>
+        {#each potSizes as size (size.id)}
+          <label
+            >Price for {size.name} (£)
+            <input bind:value={prices[size.id]} inputmode="decimal" />
+          </label>
         {/each}
-        <button class="secondary" onclick={() => archive(plant.id)}
-          >No longer grown</button
-        >
-      </div>
-    </div>
-  {/each}
+        <button type="submit">{editing ? "Save changes" : "Add"}</button>
+        {#if editing}
+          <button type="button" class="secondary" onclick={reset}>Cancel</button
+          >
+        {/if}
+      </form>
+    </section>
+    <section>
+      {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
-  <button class="secondary" onclick={onBack}>Back</button>
+      {#each plants as plant (plant.id)}
+        <div class="card">
+          <strong
+            >{plant.commonName}{plant.variety
+              ? ` '${plant.variety}'`
+              : ""}</strong
+          >
+          {#if plant.botanicalName}<em>{plant.botanicalName}</em>{/if}
+          <div class="row">
+            <button class="secondary" onclick={() => edit(plant)}>Change</button
+            >
+            <a
+              class="button secondary"
+              href="/api/labels/bench-cards/{plant.id}"
+              target="_blank"
+              rel="noopener">Bench card</a
+            >
+            {#each plant.prices as price (price.potSizeId)}
+              <a
+                class="button secondary"
+                href="/api/labels/plants/{plant.id}?potSizeId={price.potSizeId}"
+                target="_blank"
+                rel="noopener"
+                >Plant label: {potSizes.find(
+                  (size) => size.id === price.potSizeId,
+                )?.name}</a
+              >
+            {:else}
+              <a
+                class="button secondary"
+                href="/api/labels/plants/{plant.id}"
+                target="_blank"
+                rel="noopener">Plant label</a
+              >
+            {/each}
+            <button class="secondary" onclick={() => archive(plant.id)}
+              >No longer grown</button
+            >
+          </div>
+        </div>
+      {/each}
+    </section>
+  </div>
+
+  <button class="secondary mobile-only" onclick={onBack}>Back</button>
 </main>

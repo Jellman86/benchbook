@@ -27,31 +27,35 @@
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
   {#if figures}
-    {#each figures.plants as plant (plant.plantId)}
-      <div class="card">
-        <strong>{plantName(plant.commonName, plant.variety)}</strong>
-        <span>Started: {plant.started}</span>
-        <span>Germination: {percent(plant.germinationRate)}</span>
-        <span>Survival: {percent(plant.survivalRate)}</span>
-        <span>Lost: {plant.lost}</span>
-        {#if Number(plant.adjusted) !== 0}
-          <span>Stock count adjustments: {plant.adjusted}</span>
-        {/if}
-        <span>Alive now: {plant.alive}</span>
-      </div>
-    {:else}
-      <p class="muted">Nothing recorded yet.</p>
-    {/each}
+    <div class="card-grid">
+      {#each figures.plants as plant (plant.plantId)}
+        <div class="card">
+          <strong>{plantName(plant.commonName, plant.variety)}</strong>
+          <span>Started: {plant.started}</span>
+          <span>Germination: {percent(plant.germinationRate)}</span>
+          <span>Survival: {percent(plant.survivalRate)}</span>
+          <span>Lost: {plant.lost}</span>
+          {#if Number(plant.adjusted) !== 0}
+            <span>Stock count adjustments: {plant.adjusted}</span>
+          {/if}
+          <span>Alive now: {plant.alive}</span>
+        </div>
+      {:else}
+        <p class="muted">Nothing recorded yet.</p>
+      {/each}
+    </div>
 
     {#if figures.losses.length > 0}
       <h2>Losses by reason</h2>
-      {#each figures.losses as loss (loss.reason)}
-        <div class="card">
-          <span>{reasonLabel(String(loss.reason))}: {loss.quantity}</span>
-        </div>
-      {/each}
+      <div class="card-grid">
+        {#each figures.losses as loss (loss.reason)}
+          <div class="card">
+            <span>{reasonLabel(String(loss.reason))}: {loss.quantity}</span>
+          </div>
+        {/each}
+      </div>
     {/if}
   {/if}
 
-  <button class="secondary" onclick={onBack}>Back</button>
+  <button class="secondary mobile-only" onclick={onBack}>Back</button>
 </main>

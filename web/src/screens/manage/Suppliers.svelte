@@ -103,43 +103,52 @@
 <main>
   <h1>Suppliers</h1>
 
-  <form class="stack" onsubmit={save}>
-    <label>Name <input bind:value={form.name} required /></label>
-    <label>Contact name <input bind:value={form.contactName} /></label>
-    <label>Phone <input bind:value={form.phone} inputmode="tel" /></label>
-    <label>Email <input bind:value={form.email} inputmode="email" /></label>
-    <label>Address <input bind:value={form.address} /></label>
-    <label>Account reference <input bind:value={form.accountReference} /></label
-    >
-    <label>What they supply <input bind:value={form.supplies} /></label>
-    <label
-      >Typical lead time (days)
-      <input bind:value={form.typicalLeadTimeDays} inputmode="numeric" />
-    </label>
-    <label
-      >Passport registration number
-      <input bind:value={form.passportRegistrationNumber} />
-    </label>
-    <label>Notes <input bind:value={form.notes} /></label>
-    <button type="submit">{editing ? "Save changes" : "Add"}</button>
-    {#if editing}
-      <button type="button" class="secondary" onclick={reset}>Cancel</button>
-    {/if}
-  </form>
-
-  {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
-
-  {#each suppliers as supplier (supplier.id)}
-    <div class="card">
-      <strong>{supplier.name}</strong>
-      <div class="row">
-        <button class="secondary" onclick={() => edit(supplier)}>Change</button>
-        <button class="secondary" onclick={() => archive(supplier.id)}
-          >No longer used</button
+  <div class="split">
+    <section>
+      <form class="stack" onsubmit={save}>
+        <label>Name <input bind:value={form.name} required /></label>
+        <label>Contact name <input bind:value={form.contactName} /></label>
+        <label>Phone <input bind:value={form.phone} inputmode="tel" /></label>
+        <label>Email <input bind:value={form.email} inputmode="email" /></label>
+        <label>Address <input bind:value={form.address} /></label>
+        <label
+          >Account reference <input bind:value={form.accountReference} /></label
         >
-      </div>
-    </div>
-  {/each}
+        <label>What they supply <input bind:value={form.supplies} /></label>
+        <label
+          >Typical lead time (days)
+          <input bind:value={form.typicalLeadTimeDays} inputmode="numeric" />
+        </label>
+        <label
+          >Passport registration number
+          <input bind:value={form.passportRegistrationNumber} />
+        </label>
+        <label>Notes <input bind:value={form.notes} /></label>
+        <button type="submit">{editing ? "Save changes" : "Add"}</button>
+        {#if editing}
+          <button type="button" class="secondary" onclick={reset}>Cancel</button
+          >
+        {/if}
+      </form>
+    </section>
+    <section>
+      {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
-  <button class="secondary" onclick={onBack}>Back</button>
+      {#each suppliers as supplier (supplier.id)}
+        <div class="card">
+          <strong>{supplier.name}</strong>
+          <div class="row">
+            <button class="secondary" onclick={() => edit(supplier)}
+              >Change</button
+            >
+            <button class="secondary" onclick={() => archive(supplier.id)}
+              >No longer used</button
+            >
+          </div>
+        </div>
+      {/each}
+    </section>
+  </div>
+
+  <button class="secondary mobile-only" onclick={onBack}>Back</button>
 </main>

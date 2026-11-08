@@ -73,37 +73,42 @@
 <main>
   <h1>Pot sizes</h1>
 
-  <form class="stack" onsubmit={add}>
-    <label>New pot size <input bind:value={name} required /></label>
-    <button type="submit">Add</button>
-  </form>
+  <div class="split">
+    <section>
+      <form class="stack" onsubmit={add}>
+        <label>New pot size <input bind:value={name} required /></label>
+        <button type="submit">Add</button>
+      </form>
+    </section>
+    <section>
+      {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
-  {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
-
-  {#each sizes as size (size.id)}
-    <div class="card">
-      {#if renaming === size.id}
-        <form class="stack" onsubmit={(event) => rename(event, size.id)}>
-          <label>Name <input bind:value={newName} required /></label>
-          <button type="submit">Save</button>
-        </form>
-      {:else}
-        <strong>{size.name}</strong>
-        <div class="row">
-          <button
-            class="secondary"
-            onclick={() => {
-              renaming = size.id;
-              newName = size.name;
-            }}>Rename</button
-          >
-          <button class="secondary" onclick={() => archive(size.id)}
-            >No longer used</button
-          >
+      {#each sizes as size (size.id)}
+        <div class="card">
+          {#if renaming === size.id}
+            <form class="stack" onsubmit={(event) => rename(event, size.id)}>
+              <label>Name <input bind:value={newName} required /></label>
+              <button type="submit">Save</button>
+            </form>
+          {:else}
+            <strong>{size.name}</strong>
+            <div class="row">
+              <button
+                class="secondary"
+                onclick={() => {
+                  renaming = size.id;
+                  newName = size.name;
+                }}>Rename</button
+              >
+              <button class="secondary" onclick={() => archive(size.id)}
+                >No longer used</button
+              >
+            </div>
+          {/if}
         </div>
-      {/if}
-    </div>
-  {/each}
+      {/each}
+    </section>
+  </div>
 
-  <button class="secondary" onclick={onBack}>Back</button>
+  <button class="secondary mobile-only" onclick={onBack}>Back</button>
 </main>

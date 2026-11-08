@@ -118,7 +118,7 @@
 
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
-    <div class="stack">
+    <div class="stack actions">
       {#if hasPlants}
         <button onclick={() => (action = "lost")}>Lost</button>
         <button onclick={() => (action = "potOn")}>Pot on</button>

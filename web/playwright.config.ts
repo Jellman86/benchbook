@@ -12,7 +12,11 @@ export default defineConfig({
   workers: 1,
   forbidOnly: !!process.env.CI,
   timeout: 60_000,
-  use: { ...devices["Desktop Chrome"], baseURL: `http://localhost:${port}` },
+  use: {
+    ...devices["Desktop Chrome"],
+    viewport: { width: 420, height: 900 },
+    baseURL: `http://localhost:${port}`,
+  },
   webServer: [
     {
       command: `docker run --rm --name growlog-e2e -e POSTGRES_PASSWORD=e2e -p ${databasePort}:5432 ${postgres}`,
