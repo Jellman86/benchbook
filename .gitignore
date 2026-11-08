@@ -1,0 +1,10 @@
+bin/
+obj/
+node_modules/
+.svelte-kit/
+build/
+dist/
+.env
+*.user
+.DS_Store
+DerivedData/
