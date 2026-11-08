@@ -70,11 +70,13 @@ internal static class AccountServices
             var domain = configuration["Passkeys:ServerDomain"]
                 ?? throw new InvalidOperationException("Passkeys:ServerDomain is not configured.");
 
+            var origin = configuration["Passkeys:Origin"] ?? $"https://{domain}";
+
             options.ServerDomain = domain;
 
             // Compared with the configured address, so this does not depend on proxy headers.
             options.ValidateOrigin = context => ValueTask.FromResult(
-                !context.CrossOrigin && string.Equals(context.Origin, $"https://{domain}", StringComparison.Ordinal));
+                !context.CrossOrigin && string.Equals(context.Origin, origin, StringComparison.Ordinal));
         });
 
         return services;

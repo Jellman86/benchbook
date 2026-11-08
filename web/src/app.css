@@ -63,7 +63,8 @@ label {
   font-weight: 600;
 }
 
-input {
+input,
+select {
   min-height: var(--target);
   padding: 0 0.75rem;
   border: 2px solid var(--border);
@@ -97,7 +98,8 @@ button:disabled {
 }
 
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+select:focus-visible {
   outline: 3px solid var(--text);
   outline-offset: 2px;
 }
@@ -115,6 +117,43 @@ input:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.row button {
+  flex: 1 1 8rem;
+}
+
+.tick {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tick input {
+  width: 2rem;
+  height: 2rem;
+  min-height: 0;
+}
+
+.link {
+  overflow-wrap: anywhere;
+  font-family: monospace;
 }
 
 .pin-display {

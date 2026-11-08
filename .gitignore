@@ -4,6 +4,8 @@ node_modules/
 .svelte-kit/
 build/
 dist/
+test-results/
+playwright-report/
 .env
 *.user
 .DS_Store
