@@ -23,6 +23,8 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<TillTaking> TillTakings => Set<TillTaking>();
 
+    public DbSet<BackupStatus> BackupStatus => Set<BackupStatus>();
+
     public DbSet<Event> Events => Set<Event>();
 
     public DbSet<Plant> Plants => Set<Plant>();
@@ -83,6 +85,12 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         });
 
         ConfigurePurchases(modelBuilder);
+
+        modelBuilder.Entity<BackupStatus>(entity =>
+        {
+            entity.ToTable("backup_status");
+            entity.Property(e => e.Id).ValueGeneratedNever();
+        });
 
         modelBuilder.Entity<BenchStation>(entity =>
         {

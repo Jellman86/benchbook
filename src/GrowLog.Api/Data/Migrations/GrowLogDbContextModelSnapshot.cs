@@ -144,6 +144,26 @@ namespace GrowLog.Api.Data.Migrations
                     b.ToTable("bench_stations", (string)null);
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.BackupStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("LastDumpAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_dump_at");
+
+                    b.Property<DateTimeOffset?>("LastTransferAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_transfer_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_backup_status");
+
+                    b.ToTable("backup_status", (string)null);
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.Batch", b =>
                 {
                     b.Property<Guid>("Id")

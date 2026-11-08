@@ -54,6 +54,7 @@
   let offline = $state(false);
   let waiting = $state(queue.waiting);
   let failed = $state<FailedWork[]>(queue.failed);
+  let backupStopped = $state(false);
   let demoAvailable = $state(false);
   let loadingDemo = $state(false);
   let sending = false;
@@ -69,6 +70,11 @@
       recent = (await api.GET("/api/events/recent")).data ?? [];
       demoAvailable =
         me.isOwner && ((await api.GET("/api/demo")).data?.available ?? false);
+
+      if (me.isOwner) {
+        const backups = (await api.GET("/api/backups/status")).data;
+        backupStopped = !!backups?.known && !backups.healthy;
+      }
       const containers = (await api.GET("/api/containers/active")).data;
       const places = (await api.GET("/api/locations")).data;
 
@@ -285,6 +291,13 @@
       {#if offline}
         <p class="card" data-testid="offline">
           No connection. Work you record is saved on this device.
+        </p>
+      {/if}
+
+      {#if backupStopped}
+        <p class="card problem" role="alert">
+          Backups may have stopped. Records aren't being protected until this is
+          fixed.
         </p>
       {/if}
 

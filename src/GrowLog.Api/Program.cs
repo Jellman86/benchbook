@@ -8,6 +8,7 @@ using GrowLog.Api.Data;
 using GrowLog.Api.Demo;
 using GrowLog.Api.Figures;
 using GrowLog.Api.Labels;
+using GrowLog.Api.Operations;
 using GrowLog.Api.Passports;
 using GrowLog.Api.Selling;
 using GrowLog.Api.Work;
@@ -24,6 +25,7 @@ if (Assembly.GetEntryAssembly()?.GetName().Name is not "GetDocument.Insider")
 
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<CatalogueAuditInterceptor>();
 builder.Services.AddDbContext<GrowLogDbContext>((services, options) =>
 {
@@ -56,6 +58,7 @@ app.MapFigureEndpoints();
 app.MapReceivedPassportEndpoints();
 app.MapPurchaseEndpoints();
 app.MapMoneyEndpoints();
+app.MapBackupStatusEndpoints();
 app.MapDemoEndpoints();
 
 // Deep links load the web app. Unknown API paths must not.
