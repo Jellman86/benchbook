@@ -1,0 +1,144 @@
+using System.Security.Claims;
+using GrowLog.Api.Accounts;
+using GrowLog.Api.Data;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
+
+namespace GrowLog.Api.Buying;
+
+/// <summary>Money out. For the owner.</summary>
+internal static class PurchaseEndpoints
+{
+    public static void MapPurchaseEndpoints(this IEndpointRouteBuilder app)
+    {
+        var purchases = app.MapGroup("/api/purchases").RequireAuthorization(AccountServices.OwnerPolicy);
+        purchases.MapGet("/", ListAsync);
+        purchases.MapPost("/", AddAsync).Produces<PurchaseCreated>(StatusCodes.Status201Created);
+        purchases.MapPost("/{id:guid}/paid", SetPaidAsync);
+        purchases.MapPost("/{id:guid}/void", VoidAsync);
+    }
+
+    private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static bool IsMoney(decimal value) => value >= 0 && value == decimal.Round(value, 2);
+
+    private static bool IsValid(LineRequest line) =>
+        Clean(line.Description) is not null
+        && IsMoney(line.NetCost)
+        && IsMoney(line.Vat)
+        && line.Quantity is null or > 0;
+
+    private static DateOnly LatestAllowedDate => DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1));
+
+    private static async Task<List<PurchaseResponse>> ListAsync(GrowLogDbContext db, bool includeVoided = false, CancellationToken cancellationToken = default)
+    {
+        var purchases = await db.Purchases
+            .AsNoTracking()
+            .Include(purchase => purchase.Lines)
+            .Where(purchase => includeVoided || purchase.VoidedAt == null)
+            .OrderByDescending(purchase => purchase.PurchasedOn)
+            .ThenByDescending(purchase => purchase.Id)
+            .ToListAsync(cancellationToken);
+
+        var supplierNames = await db.Suppliers.AsNoTracking().ToDictionaryAsync(supplier => supplier.Id, supplier => supplier.Name, cancellationToken);
+
+        return purchases.ConvertAll(purchase => new PurchaseResponse(
+            purchase.Id,
+            purchase.SupplierId,
+            supplierNames[purchase.SupplierId],
+            purchase.PurchasedOn,
+            purchase.Reference,
+            purchase.Notes,
+            purchase.PaidOn,
+            purchase.VoidedAt is not null,
+            purchase.Lines.Sum(line => line.NetCost),
+            purchase.Lines.Sum(line => line.Vat),
+            purchase.Lines.Select(line => new LineResponse(line.Description, line.Quantity, line.NetCost, line.Vat)).ToList()));
+    }
+
+    private static async Task<IResult> AddAsync(PurchaseRequest request, ClaimsPrincipal user, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        if (request.Lines.Count == 0 || !request.Lines.All(IsValid) || request.PurchasedOn > LatestAllowedDate)
+        {
+            return TypedResults.BadRequest();
+        }
+
+        var purchase = new Purchase
+        {
+            SupplierId = request.SupplierId,
+            PurchasedOn = request.PurchasedOn,
+            Reference = Clean(request.Reference),
+            Notes = Clean(request.Notes),
+            RecordedBy = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!),
+        };
+
+        foreach (var line in request.Lines)
+        {
+            purchase.Lines.Add(new PurchaseLine { Description = line.Description.Trim(), Quantity = line.Quantity, NetCost = line.NetCost, Vat = line.Vat });
+        }
+
+        db.Purchases.Add(purchase);
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            return TypedResults.Created($"/api/purchases/{purchase.Id}", new PurchaseCreated(purchase.Id));
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation })
+        {
+            return TypedResults.BadRequest();
+        }
+    }
+
+    private static async Task<IResult> SetPaidAsync(Guid id, PaidRequest request, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        if (request.PaidOn > LatestAllowedDate)
+        {
+            return TypedResults.BadRequest();
+        }
+
+        if (await db.Purchases.FindAsync([id], cancellationToken) is not { VoidedAt: null } purchase)
+        {
+            return TypedResults.NotFound();
+        }
+
+        purchase.PaidOn = request.PaidOn;
+        await db.SaveChangesAsync(cancellationToken);
+        return TypedResults.NoContent();
+    }
+
+    private static async Task<IResult> VoidAsync(Guid id, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        if (await db.Purchases.FindAsync([id], cancellationToken) is not { } purchase)
+        {
+            return TypedResults.NotFound();
+        }
+
+        purchase.VoidedAt ??= DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        return TypedResults.NoContent();
+    }
+
+    internal sealed record LineRequest(string Description, int? Quantity, decimal NetCost, decimal Vat);
+
+    internal sealed record PurchaseRequest(Guid SupplierId, DateOnly PurchasedOn, string? Reference, string? Notes, IReadOnlyList<LineRequest> Lines);
+
+    internal sealed record PurchaseCreated(Guid Id);
+
+    internal sealed record PaidRequest(DateOnly? PaidOn);
+
+    internal sealed record LineResponse(string Description, int? Quantity, decimal NetCost, decimal Vat);
+
+    internal sealed record PurchaseResponse(
+        Guid Id,
+        Guid SupplierId,
+        string SupplierName,
+        DateOnly PurchasedOn,
+        string? Reference,
+        string? Notes,
+        DateOnly? PaidOn,
+        bool Voided,
+        decimal NetTotal,
+        decimal VatTotal,
+        IReadOnlyList<LineResponse> Lines);
+}

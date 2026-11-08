@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Schemas } from "./types";
 import {
   describeRecent,
+  money,
   outcomeProblem,
   percent,
   placeLabel,
@@ -57,6 +58,13 @@ describe("percent", () => {
 
   it("shows a dash when there's nothing to go on", () => {
     expect(percent(null)).toBe("–");
+  });
+});
+
+describe("money", () => {
+  it("shows pounds and pence", () => {
+    expect(money(4.5)).toBe("£4.50");
+    expect(money(0)).toBe("£0.00");
   });
 });
 

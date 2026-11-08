@@ -15,6 +15,10 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<CatalogueChange> CatalogueChanges => Set<CatalogueChange>();
 
+    public DbSet<Purchase> Purchases => Set<Purchase>();
+
+    public DbSet<PurchaseLine> PurchaseLines => Set<PurchaseLine>();
+
     public DbSet<Event> Events => Set<Event>();
 
     public DbSet<Plant> Plants => Set<Plant>();
@@ -74,10 +78,36 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.RecordedBy).OnDelete(DeleteBehavior.Restrict);
         });
 
+        ConfigurePurchases(modelBuilder);
+
         modelBuilder.Entity<BenchStation>(entity =>
         {
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        });
+    }
+
+    private static void ConfigurePurchases(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Purchase>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.HasOne<Supplier>().WithMany().HasForeignKey(e => e.SupplierId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.RecordedBy).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PurchaseLine>(entity =>
+        {
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint("ck_purchase_lines_net_cost", "net_cost >= 0");
+                table.HasCheckConstraint("ck_purchase_lines_vat", "vat >= 0");
+            });
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.NetCost).HasPrecision(10, 2);
+            entity.Property(e => e.Vat).HasPrecision(10, 2);
+            entity.HasOne<Purchase>().WithMany(e => e.Lines).HasForeignKey(e => e.PurchaseId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 
