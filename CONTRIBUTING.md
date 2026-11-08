@@ -21,6 +21,8 @@ ConnectionStrings__GrowLog=Host=localhost dotnet ef migrations add <Name> --proj
 
 The command only needs a connection string to be set. It does not connect to a database. The application applies migrations when it starts.
 
+Once a migration is merged it may already have run somewhere, so never edit it: add a new one. CI enforces this. Prefer changes that keep existing data, and split anything destructive into separate releases.
+
 ## Browser tests
 
 `npm run e2e` in `web` drives the real application in Chromium, against a throwaway PostgreSQL container, using a built-in virtual passkey. Build the web app first with `npm run build`, and install the browser once with `npx playwright install chromium`.

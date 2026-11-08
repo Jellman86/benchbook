@@ -44,6 +44,24 @@ jobs:
           dotnet build src/GrowLog.Api --configuration Release --no-restore -p:OpenApiGenerateDocumentsOnBuild=true
           git diff --exit-code web/src/api/openapi.json
 
+  migrations:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Refuse changes to migrations that are already merged
+        run: |
+          changed=$(git diff --name-status --diff-filter=MDR "origin/$GITHUB_BASE_REF...HEAD" -- src/GrowLog.Api/Data/Migrations ':!src/GrowLog.Api/Data/Migrations/GrowLogDbContextModelSnapshot.cs')
+          if [ -n "$changed" ]; then
+            echo "$changed"
+            echo "::error::A merged migration may already have run. Add a new migration instead."
+            exit 1
+          fi
+
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 15
