@@ -10,6 +10,7 @@
     isRecorded,
     outcomeProblem,
     repeatOf,
+    type BatchPrefill,
     submit,
     work,
   } from "../lib/work";
@@ -33,7 +34,7 @@
   type View =
     | { name: "home" }
     | { name: "container"; label: string }
-    | { name: "start" }
+    | { name: "start"; prefill?: BatchPrefill }
     | { name: "camera" }
     | { name: "manage"; section: ManageSection | null };
 
@@ -259,9 +260,10 @@
       onSection={(section) => (view = { name: "manage", section })}
       onBack={goHome}
       onBecameStation={onSignedOut}
+      onStartBatch={(prefill) => (view = { name: "start", prefill })}
     />
   {:else if view.name === "start"}
-    <StartBatch onDone={finishWork} onCancel={goHome} />
+    <StartBatch prefill={view.prefill} onDone={finishWork} onCancel={goHome} />
   {:else if view.name === "camera"}
     <Camera onScan={open} onCancel={goHome} />
   {:else if view.name === "container"}

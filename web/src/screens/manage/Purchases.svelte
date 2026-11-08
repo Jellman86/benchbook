@@ -2,9 +2,15 @@
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { attempt, optional, type Schemas } from "../../lib/types";
-  import { money } from "../../lib/work";
+  import { money, type BatchPrefill } from "../../lib/work";
 
-  let { onBack }: { onBack: () => void } = $props();
+  let {
+    onBack,
+    onStartBatch,
+  }: {
+    onBack: () => void;
+    onStartBatch: (prefill: BatchPrefill) => void;
+  } = $props();
 
   const today = () => new Date().toISOString().slice(0, 10);
   const emptyLine = () => ({ description: "", quantity: "", net: "", vat: "" });
@@ -78,6 +84,33 @@
       });
       await load();
     }, setProblem);
+
+  const addReceipt = (purchaseId: string, event: Event) => {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    return attempt(async () => {
+      const response = await fetch(`/api/purchases/${purchaseId}/receipts`, {
+        method: "POST",
+        body: file,
+      });
+
+      input.value = "";
+
+      if (response.ok) {
+        await load();
+      } else {
+        problem =
+          response.status === 413
+            ? "That file is over 10MB."
+            : "Please choose a photo (JPEG or PNG) or a PDF.";
+      }
+    }, setProblem);
+  };
 
   const voidPurchase = (purchase: Schemas["PurchaseResponse"]) => {
     if (!confirm(`Void this purchase from ${purchase.supplierName}?`)) {
@@ -165,13 +198,43 @@
           >
           <span>{purchase.paidOn ? `Paid ${purchase.paidOn}` : "Not paid"}</span
           >
-          {#each purchase.lines as line, index (index)}
-            <span class="muted"
-              >{line.description}: {money(Number(line.netCost))} + VAT {money(
-                Number(line.vat),
-              )}</span
+          {#each purchase.lines as line (line.id)}
+            <div class="line">
+              <span class="muted"
+                >{line.description}: {money(Number(line.netCost))} + VAT {money(
+                  Number(line.vat),
+                )}</span
+              >
+              {#if Number(line.batchCount) > 0}
+                <span class="muted">Batch started</span>
+              {:else}
+                <button
+                  class="secondary"
+                  onclick={() =>
+                    onStartBatch({
+                      supplierId: purchase.supplierId,
+                      quantity: Number(line.quantity ?? 1),
+                      purchaseLineId: line.id,
+                      description: line.description,
+                    })}>Start a batch</button
+                >
+              {/if}
+            </div>
+          {/each}
+          {#each purchase.receiptIds as receipt, index (receipt)}
+            <a
+              href="/api/purchases/receipts/{receipt}"
+              target="_blank"
+              rel="noopener">Receipt {index + 1}</a
             >
           {/each}
+          <label
+            >Add a receipt <input
+              type="file"
+              accept="image/jpeg,image/png,application/pdf"
+              onchange={(event) => addReceipt(purchase.id, event)}
+            /></label
+          >
           <div class="row">
             {#if purchase.paidOn}
               <button

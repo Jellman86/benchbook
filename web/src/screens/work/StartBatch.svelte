@@ -8,14 +8,17 @@
     submit,
     work,
     workPlaces,
+    type BatchPrefill,
   } from "../../lib/work";
   import ActionFrame from "./ActionFrame.svelte";
   import Stepper from "./Stepper.svelte";
 
   let {
+    prefill,
     onDone,
     onCancel,
   }: {
+    prefill?: BatchPrefill;
     onDone: (message: string, eventId: string, newLabel?: string) => void;
     onCancel: () => void;
   } = $props();
@@ -48,6 +51,12 @@
       plantId = plants[0]?.id ?? "";
       locationId = places[0]?.id ?? "";
       potSizeId = potSizes[0]?.id ?? "";
+
+      if (prefill) {
+        source = "BoughtIn";
+        supplierId = prefill.supplierId;
+        quantity = prefill.quantity;
+      }
     }, setProblem),
   );
 
@@ -67,6 +76,7 @@
         containerKind,
         locationId: locationId || null,
         potSizeId: potSizeId || null,
+        purchaseLineId: prefill?.purchaseLineId ?? null,
       }),
     );
     busy = false;
@@ -84,6 +94,7 @@
 </script>
 
 <ActionFrame title="New batch" {problem} {onCancel}>
+  {#if prefill}<p class="muted">From purchase: {prefill.description}</p>{/if}
   {#if plants.length === 0}
     <p class="muted">No plants on the list yet. Ask the owner to add some.</p>
   {:else}

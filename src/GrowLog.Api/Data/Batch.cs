@@ -16,6 +16,9 @@ internal sealed class Batch
 
     public Guid? SupplierId { get; init; }
 
+    /// <summary>The purchase line these plants arrived on, if there is one.</summary>
+    public Guid? PurchaseLineId { get; init; }
+
     public Guid? ParentBatchId { get; init; }
 
     public string? MotherPlant { get; init; }

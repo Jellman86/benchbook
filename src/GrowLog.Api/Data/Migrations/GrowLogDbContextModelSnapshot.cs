@@ -173,6 +173,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("plant_id");
 
+                    b.Property<Guid?>("PurchaseLineId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("purchase_line_id");
+
                     b.Property<string>("Source")
                         .IsRequired()
                         .HasColumnType("text")
@@ -199,6 +203,9 @@ namespace GrowLog.Api.Data.Migrations
 
                     b.HasIndex("PlantId")
                         .HasDatabaseName("ix_batches_plant_id");
+
+                    b.HasIndex("PurchaseLineId")
+                        .HasDatabaseName("ix_batches_purchase_line_id");
 
                     b.HasIndex("SupplierId")
                         .HasDatabaseName("ix_batches_supplier_id");
@@ -648,6 +655,48 @@ namespace GrowLog.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.PurchaseReceipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("content");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid>("PurchaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("purchase_id");
+
+                    b.Property<Guid>("UploadedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("uploaded_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_purchase_receipts");
+
+                    b.HasIndex("PurchaseId")
+                        .HasDatabaseName("ix_purchase_receipts_purchase_id");
+
+                    b.HasIndex("UploadedBy")
+                        .HasDatabaseName("ix_purchase_receipts_uploaded_by");
+
+                    b.ToTable("purchase_receipts", (string)null);
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.ReceivedPassport", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1007,6 +1056,12 @@ namespace GrowLog.Api.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_batches_plants_plant_id");
 
+                    b.HasOne("GrowLog.Api.Data.PurchaseLine", null)
+                        .WithMany()
+                        .HasForeignKey("PurchaseLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_batches_purchase_lines_purchase_line_id");
+
                     b.HasOne("GrowLog.Api.Data.Supplier", null)
                         .WithMany()
                         .HasForeignKey("SupplierId")
@@ -1133,6 +1188,23 @@ namespace GrowLog.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_purchase_lines_purchases_purchase_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.PurchaseReceipt", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Purchase", null)
+                        .WithMany()
+                        .HasForeignKey("PurchaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_purchase_receipts_purchases_purchase_id");
+
+                    b.HasOne("GrowLog.Api.Accounts.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UploadedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_purchase_receipts_asp_net_users_uploaded_by");
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.ReceivedPassport", b =>

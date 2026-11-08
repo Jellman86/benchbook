@@ -141,6 +141,12 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Save purchase").click();
   await expect(page.getByText("Hillside Plants: £54.60")).toBeVisible();
   await expect(page.getByText("Still owed: £54.60")).toBeVisible();
+  await page.getByLabel("Add a receipt").setInputFiles({
+    name: "receipt.png",
+    mimeType: "image/png",
+    buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]),
+  });
+  await expect(page.getByRole("link", { name: "Receipt 1" })).toBeVisible();
   await button(page, "Mark paid").click();
   await expect(page.getByText("Still owed: £0.00")).toBeVisible();
   await leaveManage(page);

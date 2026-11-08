@@ -148,6 +148,113 @@ public sealed class PurchaseTests(PostgresFixture database)
         Assert.Contains("append-only", delete.MessageText, StringComparison.Ordinal);
     }
 
+    private static readonly byte[] Png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3];
+
+    private static async Task<HttpResponseMessage> UploadAsync(HttpClient client, Guid purchase, byte[] content, string contentType = "image/png")
+    {
+        using var body = new ByteArrayContent(content);
+        body.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        return await client.PostAsync(Route($"/api/purchases/{purchase}/receipts"), body, Cancellation);
+    }
+
+    [Fact]
+    public async Task A_receipt_can_be_added_and_viewed()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var id = await AddPurchaseAsync(nursery.Owner, await AddSupplierAsync(nursery.Owner));
+
+        using var uploaded = await UploadAsync(nursery.Owner, id, Png);
+        Assert.Equal(HttpStatusCode.Created, uploaded.StatusCode);
+
+        var receipt = (await ListAsync(nursery.Owner))[0].GetProperty("receiptIds").EnumerateArray().Single().GetGuid();
+        using var response = await nursery.Owner.GetAsync(Route($"/api/purchases/receipts/{receipt}"), Cancellation);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("image/png", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(Png, await response.Content.ReadAsByteArrayAsync(Cancellation));
+        Assert.Equal("nosniff", response.Headers.GetValues("X-Content-Type-Options").Single());
+    }
+
+    [Fact]
+    public async Task A_file_is_judged_by_its_contents_not_its_label()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var id = await AddPurchaseAsync(nursery.Owner, await AddSupplierAsync(nursery.Owner));
+
+        using var html = await UploadAsync(nursery.Owner, id, "<html><script>"u8.ToArray());
+
+        Assert.Equal(HttpStatusCode.UnsupportedMediaType, html.StatusCode);
+    }
+
+    [Fact]
+    public async Task An_oversized_receipt_is_refused()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var id = await AddPurchaseAsync(nursery.Owner, await AddSupplierAsync(nursery.Owner));
+        var tooBig = new byte[(10 * 1024 * 1024) + 1];
+        Png.CopyTo(tooBig, 0);
+
+        using var response = await UploadAsync(nursery.Owner, id, tooBig);
+
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_receipt_cannot_be_added_to_a_voided_purchase()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var id = await AddPurchaseAsync(nursery.Owner, await AddSupplierAsync(nursery.Owner));
+        await PostStatusAsync(nursery.Owner, $"/api/purchases/{id}/void");
+
+        using var response = await UploadAsync(nursery.Owner, id, Png);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Staff_cannot_add_or_view_receipts()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var id = await AddPurchaseAsync(nursery.Owner, await AddSupplierAsync(nursery.Owner));
+        using var uploaded = await UploadAsync(nursery.Owner, id, Png);
+        var receipt = (await ListAsync(nursery.Owner))[0].GetProperty("receiptIds")[0].GetGuid();
+
+        using var staffUpload = await UploadAsync(nursery.Staff, id, Png);
+
+        Assert.Equal(HttpStatusCode.Forbidden, staffUpload.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, await GetStatusAsync(nursery.Staff, $"/api/purchases/receipts/{receipt}"));
+    }
+
+    [Fact]
+    public async Task The_database_refuses_to_remove_a_receipt()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var id = await AddPurchaseAsync(nursery.Owner, await AddSupplierAsync(nursery.Owner));
+        using var uploaded = await UploadAsync(nursery.Owner, id, Png);
+        await using var scope = nursery.App.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<GrowLogDbContext>();
+
+        var delete = await Assert.ThrowsAsync<PostgresException>(() => db.PurchaseReceipts.ExecuteDeleteAsync(Cancellation));
+
+        Assert.Contains("append-only", delete.MessageText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_batch_started_from_a_purchase_line_is_counted_against_it()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var supplier = await AddSupplierAsync(nursery.Owner);
+        await AddPurchaseAsync(nursery.Owner, supplier);
+        var line = (await ListAsync(nursery.Owner))[0].GetProperty("lines")[0];
+        Assert.Equal(0, line.GetProperty("batchCount").GetInt32());
+        var plant = Json(await PostForTextAsync(nursery.Owner, "/api/plants", new { commonName = "Lavender", xylellaHost = false, protectedVariety = false })).GetProperty("id").GetGuid();
+
+        var status = await PostStatusAsync(nursery.Staff, "/api/batches", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow, plantId = plant, quantity = 10, source = "BoughtIn", supplierId = supplier, originCountry = "GB", containerKind = "Tray", purchaseLineId = line.GetProperty("id").GetGuid() });
+
+        Assert.Equal(HttpStatusCode.Created, status);
+        Assert.Equal(1, (await ListAsync(nursery.Owner))[0].GetProperty("lines")[0].GetProperty("batchCount").GetInt32());
+    }
+
     [Fact]
     public async Task Purchases_are_for_the_owner()
     {

@@ -186,6 +186,12 @@ select:focus-visible {
   min-height: 0;
 }
 
+.line {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .link {
   overflow-wrap: anywhere;
   font-family: monospace;

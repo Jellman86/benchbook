@@ -19,7 +19,7 @@ internal static class DemoEndpoints
     private static bool IsEnabled(IConfiguration configuration) => configuration.GetValue<bool>("Demo:Enabled");
 
     private static async Task<DemoStatus> GetStatusAsync(IConfiguration configuration, GrowLogDbContext db, CancellationToken cancellationToken) =>
-        new(IsEnabled(configuration) && !await db.Batches.AnyAsync(cancellationToken));
+        new(IsEnabled(configuration) && !await db.Batches.AnyAsync(cancellationToken) && !await db.Plants.AnyAsync(cancellationToken));
 
     private static async Task<IResult> LoadAsync(
         ClaimsPrincipal user,
