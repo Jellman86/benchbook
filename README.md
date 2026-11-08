@@ -4,7 +4,7 @@ Simple, open-source record keeping for small plant nurseries.
 
 GrowLog is for the people doing the work. Scan a label, press what happened, and get on with the day. Stock counts, survival figures, plant labels and plant health records come from that, with no separate paperwork.
 
-**Status: planning.** There is no working software yet. The [product specification](docs/spec.md) describes what is being built.
+**Status: early development.** Stage one, for recording work at the nursery, is being finished and is not yet ready for general use. The [product specification](docs/spec.md) describes what is being built.
 
 ## What it will do
 
