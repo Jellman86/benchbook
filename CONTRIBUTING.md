@@ -21,6 +21,10 @@ ConnectionStrings__GrowLog=Host=localhost dotnet ef migrations add <Name> --proj
 
 The command only needs a connection string to be set. It does not connect to a database. The application applies migrations when it starts.
 
+## Browser tests
+
+`npm run e2e` in `web` drives the real application in Chromium, against a throwaway PostgreSQL container, using a built-in virtual passkey. Build the web app first with `npm run build`, and install the browser once with `npx playwright install chromium`.
+
 ## API contract
 
 The web client is generated from the API. After changing an endpoint, refresh it, and commit both generated files in `web/src/api`:

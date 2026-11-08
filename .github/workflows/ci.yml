@@ -65,6 +65,31 @@ jobs:
       - name: Build
         run: npm run build
 
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
+          package-manager-cache: false
+      - run: npm ci
+      - name: Build the web app
+        run: npm run build
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+      - name: Test in a real browser
+        run: npm run e2e
+
   image:
     runs-on: ubuntu-latest
     timeout-minutes: 15

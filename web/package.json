@@ -11,6 +11,7 @@
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "test": "vitest run --passWithNoTests",
+    "e2e": "playwright test",
     "generate:api": "openapi-typescript src/api/openapi.json --output src/api/schema.d.ts"
   },
   "overrides": {
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.65.0",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@tsconfig/svelte": "^5.0.8",
     "eslint": "^10.14.0",
