@@ -1,14 +1,19 @@
 /* Built for greenhouses: high contrast, large text, targets big enough for gloved hands. */
 :root {
   color-scheme: light dark;
-  --background: #f7f7f2;
-  --text: #16210f;
-  --muted: #4a5642;
-  --primary: #1f6b2e;
+  --background: #f7efe1;
+  --text: #2e2320;
+  --muted: #6f5b37;
+  --primary: #842f30;
   --on-primary: #ffffff;
-  --surface: #ffffff;
-  --border: #5c6b52;
-  --problem: #a11212;
+  --surface: #fffaf2;
+  --border: #a1855e;
+  --problem: #a3241c;
+  --done: #6f5b37;
+  --sidebar: #631e20;
+  --sidebar-text: #f7efe1;
+  --sidebar-active: #f6debe;
+  --sidebar-active-text: #631e20;
   --target: 4rem;
   font-family: system-ui, sans-serif;
   font-size: 20px;
@@ -17,14 +22,19 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #11160e;
-    --text: #f2f6ee;
-    --muted: #bcc7b3;
-    --primary: #7fd68f;
-    --on-primary: #0b1a0e;
-    --surface: #1e261a;
-    --border: #8fa084;
-    --problem: #ff9c9c;
+    --background: #1e1817;
+    --text: #f4ebdf;
+    --muted: #c4b6a8;
+    --primary: #eaa5ac;
+    --on-primary: #3a1218;
+    --surface: #2b2321;
+    --border: #94857a;
+    --problem: #ffa899;
+    --done: #a8bd96;
+    --sidebar: #3a1519;
+    --sidebar-text: #f4ebdf;
+    --sidebar-active: #f4ebdf;
+    --sidebar-active-text: #3a1519;
   }
 }
 
@@ -188,7 +198,7 @@ h2 {
 
 .done {
   border-width: 3px;
-  border-color: var(--primary);
+  border-color: var(--done);
 }
 
 .stepper {
@@ -231,4 +241,155 @@ h2 {
 .pin-pad button {
   min-height: 5rem;
   font-size: 1.5rem;
+}
+
+.split > section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.split {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.card-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sidebar,
+.desktop-only {
+  display: none;
+}
+
+/* Wide screens used by one person at a desk. Bench stations and phones keep the big layout. */
+@media (min-width: 900px) {
+  :root:has(.with-sidebar) {
+    font-size: 16px;
+    --target: 2.75rem;
+  }
+
+  .with-sidebar {
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 1fr);
+    min-height: 100vh;
+  }
+
+  .with-sidebar .mobile-only {
+    display: none;
+  }
+
+  .with-sidebar .desktop-only {
+    display: block;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    height: 100vh;
+    padding: 1.25rem 0.75rem;
+    overflow-y: auto;
+    background: var(--sidebar);
+    color: var(--sidebar-text);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0 0.5rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+  }
+
+  .sidebar nav {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .sidebar button {
+    min-height: 2.4rem;
+    padding: 0.35rem 0.75rem;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-weight: 500;
+    text-align: left;
+  }
+
+  .sidebar button:hover {
+    background: rgb(255 255 255 / 12%);
+  }
+
+  .sidebar button[aria-current="page"] {
+    background: var(--sidebar-active);
+    color: var(--sidebar-active-text);
+    font-weight: 700;
+  }
+
+  .sidebar button:focus-visible {
+    outline-color: var(--sidebar-text);
+    outline-offset: -2px;
+  }
+
+  .nav-heading {
+    margin: 1rem 0 0.25rem;
+    padding: 0 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 75%;
+  }
+
+  .sidebar-foot {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.75rem 0.5rem 0;
+    border-top: 1px solid rgb(255 255 255 / 25%);
+  }
+
+  .sidebar-foot span {
+    padding: 0 0.75rem;
+    font-weight: 600;
+  }
+
+  .with-sidebar main {
+    width: 100%;
+    max-width: 76rem;
+    margin: 0;
+    padding: 2rem 2.5rem 3rem;
+  }
+
+  .with-sidebar .split {
+    display: grid;
+    grid-template-columns: minmax(20rem, 26rem) minmax(0, 1fr);
+    gap: 2.5rem;
+    align-items: start;
+  }
+
+  .with-sidebar .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  }
+
+  .with-sidebar .actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  }
+
+  .with-sidebar .pin-pad button,
+  .with-sidebar .stepper-buttons button {
+    min-height: 2.75rem;
+  }
 }

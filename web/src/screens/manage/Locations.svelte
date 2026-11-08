@@ -92,56 +92,65 @@
 <main>
   <h1>Places</h1>
 
-  <form class="stack" onsubmit={add}>
-    <label>
-      Type
-      <select bind:value={kind}>
-        {#each kinds as option (option)}<option value={option}>{option}</option
-          >{/each}
-      </select>
-    </label>
-    {#if kind !== "Site"}
-      <label>
-        Inside
-        <select bind:value={parentId} required>
-          <option value="">Choose…</option>
-          {#each parents as parent (parent.id)}
-            <option value={parent.id}>{parent.name}</option>
-          {/each}
-        </select>
-      </label>
-    {/if}
-    <label>Name <input bind:value={name} required /></label>
-    <button type="submit">Add</button>
-  </form>
+  <div class="split">
+    <section>
+      <form class="stack" onsubmit={add}>
+        <label>
+          Type
+          <select bind:value={kind}>
+            {#each kinds as option (option)}<option value={option}
+                >{option}</option
+              >{/each}
+          </select>
+        </label>
+        {#if kind !== "Site"}
+          <label>
+            Inside
+            <select bind:value={parentId} required>
+              <option value="">Choose…</option>
+              {#each parents as parent (parent.id)}
+                <option value={parent.id}>{parent.name}</option>
+              {/each}
+            </select>
+          </label>
+        {/if}
+        <label>Name <input bind:value={name} required /></label>
+        <button type="submit">Add</button>
+      </form>
+    </section>
+    <section>
+      {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
-  {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
-
-  {#each locations as location (location.id)}
-    <div class="card">
-      {#if renaming === location.id}
-        <form class="stack" onsubmit={(event) => rename(event, location.id)}>
-          <label>Name <input bind:value={newName} required /></label>
-          <button type="submit">Save</button>
-        </form>
-      {:else}
-        <strong>{location.name}</strong>
-        <span class="muted">{location.kind}</span>
-        <div class="row">
-          <button
-            class="secondary"
-            onclick={() => {
-              renaming = location.id;
-              newName = location.name;
-            }}>Rename</button
-          >
-          <button class="secondary" onclick={() => archive(location.id)}
-            >No longer used</button
-          >
+      {#each locations as location (location.id)}
+        <div class="card">
+          {#if renaming === location.id}
+            <form
+              class="stack"
+              onsubmit={(event) => rename(event, location.id)}
+            >
+              <label>Name <input bind:value={newName} required /></label>
+              <button type="submit">Save</button>
+            </form>
+          {:else}
+            <strong>{location.name}</strong>
+            <span class="muted">{location.kind}</span>
+            <div class="row">
+              <button
+                class="secondary"
+                onclick={() => {
+                  renaming = location.id;
+                  newName = location.name;
+                }}>Rename</button
+              >
+              <button class="secondary" onclick={() => archive(location.id)}
+                >No longer used</button
+              >
+            </div>
+          {/if}
         </div>
-      {/if}
-    </div>
-  {/each}
+      {/each}
+    </section>
+  </div>
 
-  <button class="secondary" onclick={onBack}>Back</button>
+  <button class="secondary mobile-only" onclick={onBack}>Back</button>
 </main>

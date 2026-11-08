@@ -95,55 +95,66 @@
 <main>
   <h1>Staff</h1>
 
-  <form class="stack" onsubmit={add}>
-    <label>Name <input bind:value={name} required /></label>
-    <label
-      >PIN for the bench (4 to 6 digits)
-      <input bind:value={pin} inputmode="numeric" autocomplete="off" required />
-    </label>
-    <button type="submit">Add</button>
-  </form>
+  <div class="split">
+    <section>
+      <form class="stack" onsubmit={add}>
+        <label>Name <input bind:value={name} required /></label>
+        <label
+          >PIN for the bench (4 to 6 digits)
+          <input
+            bind:value={pin}
+            inputmode="numeric"
+            autocomplete="off"
+            required
+          />
+        </label>
+        <button type="submit">Add</button>
+      </form>
+    </section>
+    <section>
+      {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
-  {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
-
-  {#if link}
-    <div class="card">
-      <p>Send this link to them. It works once, for 7 days:</p>
-      <p class="link" data-testid="invite-link">{link}</p>
-    </div>
-  {/if}
-
-  {#each staff.filter((member) => !member.archived) as member (member.id)}
-    <div class="card">
-      <strong>{member.name}</strong>
-      {#if changingPinFor === member.id}
-        <form class="stack" onsubmit={(event) => savePin(event, member.id)}>
-          <label
-            >New PIN
-            <input
-              bind:value={newPin}
-              inputmode="numeric"
-              autocomplete="off"
-              required
-            />
-          </label>
-          <button type="submit">Save PIN</button>
-        </form>
-      {:else}
-        <div class="row">
-          <button class="secondary" onclick={() => invite(member.id)}
-            >Phone invitation</button
-          >
-          <button class="secondary" onclick={() => (changingPinFor = member.id)}
-            >New PIN</button
-          >
-          <button class="secondary" onclick={() => archive(member)}
-            >Has left</button
-          >
+      {#if link}
+        <div class="card">
+          <p>Send this link to them. It works once, for 7 days:</p>
+          <p class="link" data-testid="invite-link">{link}</p>
         </div>
       {/if}
-    </div>
-  {/each}
 
-  <button class="secondary" onclick={onBack}>Back</button>
+      {#each staff.filter((member) => !member.archived) as member (member.id)}
+        <div class="card">
+          <strong>{member.name}</strong>
+          {#if changingPinFor === member.id}
+            <form class="stack" onsubmit={(event) => savePin(event, member.id)}>
+              <label
+                >New PIN
+                <input
+                  bind:value={newPin}
+                  inputmode="numeric"
+                  autocomplete="off"
+                  required
+                />
+              </label>
+              <button type="submit">Save PIN</button>
+            </form>
+          {:else}
+            <div class="row">
+              <button class="secondary" onclick={() => invite(member.id)}
+                >Phone invitation</button
+              >
+              <button
+                class="secondary"
+                onclick={() => (changingPinFor = member.id)}>New PIN</button
+              >
+              <button class="secondary" onclick={() => archive(member)}
+                >Has left</button
+              >
+            </div>
+          {/if}
+        </div>
+      {/each}
+    </section>
+  </div>
+
+  <button class="secondary mobile-only" onclick={onBack}>Back</button>
 </main>

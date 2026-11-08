@@ -13,7 +13,9 @@
     submit,
     work,
   } from "../lib/work";
+  import type { ManageSection } from "../lib/sections";
   import Manage from "./Manage.svelte";
+  import Sidebar from "./Sidebar.svelte";
   import Camera from "./work/Camera.svelte";
   import ContainerView from "./work/ContainerView.svelte";
   import StartBatch from "./work/StartBatch.svelte";
@@ -33,7 +35,7 @@
     | { name: "container"; label: string }
     | { name: "start" }
     | { name: "camera" }
-    | { name: "manage" };
+    | { name: "manage"; section: ManageSection | null };
 
   // svelte-ignore state_referenced_locally
   const queue = useQueue(me.name);
@@ -233,110 +235,154 @@
   });
 </script>
 
-{#if view.name === "manage"}
-  <Manage onBack={goHome} onBecameStation={onSignedOut} />
-{:else if view.name === "start"}
-  <StartBatch onDone={finishWork} onCancel={goHome} />
-{:else if view.name === "camera"}
-  <Camera onScan={open} onCancel={goHome} />
-{:else if view.name === "container"}
-  {#key view.label}
-    <ContainerView
-      label={view.label}
-      onDone={finishWork}
-      onCancel={goHome}
-      onNotFound={(message) => {
-        problem = message;
-        void goHome();
-      }}
+{#snippet screen()}
+  {#if view.name === "manage"}
+    <Manage
+      section={view.section}
+      onSection={(section) => (view = { name: "manage", section })}
+      onBack={goHome}
+      onBecameStation={onSignedOut}
     />
-  {/key}
-{:else}
-  <main>
-    <h1>Hello, {me.name}</h1>
+  {:else if view.name === "start"}
+    <StartBatch onDone={finishWork} onCancel={goHome} />
+  {:else if view.name === "camera"}
+    <Camera onScan={open} onCancel={goHome} />
+  {:else if view.name === "container"}
+    {#key view.label}
+      <ContainerView
+        label={view.label}
+        onDone={finishWork}
+        onCancel={goHome}
+        onNotFound={(message) => {
+          problem = message;
+          void goHome();
+        }}
+      />
+    {/key}
+  {:else}
+    <main>
+      <h1>Hello, {me.name}</h1>
 
-    {#if offline}
-      <p class="card" data-testid="offline">
-        No connection. Work you record is saved on this device.
-      </p>
-    {/if}
+      {#if offline}
+        <p class="card" data-testid="offline">
+          No connection. Work you record is saved on this device.
+        </p>
+      {/if}
 
-    {#if waiting > 0}
-      <p class="card" data-testid="waiting">
-        {waiting}
-        {waiting === 1 ? "thing" : "things"} waiting to send. Keep GrowLog open when
-        you're back in signal.
-      </p>
-    {/if}
+      {#if waiting > 0}
+        <p class="card" data-testid="waiting">
+          {waiting}
+          {waiting === 1 ? "thing" : "things"} waiting to send. Keep GrowLog open
+          when you're back in signal.
+        </p>
+      {/if}
 
-    {#each failed as item (item.eventId)}
-      <div class="card" role="alert">
-        <strong>Couldn't be saved: {item.description}</strong>
-        <span>{item.reason}</span>
-        <button class="secondary" onclick={() => dismiss(item.eventId)}
-          >OK</button
-        >
-      </div>
-    {/each}
-
-    {#if done}
-      <div class="card done" role="status">
-        <strong>{done.message}</strong>
-        {#if done.newLabel}
-          <a
-            class="button"
-            href="/api/labels/containers/{encodeURIComponent(done.newLabel)}"
-            target="_blank"
-            rel="noopener">Print label</a
+      {#each failed as item (item.eventId)}
+        <div class="card" role="alert">
+          <strong>Couldn't be saved: {item.description}</strong>
+          <span>{item.reason}</span>
+          <button class="secondary" onclick={() => dismiss(item.eventId)}
+            >OK</button
           >
-        {/if}
-        <button class="secondary" onclick={() => undo(done!.eventId)}
-          >Undo</button
-        >
-      </div>
-    {/if}
-    {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
-
-    <form class="stack" onsubmit={scan}>
-      <label>
-        Scan a label
-        <input
-          bind:this={scanBox}
-          bind:value={label}
-          autocomplete="off"
-          autocapitalize="characters"
-        />
-      </label>
-      <button type="submit">Open</button>
-    </form>
-
-    {#if cameraAvailable}
-      <button onclick={() => (view = { name: "camera" })}>Use camera</button>
-    {/if}
-
-    <button onclick={() => (view = { name: "start" })}>New batch</button>
-
-    {#if recent.length > 0}
-      <h2>Recent</h2>
-      {#each recent as action (action.id)}
-        <div class="card">
-          <span>{describeRecent(action)}</span>
-          <div class="row">
-            {#if repeatOf(action)}
-              <button class="secondary" onclick={() => repeat(action)}
-                >Again</button
-              >
-            {/if}
-          </div>
         </div>
       {/each}
-    {/if}
 
-    {#if me.isOwner}
-      <button class="secondary" onclick={() => (view = { name: "manage" })}
-        >Manage</button
-      >
-    {/if}
-    <button class="secondary" onclick={signOut}>Finished</button>
-  </main>
+      {#if done}
+        <div class="card done" role="status">
+          <strong>{done.message}</strong>
+          {#if done.newLabel}
+            <a
+              class="button"
+              href="/api/labels/containers/{encodeURIComponent(done.newLabel)}"
+              target="_blank"
+              rel="noopener">Print label</a
+            >
+          {/if}
+          <button class="secondary" onclick={() => undo(done!.eventId)}
+            >Undo</button
+          >
+        </div>
+      {/if}
+      {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+
+      <div class="split">
+        <section>
+          <form class="stack" onsubmit={scan}>
+            <label>
+              Scan a label
+              <input
+                bind:this={scanBox}
+                bind:value={label}
+                autocomplete="off"
+                autocapitalize="characters"
+              />
+            </label>
+            <button type="submit">Open</button>
+          </form>
+
+          {#if cameraAvailable}
+            <button
+              class="secondary"
+              onclick={() => (view = { name: "camera" })}>Use camera</button
+            >
+          {/if}
+
+          <button class="mobile-only" onclick={() => (view = { name: "start" })}
+            >New batch</button
+          >
+        </section>
+
+        <section>
+          {#if recent.length > 0}
+            <h2>Recent</h2>
+            {#each recent as action (action.id)}
+              <div class="card">
+                <span>{describeRecent(action)}</span>
+                <div class="row">
+                  {#if repeatOf(action)}
+                    <button class="secondary" onclick={() => repeat(action)}
+                      >Again</button
+                    >
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          {:else}
+            <p class="muted desktop-only">
+              Nothing recorded yet. Scan a label or start a new batch.
+            </p>
+          {/if}
+        </section>
+      </div>
+
+      {#if me.isOwner}
+        <button
+          class="secondary mobile-only"
+          onclick={() => (view = { name: "manage", section: null })}
+          >Manage</button
+        >
+      {/if}
+      <button class="secondary mobile-only" onclick={signOut}>Finished</button>
+    </main>
+  {/if}
+{/snippet}
+
+{#if atBench}
+  {@render screen()}
+{:else}
+  <div class="with-sidebar">
+    <Sidebar
+      {me}
+      current={view.name === "manage"
+        ? view.section
+        : view.name === "home" || view.name === "start"
+          ? view.name
+          : null}
+      onHome={goHome}
+      onNewBatch={() => (view = { name: "start" })}
+      onSection={(section) => (view = { name: "manage", section })}
+      onFinished={signOut}
+    />
+    <div class="content">{@render screen()}</div>
+  </div>
 {/if}

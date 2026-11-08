@@ -174,6 +174,20 @@ test("the owner sets up the nursery and staff can sign in", async ({
 
   await leaveManage(page);
 
+  // A desktop screen gets a sidebar with the same sections and no Back buttons.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const sidebar = page.getByRole("navigation", { name: "Main" });
+  await expect(sidebar).toBeVisible();
+  await sidebar.getByRole("button", { name: "Plants" }).click();
+  await expect(page.getByRole("heading", { name: "Plants" })).toBeVisible();
+  await expect(button(page, "Back")).toHaveCount(0);
+  await sidebar.getByRole("button", { name: "Figures" }).click();
+  await expect(page.getByRole("heading", { name: "Figures" })).toBeVisible();
+  await sidebar.getByRole("button", { name: "Record work" }).click();
+  await expect(page.getByLabel("Scan a label")).toBeFocused();
+  await page.setViewportSize({ width: 420, height: 900 });
+  await expect(sidebar).toBeHidden();
+
   // This device becomes a bench station, which signs the owner out of it.
   await openManage(page, "Bench stations");
   await page.getByLabel("Name for this device").fill("Potting shed");

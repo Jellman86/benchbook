@@ -63,19 +63,26 @@
     enter their PIN.
   </p>
 
-  <form class="stack" onsubmit={register}>
-    <label>Name for this device <input bind:value={name} required /></label>
-    <button type="submit">Make this device a bench station</button>
-  </form>
+  <div class="split">
+    <section>
+      <form class="stack" onsubmit={register}>
+        <label>Name for this device <input bind:value={name} required /></label>
+        <button type="submit">Make this device a bench station</button>
+      </form>
+    </section>
+    <section>
+      {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
-  {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+      {#each stations.filter((station) => !station.revoked) as station (station.id)}
+        <div class="card">
+          <strong>{station.name}</strong>
+          <button class="secondary" onclick={() => revoke(station)}
+            >Remove</button
+          >
+        </div>
+      {/each}
+    </section>
+  </div>
 
-  {#each stations.filter((station) => !station.revoked) as station (station.id)}
-    <div class="card">
-      <strong>{station.name}</strong>
-      <button class="secondary" onclick={() => revoke(station)}>Remove</button>
-    </div>
-  {/each}
-
-  <button class="secondary" onclick={onBack}>Back</button>
+  <button class="secondary mobile-only" onclick={onBack}>Back</button>
 </main>
