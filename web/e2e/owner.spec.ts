@@ -268,6 +268,43 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Record").click();
   await expect(page.getByLabel("Scan a label")).toBeVisible();
 
+  // The owner adds a password in settings, alongside the passkey.
+  await button(page, "More").click();
+  await page.getByLabel("New password").fill("correct horse battery");
+  await button(page, "Set a password").click();
+  await expect(page.getByRole("status")).toHaveText("Password saved.");
+
+  // Someone added with just a name can sign in by tapping it.
+  await openManage(page, "Staff");
+  await page.getByLabel("Name", { exact: true }).fill("Jo Reed");
+  await button(page, "Add").click();
+  await expect(page.getByText("Signs in by tapping their name")).toBeVisible();
+  await leaveManage(page);
+  await button(page, "More").click();
+  await button(page, "Finished").click();
+  await button(page, "Jo Reed").click();
+  await expect(
+    page.getByRole("heading", { name: "Hello, Jo Reed" }),
+  ).toBeVisible();
+  await expect(button(page, "Manage")).toHaveCount(0);
+
+  // The owner has a password, so tapping their name asks for it.
+  await button(page, "More").click();
+  await button(page, "Finished").click();
+  await button(page, "Sam Fielding").click();
+  await page.getByLabel("Password", { exact: true }).fill("not the one");
+  await button(page, "Sign in").click();
+  await expect(page.getByRole("alert")).toHaveText(
+    "That password isn't right.",
+  );
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("correct horse battery");
+  await button(page, "Sign in").click();
+  await expect(
+    page.getByRole("heading", { name: "Hello, Sam Fielding" }),
+  ).toBeVisible();
+
   // This device becomes a bench station, which signs the owner out of it.
   await openManage(page, "Bench stations");
   await page.getByLabel("Name for this device").fill("Potting shed");

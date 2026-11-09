@@ -18,6 +18,7 @@ internal static class AccountEndpoints
         setup.MapGet("/status", GetSetupStatusAsync);
         setup.MapPost("/passkey-options", GetSetupPasskeyOptionsAsync);
         setup.MapPost("/complete", CompleteSetupAsync);
+        setup.MapPost("/complete-with-password", CompleteSetupWithPasswordAsync);
 
         var account = app.MapGroup("/api/account");
         account.MapPost("/passkey-options", GetSignInPasskeyOptionsAsync).AllowAnonymous();
@@ -102,6 +103,46 @@ internal static class AccountEndpoints
         return TypedResults.NoContent();
     }
 
+    private static async Task<IResult> CompleteSetupWithPasswordAsync(
+        SetupPasswordRequest request,
+        UserManager<AppUser> users,
+        RoleManager<IdentityRole<Guid>> roles,
+        SignInManager<AppUser> signIn,
+        GrowLogDbContext db,
+        IConfiguration configuration,
+        CancellationToken cancellationToken)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(7302001)", cancellationToken);
+
+        if (!await SetupIsOpenAsync(request.Token, users, configuration, cancellationToken))
+        {
+            return TypedResults.StatusCode(StatusCodes.Status403Forbidden);
+        }
+
+        var name = request.Name.Trim();
+
+        if (name.Length == 0)
+        {
+            return TypedResults.BadRequest();
+        }
+
+        var owner = new AppUser { Id = Guid.CreateVersion7(), UserName = name };
+        var created = await users.CreateAsync(owner, request.Password);
+
+        if (!created.Succeeded)
+        {
+            return TypedResults.BadRequest();
+        }
+
+        await roles.CreateAsync(new IdentityRole<Guid>(AccountServices.OwnerRole));
+        await users.AddToRoleAsync(owner, AccountServices.OwnerRole);
+        await transaction.CommitAsync(cancellationToken);
+
+        await signIn.SignInAsync(owner, isPersistent: true);
+        return TypedResults.NoContent();
+    }
+
     private static async Task<IResult> GetSignInPasskeyOptionsAsync(SignInManager<AppUser> signIn) =>
         TypedResults.Text(await signIn.MakePasskeyRequestOptionsAsync(user: null), JsonContentType);
 
@@ -150,6 +191,8 @@ internal static class AccountEndpoints
     internal sealed record SetupOptionsRequest(string Token, string Name);
 
     internal sealed record SetupCompleteRequest(string Token, JsonElement Credential);
+
+    internal sealed record SetupPasswordRequest(string Token, string Name, string Password);
 
     internal sealed record SignInRequest(JsonElement Credential);
 

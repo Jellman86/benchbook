@@ -443,7 +443,7 @@
       {theme}
       current={view.name === "manage"
         ? view.section
-        : view.name === "home" || view.name === "start"
+        : view.name === "home" || view.name === "start" || view.name === "more"
           ? view.name
           : null}
       onHome={goHome}
@@ -451,6 +451,7 @@
       onSection={(section) => (view = { name: "manage", section })}
       onToggleCollapsed={toggleCollapsed}
       onCycleTheme={() => setTheme(nextTheme(theme))}
+      onSettings={() => (view = { name: "more" })}
       onFinished={signOut}
     />
     <div class="content">

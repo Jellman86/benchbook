@@ -64,6 +64,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("lockout_end");
 
+                    b.Property<bool>("NameOnlySignIn")
+                        .HasColumnType("boolean")
+                        .HasColumnName("name_only_sign_in");
+
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")

@@ -1,6 +1,10 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+  import { api } from "../api/client";
   import type { Me } from "../lib/boot";
+  import { createPasskey, passkeyProblem } from "../lib/passkey";
   import { themes, type Theme } from "../lib/theme";
+  import { attempt, type Schemas } from "../lib/types";
 
   let {
     me,
@@ -13,21 +17,171 @@
     onTheme: (theme: Theme) => void;
     onFinished: () => void;
   } = $props();
+
+  let settings = $state<Schemas["AccountSettings"] | null>(null);
+  let currentPassword = $state("");
+  let newPassword = $state("");
+  let pin = $state("");
+  let problem = $state("");
+  let saved = $state("");
+
+  const setProblem = (message: string) => (problem = message);
+
+  async function load() {
+    settings = (await api.GET("/api/account/settings")).data ?? null;
+  }
+
+  onMount(() => void attempt(load, setProblem));
+
+  function report(ok: boolean, success: string, failure: string) {
+    problem = ok ? "" : failure;
+    saved = ok ? success : "";
+  }
+
+  const savePassword = (event: SubmitEvent) => {
+    event.preventDefault();
+
+    return attempt(async () => {
+      const { response } = await api.POST("/api/account/settings/password", {
+        body: {
+          currentPassword: settings?.hasPassword ? currentPassword : null,
+          newPassword,
+        },
+      });
+
+      report(
+        response.ok,
+        "Password saved.",
+        response.status === 403
+          ? "Your current password isn't right."
+          : "A password must be at least 8 characters.",
+      );
+
+      if (response.ok) {
+        currentPassword = "";
+        newPassword = "";
+        await load();
+      }
+    }, setProblem);
+  };
+
+  const savePin = (event: SubmitEvent) => {
+    event.preventDefault();
+
+    return attempt(async () => {
+      const { response } = await api.POST("/api/account/settings/pin", {
+        body: { pin },
+      });
+
+      report(response.ok, "PIN saved.", "A PIN must be 4 to 6 digits.");
+
+      if (response.ok) {
+        pin = "";
+        await load();
+      }
+    }, setProblem);
+  };
+
+  const addPasskey = () =>
+    attempt(async () => {
+      const options = await api.POST("/api/account/settings/passkey-options", {
+        parseAs: "text",
+      });
+      let credential;
+
+      try {
+        credential = await createPasskey(options.data as unknown as string);
+      } catch (error) {
+        report(false, "", passkeyProblem(error));
+        return;
+      }
+
+      const { response } = await api.POST("/api/account/settings/passkey", {
+        body: { credential: credential as never },
+      });
+
+      report(
+        response.ok,
+        "Passkey saved on this device.",
+        "That didn't finish. Please try again.",
+      );
+      await load();
+    }, setProblem);
 </script>
 
 <main>
   <h1>{me.name}</h1>
 
-  <h2>Appearance</h2>
-  <div class="segmented">
-    {#each themes as item (item.theme)}
-      <button
-        class={theme === item.theme ? "" : "secondary"}
-        aria-pressed={theme === item.theme}
-        onclick={() => onTheme(item.theme)}>{item.label}</button
-      >
-    {/each}
-  </div>
+  <div class="stack narrow">
+    {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+    {#if saved}<p class="muted" role="status">{saved}</p>{/if}
 
-  <button class="secondary" onclick={onFinished}>Finished</button>
+    <h2>Appearance</h2>
+    <div class="segmented">
+      {#each themes as item (item.theme)}
+        <button
+          class={theme === item.theme ? "" : "secondary"}
+          aria-pressed={theme === item.theme}
+          onclick={() => onTheme(item.theme)}>{item.label}</button
+        >
+      {/each}
+    </div>
+
+    {#if settings}
+      <h2>Signing in</h2>
+      {#if settings.nameOnly}
+        <p class="muted">
+          You sign in by tapping your name. Set a password or passkey to stop
+          anyone else doing that.
+        </p>
+      {/if}
+
+      <form class="stack" onsubmit={savePassword}>
+        {#if settings.hasPassword}
+          <label>
+            Current password
+            <input
+              type="password"
+              bind:value={currentPassword}
+              autocomplete="current-password"
+              required
+            />
+          </label>
+        {/if}
+        <label>
+          New password (at least 8 characters)
+          <input
+            type="password"
+            bind:value={newPassword}
+            autocomplete="new-password"
+            required
+          />
+        </label>
+        <button type="submit" class="secondary"
+          >{settings.hasPassword ? "Change password" : "Set a password"}</button
+        >
+      </form>
+
+      <button class="secondary" onclick={addPasskey}
+        >{settings.hasPasskey
+          ? "Add a passkey on this device too"
+          : "Add a passkey on this device"}</button
+      >
+
+      <form class="stack" onsubmit={savePin}>
+        <label>
+          {settings.hasPin ? "New bench PIN" : "Bench PIN"} (4 to 6 digits)
+          <input
+            bind:value={pin}
+            inputmode="numeric"
+            autocomplete="off"
+            required
+          />
+        </label>
+        <button type="submit" class="secondary">Save PIN</button>
+      </form>
+    {/if}
+
+    <button class="secondary mobile-only" onclick={onFinished}>Finished</button>
+  </div>
 </main>

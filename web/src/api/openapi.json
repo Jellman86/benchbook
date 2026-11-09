@@ -204,6 +204,28 @@
         }
       }
     },
+    "/api/setup/complete-with-password": {
+      "post": {
+        "tags": [
+          "AccountEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetupPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/account/passkey-options": {
       "post": {
         "tags": [
@@ -265,6 +287,169 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/account/people": {
+      "get": {
+        "tags": [
+          "SignInEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SignInPerson"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/sign-in/name": {
+      "post": {
+        "tags": [
+          "SignInEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NameSignInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/account/sign-in/password": {
+      "post": {
+        "tags": [
+          "SignInEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordSignInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/account/settings": {
+      "get": {
+        "tags": [
+          "SignInEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountSettings"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/settings/password": {
+      "post": {
+        "tags": [
+          "SignInEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetOwnPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/account/settings/pin": {
+      "post": {
+        "tags": [
+          "SignInEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetOwnPinRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/account/settings/passkey-options": {
+      "post": {
+        "tags": [
+          "SignInEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/account/settings/passkey": {
+      "post": {
+        "tags": [
+          "SignInEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddOwnPasskeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -344,6 +529,62 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/staff/{id}/password": {
+      "post": {
+        "tags": [
+          "StaffEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/staff/{id}/name-only": {
+      "post": {
+        "tags": [
+          "StaffEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -436,6 +677,28 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CompleteInviteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/invites/complete-with-password": {
+      "post": {
+        "tags": [
+          "StaffEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteInviteWithPasswordRequest"
               }
             }
           },
@@ -2151,10 +2414,46 @@
   },
   "components": {
     "schemas": {
+      "AccountSettings": {
+        "required": [
+          "hasPassword",
+          "hasPin",
+          "hasPasskey",
+          "nameOnly"
+        ],
+        "type": "object",
+        "properties": {
+          "hasPassword": {
+            "type": "boolean"
+          },
+          "hasPin": {
+            "type": "boolean"
+          },
+          "hasPasskey": {
+            "type": "boolean"
+          },
+          "nameOnly": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AddOwnPasskeyRequest": {
+        "required": [
+          "credential"
+        ],
+        "type": "object",
+        "properties": {
+          "credential": {
+            "$ref": "#/components/schemas/JsonElement"
+          }
+        }
+      },
       "AddStaffRequest": {
         "required": [
           "name",
-          "pin"
+          "pin",
+          "password",
+          "nameOnly"
         ],
         "type": "object",
         "properties": {
@@ -2162,7 +2461,19 @@
             "type": "string"
           },
           "pin": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "password": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nameOnly": {
+            "type": "boolean"
           }
         }
       },
@@ -2267,6 +2578,26 @@
           },
           "credential": {
             "$ref": "#/components/schemas/JsonElement"
+          }
+        }
+      },
+      "CompleteInviteWithPasswordRequest": {
+        "required": [
+          "userId",
+          "token",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
           }
         }
       },
@@ -2922,6 +3253,18 @@
           }
         }
       },
+      "NameSignInRequest": {
+        "required": [
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "NoteRequest": {
         "required": [
           "eventId",
@@ -3113,6 +3456,22 @@
           },
           "plantsChangedSince": {
             "type": "boolean"
+          }
+        }
+      },
+      "PasswordSignInRequest": {
+        "required": [
+          "userId",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "password": {
+            "type": "string"
           }
         }
       },
@@ -3686,6 +4045,46 @@
           }
         }
       },
+      "SetOwnPasswordRequest": {
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "newPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "SetOwnPinRequest": {
+        "required": [
+          "pin"
+        ],
+        "type": "object",
+        "properties": {
+          "pin": {
+            "type": "string"
+          }
+        }
+      },
+      "SetPasswordRequest": {
+        "required": [
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string"
+          }
+        }
+      },
       "SetPinRequest": {
         "required": [
           "pin"
@@ -3727,6 +4126,25 @@
           }
         }
       },
+      "SetupPasswordRequest": {
+        "required": [
+          "token",
+          "name",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
       "SetupStatus": {
         "required": [
           "needsSetup"
@@ -3734,6 +4152,30 @@
         "type": "object",
         "properties": {
           "needsSetup": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SignInPerson": {
+        "required": [
+          "id",
+          "name",
+          "nameOnly",
+          "hasPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nameOnly": {
+            "type": "boolean"
+          },
+          "hasPassword": {
             "type": "boolean"
           }
         }
@@ -3765,7 +4207,12 @@
         "required": [
           "id",
           "name",
-          "archived"
+          "archived",
+          "isOwner",
+          "nameOnly",
+          "hasPassword",
+          "hasPasskey",
+          "hasPin"
         ],
         "type": "object",
         "properties": {
@@ -3777,6 +4224,21 @@
             "type": "string"
           },
           "archived": {
+            "type": "boolean"
+          },
+          "isOwner": {
+            "type": "boolean"
+          },
+          "nameOnly": {
+            "type": "boolean"
+          },
+          "hasPassword": {
+            "type": "boolean"
+          },
+          "hasPasskey": {
+            "type": "boolean"
+          },
+          "hasPin": {
             "type": "boolean"
           }
         }
@@ -4272,6 +4734,9 @@
     },
     {
       "name": "AccountEndpoints"
+    },
+    {
+      "name": "SignInEndpoints"
     },
     {
       "name": "StaffEndpoints"

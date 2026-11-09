@@ -7,6 +7,7 @@
   import Plus from "@lucide/svelte/icons/plus";
   import ScanLine from "@lucide/svelte/icons/scan-line";
   import Sun from "@lucide/svelte/icons/sun";
+  import UserRound from "@lucide/svelte/icons/user-round";
   import type { Me } from "../lib/boot";
   import { manageSections, type ManageSection } from "../lib/sections";
   import { themes, type Theme } from "../lib/theme";
@@ -22,10 +23,11 @@
     onSection,
     onToggleCollapsed,
     onCycleTheme,
+    onSettings,
     onFinished,
   }: {
     me: Me;
-    current: "home" | "start" | ManageSection | null;
+    current: "home" | "start" | "more" | ManageSection | null;
     collapsed: boolean;
     theme: Theme;
     onHome: () => void;
@@ -33,6 +35,7 @@
     onSection: (section: ManageSection) => void;
     onToggleCollapsed: () => void;
     onCycleTheme: () => void;
+    onSettings: () => void;
     onFinished: () => void;
   } = $props();
 
@@ -91,7 +94,15 @@
   </nav>
 
   <div class="sidebar-foot">
-    <span class="nav-text sidebar-name">{me.name}</span>
+    <button
+      aria-current={here("more")}
+      aria-label="My settings"
+      title="My settings"
+      onclick={onSettings}
+    >
+      <UserRound size={20} />
+      <span class="nav-text">{me.name}</span>
+    </button>
     <button
       aria-label="Theme: {themeLabel}"
       title="Theme: {themeLabel}"

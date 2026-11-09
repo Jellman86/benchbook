@@ -6,15 +6,44 @@
 
   let token = $state("");
   let name = $state("");
+  let password = $state("");
   let problem = $state("");
   let busy = $state(false);
 
-  async function submit(event: SubmitEvent) {
-    event.preventDefault();
+  async function during(work: () => Promise<void>) {
     busy = true;
     problem = "";
 
     try {
+      await work();
+    } catch {
+      problem = "Can't reach GrowLog. Check the connection and try again.";
+    } finally {
+      busy = false;
+    }
+  }
+
+  const useAPassword = (event: SubmitEvent) => {
+    event.preventDefault();
+
+    return during(async () => {
+      const { response } = await api.POST("/api/setup/complete-with-password", {
+        body: { token, name, password },
+      });
+
+      if (response.ok) {
+        onDone();
+      } else {
+        problem =
+          response.status === 403
+            ? "That setup code isn't right."
+            : "Please enter your name and a password of at least 8 characters.";
+      }
+    });
+  };
+
+  const useAPasskey = () =>
+    during(async () => {
       const options = await api.POST("/api/setup/passkey-options", {
         body: { token, name },
         parseAs: "text",
@@ -46,23 +75,18 @@
       } else {
         problem = "Setup didn't finish. Please try again.";
       }
-    } catch {
-      problem = "Can't reach GrowLog. Check the connection and try again.";
-    } finally {
-      busy = false;
-    }
-  }
+    });
 </script>
 
 <main>
   <img class="hero-logo" src="/logo-96.png" alt="" />
   <h1>Set up GrowLog</h1>
   <p>
-    You'll be the owner. Your phone or computer will save a passkey, so there's
-    no password to remember.
+    You'll be the owner. Choose a password, or save a passkey on this phone or
+    computer.
   </p>
 
-  <form class="stack" onsubmit={submit}>
+  <form class="stack" onsubmit={useAPassword}>
     <label>
       Setup code
       <input bind:value={token} autocomplete="off" required />
@@ -71,9 +95,23 @@
       Your name
       <input bind:value={name} autocomplete="name" required />
     </label>
+    <label>
+      Password (at least 8 characters)
+      <input
+        type="password"
+        bind:value={password}
+        autocomplete="new-password"
+      />
+    </label>
 
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
-    <button type="submit" disabled={busy}>Create my passkey</button>
+    <button type="submit" disabled={busy}>Use this password</button>
+    <button
+      type="button"
+      class="secondary"
+      disabled={busy}
+      onclick={useAPasskey}>Create my passkey</button
+    >
   </form>
 </main>

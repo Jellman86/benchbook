@@ -331,6 +331,10 @@ a {
   gap: 0.75rem;
 }
 
+.narrow {
+  max-width: 28rem;
+}
+
 .segmented {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -589,11 +593,6 @@ a {
   .sidebar-foot {
     padding-top: 0.6rem;
     border-top: 1px solid rgb(255 255 255 / 20%);
-  }
-
-  .sidebar-name {
-    padding: 0 0.7rem 0.25rem;
-    font-weight: 600;
   }
 
   .collapsed .nav-text {

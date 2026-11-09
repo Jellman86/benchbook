@@ -17,6 +17,14 @@ internal static class AccountServices
     {
         options.User.AllowedUserNameCharacters = string.Empty;
 
+        // Length is what makes a password strong. Forced symbols only make it harder to remember.
+        options.Password.RequiredLength = 8;
+        options.Password.RequiredUniqueChars = 1;
+        options.Password.RequireDigit = false;
+        options.Password.RequireLowercase = false;
+        options.Password.RequireUppercase = false;
+        options.Password.RequireNonAlphanumeric = false;
+
         // A short PIN is only safe with a firm limit on guesses.
         options.Lockout.MaxFailedAccessAttempts = 5;
         options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
