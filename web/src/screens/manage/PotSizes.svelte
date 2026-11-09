@@ -1,4 +1,5 @@
 <script lang="ts">
+  import FormPanel from "../FormPanel.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { attempt, type Schemas } from "../../lib/types";
@@ -75,10 +76,12 @@
 
   <div class="split">
     <section>
-      <form class="stack" onsubmit={add}>
-        <label>New pot size <input bind:value={name} required /></label>
-        <button type="submit">Add</button>
-      </form>
+      <FormPanel label="Add a pot size">
+        <form class="stack" onsubmit={add}>
+          <label>New pot size <input bind:value={name} required /></label>
+          <button type="submit">Add</button>
+        </form>
+      </FormPanel>
     </section>
     <section>
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
@@ -110,5 +113,5 @@
     </section>
   </div>
 
-  <button class="secondary mobile-only" onclick={onBack}>Back</button>
+  <button class="back mobile-only" onclick={onBack}>Back</button>
 </main>

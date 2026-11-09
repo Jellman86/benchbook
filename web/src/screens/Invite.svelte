@@ -51,6 +51,7 @@
 </script>
 
 <main>
+  <img class="hero-logo" src="/logo-96.png" alt="" />
   <h1>Welcome to GrowLog</h1>
   <p>Your phone will save a passkey, so you can sign in without a password.</p>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}

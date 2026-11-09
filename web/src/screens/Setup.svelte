@@ -55,6 +55,7 @@
 </script>
 
 <main>
+  <img class="hero-logo" src="/logo-96.png" alt="" />
   <h1>Set up GrowLog</h1>
   <p>
     You'll be the owner. Your phone or computer will save a passkey, so there's

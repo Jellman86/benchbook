@@ -1,4 +1,5 @@
 <script lang="ts">
+  import FormPanel from "../FormPanel.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { attempt, optional, type Schemas } from "../../lib/types";
@@ -24,6 +25,7 @@
   let form = $state({ ...empty });
   let prices = $state<Record<string, string>>({});
   let editing = $state<string | null>(null);
+  let panelOpen = $state(false);
   let problem = $state("");
 
   const setProblem = (message: string) => (problem = message);
@@ -43,6 +45,7 @@
 
   function edit(plant: Plant) {
     editing = plant.id;
+    panelOpen = true;
     form = {
       commonName: plant.commonName,
       variety: plant.variety ?? "",
@@ -109,35 +112,39 @@
 
   <div class="split">
     <section>
-      <form class="stack" onsubmit={save}>
-        <label
-          >Common name <input bind:value={form.commonName} required /></label
-        >
-        <label>Variety <input bind:value={form.variety} /></label>
-        <label>Botanical name <input bind:value={form.botanicalName} /></label>
-        <label>Category <input bind:value={form.category} /></label>
-        <label>Position <input bind:value={form.position} /></label>
-        <label>Watering <input bind:value={form.watering} /></label>
-        <label>Hardiness <input bind:value={form.hardiness} /></label>
-        <label class="tick">
-          <input type="checkbox" bind:checked={form.xylellaHost} /> Xylella host
-        </label>
-        <label class="tick">
-          <input type="checkbox" bind:checked={form.protectedVariety} /> Protected
-          variety
-        </label>
-        {#each potSizes as size (size.id)}
+      <FormPanel label="Add a plant" bind:open={panelOpen}>
+        <form class="stack" onsubmit={save}>
           <label
-            >Price for {size.name} (£)
-            <input bind:value={prices[size.id]} inputmode="decimal" />
-          </label>
-        {/each}
-        <button type="submit">{editing ? "Save changes" : "Add"}</button>
-        {#if editing}
-          <button type="button" class="secondary" onclick={reset}>Cancel</button
+            >Common name <input bind:value={form.commonName} required /></label
           >
-        {/if}
-      </form>
+          <label>Variety <input bind:value={form.variety} /></label>
+          <label>Botanical name <input bind:value={form.botanicalName} /></label
+          >
+          <label>Category <input bind:value={form.category} /></label>
+          <label>Position <input bind:value={form.position} /></label>
+          <label>Watering <input bind:value={form.watering} /></label>
+          <label>Hardiness <input bind:value={form.hardiness} /></label>
+          <label class="tick">
+            <input type="checkbox" bind:checked={form.xylellaHost} /> Xylella host
+          </label>
+          <label class="tick">
+            <input type="checkbox" bind:checked={form.protectedVariety} /> Protected
+            variety
+          </label>
+          {#each potSizes as size (size.id)}
+            <label
+              >Price for {size.name} (£)
+              <input bind:value={prices[size.id]} inputmode="decimal" />
+            </label>
+          {/each}
+          <button type="submit">{editing ? "Save changes" : "Add"}</button>
+          {#if editing}
+            <button type="button" class="secondary" onclick={reset}
+              >Cancel</button
+            >
+          {/if}
+        </form>
+      </FormPanel>
     </section>
     <section>
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
@@ -186,5 +193,5 @@
     </section>
   </div>
 
-  <button class="secondary mobile-only" onclick={onBack}>Back</button>
+  <button class="back mobile-only" onclick={onBack}>Back</button>
 </main>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import FormPanel from "../FormPanel.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { attempt, type Schemas } from "../../lib/types";
@@ -94,29 +95,31 @@
 
   <div class="split">
     <section>
-      <form class="stack" onsubmit={add}>
-        <label>
-          Type
-          <select bind:value={kind}>
-            {#each kinds as option (option)}<option value={option}
-                >{option}</option
-              >{/each}
-          </select>
-        </label>
-        {#if kind !== "Site"}
+      <FormPanel label="Add a place">
+        <form class="stack" onsubmit={add}>
           <label>
-            Inside
-            <select bind:value={parentId} required>
-              <option value="">Choose…</option>
-              {#each parents as parent (parent.id)}
-                <option value={parent.id}>{parent.name}</option>
-              {/each}
+            Type
+            <select bind:value={kind}>
+              {#each kinds as option (option)}<option value={option}
+                  >{option}</option
+                >{/each}
             </select>
           </label>
-        {/if}
-        <label>Name <input bind:value={name} required /></label>
-        <button type="submit">Add</button>
-      </form>
+          {#if kind !== "Site"}
+            <label>
+              Inside
+              <select bind:value={parentId} required>
+                <option value="">Choose…</option>
+                {#each parents as parent (parent.id)}
+                  <option value={parent.id}>{parent.name}</option>
+                {/each}
+              </select>
+            </label>
+          {/if}
+          <label>Name <input bind:value={name} required /></label>
+          <button type="submit">Add</button>
+        </form>
+      </FormPanel>
     </section>
     <section>
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
@@ -152,5 +155,5 @@
     </section>
   </div>
 
-  <button class="secondary mobile-only" onclick={onBack}>Back</button>
+  <button class="back mobile-only" onclick={onBack}>Back</button>
 </main>

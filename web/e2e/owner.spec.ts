@@ -30,6 +30,12 @@ async function openManage(page: Page, section: string) {
   await button(page, "Manage").click();
   await button(page, section).click();
   await expect(page.getByRole("heading", { name: section })).toBeVisible();
+
+  // On a phone, long forms wait behind a button.
+  const showForm = page.locator(".panel-toggle");
+  if (await showForm.isVisible()) {
+    await showForm.click();
+  }
 }
 
 async function leaveManage(page: Page) {
@@ -64,6 +70,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   ).toBeVisible();
 
   // Signing out and back in uses the passkey just made.
+  await button(page, "More").click();
   await button(page, "Finished").click();
   await button(page, "Sign in with passkey").click();
   await expect(
@@ -217,8 +224,49 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(page.getByRole("heading", { name: "Figures" })).toBeVisible();
   await sidebar.getByRole("button", { name: "Record work" }).click();
   await expect(page.getByLabel("Scan a label")).toBeFocused();
+
+  // The sidebar folds down to icons, and stays that way after a reload.
+  const rail = page.locator("aside.sidebar");
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  await expect
+    .poll(() => rail.evaluate((node) => node.getBoundingClientRect().width))
+    .toBeLessThan(100);
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Expand sidebar" }),
+  ).toBeVisible();
+
+  // The theme can be forced either way, or left to the device.
+  const root = page.locator("html");
+  await page.getByRole("button", { name: "Theme: Match device" }).click();
+  await expect(root).toHaveAttribute("data-theme", "light");
+  await page.getByRole("button", { name: "Theme: Light" }).click();
+  await expect(root).toHaveAttribute("data-theme", "dark");
+  await sidebar.getByRole("button", { name: "Plants" }).click();
+  await expect(page.getByText("Lavender 'Munstead'")).toBeVisible();
+  await page.getByRole("button", { name: "Expand sidebar" }).click();
+  await expect
+    .poll(() => rail.evaluate((node) => node.getBoundingClientRect().width))
+    .toBeGreaterThan(200);
+  await page.reload();
+  await expect(root).toHaveAttribute("data-theme", "dark");
+
+  // On a phone the sidebar gives way to a bar along the bottom.
   await page.setViewportSize({ width: 420, height: 900 });
   await expect(sidebar).toBeHidden();
+  await button(page, "Manage").click();
+  await button(page, "Plants").click();
+  await expect(page.getByText("Lavender 'Munstead'")).toBeVisible();
+  await expect(page.getByLabel("Common name")).toBeHidden();
+  await button(page, "Add a plant").click();
+  await expect(page.getByLabel("Common name")).toBeVisible();
+  await button(page, "Back").click();
+  await button(page, "More").click();
+  await expect(page.getByRole("heading", { name: "Appearance" })).toBeVisible();
+  await button(page, "Match device").click();
+  await expect(root).not.toHaveAttribute("data-theme");
+  await button(page, "Record").click();
+  await expect(page.getByLabel("Scan a label")).toBeVisible();
 
   // This device becomes a bench station, which signs the owner out of it.
   await openManage(page, "Bench stations");

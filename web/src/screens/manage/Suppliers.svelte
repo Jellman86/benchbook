@@ -1,4 +1,5 @@
 <script lang="ts">
+  import FormPanel from "../FormPanel.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { attempt, optional, type Schemas } from "../../lib/types";
@@ -23,6 +24,7 @@
   let suppliers = $state<Supplier[]>([]);
   let form = $state({ ...empty });
   let editing = $state<string | null>(null);
+  let panelOpen = $state(false);
   let problem = $state("");
 
   const setProblem = (message: string) => (problem = message);
@@ -40,6 +42,7 @@
 
   function edit(supplier: Supplier) {
     editing = supplier.id;
+    panelOpen = true;
     form = {
       name: supplier.name,
       contactName: supplier.contactName ?? "",
@@ -105,31 +108,38 @@
 
   <div class="split">
     <section>
-      <form class="stack" onsubmit={save}>
-        <label>Name <input bind:value={form.name} required /></label>
-        <label>Contact name <input bind:value={form.contactName} /></label>
-        <label>Phone <input bind:value={form.phone} inputmode="tel" /></label>
-        <label>Email <input bind:value={form.email} inputmode="email" /></label>
-        <label>Address <input bind:value={form.address} /></label>
-        <label
-          >Account reference <input bind:value={form.accountReference} /></label
-        >
-        <label>What they supply <input bind:value={form.supplies} /></label>
-        <label
-          >Typical lead time (days)
-          <input bind:value={form.typicalLeadTimeDays} inputmode="numeric" />
-        </label>
-        <label
-          >Passport registration number
-          <input bind:value={form.passportRegistrationNumber} />
-        </label>
-        <label>Notes <input bind:value={form.notes} /></label>
-        <button type="submit">{editing ? "Save changes" : "Add"}</button>
-        {#if editing}
-          <button type="button" class="secondary" onclick={reset}>Cancel</button
+      <FormPanel label="Add a supplier" bind:open={panelOpen}>
+        <form class="stack" onsubmit={save}>
+          <label>Name <input bind:value={form.name} required /></label>
+          <label>Contact name <input bind:value={form.contactName} /></label>
+          <label>Phone <input bind:value={form.phone} inputmode="tel" /></label>
+          <label
+            >Email <input bind:value={form.email} inputmode="email" /></label
           >
-        {/if}
-      </form>
+          <label>Address <input bind:value={form.address} /></label>
+          <label
+            >Account reference <input
+              bind:value={form.accountReference}
+            /></label
+          >
+          <label>What they supply <input bind:value={form.supplies} /></label>
+          <label
+            >Typical lead time (days)
+            <input bind:value={form.typicalLeadTimeDays} inputmode="numeric" />
+          </label>
+          <label
+            >Passport registration number
+            <input bind:value={form.passportRegistrationNumber} />
+          </label>
+          <label>Notes <input bind:value={form.notes} /></label>
+          <button type="submit">{editing ? "Save changes" : "Add"}</button>
+          {#if editing}
+            <button type="button" class="secondary" onclick={reset}
+              >Cancel</button
+            >
+          {/if}
+        </form>
+      </FormPanel>
     </section>
     <section>
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
@@ -150,5 +160,5 @@
     </section>
   </div>
 
-  <button class="secondary mobile-only" onclick={onBack}>Back</button>
+  <button class="back mobile-only" onclick={onBack}>Back</button>
 </main>

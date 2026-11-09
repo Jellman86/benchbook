@@ -8,6 +8,17 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>GrowLog</title>
+    <script>
+      // Before anything is drawn, so a dark theme doesn't flash light first.
+      try {
+        const theme = localStorage.getItem("growlog.theme");
+        if (theme === "light" || theme === "dark") {
+          document.documentElement.dataset.theme = theme;
+        }
+      } catch {
+        // Storage can be refused. The device's own setting still applies.
+      }
+    </script>
   </head>
   <body>
     <div id="app"></div>

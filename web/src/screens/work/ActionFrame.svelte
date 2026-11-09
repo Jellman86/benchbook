@@ -18,5 +18,5 @@
   <h1>{title}</h1>
   {@render children()}
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
-  <button class="secondary" onclick={onCancel}>Back</button>
+  <button class="back" onclick={onCancel}>Back</button>
 </main>
