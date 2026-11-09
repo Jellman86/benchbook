@@ -77,7 +77,7 @@ internal static class SignInEndpoints
         return TypedResults.NoContent();
     }
 
-    private static async Task<IResult> GetSettingsAsync(ClaimsPrincipal principal, UserManager<AppUser> users, IConfiguration configuration)
+    private static async Task<IResult> GetSettingsAsync(ClaimsPrincipal principal, UserManager<AppUser> users, ExternalSignInStore store)
     {
         if (await users.GetUserAsync(principal) is not { } me)
         {
@@ -86,7 +86,7 @@ internal static class SignInEndpoints
 
         var passkeys = await users.GetPasskeysAsync(me);
         var logins = await users.GetLoginsAsync(me);
-        var externalName = AccountServices.ExternalSignInIsOn(configuration) ? AccountServices.ExternalSignInName(configuration) : null;
+        var externalName = store.Current.IsOn ? store.Current.DisplayName : null;
 
         return TypedResults.Ok(new AccountSettings(me.PasswordHash is not null, me.PinHash is not null, passkeys.Count > 0, logins.Count > 0, externalName, me.NameOnlySignIn));
     }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace GrowLog.Api.Accounts;
@@ -16,10 +17,6 @@ internal static class AccountServices
     public const string BenchPolicy = "BenchStation";
     public const string BenchScheme = "BenchStation";
     public const string OidcScheme = "Oidc";
-
-    public static bool ExternalSignInIsOn(IConfiguration configuration) => !string.IsNullOrEmpty(configuration["Oidc:Authority"]);
-
-    public static string ExternalSignInName(IConfiguration configuration) => configuration["Oidc:DisplayName"] ?? "Croft View";
 
     /// <summary>The address people use, which this application can't tell from behind the proxy.</summary>
     public static string PublicOrigin(IConfiguration configuration)
@@ -50,7 +47,7 @@ internal static class AccountServices
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     }
 
-    public static IServiceCollection AddGrowLogAccounts(this IServiceCollection services, IConfiguration appConfiguration)
+    public static IServiceCollection AddGrowLogAccounts(this IServiceCollection services)
     {
         // Kept in the database, so a redeploy of the container does not sign everyone out.
         services.AddDataProtection().SetApplicationName("GrowLog").PersistKeysToDbContext<GrowLogDbContext>();
@@ -67,7 +64,7 @@ internal static class AccountServices
             AnswerWithStatusCodes(options);
         });
 
-        AddExternalSignIn(authentication, services, appConfiguration);
+        AddExternalSignIn(authentication, services);
 
         services.ConfigureApplicationCookie(options =>
         {
@@ -106,13 +103,12 @@ internal static class AccountServices
         return services;
     }
 
-    /// <summary>Only added when a shared staff login is configured. GrowLog works fully without one.</summary>
-    private static void AddExternalSignIn(AuthenticationBuilder authentication, IServiceCollection services, IConfiguration configuration)
+    /// <summary>Always registered, because the owner can turn it on at any time. It does nothing until they do.</summary>
+    private static void AddExternalSignIn(AuthenticationBuilder authentication, IServiceCollection services)
     {
-        if (!ExternalSignInIsOn(configuration))
-        {
-            return;
-        }
+        services.AddSingleton<ExternalSignInStore>();
+        services.AddSingleton<IConfigureOptions<OpenIdConnectOptions>, ConfigureExternalSignIn>();
+        services.AddHttpClient(ExternalSignInSettingsEndpoints.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(8));
 
         services.ConfigureExternalCookie(options =>
         {
@@ -123,9 +119,6 @@ internal static class AccountServices
 
         authentication.AddOpenIdConnect(OidcScheme, options =>
         {
-            options.Authority = configuration["Oidc:Authority"];
-            options.ClientId = configuration["Oidc:ClientId"];
-            options.ClientSecret = configuration["Oidc:ClientSecret"];
             options.ResponseType = OpenIdConnectResponseType.Code;
 
             // Returned in the address, so Lax cookies are enough for the trip back.

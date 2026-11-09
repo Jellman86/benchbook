@@ -1,6 +1,7 @@
 <script lang="ts">
   import { manageSections, type ManageSection } from "../lib/sections";
   import type { BatchPrefill } from "../lib/work";
+  import ExternalSignIn from "./manage/ExternalSignIn.svelte";
   import Figures from "./manage/Figures.svelte";
   import Locations from "./manage/Locations.svelte";
   import Money from "./manage/Money.svelte";
@@ -44,6 +45,8 @@
   <Suppliers onBack={back} />
 {:else if section === "places"}
   <Locations onBack={back} />
+{:else if section === "signIn"}
+  <ExternalSignIn onBack={back} />
 {:else if section === "stations"}
   <Stations onBack={back} {onBecameStation} />
 {:else}

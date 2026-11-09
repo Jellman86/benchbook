@@ -1146,6 +1146,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/external-sign-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ExternalSignInSettings"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SaveExternalSignIn"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SaveRefused"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/staff": {
         parameters: {
             query?: never;
@@ -3827,6 +3892,16 @@ export interface components {
             enabled: boolean;
             name: string;
         };
+        ExternalSignInSettings: {
+            enabled: boolean;
+            authority: null | string;
+            clientId: null | string;
+            hasClientSecret: boolean;
+            displayName: string;
+            ownerGroup: null | string;
+            redirectUri: string;
+            fromDeployment: boolean;
+        };
         Figures: {
             plants: components["schemas"]["PlantFigures"][];
             losses: components["schemas"]["LossFigures"][];
@@ -4174,6 +4249,17 @@ export interface components {
         };
         RegisterStationRequest: {
             name: string;
+        };
+        SaveExternalSignIn: {
+            enabled: boolean;
+            authority: null | string;
+            clientId: null | string;
+            clientSecret: null | string;
+            displayName: null | string;
+            ownerGroup: null | string;
+        };
+        SaveRefused: {
+            problem: string;
         };
         SetOwnPasswordRequest: {
             currentPassword: null | string;

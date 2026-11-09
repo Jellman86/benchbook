@@ -29,18 +29,18 @@ internal static class ExternalSignInEndpoints
 
     private static RedirectHttpResult Back(string problem) => TypedResults.Redirect($"/?sso={problem}");
 
-    private static ExternalSignInOptions GetOptions(IConfiguration configuration) =>
-        new(AccountServices.ExternalSignInIsOn(configuration), AccountServices.ExternalSignInName(configuration));
+    private static ExternalSignInOptions GetOptions(ExternalSignInStore store) =>
+        new(store.Current.IsOn, store.Current.DisplayName);
 
-    private static Task<IResult> LoginAsync(HttpContext context, SignInManager<AppUser> signIn, IConfiguration configuration) =>
-        ChallengeAsync(context, signIn, configuration, linkUser: null);
+    private static Task<IResult> LoginAsync(HttpContext context, SignInManager<AppUser> signIn, ExternalSignInStore store) =>
+        ChallengeAsync(context, signIn, store, linkUser: null);
 
-    private static Task<IResult> LinkAsync(HttpContext context, ClaimsPrincipal user, UserManager<AppUser> users, SignInManager<AppUser> signIn, IConfiguration configuration) =>
-        ChallengeAsync(context, signIn, configuration, users.GetUserId(user));
+    private static Task<IResult> LinkAsync(HttpContext context, ClaimsPrincipal user, UserManager<AppUser> users, SignInManager<AppUser> signIn, ExternalSignInStore store) =>
+        ChallengeAsync(context, signIn, store, users.GetUserId(user));
 
-    private static async Task<IResult> ChallengeAsync(HttpContext context, SignInManager<AppUser> signIn, IConfiguration configuration, string? linkUser)
+    private static async Task<IResult> ChallengeAsync(HttpContext context, SignInManager<AppUser> signIn, ExternalSignInStore store, string? linkUser)
     {
-        if (!AccountServices.ExternalSignInIsOn(configuration))
+        if (!store.Current.IsOn)
         {
             return Back("unavailable");
         }
@@ -69,9 +69,9 @@ internal static class ExternalSignInEndpoints
         UserManager<AppUser> users,
         RoleManager<IdentityRole<Guid>> roles,
         SignInManager<AppUser> signIn,
-        IConfiguration configuration)
+        ExternalSignInStore store)
     {
-        if (!AccountServices.ExternalSignInIsOn(configuration) || await signIn.GetExternalLoginInfoAsync() is not { } info)
+        if (!store.Current.IsOn || await signIn.GetExternalLoginInfoAsync() is not { } info)
         {
             return Back("failed");
         }
@@ -102,7 +102,7 @@ internal static class ExternalSignInEndpoints
             return Back("refused");
         }
 
-        await MatchOwnerRoleAsync(person, info, users, roles, configuration);
+        await MatchOwnerRoleAsync(person, info, users, roles, store);
         await signIn.SignInAsync(person, isPersistent: true);
         return TypedResults.Redirect("/");
     }
@@ -164,9 +164,9 @@ internal static class ExternalSignInEndpoints
         ExternalLoginInfo info,
         UserManager<AppUser> users,
         RoleManager<IdentityRole<Guid>> roles,
-        IConfiguration configuration)
+        ExternalSignInStore store)
     {
-        if (configuration["Oidc:OwnerGroup"] is not { Length: > 0 } group)
+        if (store.Current.OwnerGroup is not { Length: > 0 } group)
         {
             return;
         }

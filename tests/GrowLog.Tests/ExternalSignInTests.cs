@@ -36,6 +36,8 @@ public sealed class ExternalSignInTests(PostgresFixture database)
 
         public bool Down { get; set; }
 
+        public string? ClaimedIssuer { get; set; }
+
         private RsaSecurityKey Key => new(rsa) { KeyId = "test" };
 
         protected override void Dispose(bool disposing)
@@ -59,7 +61,7 @@ public sealed class ExternalSignInTests(PostgresFixture database)
             var body = path switch
             {
                 "/.well-known/openid-configuration" => $$"""
-                    {"issuer":"{{Issuer}}","authorization_endpoint":"{{Issuer}}authorize","token_endpoint":"{{Issuer}}token","jwks_uri":"{{Issuer}}jwks"}
+                    {"issuer":"{{ClaimedIssuer ?? $"https://{request.RequestUri!.Host}/"}}","authorization_endpoint":"{{Issuer}}authorize","token_endpoint":"{{Issuer}}token","jwks_uri":"{{Issuer}}jwks"}
                     """,
                 "/jwks" => JsonSerializer.Serialize(new { keys = new[] { JsonWebKeyConverter.ConvertFromRSASecurityKey(Key) } }),
                 _ => JsonSerializer.Serialize(new { id_token = Token(), access_token = "unused", token_type = "Bearer" }),
@@ -110,6 +112,7 @@ public sealed class ExternalSignInTests(PostgresFixture database)
             ("Oidc:ClientSecret", "test-secret"),
             ("Oidc:OwnerGroup", OwnersGroup))
         {
+            OutsideWorld = provider,
             ConfigureServices = services => services.Configure<OpenIdConnectOptions>("Oidc", options => options.BackchannelHttpHandler = provider),
         };
     }
@@ -344,5 +347,185 @@ public sealed class ExternalSignInTests(PostgresFixture database)
 
         Assert.False(options.GetProperty("enabled").GetBoolean());
         Assert.Equal("/?sso=unavailable", await GoThroughProviderAsync(browser, provider));
+    }
+
+    private static object Settings(bool enabled = true, string authority = Issuer, string? secret = "a-new-secret") =>
+        new { enabled, authority, clientId = ClientId, clientSecret = secret, displayName = "Croft View", ownerGroup = OwnersGroup };
+
+    private static async Task<HttpResponseMessage> SaveAsync(HttpClient owner, object settings) =>
+        await owner.PutAsJsonAsync(Route("/api/external-sign-in"), settings, Cancellation);
+
+    private static async Task<string> RefusalAsync(HttpClient owner, object settings)
+    {
+        using var response = await SaveAsync(owner, settings);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        return (await response.Content.ReadFromJsonAsync<JsonElement>(Cancellation)).GetProperty("problem").GetString()!;
+    }
+
+    [Fact]
+    public async Task The_owner_can_turn_it_on_with_no_restart()
+    {
+        var provider = new Provider();
+        await using var app = await CreateAsync(database, provider, enabled: false);
+        using var owner = Browser(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+
+        using (var saved = await SaveAsync(owner, Settings()))
+        {
+            Assert.Equal(HttpStatusCode.NoContent, saved.StatusCode);
+        }
+
+        using var browser = Browser(app);
+        var options = await browser.GetFromJsonAsync<JsonElement>(Route("/api/account/external"), Cancellation);
+        Assert.True(options.GetProperty("enabled").GetBoolean());
+        Assert.Equal("Croft View", options.GetProperty("name").GetString());
+        Assert.Equal("/", await GoThroughProviderAsync(browser, provider));
+        Assert.Equal("Jo Reed", (await MeAsync(browser)).GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public async Task The_owner_can_turn_it_off_with_no_restart()
+    {
+        var provider = new Provider();
+        await using var app = await CreateAsync(database, provider);
+        using var owner = Browser(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+
+        using var saved = await SaveAsync(owner, Settings(enabled: false));
+
+        Assert.Equal(HttpStatusCode.NoContent, saved.StatusCode);
+        using var browser = Browser(app);
+        Assert.Equal("/?sso=unavailable", await GoThroughProviderAsync(browser, provider));
+    }
+
+    [Fact]
+    public async Task The_secret_is_never_shown_and_is_stored_encrypted()
+    {
+        var provider = new Provider();
+        await using var app = await CreateAsync(database, provider, enabled: false);
+        using var owner = Browser(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+        using var saved = await SaveAsync(owner, Settings(secret: "a-very-private-secret"));
+
+        var shown = await owner.GetStringAsync(Route("/api/external-sign-in"), Cancellation);
+
+        Assert.DoesNotContain("a-very-private-secret", shown, StringComparison.Ordinal);
+        Assert.True(Json(shown).GetProperty("hasClientSecret").GetBoolean());
+
+        using var scope = app.Services.CreateScope();
+        var row = scope.ServiceProvider.GetRequiredService<GrowLog.Api.Data.GrowLogDbContext>().ExternalSignInSettings.Single();
+        Assert.DoesNotContain("a-very-private-secret", row.ProtectedClientSecret!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Leaving_the_secret_blank_keeps_it()
+    {
+        var provider = new Provider();
+        await using var app = await CreateAsync(database, provider);
+        using var owner = Browser(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+
+        using var saved = await SaveAsync(owner, Settings(secret: null));
+
+        Assert.Equal(HttpStatusCode.NoContent, saved.StatusCode);
+        var shown = await owner.GetFromJsonAsync<JsonElement>(Route("/api/external-sign-in"), Cancellation);
+        Assert.True(shown.GetProperty("hasClientSecret").GetBoolean());
+        Assert.False(shown.GetProperty("fromDeployment").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Bad_settings_are_refused_and_change_nothing()
+    {
+        var provider = new Provider();
+        await using var app = await CreateAsync(database, provider, enabled: false);
+        using var owner = Browser(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+
+        Assert.Equal("incomplete", await RefusalAsync(owner, Settings(authority: "http://idp.test/")));
+
+        provider.ClaimedIssuer = "https://someone-else.test/";
+        Assert.Equal("wrong-issuer", await RefusalAsync(owner, Settings()));
+
+        provider.ClaimedIssuer = null;
+        provider.Down = true;
+        Assert.Equal("unreachable", await RefusalAsync(owner, Settings()));
+
+        var options = await owner.GetFromJsonAsync<JsonElement>(Route("/api/account/external"), Cancellation);
+        Assert.False(options.GetProperty("enabled").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Changing_provider_disconnects_everyone_from_the_old_one()
+    {
+        var provider = new Provider();
+        await using var app = await CreateAsync(database, provider);
+        using var owner = Browser(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+        using (var staff = Browser(app))
+        {
+            await GoThroughProviderAsync(staff, provider);
+        }
+
+        Assert.Contains(await StaffAsync(owner), member => member.GetProperty("hasExternalLogin").GetBoolean());
+
+        using var saved = await SaveAsync(owner, Settings(authority: "https://other.test/"));
+
+        Assert.Equal(HttpStatusCode.NoContent, saved.StatusCode);
+        Assert.DoesNotContain(await StaffAsync(owner), member => member.GetProperty("hasExternalLogin").GetBoolean());
+    }
+
+    [Fact]
+    public async Task It_cannot_be_turned_off_if_that_would_lock_every_owner_out()
+    {
+        var provider = new Provider { Groups = [OwnersGroup] };
+        await using var app = await CreateAsync(database, provider);
+        using var first = Browser(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(first, key);
+        using var second = Browser(app);
+        await GoThroughProviderAsync(second, provider);
+        var firstId = (await StaffAsync(second)).Single(member => string.Equals(member.GetProperty("name").GetString(), "Sam Fielding", StringComparison.Ordinal)).GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(second, $"/api/staff/{firstId}/archive"));
+
+        Assert.Equal("last-way-in", await RefusalAsync(second, Settings(enabled: false)));
+    }
+
+    [Fact]
+    public async Task Only_the_owner_can_see_or_change_this()
+    {
+        var provider = new Provider();
+        await using var app = await CreateAsync(database, provider);
+        using var owner = Browser(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+        using var staff = Browser(app);
+        await GoThroughProviderAsync(staff, provider);
+        using var nobody = Browser(app);
+
+        Assert.Equal(HttpStatusCode.Forbidden, await GetStatusAsync(staff, "/api/external-sign-in"));
+        using var refused = await SaveAsync(staff, Settings());
+        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, await GetStatusAsync(nobody, "/api/external-sign-in"));
+    }
+
+    [Fact]
+    public async Task The_redirect_address_to_give_the_provider_is_shown()
+    {
+        var provider = new Provider();
+        await using var app = await CreateAsync(database, provider);
+        using var owner = Browser(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+
+        var shown = await owner.GetFromJsonAsync<JsonElement>(Route("/api/external-sign-in"), Cancellation);
+
+        Assert.Equal("https://localhost/signin-oidc", shown.GetProperty("redirectUri").GetString());
+        Assert.True(shown.GetProperty("fromDeployment").GetBoolean());
     }
 }

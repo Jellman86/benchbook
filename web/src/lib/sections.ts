@@ -1,6 +1,7 @@
 import ChartColumn from "@lucide/svelte/icons/chart-column";
 import Cylinder from "@lucide/svelte/icons/cylinder";
 import Flower2 from "@lucide/svelte/icons/flower-2";
+import KeyRound from "@lucide/svelte/icons/key-round";
 import MapPin from "@lucide/svelte/icons/map-pin";
 import ReceiptText from "@lucide/svelte/icons/receipt-text";
 import Tablet from "@lucide/svelte/icons/tablet";
@@ -15,6 +16,7 @@ export type ManageSection =
   | "suppliers"
   | "places"
   | "stations"
+  | "signIn"
   | "figures"
   | "purchases"
   | "money";
@@ -33,4 +35,5 @@ export const manageSections: {
   { section: "places", label: "Places", icon: MapPin },
   { section: "staff", label: "Staff", icon: Users },
   { section: "stations", label: "Bench stations", icon: Tablet },
+  { section: "signIn", label: "Staff login", icon: KeyRound },
 ];
