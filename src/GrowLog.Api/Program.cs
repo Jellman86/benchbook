@@ -8,6 +8,7 @@ using GrowLog.Api.Data;
 using GrowLog.Api.Demo;
 using GrowLog.Api.Figures;
 using GrowLog.Api.Labels;
+using GrowLog.Api.Lookup;
 using GrowLog.Api.Operations;
 using GrowLog.Api.Passports;
 using GrowLog.Api.Selling;
@@ -37,6 +38,12 @@ builder.Services.AddDbContext<GrowLogDbContext>((services, options) =>
 });
 builder.Services.AddScoped<EventStore>();
 builder.Services.AddSingleton<LabelPrinter>();
+builder.Services.AddSingleton<SpeciesThrottle>();
+builder.Services.AddHttpClient<SpeciesSources>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(6);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("GrowLog/1.0 (+https://github.com/Jellman86/growlog)");
+});
 builder.Services.AddGrowLogAccounts();
 
 var app = builder.Build();
@@ -52,6 +59,8 @@ app.MapAccountEndpoints();
 app.MapSignInEndpoints();
 app.MapStaffEndpoints();
 app.MapBenchEndpoints();
+app.MapSpeciesEndpoints();
+app.MapPhotoEndpoints();
 app.MapCatalogueEndpoints();
 app.MapWorkEndpoints();
 app.MapLabelEndpoints();

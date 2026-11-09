@@ -8,7 +8,7 @@ export interface WorkRequest {
 }
 
 export type Outcome =
-  | { kind: "stored"; eventId: string; labelCode?: string }
+  | { kind: "stored"; eventId: string; labelCode?: string; batchId?: string }
   | { kind: "queued"; eventId: string }
   | { kind: "signedOut" }
   | { kind: "refused"; problem: string }
@@ -73,11 +73,15 @@ export async function submit(item: WorkRequest): Promise<Outcome> {
   }
 
   if (response.ok) {
-    const result = (await response.json()) as { labelCode?: string };
+    const result = (await response.json()) as {
+      labelCode?: string;
+      batchId?: string;
+    };
     return {
       kind: "stored",
       eventId: item.body.eventId,
       labelCode: result.labelCode,
+      batchId: result.batchId,
     };
   }
 
@@ -126,6 +130,31 @@ export function percent(rate: number | string | null | undefined): string {
 }
 
 /** What a purchase line already knows about the batch it becomes. */
+/** What someone chose in the first step of a new batch. */
+export type PickedPlant =
+  | {
+      kind: "plant";
+      id: string;
+      commonName: string;
+      variety: string | null;
+      botanicalName: string | null;
+      photoUrl: string | null;
+    }
+  | {
+      kind: "species";
+      id: string;
+      commonName: string | null;
+      scientificName: string;
+      photoUrl: string | null;
+      credit: string | null;
+    }
+  | {
+      kind: "new";
+      commonName: string;
+      variety: string | null;
+      botanicalName: string | null;
+    };
+
 export interface BatchPrefill {
   supplierId: string;
   quantity: number;

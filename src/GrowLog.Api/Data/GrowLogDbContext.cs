@@ -29,6 +29,16 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<Plant> Plants => Set<Plant>();
 
+    public DbSet<Species> Species => Set<Species>();
+
+    public DbSet<SpeciesPhoto> SpeciesPhotos => Set<SpeciesPhoto>();
+
+    public DbSet<SpeciesSearch> SpeciesSearches => Set<SpeciesSearch>();
+
+    public DbSet<BatchPhoto> BatchPhotos => Set<BatchPhoto>();
+
+    public DbSet<PlantPhoto> PlantPhotos => Set<PlantPhoto>();
+
     public DbSet<PlantPrice> PlantPrices => Set<PlantPrice>();
 
     public DbSet<PotSize> PotSizes => Set<PotSize>();
@@ -59,6 +69,7 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
         ConfigureEvents(modelBuilder);
         ConfigureCatalogue(modelBuilder);
+        ConfigureSpeciesAndPhotos(modelBuilder);
         ConfigureStock(modelBuilder);
 
         modelBuilder.Entity<CatalogueChange>(entity =>
@@ -186,6 +197,40 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         });
     }
 
+    private static void ConfigureSpeciesAndPhotos(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Species>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.ScientificName).HasColumnType("citext");
+            entity.HasIndex(e => e.ScientificName).IsUnique();
+        });
+
+        modelBuilder.Entity<SpeciesPhoto>(entity =>
+        {
+            entity.HasKey(e => e.SpeciesId);
+            entity.HasOne<Species>().WithOne().HasForeignKey<SpeciesPhoto>(e => e.SpeciesId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SpeciesSearch>(entity => entity.HasKey(e => e.Query));
+
+        modelBuilder.Entity<BatchPhoto>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Kind).HasConversion<string>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.HasIndex(e => e.BatchId);
+            entity.HasOne<Batch>().WithMany().HasForeignKey(e => e.BatchId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.UploadedBy).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PlantPhoto>(entity =>
+        {
+            entity.HasKey(e => e.PlantId);
+            entity.HasOne<Plant>().WithOne().HasForeignKey<PlantPhoto>(e => e.PlantId).OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
     private static void ConfigureCatalogue(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Plant>(entity =>
@@ -194,6 +239,7 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.Property(e => e.CommonName).HasColumnType("citext");
             entity.Property(e => e.Variety).HasColumnType("citext");
             entity.HasIndex(e => new { e.CommonName, e.Variety }).IsUnique().AreNullsDistinct(false);
+            entity.HasOne<Species>().WithMany().HasForeignKey(e => e.SpeciesId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<PotSize>(entity =>

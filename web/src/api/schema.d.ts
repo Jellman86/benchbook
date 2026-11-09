@@ -39,6 +39,208 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/plants/from-species": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PlantFromSpeciesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlantFromSpecies"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/batches/{id}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BatchPhotoSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query: {
+                    kind: components["schemas"]["BatchPhotoKind"];
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BatchPhotoSummary"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/batch-photos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plants/{id}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/batches": {
         parameters: {
             query?: never;
@@ -1286,6 +1488,78 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/species/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    q: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SpeciesSearchResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/species/{id}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3218,6 +3492,13 @@ export interface components {
             lastTransferAt: null | string;
         };
         /** @enum {unknown} */
+        BatchPhotoKind: "Packet" | "Label" | "Packaging";
+        BatchPhotoSummary: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["BatchPhotoKind"];
+        };
+        /** @enum {unknown} */
         BatchSource: "SeedLot" | "BoughtIn" | "Cuttings";
         BatchStarted: {
             /** Format: uuid */
@@ -3431,6 +3712,14 @@ export interface components {
             occurredAt: string;
             note: string;
         };
+        OwnPlantResult: {
+            /** Format: uuid */
+            id: string;
+            commonName: string;
+            variety: null | string;
+            botanicalName: null | string;
+            hasPhoto: boolean;
+        };
         PaidRequest: {
             /** Format: date */
             paidOn: null | string;
@@ -3505,6 +3794,15 @@ export interface components {
             /** Format: double */
             survivalRate: null | number | string;
         };
+        PlantFromSpecies: {
+            /** Format: uuid */
+            id: string;
+        };
+        PlantFromSpeciesRequest: {
+            /** Format: uuid */
+            speciesId: string;
+            variety: null | string;
+        };
         PlantPriceDto: {
             /** Format: uuid */
             potSizeId: string;
@@ -3537,6 +3835,7 @@ export interface components {
             protectedVariety: boolean;
             archived: boolean;
             prices: components["schemas"]["PlantPriceDto"][];
+            hasPhoto: boolean;
         };
         PurchaseCreated: {
             /** Format: uuid */
@@ -3650,6 +3949,20 @@ export interface components {
         };
         SignInRequest: {
             credential: components["schemas"]["JsonElement"];
+        };
+        SpeciesResult: {
+            /** Format: uuid */
+            id: string;
+            commonName: null | string;
+            scientificName: string;
+            rank: string;
+            hasPhoto: boolean;
+            photoCredit: null | string;
+        };
+        SpeciesSearchResponse: {
+            plants: components["schemas"]["OwnPlantResult"][];
+            species: components["schemas"]["SpeciesResult"][];
+            onlineUnavailable: boolean;
         };
         StaffCreated: {
             /** Format: uuid */

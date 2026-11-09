@@ -1,5 +1,6 @@
 <script lang="ts">
   import FormPanel from "../FormPanel.svelte";
+  import PlantThumb from "../work/PlantThumb.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { attempt, optional, type Schemas } from "../../lib/types";
@@ -151,12 +152,19 @@
 
       {#each plants as plant (plant.id)}
         <div class="card">
-          <strong
-            >{plant.commonName}{plant.variety
-              ? ` '${plant.variety}'`
-              : ""}</strong
-          >
-          {#if plant.botanicalName}<em>{plant.botanicalName}</em>{/if}
+          <div class="plant-head">
+            <PlantThumb
+              url={plant.hasPhoto ? `/api/plants/${plant.id}/photo` : null}
+            />
+            <span class="plant-names">
+              <strong
+                >{plant.commonName}{plant.variety
+                  ? ` '${plant.variety}'`
+                  : ""}</strong
+              >
+              {#if plant.botanicalName}<em>{plant.botanicalName}</em>{/if}
+            </span>
+          </div>
           <div class="row">
             <button class="secondary" onclick={() => edit(plant)}>Change</button
             >

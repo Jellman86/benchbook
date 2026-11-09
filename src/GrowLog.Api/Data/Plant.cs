@@ -11,6 +11,9 @@ internal sealed class Plant : IAudited, IArchivable
     /// <summary>Optional while recording work. Validated before a passport is issued.</summary>
     public string? BotanicalName { get; set; }
 
+    /// <summary>The species someone picked this from, if any. Holds the source and licence of its names and picture.</summary>
+    public Guid? SpeciesId { get; set; }
+
     public string? Category { get; set; }
 
     public string? Position { get; set; }

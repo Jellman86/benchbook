@@ -36,6 +36,7 @@ export default defineConfig({
         Passkeys__ServerDomain: "localhost",
         Passkeys__Origin: `http://localhost:${port}`,
         Setup__Token: "e2e-setup-code",
+        Species__Online: process.env.E2E_SPECIES_ONLINE ?? "false",
       },
     },
   ],
