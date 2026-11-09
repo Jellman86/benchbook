@@ -10,6 +10,7 @@ import {
   repeatOf,
   work,
   workPlaces,
+  shortCredit,
 } from "./work";
 
 const line: Schemas["RecentLine"] = {
@@ -211,5 +212,19 @@ describe("places", () => {
 
   it("leaves sites out of the places a container can stand in", () => {
     expect(workPlaces(all).map((item) => item.id)).toEqual(["g", "b"]);
+  });
+});
+
+describe("photo credits", () => {
+  it("names the photographer once", () => {
+    expect(
+      shortCredit(
+        "(c) Jo Reed, some rights reserved (CC BY), uploaded by Jo Reed",
+      ),
+    ).toBe("(c) Jo Reed, some rights reserved (CC BY)");
+  });
+
+  it("leaves other credits alone", () => {
+    expect(shortCredit("(c) Jo Reed (CC BY)")).toBe("(c) Jo Reed (CC BY)");
   });
 });

@@ -1,10 +1,14 @@
 <script lang="ts">
+  import Camera from "@lucide/svelte/icons/camera";
   import type { Snippet } from "svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { shrinkPhoto } from "../../lib/photo";
   import { attempt, type Schemas } from "../../lib/types";
   import { plantName, type PickedPlant } from "../../lib/work";
+  import ArticleSection from "./ArticleSection.svelte";
+  import Loading from "./Loading.svelte";
+  import PlantHero from "./PlantHero.svelte";
   import PlantSearch from "./PlantSearch.svelte";
 
   let {
@@ -65,12 +69,6 @@
       month: "short",
       year: "numeric",
     });
-  }
-
-  function creditWords(credit: Schemas["Credited"]) {
-    return credit.licence
-      ? `${credit.source}, ${credit.licence}`
-      : credit.source;
   }
 
   const addNote = (event: SubmitEvent) => {
@@ -147,21 +145,12 @@
 
 <main>
   {#if card}
-    <h1>{plantName(card.commonName, card.variety)}</h1>
-    {#if card.botanicalName}<p class="plant-botanical">
-        <em>{card.botanicalName}</em>
-      </p>{/if}
-
-    {#if card.hasPhoto}
-      {#key photoVersion}
-        <img
-          class="plant-photo"
-          src="/api/plants/{plantId}/photo?v={photoVersion}"
-          alt=""
-        />
-      {/key}
-      {#if card.photoCredit}<p class="muted credit">{card.photoCredit}</p>{/if}
-    {/if}
+    <header class="plant-title">
+      <h1>{plantName(card.commonName, card.variety)}</h1>
+      {#if card.botanicalName}<p class="plant-botanical">
+          <em>{card.botanicalName}</em>
+        </p>{/if}
+    </header>
 
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
     {#if card.lookupUnavailable}
@@ -170,77 +159,94 @@
       </p>
     {/if}
 
-    {#if facts.length > 0}
-      <dl class="facts">
-        {#each facts as [name, value] (name)}
-          <dt>{name}</dt>
-          <dd>{value}</dd>
-        {/each}
-      </dl>
-    {/if}
+    <div class="plant-layout">
+      <aside class="plant-side">
+        {#key photoVersion}
+          <PlantHero
+            url={card.hasPhoto
+              ? `/api/plants/${plantId}/photo?v=${photoVersion}`
+              : null}
+            credit={card.photoCredit}
+          />
+        {/key}
 
-    <h2>Growing notes</h2>
-    <form class="stack" onsubmit={addNote}>
-      <label>
-        Add a growing note
-        <textarea bind:value={note} rows="3" required></textarea>
-      </label>
-      <button type="submit" disabled={busy}>Add note</button>
-    </form>
+        {#if facts.length > 0}
+          <dl class="facts card">
+            {#each facts as [name, value] (name)}
+              <dt>{name}</dt>
+              <dd>{value}</dd>
+            {/each}
+          </dl>
+        {/if}
 
-    {#each card.notes as item (item.id)}
-      <div class="card">
-        <p class="plant-note">{item.text}</p>
-        <p class="muted credit">{item.addedBy}, {when(item.createdAt)}</p>
+        <label class="photo-choice">
+          <Camera size={20} />
+          <span>{card.hasPhoto ? "Change the picture" : "Add a picture"}</span>
+          <input type="file" accept="image/*" onchange={choosePicture} />
+        </label>
+      </aside>
+
+      <div class="plant-main">
+        <section class="stack">
+          <h2>Growing notes</h2>
+          <form class="card note-form" onsubmit={addNote}>
+            <label>
+              Add a growing note
+              <textarea bind:value={note} rows="3" required></textarea>
+            </label>
+            <button type="submit" disabled={busy}>Add note</button>
+          </form>
+
+          {#each card.notes as item (item.id)}
+            <article class="card plant-note-card appear">
+              <p class="plant-note">{item.text}</p>
+              <p class="muted credit">{item.addedBy}, {when(item.createdAt)}</p>
+            </article>
+          {:else}
+            <p class="note-empty muted">
+              No notes yet. Add what you've learned about growing it.
+            </p>
+          {/each}
+        </section>
+
+        {#if card.description}
+          <ArticleSection title="About this plant" article={card.description} />
+        {/if}
+        {#if card.growing}
+          <ArticleSection title="Growing it" article={card.growing} />
+        {/if}
+
+        {#if !card.linkedToSpecies && canManage}
+          <section class="stack">
+            <h2>Find this plant's details</h2>
+            <PlantSearch
+              recent={[]}
+              onPick={link}
+              speciesOnly
+              label="Search for this plant"
+            />
+          </section>
+        {/if}
+
+        {#if actions}
+          <div class="plant-actions">{@render actions()}</div>
+        {/if}
       </div>
-    {:else}
-      <p class="muted">
-        No notes yet. Add what you've learned about growing it.
-      </p>
-    {/each}
-
-    {#if card.description}
-      <h2>About this plant</h2>
-      <p class="article-text">{card.description.text}</p>
-      <p class="muted credit">
-        From
-        <a href={card.description.url} target="_blank" rel="noopener noreferrer"
-          >{creditWords(card.description)}</a
-        >
-      </p>
-    {/if}
-
-    {#if card.growing}
-      <h2>Growing it</h2>
-      <p class="article-text">{card.growing.text}</p>
-      <p class="muted credit">
-        From
-        <a href={card.growing.url} target="_blank" rel="noopener noreferrer"
-          >{creditWords(card.growing)}</a
-        >
-      </p>
-    {/if}
-
-    {#if !card.linkedToSpecies && canManage}
-      <h2>Find this plant's details</h2>
-      <PlantSearch
-        recent={[]}
-        onPick={link}
-        speciesOnly
-        label="Search for this plant"
-      />
-    {/if}
-
-    <label class="photo-choice">
-      <span>{card.hasPhoto ? "Change the picture" : "Add a picture"}</span>
-      <input type="file" accept="image/*" onchange={choosePicture} />
-    </label>
-
-    {#if actions}{@render actions()}{/if}
+    </div>
   {:else if problem}
     <p class="problem" role="alert">{problem}</p>
   {:else}
-    <p class="muted">Loading…</p>
+    <Loading text="Opening this plant…" />
+    <div class="plant-layout" aria-hidden="true">
+      <div class="plant-side"><span class="skeleton skeleton-hero"></span></div>
+      <div class="plant-main">
+        <span class="skeleton-lines">
+          <span class="skeleton"></span>
+          <span class="skeleton"></span>
+          <span class="skeleton short"></span>
+        </span>
+      </div>
+    </div>
   {/if}
 
   <button class="back" onclick={onBack}>Back</button>

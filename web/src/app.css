@@ -492,38 +492,50 @@ textarea:focus-visible {
   outline-offset: 2px;
 }
 
-.plant-botanical {
-  margin-top: -0.75rem;
-  color: var(--muted);
+.plant-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
-.plant-photo {
-  display: block;
-  width: 100%;
-  max-width: 28rem;
-  max-height: 20rem;
-  border-radius: 0.75rem;
-  object-fit: cover;
+.plant-title h2 {
+  margin: 0;
+}
+
+.plant-botanical {
+  color: var(--muted);
 }
 
 .facts {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 0.25rem 1rem;
+  gap: 0;
   margin: 0;
+  padding: 0.25rem 0.85rem;
+}
+
+.facts dt,
+.facts dd {
+  margin: 0;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.facts dt:first-of-type,
+.facts dd:first-of-type {
+  border-top: 0;
 }
 
 .facts dt {
+  padding-right: 1.25rem;
   color: var(--muted);
 }
 
 .facts dd {
-  margin: 0;
   font-weight: 600;
 }
 
-.plant-note,
-.article-text {
+.plant-note {
   white-space: pre-wrap;
 }
 
@@ -575,6 +587,265 @@ button.photo-remove {
 .photo-add {
   min-height: 2.5rem;
   padding: 0.25rem 0.75rem;
+}
+
+/* A plant's page: its picture and details beside what you do with it. */
+.plant-layout,
+.plant-side,
+.plant-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1.25rem;
+}
+
+.plant-side {
+  gap: 0.9rem;
+}
+
+.plant-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.plant-hero img,
+.plant-hero-empty,
+.skeleton-hero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 0.9rem;
+  object-fit: cover;
+  box-shadow: var(--shadow);
+}
+
+.plant-hero img {
+  animation: appear 0.3s ease-out;
+}
+
+.plant-hero-empty {
+  background: var(--line);
+  color: var(--muted);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tags li {
+  padding: 0.2rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.article-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.article-block h2 {
+  margin: 0;
+}
+
+.plant-side .article-block h2 {
+  font-size: 1.05rem;
+}
+
+.article-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  line-height: 1.55;
+}
+
+/* Fades out rather than cutting off, so it's clear there is more. */
+.article-text.clamped {
+  overflow: hidden;
+  max-height: 9.5em;
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+
+.form-card {
+  min-width: 0;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+/* Floated so a legend lays out like any other heading inside the card. */
+.form-card legend {
+  float: left;
+  width: 100%;
+  margin-bottom: 0.75rem;
+  padding: 0;
+  font-family: var(--heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.form-card legend + * {
+  clear: both;
+}
+
+.form-card input:not([type="checkbox"]) {
+  background: var(--background);
+}
+
+.form-card input.suggested {
+  border-left: 4px solid var(--primary);
+}
+
+.form-hint {
+  margin-bottom: 0.75rem;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 0.75rem;
+}
+
+.tick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 2rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.form-actions button[type="submit"] {
+  flex: 2;
+}
+
+.form-actions button.secondary {
+  flex: 1;
+}
+
+.note-form label {
+  gap: 0.4rem;
+}
+
+.note-form textarea {
+  background: var(--background);
+}
+
+.plant-note-card {
+  border-left: 3px solid var(--primary);
+}
+
+.note-empty {
+  padding: 0.9rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.75rem;
+  text-align: center;
+}
+
+.plant-actions {
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.loading-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.loading-line svg {
+  color: var(--primary);
+  transform-origin: 50% 100%;
+  animation: sprouting 0.9s ease-in-out infinite alternate;
+}
+
+.skeleton {
+  display: block;
+  border-radius: 0.35rem;
+  background: linear-gradient(
+      90deg,
+      var(--line) 25%,
+      color-mix(in srgb, var(--line) 45%, var(--surface)) 50%,
+      var(--line) 75%
+    )
+    0 0 / 200% 100%;
+  animation: shimmer 1.3s linear infinite;
+}
+
+.skeleton-lines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.skeleton-lines .skeleton {
+  width: 100%;
+  height: 0.8rem;
+}
+
+.skeleton-lines .skeleton.short {
+  width: 55%;
+}
+
+.skeleton-card {
+  cursor: default;
+}
+
+.appear {
+  animation: appear 0.25s ease-out;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes sprouting {
+  from {
+    transform: scale(0.65);
+  }
+
+  to {
+    transform: scale(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .appear,
+  .skeleton,
+  .plant-hero img,
+  .loading-line svg {
+    animation: none;
+  }
 }
 
 .narrow {
@@ -864,6 +1135,27 @@ button.photo-remove {
     max-width: 76rem;
     margin: 0;
     padding: 2rem 2.5rem 3rem;
+  }
+
+  .with-sidebar .plant-layout {
+    display: grid;
+    grid-template-columns: minmax(18rem, 25rem) minmax(0, 1fr);
+    gap: 2.5rem;
+    align-items: start;
+  }
+
+  .with-sidebar .plant-layout.single {
+    grid-template-columns: minmax(0, 46rem);
+  }
+
+  .with-sidebar .plant-side {
+    position: sticky;
+    top: 1.5rem;
+  }
+
+  .with-sidebar .note-form button {
+    align-self: flex-end;
+    min-width: 9rem;
   }
 
   .with-sidebar .split {

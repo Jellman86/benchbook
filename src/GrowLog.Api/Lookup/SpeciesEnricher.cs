@@ -12,6 +12,9 @@ internal static class SpeciesEnricher
 
     private static readonly TimeSpan KeptFor = TimeSpan.FromDays(180);
 
+    // A plant left with no article is worth looking at again much sooner.
+    private static readonly TimeSpan KeptWithoutArticle = TimeSpan.FromHours(1);
+
     /// <summary>Gives what is known. Unavailable means the sources couldn't be reached, so it may be incomplete.</summary>
     public static async Task<(SpeciesDetails? Details, bool Unavailable)> FindOrFetchAsync(
         Species species,
@@ -24,7 +27,9 @@ internal static class SpeciesEnricher
         var saved = await db.SpeciesDetails.FirstOrDefaultAsync(details => details.SpeciesId == species.Id, cancellationToken);
         var now = clock.GetUtcNow();
 
-        if ((saved is not null && saved.EnrichedAt > now - KeptFor) || !configuration.GetValue("Species:Online", defaultValue: true))
+        var keptFor = saved?.ArticleSource is null ? KeptWithoutArticle : KeptFor;
+
+        if ((saved is not null && saved.EnrichedAt > now - keptFor) || !configuration.GetValue("Species:Online", defaultValue: true))
         {
             return (saved, false);
         }
