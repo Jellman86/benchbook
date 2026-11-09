@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api } from "../api/client";
+  import { externalSignInProblem } from "../lib/boot";
   import { passkeyProblem, usePasskey } from "../lib/passkey";
   import type { Schemas } from "../lib/types";
 
@@ -11,6 +12,7 @@
   const offline = "Can't reach GrowLog. Check the connection and try again.";
 
   let people = $state<Person[]>([]);
+  let external = $state<Schemas["ExternalSignInOptions"] | null>(null);
   let chosen = $state<Person | null>(null);
   let password = $state("");
   let problem = $state("");
@@ -18,7 +20,10 @@
 
   onMount(async () => {
     try {
+      problem = externalSignInProblem(location.search);
+      history.replaceState(null, "", location.pathname);
       people = (await api.GET("/api/account/people")).data ?? [];
+      external = (await api.GET("/api/account/external")).data ?? null;
     } catch {
       problem = offline;
     }
@@ -132,6 +137,11 @@
     </form>
     <button class="back" onclick={() => (chosen = null)}>Back</button>
   {:else}
+    {#if external?.enabled}
+      <a class="button" href="/api/account/external/login"
+        >Sign in with {external.name}</a
+      >
+    {/if}
     {#if people.length > 0}
       <h2>Who's signing in?</h2>
       <div class="card-grid">

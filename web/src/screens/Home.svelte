@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import { api } from "../api/client";
-  import type { Me } from "../lib/boot";
+  import { externalSignInProblem, type Me } from "../lib/boot";
   import { rememberContainers, rememberPlaces } from "../lib/offline";
   import { flush, recordWork, useQueue, type FailedWork } from "../lib/queue";
   import type { Schemas } from "../lib/types";
@@ -250,6 +250,11 @@
   }
 
   onMount(() => {
+    if (location.search.includes("sso=")) {
+      problem = externalSignInProblem(location.search);
+      history.replaceState(null, "", location.pathname);
+    }
+
     void goHome();
 
     const send = () => void sendWaiting();

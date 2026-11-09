@@ -162,6 +162,18 @@
         >
       </form>
 
+      {#if settings.externalSignInName}
+        {#if settings.hasExternalLogin}
+          <p class="muted">
+            Connected to your {settings.externalSignInName} login.
+          </p>
+        {:else}
+          <a class="button secondary" href="/api/account/external/link"
+            >Connect my {settings.externalSignInName} login</a
+          >
+        {/if}
+      {/if}
+
       <button class="secondary" onclick={addPasskey}
         >{settings.hasPasskey
           ? "Add a passkey on this device too"

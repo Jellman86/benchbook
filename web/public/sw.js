@@ -1,5 +1,5 @@
 // Lets the app open with no signal. Recording is handled by the work queue, so the API is never cached here.
-const cacheName = "growlog-v1";
+const cacheName = "growlog-v2";
 
 async function precache() {
   const cache = await caches.open(cacheName);
@@ -57,7 +57,8 @@ self.addEventListener("fetch", (event) => {
   if (
     event.request.method !== "GET" ||
     url.origin !== self.location.origin ||
-    url.pathname.startsWith("/api/")
+    url.pathname.startsWith("/api/") ||
+    url.pathname === "/signin-oidc"
   ) {
     return;
   }

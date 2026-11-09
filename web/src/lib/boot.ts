@@ -39,6 +39,24 @@ export function readInvite(path: string, search: string): Invite | null {
   return userId && token ? { userId, token } : null;
 }
 
+/** Plain words for why signing in through the shared staff login didn't work, if it didn't. */
+export function externalSignInProblem(search: string): string {
+  switch (new URLSearchParams(search).get("sso")) {
+    case null:
+      return "";
+    case "unavailable":
+      return "The staff login isn't available just now. Use another way to sign in.";
+    case "name-taken":
+      return "Someone here already has that name. Sign in another way, then connect your staff login under your settings.";
+    case "refused":
+      return "That account can't sign in. Ask the owner to check it.";
+    case "already-linked":
+      return "That staff login is already connected to someone else's account.";
+    default:
+      return "Signing in didn't work. Please try again.";
+  }
+}
+
 /** Works out the first screen. A person signed in comes first, then a bench station, then setup or sign-in. */
 export async function chooseStart(
   probes: Probes,
