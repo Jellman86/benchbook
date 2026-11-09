@@ -25,6 +25,7 @@
   } from "../lib/theme";
   import BottomNav from "./BottomNav.svelte";
   import Manage from "./Manage.svelte";
+  import Production from "./Production.svelte";
   import More from "./More.svelte";
   import Sidebar from "./Sidebar.svelte";
   import Camera from "./work/Camera.svelte";
@@ -43,10 +44,11 @@
 
   type View =
     | { name: "home" }
-    | { name: "container"; label: string }
+    | { name: "container"; label: string; fromProduction?: boolean }
     | { name: "start"; prefill?: BatchPrefill }
     | { name: "camera" }
     | { name: "more" }
+    | { name: "production" }
     | { name: "manage"; section: ManageSection | null };
 
   // svelte-ignore state_referenced_locally
@@ -162,13 +164,13 @@
     void goHome();
   }
 
-  function open(code: string) {
+  function open(code: string, fromProduction = false) {
     const scanned = code.trim();
 
     if (scanned) {
       done = null;
       problem = "";
-      view = { name: "container", label: scanned };
+      view = { name: "container", label: scanned, fromProduction };
     }
   }
 
@@ -295,6 +297,8 @@
     <StartBatch prefill={view.prefill} onDone={finishWork} onCancel={goHome} />
   {:else if view.name === "camera"}
     <Camera onScan={open} onCancel={goHome} />
+  {:else if view.name === "production"}
+    <Production onOpen={(code) => open(code, true)} onBack={goHome} />
   {:else if view.name === "more"}
     <More {me} {theme} onTheme={setTheme} onFinished={signOut} />
   {:else if view.name === "container"}
@@ -302,7 +306,9 @@
       <ContainerView
         label={view.label}
         onDone={finishWork}
-        onCancel={goHome}
+        onCancel={view.fromProduction
+          ? () => (view = { name: "production" })
+          : goHome}
         onNotFound={(message) => {
           problem = message;
           void goHome();
@@ -387,6 +393,10 @@
           {#if atBench}
             <button onclick={() => (view = { name: "start" })}>New batch</button
             >
+            <button
+              class="secondary"
+              onclick={() => (view = { name: "production" })}>Production</button
+            >
           {/if}
         </section>
 
@@ -443,7 +453,10 @@
       {theme}
       current={view.name === "manage"
         ? view.section
-        : view.name === "home" || view.name === "start" || view.name === "more"
+        : view.name === "home" ||
+            view.name === "start" ||
+            view.name === "more" ||
+            view.name === "production"
           ? view.name
           : null}
       onHome={goHome}
@@ -452,6 +465,7 @@
       onToggleCollapsed={toggleCollapsed}
       onCycleTheme={() => setTheme(nextTheme(theme))}
       onSettings={() => (view = { name: "more" })}
+      onProduction={() => (view = { name: "production" })}
       onFinished={signOut}
     />
     <div class="content">
@@ -466,12 +480,14 @@
       current={view.name === "home" ||
       view.name === "start" ||
       view.name === "manage" ||
-      view.name === "more"
+      view.name === "more" ||
+      view.name === "production"
         ? view.name
         : null}
       onHome={goHome}
       onNewBatch={() => (view = { name: "start" })}
       onManage={() => (view = { name: "manage", section: null })}
+      onProduction={() => (view = { name: "production" })}
       onMore={() => (view = { name: "more" })}
     />
   </div>

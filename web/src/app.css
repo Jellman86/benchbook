@@ -427,6 +427,54 @@ button.plant-card:hover:not(:disabled),
   font-size: 0.75rem;
 }
 
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chips button {
+  min-height: 2.5rem;
+  padding: 0.25rem 0.75rem;
+  border-color: var(--border);
+  border-radius: 2rem;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.chips button[aria-pressed="true"],
+.chips button[aria-pressed="true"]:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.chip-count {
+  font-weight: 400;
+  opacity: 85%;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.filters label:first-child {
+  grid-column: 1 / -1;
+}
+
+.pill {
+  display: inline-block;
+  padding: 0 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  color: var(--text);
+  font-size: 0.8em;
+  font-weight: 600;
+}
+
 .narrow {
   max-width: 28rem;
 }
@@ -726,6 +774,14 @@ button.plant-card:hover:not(:disabled),
   .with-sidebar .card-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  }
+
+  .with-sidebar .filters {
+    grid-template-columns: minmax(16rem, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .with-sidebar .filters label:first-child {
+    grid-column: auto;
   }
 
   .with-sidebar .actions {

@@ -24,8 +24,8 @@ internal sealed class ExampleData(GrowLogDbContext db, EventStore store)
     [
         new(0, BatchSource.SeedLot, 84, 56, 0, Germinated: 44, [new(6, LossReason.FailedToGerminate, 42), new(3, LossReason.DampingOff, 35)], PotOn: new(40, 14)),
         new(1, BatchSource.Cuttings, 40, 49, 1, Germinated: null, [new(4, LossReason.Other, 30)], PotOn: new(20, 10)),
-        new(2, BatchSource.BoughtIn, 24, 35, 2, Germinated: null, [new(1, LossReason.Pest, 12)], PotOn: null),
-        new(3, BatchSource.BoughtIn, 30, 28, 3, Germinated: null, [], PotOn: new(15, 6)),
+        new(2, BatchSource.BoughtIn, 24, 35, 2, Germinated: null, [new(1, LossReason.Pest, 12)], PotOn: null, Ready: 5),
+        new(3, BatchSource.BoughtIn, 30, 28, 3, Germinated: null, [], PotOn: new(15, 6), Ready: 2),
         new(4, BatchSource.Cuttings, 60, 42, 4, Germinated: null, [new(5, LossReason.Frost, 20), new(2, LossReason.Disease, 8)], PotOn: null),
         new(5, BatchSource.SeedLot, 72, 30, 0, Germinated: 18, [new(12, LossReason.FailedToGerminate, 16)], PotOn: null),
         new(6, BatchSource.SeedLot, 96, 21, 1, Germinated: 9, [new(8, LossReason.FailedToGerminate, 8), new(4, LossReason.DampingOff, 5)], PotOn: null),
@@ -170,13 +170,11 @@ internal sealed class ExampleData(GrowLogDbContext db, EventStore store)
             await store.AppendAsync(lost, cancellationToken);
         }
 
-        if (seed.PotOn is { } potOn)
+        var latest = seed.PotOn is { } potOn ? await PotOnAsync(seed, potOn, batch, container, cancellationToken) : container;
+
+        if (seed.Ready is { } ready)
         {
-            var target = await NewContainerAsync(ContainerKind.PotGroup, cancellationToken);
-            var potted = NewEvent(EventType.PottedOn, potOn.DaysAgo, target.Id, benches[(seed.Bench + 1) % benches.Count], potSizes[1]);
-            AddLine(potted, container.Id, batch.Id, -potOn.Quantity);
-            AddLine(potted, target.Id, batch.Id, potOn.Quantity);
-            await store.AppendAsync(potted, cancellationToken);
+            await store.AppendAsync(NewEvent(EventType.Ready, ready, latest.Id), cancellationToken);
         }
 
         if (seed.Source == BatchSource.BoughtIn && supplier is not null)
@@ -233,9 +231,19 @@ internal sealed class ExampleData(GrowLogDbContext db, EventStore store)
 
     private sealed record PlantSeed(string CommonName, string? Variety, string Botanical, string Category, string Position, string Watering, string Hardiness, bool XylellaHost, bool Protected, decimal SmallPrice, decimal LargePrice);
 
+    private async Task<Container> PotOnAsync(BatchSeed seed, PotOnSeed potOn, Batch batch, Container container, CancellationToken cancellationToken)
+    {
+        var target = await NewContainerAsync(ContainerKind.PotGroup, cancellationToken);
+        var potted = NewEvent(EventType.PottedOn, potOn.DaysAgo, target.Id, benches[(seed.Bench + 1) % benches.Count], potSizes[1]);
+        AddLine(potted, container.Id, batch.Id, -potOn.Quantity);
+        AddLine(potted, target.Id, batch.Id, potOn.Quantity);
+        await store.AppendAsync(potted, cancellationToken);
+        return target;
+    }
+
     private sealed record LossSeed(int Quantity, LossReason Reason, int DaysAgo);
 
     private sealed record PotOnSeed(int Quantity, int DaysAgo);
 
-    private sealed record BatchSeed(int Plant, BatchSource Source, int Quantity, int DaysAgo, int Bench, int? Germinated, LossSeed[] Losses, PotOnSeed? PotOn);
+    private sealed record BatchSeed(int Plant, BatchSource Source, int Quantity, int DaysAgo, int Bench, int? Germinated, LossSeed[] Losses, PotOnSeed? PotOn, int? Ready = null);
 }

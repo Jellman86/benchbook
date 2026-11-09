@@ -11,6 +11,7 @@ using GrowLog.Api.Labels;
 using GrowLog.Api.Lookup;
 using GrowLog.Api.Operations;
 using GrowLog.Api.Passports;
+using GrowLog.Api.Production;
 using GrowLog.Api.Selling;
 using GrowLog.Api.Work;
 
@@ -63,6 +64,7 @@ app.MapSpeciesEndpoints();
 app.MapPhotoEndpoints();
 app.MapCatalogueEndpoints();
 app.MapWorkEndpoints();
+app.MapProductionEndpoints();
 app.MapLabelEndpoints();
 app.MapFigureEndpoints();
 app.MapReceivedPassportEndpoints();

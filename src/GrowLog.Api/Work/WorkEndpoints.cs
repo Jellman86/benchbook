@@ -21,6 +21,7 @@ internal static class WorkEndpoints
         containers.MapGet("/by-label/{label}", FindByLabelAsync).Produces<ContainerResponse>();
         containers.MapGet("/active", ListActiveAsync);
         containers.MapPost("/{id:guid}/germinated", RecordGerminatedAsync).ProducesWork();
+        containers.MapPost("/{id:guid}/ready", RecordReadyAsync).ProducesWork();
         containers.MapPost("/{id:guid}/losses", RecordLossAsync).ProducesWork();
         containers.MapPost("/{id:guid}/move", MoveAsync).ProducesWork();
         containers.MapPost("/{id:guid}/transfer", TransferAsync).Produces<ContainerCreated>(StatusCodes.Status201Created).Produces<ContainerCreated>().Produces<WorkRefused>(StatusCodes.Status409Conflict);
@@ -211,6 +212,9 @@ internal static class WorkEndpoints
 
     private static Task<IResult> RecordGerminatedAsync(Guid id, GerminatedRequest request, ClaimsPrincipal user, EventStore store, CancellationToken cancellationToken) =>
         StoreSimpleAsync(store, NewEvent(request.EventId, EventType.Germinated, request.OccurredAt, user, id), cancellationToken);
+
+    private static Task<IResult> RecordReadyAsync(Guid id, ReadyRequest request, ClaimsPrincipal user, EventStore store, CancellationToken cancellationToken) =>
+        StoreSimpleAsync(store, NewEvent(request.EventId, EventType.Ready, request.OccurredAt, user, id), cancellationToken);
 
     private static async Task<IResult> RecordLossAsync(Guid id, LossRequest request, ClaimsPrincipal user, EventStore store, CancellationToken cancellationToken)
     {
@@ -462,6 +466,8 @@ internal static class WorkEndpoints
     internal sealed record NoteRequest(Guid EventId, DateTimeOffset OccurredAt, string Note);
 
     internal sealed record CorrectRequest(Guid EventId, DateTimeOffset OccurredAt, int? Quantity, Guid? LocationId);
+
+    internal sealed record ReadyRequest(Guid EventId, DateTimeOffset OccurredAt);
 
     internal sealed record ContainerLine(Guid BatchId, string TraceabilityCode, Guid PlantId, string CommonName, string? Variety, int Quantity);
 

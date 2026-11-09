@@ -5,7 +5,13 @@
   import type { Schemas } from "../../lib/types";
   import { rememberedContainer } from "../../lib/offline";
   import { recordWork } from "../../lib/queue";
-  import { isRecorded, outcomeProblem, plantName, work } from "../../lib/work";
+  import {
+    isRecorded,
+    outcomeProblem,
+    plantName,
+    work,
+    type WorkRequest,
+  } from "../../lib/work";
   import Count from "./Count.svelte";
   import Lose from "./Lose.svelte";
   import Move from "./Move.svelte";
@@ -64,21 +70,23 @@
     }
   });
 
-  async function germinated() {
-    if (!container) {
-      return;
-    }
-
+  async function record(item: WorkRequest, words: string) {
     busy = true;
-    const outcome = await recordWork(work.germinated(container.id));
+    const outcome = await recordWork(item);
     busy = false;
 
     if (isRecorded(outcome)) {
-      onDone(`${container.labelCode} germinated`, outcome.eventId);
+      onDone(`${container?.labelCode} ${words}`, outcome.eventId);
     } else {
       problem = outcomeProblem(outcome);
     }
   }
+
+  const germinated = () =>
+    container && record(work.germinated(container.id), "germinated");
+
+  const ready = () =>
+    container && record(work.ready(container.id), "marked ready");
 </script>
 
 {#if !container}
@@ -126,6 +134,7 @@
         <button onclick={() => (action = "potOn")}>Pot on</button>
         <button onclick={() => (action = "prickOut")}>Prick out</button>
         <button disabled={busy} onclick={germinated}>Germinated</button>
+        <button disabled={busy} onclick={ready}>Ready</button>
         <button onclick={() => (action = "count")}>Count</button>
         <button onclick={() => (action = "passports")}>Passports</button>
       {/if}

@@ -298,6 +298,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/production": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProductionRow"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/figures": {
         parameters: {
             query?: never;
@@ -2373,6 +2408,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/containers/{id}/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReadyRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkRecorded"];
+                    };
+                };
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkRecorded"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkRefused"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/containers/{id}/losses": {
         parameters: {
             query?: never;
@@ -3592,7 +3686,7 @@ export interface components {
             id: string;
         };
         /** @enum {unknown} */
-        EventType: "Sown" | "Received" | "CuttingsTaken" | "Germinated" | "PrickedOut" | "PottedOn" | "Moved" | "Lost" | "Split" | "Treated" | "Examined" | "Sold" | "StockCounted" | "Corrected" | "Note";
+        EventType: "Sown" | "Received" | "CuttingsTaken" | "Germinated" | "PrickedOut" | "PottedOn" | "Moved" | "Lost" | "Split" | "Treated" | "Examined" | "Sold" | "StockCounted" | "Corrected" | "Note" | "Ready";
         Figures: {
             plants: components["schemas"]["PlantFigures"][];
             losses: components["schemas"]["LossFigures"][];
@@ -3837,6 +3931,30 @@ export interface components {
             prices: components["schemas"]["PlantPriceDto"][];
             hasPhoto: boolean;
         };
+        ProductionRow: {
+            /** Format: uuid */
+            containerId: string;
+            labelCode: string;
+            /** Format: uuid */
+            batchId: string;
+            traceabilityCode: string;
+            /** Format: uuid */
+            plantId: string;
+            commonName: string;
+            variety: null | string;
+            botanicalName: null | string;
+            /** Format: int32 */
+            quantity: number | string;
+            stage: null | components["schemas"]["ProductionStage"];
+            /** Format: date-time */
+            stageSince: null | string;
+            locationName: null | string;
+            potSizeName: null | string;
+            supplierName: null | string;
+            hasPhoto: boolean;
+        };
+        /** @enum {unknown} */
+        ProductionStage: "Sown" | "Cuttings" | "BoughtIn" | "Germinated" | "PrickedOut" | "PottedOn" | "Ready" | null;
         PurchaseCreated: {
             /** Format: uuid */
             id: string;
@@ -3869,6 +3987,12 @@ export interface components {
             vatTotal: number | string;
             lines: components["schemas"]["LineResponse"][];
             receiptIds: string[];
+        };
+        ReadyRequest: {
+            /** Format: uuid */
+            eventId: string;
+            /** Format: date-time */
+            occurredAt: string;
         };
         /** @enum {unknown} */
         ReceivedPassportStatus: "Held" | "UsedUp" | "NoLongerValid";

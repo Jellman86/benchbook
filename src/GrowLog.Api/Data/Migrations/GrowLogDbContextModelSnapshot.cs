@@ -445,7 +445,7 @@ namespace GrowLog.Api.Data.Migrations
                         {
                             t.HasCheckConstraint("ck_events_correction", "(type = 'Corrected') = (corrects_event_id IS NOT NULL)");
 
-                            t.HasCheckConstraint("ck_events_type", "type IN ('Sown', 'Received', 'CuttingsTaken', 'Germinated', 'PrickedOut', 'PottedOn', 'Moved', 'Lost', 'Split', 'Treated', 'Examined', 'Sold', 'StockCounted', 'Corrected', 'Note')");
+                            t.HasCheckConstraint("ck_events_type", "type IN ('Sown', 'Received', 'CuttingsTaken', 'Germinated', 'PrickedOut', 'PottedOn', 'Moved', 'Lost', 'Split', 'Treated', 'Examined', 'Sold', 'StockCounted', 'Corrected', 'Note', 'Ready')");
                         });
                 });
 

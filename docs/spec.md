@@ -100,6 +100,10 @@ Trade and distance-sale customer details are personal data under UK GDPR. Lawful
 
 Scheduled `pg_dump` to a second location, with a tested restore procedure, in stage 1. The promise to retain records means nothing without this.
 
+## Production view
+
+One screen lists everything growing, for all staff: each tray or pot group with its plant, quantity, place, pot size, current stage and how long it has been there. Tabs filter by stage (sown, cuttings, bought in, germinated, pricked out, potted on, ready) with live plant counts, alongside search and filters for place and supplier. The stage is worked out from recorded events, honouring undos and corrections. "Ready" is a one-press action on the container, recorded like any other event. Estimating when plants will come ready needs growing times per plant, which are not held yet.
+
 ## Statistics
 
 Germination rate, survival by stage, losses by reason, and performance by variety, supplier, greenhouse and season, derived from events. Stock adjustments are reported separately.
