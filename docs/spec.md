@@ -138,7 +138,7 @@ Reminders, cuttings from mother plants, pest and disease notes with photos, rese
 | Web | Svelte 5, static build served by the API, installable with camera scanning |
 | iPhone | Native SwiftUI, after the web flows are proven |
 | Contract | OpenAPI, generating web and Swift clients |
-| Sign-in | ASP.NET Identity with passkeys on personal devices. The owner signs a bench station in once; staff then tap their name and enter a short PIN, and it returns to the name list after a few minutes idle |
+| Sign-in | ASP.NET Identity. The owner chooses per person: a passkey, a password, or just tapping their name, which is only suitable on a private network. The owner's account always needs a password or passkey. Anyone can then set their own password, PIN or passkey in settings. The owner signs a bench station in once; staff then tap their name and enter a short PIN, and it returns to the name list after a few minutes idle |
 | Printing | QRCoder and Typst, producing PDFs |
 | Deployment | One application container plus PostgreSQL, using Docker Compose |
 

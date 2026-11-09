@@ -2,19 +2,27 @@
   import FormPanel from "../FormPanel.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
-  import { attempt, type Schemas } from "../../lib/types";
+  import { attempt, optional, type Schemas } from "../../lib/types";
 
   let { onBack }: { onBack: () => void } = $props();
 
-  let staff = $state<Schemas["StaffMember"][]>([]);
+  type Member = Schemas["StaffMember"];
+  type SignInWay = "name" | "password" | "invite";
+
+  let staff = $state<Member[]>([]);
   let name = $state("");
+  let way = $state<SignInWay>("name");
+  let password = $state("");
   let pin = $state("");
   let problem = $state("");
   let link = $state("");
   let changingPinFor = $state<string | null>(null);
   let newPin = $state("");
+  let settingPasswordFor = $state<string | null>(null);
+  let newPassword = $state("");
 
   const pinProblem = "A PIN must be 4 to 6 digits.";
+  const passwordProblem = "A password must be at least 8 characters.";
   const setProblem = (message: string) => (problem = message);
 
   async function load() {
@@ -23,21 +31,45 @@
 
   onMount(() => void attempt(load, setProblem));
 
+  function signsInWith(member: Member) {
+    if (member.nameOnly) {
+      return "Signs in by tapping their name";
+    }
+
+    const ways = [
+      member.hasPassword ? "password" : null,
+      member.hasPasskey ? "passkey" : null,
+    ].filter((item) => item !== null);
+
+    return ways.length > 0
+      ? `Signs in with ${ways.join(" or ")}`
+      : member.hasPin
+        ? "Bench PIN only"
+        : "Can't sign in yet";
+  }
+
   const add = (event: SubmitEvent) => {
     event.preventDefault();
 
     return attempt(async () => {
       const { response } = await api.POST("/api/staff", {
-        body: { name, pin },
+        body: {
+          name,
+          pin: optional(pin),
+          password: way === "password" ? password : null,
+          nameOnly: way === "name",
+        },
       });
 
       if (response.status === 409) {
         problem = "Someone with that name is already on the list.";
       } else if (!response.ok) {
-        problem = pinProblem;
+        problem = optional(pin) === null ? passwordProblem : pinProblem;
       } else {
+        problem = "";
         name = "";
         pin = "";
+        password = "";
         await load();
       }
     }, setProblem);
@@ -66,13 +98,50 @@
       if (response.ok) {
         changingPinFor = null;
         newPin = "";
+        await load();
       } else {
         problem = pinProblem;
       }
     }, setProblem);
   };
 
-  const archive = (member: Schemas["StaffMember"]) => {
+  const savePassword = (event: SubmitEvent, id: string) => {
+    event.preventDefault();
+
+    return attempt(async () => {
+      const { response } = await api.POST("/api/staff/{id}/password", {
+        params: { path: { id } },
+        body: { password: newPassword },
+      });
+
+      if (response.ok) {
+        settingPasswordFor = null;
+        newPassword = "";
+        await load();
+      } else {
+        problem = passwordProblem;
+      }
+    }, setProblem);
+  };
+
+  const makeNameOnly = (member: Member) => {
+    if (
+      !confirm(
+        `${member.name} will sign in by tapping their name, with no password. Anyone on the nursery network could do the same.`,
+      )
+    ) {
+      return;
+    }
+
+    return attempt(async () => {
+      await api.POST("/api/staff/{id}/name-only", {
+        params: { path: { id: member.id } },
+      });
+      await load();
+    }, setProblem);
+  };
+
+  const archive = (member: Member) => {
     if (
       !confirm(`${member.name} has left? They'll no longer be able to sign in.`)
     ) {
@@ -101,14 +170,28 @@
       <FormPanel label="Add a person">
         <form class="stack" onsubmit={add}>
           <label>Name <input bind:value={name} required /></label>
+          <label>
+            How they sign in
+            <select bind:value={way}>
+              <option value="name">Just tap their name</option>
+              <option value="password">A password you give them</option>
+              <option value="invite">Send them an invitation later</option>
+            </select>
+          </label>
+          {#if way === "password"}
+            <label>
+              Password (at least 8 characters)
+              <input
+                bind:value={password}
+                autocomplete="off"
+                minlength="8"
+                required
+              />
+            </label>
+          {/if}
           <label
-            >PIN for the bench (4 to 6 digits)
-            <input
-              bind:value={pin}
-              inputmode="numeric"
-              autocomplete="off"
-              required
-            />
+            >PIN for the bench (4 to 6 digits, optional)
+            <input bind:value={pin} inputmode="numeric" autocomplete="off" />
           </label>
           <button type="submit">Add</button>
         </form>
@@ -127,6 +210,7 @@
       {#each staff.filter((member) => !member.archived) as member (member.id)}
         <div class="card">
           <strong>{member.name}</strong>
+          <span class="muted">{signsInWith(member)}</span>
           {#if changingPinFor === member.id}
             <form class="stack" onsubmit={(event) => savePin(event, member.id)}>
               <label
@@ -140,6 +224,17 @@
               </label>
               <button type="submit">Save PIN</button>
             </form>
+          {:else if settingPasswordFor === member.id}
+            <form
+              class="stack"
+              onsubmit={(event) => savePassword(event, member.id)}
+            >
+              <label
+                >New password
+                <input bind:value={newPassword} autocomplete="off" required />
+              </label>
+              <button type="submit">Save password</button>
+            </form>
           {:else}
             <div class="row">
               <button class="secondary" onclick={() => invite(member.id)}
@@ -149,6 +244,16 @@
                 class="secondary"
                 onclick={() => (changingPinFor = member.id)}>New PIN</button
               >
+              <button
+                class="secondary"
+                onclick={() => (settingPasswordFor = member.id)}
+                >Set password</button
+              >
+              {#if !member.isOwner && !member.nameOnly}
+                <button class="secondary" onclick={() => makeNameOnly(member)}
+                  >Name only</button
+                >
+              {/if}
               <button class="secondary" onclick={() => archive(member)}
                 >Has left</button
               >
