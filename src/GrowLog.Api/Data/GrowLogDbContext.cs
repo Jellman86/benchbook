@@ -41,6 +41,12 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<PlantPhoto> PlantPhotos => Set<PlantPhoto>();
 
+    public DbSet<PlantNote> PlantNotes => Set<PlantNote>();
+
+    public DbSet<SpeciesDetails> SpeciesDetails => Set<SpeciesDetails>();
+
+    public DbSet<CatalogueEntryPhoto> CatalogueEntryPhotos => Set<CatalogueEntryPhoto>();
+
     public DbSet<PlantPrice> PlantPrices => Set<PlantPrice>();
 
     public DbSet<PotSize> PotSizes => Set<PotSize>();
@@ -208,6 +214,30 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     private static void ConfigureSpeciesAndPhotos(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<SpeciesDetails>(entity =>
+        {
+            entity.HasKey(e => e.SpeciesId);
+            entity.HasOne<Species>().WithOne().HasForeignKey<SpeciesDetails>(e => e.SpeciesId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PlantNote>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.HasIndex(e => e.PlantId);
+            entity.HasOne<Plant>().WithMany().HasForeignKey(e => e.PlantId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.AddedBy).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CatalogueEntryPhoto>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Entry).HasConversion<string>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.HasIndex(e => new { e.Entry, e.EntryId });
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.UploadedBy).OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<Species>(entity =>
         {
             entity.Property(e => e.Id).ValueGeneratedNever();

@@ -26,6 +26,7 @@
   import BottomNav from "./BottomNav.svelte";
   import Manage from "./Manage.svelte";
   import Production from "./Production.svelte";
+  import Plants from "./manage/Plants.svelte";
   import More from "./More.svelte";
   import Sidebar from "./Sidebar.svelte";
   import Camera from "./work/Camera.svelte";
@@ -49,6 +50,7 @@
     | { name: "camera" }
     | { name: "more" }
     | { name: "production" }
+    | { name: "plants" }
     | { name: "manage"; section: ManageSection | null };
 
   // svelte-ignore state_referenced_locally
@@ -302,6 +304,8 @@
     <StartBatch prefill={view.prefill} onDone={finishWork} onCancel={goHome} />
   {:else if view.name === "camera"}
     <Camera onScan={open} onCancel={goHome} />
+  {:else if view.name === "plants"}
+    <Plants canManage={false} onBack={goHome} />
   {:else if view.name === "production"}
     <Production onOpen={(code) => open(code, true)} onBack={goHome} />
   {:else if view.name === "more"}
@@ -402,6 +406,10 @@
               class="secondary"
               onclick={() => (view = { name: "production" })}>Production</button
             >
+            <button
+              class="secondary"
+              onclick={() => (view = { name: "plants" })}>Plants</button
+            >
           {/if}
         </section>
 
@@ -461,6 +469,7 @@
         : view.name === "home" ||
             view.name === "start" ||
             view.name === "more" ||
+            view.name === "plants" ||
             view.name === "production"
           ? view.name
           : null}
@@ -471,6 +480,7 @@
       onCycleTheme={() => setTheme(nextTheme(theme))}
       onSettings={() => (view = { name: "more" })}
       onProduction={() => (view = { name: "production" })}
+      onPlants={() => (view = { name: "plants" })}
       onFinished={signOut}
     />
     <div class="content">
@@ -486,6 +496,7 @@
       view.name === "start" ||
       view.name === "manage" ||
       view.name === "more" ||
+      view.name === "plants" ||
       view.name === "production"
         ? view.name
         : null}
@@ -493,6 +504,7 @@
       onNewBatch={() => (view = { name: "start" })}
       onManage={() => (view = { name: "manage", section: null })}
       onProduction={() => (view = { name: "production" })}
+      onPlants={() => (view = { name: "plants" })}
       onMore={() => (view = { name: "more" })}
     />
   </div>

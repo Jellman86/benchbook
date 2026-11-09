@@ -1,6 +1,7 @@
 <script lang="ts">
   import LogOut from "@lucide/svelte/icons/log-out";
   import Monitor from "@lucide/svelte/icons/monitor";
+  import Flower2 from "@lucide/svelte/icons/flower-2";
   import Moon from "@lucide/svelte/icons/moon";
   import PanelLeftClose from "@lucide/svelte/icons/panel-left-close";
   import PanelLeftOpen from "@lucide/svelte/icons/panel-left-open";
@@ -22,6 +23,7 @@
     onHome,
     onNewBatch,
     onProduction,
+    onPlants,
     onSection,
     onToggleCollapsed,
     onCycleTheme,
@@ -29,12 +31,20 @@
     onFinished,
   }: {
     me: Me;
-    current: "home" | "start" | "more" | "production" | ManageSection | null;
+    current:
+      | "home"
+      | "start"
+      | "more"
+      | "production"
+      | "plants"
+      | ManageSection
+      | null;
     collapsed: boolean;
     theme: Theme;
     onHome: () => void;
     onNewBatch: () => void;
     onProduction: () => void;
+    onPlants: () => void;
     onSection: (section: ManageSection) => void;
     onToggleCollapsed: () => void;
     onCycleTheme: () => void;
@@ -88,6 +98,18 @@
       <Sprout size={20} />
       <span class="nav-text">Production</span>
     </button>
+
+    {#if !me.isOwner}
+      <button
+        aria-current={here("plants")}
+        aria-label="Plants"
+        title="Plants"
+        onclick={onPlants}
+      >
+        <Flower2 size={20} />
+        <span class="nav-text">Plants</span>
+      </button>
+    {/if}
 
     {#if me.isOwner}
       <p class="nav-heading nav-text">Manage</p>

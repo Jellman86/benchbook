@@ -21,7 +21,7 @@
 
   let chosen = $state<string | null>(null);
   let quantity = $state(1);
-  let potSizes = $state<Schemas["NamedEntry"][]>([]);
+  let potSizes = $state<Schemas["PotSizeResponse"][]>([]);
   let potSizeId = $state("");
   let kind = $state<Schemas["ContainerKind"]>("PotGroup");
   let problem = $state("");

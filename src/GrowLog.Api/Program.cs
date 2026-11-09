@@ -77,6 +77,8 @@ app.MapStaffEndpoints();
 app.MapBenchEndpoints();
 app.MapSpeciesEndpoints();
 app.MapPhotoEndpoints();
+app.MapPlantCardEndpoints();
+app.MapCataloguePhotoEndpoints();
 app.MapCatalogueEndpoints();
 app.MapWorkEndpoints();
 app.MapProductionEndpoints();

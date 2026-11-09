@@ -475,6 +475,108 @@ button.plant-card:hover:not(:disabled),
   font-weight: 600;
 }
 
+textarea {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  font-weight: 400;
+  resize: vertical;
+}
+
+textarea:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.plant-botanical {
+  margin-top: -0.75rem;
+  color: var(--muted);
+}
+
+.plant-photo {
+  display: block;
+  width: 100%;
+  max-width: 28rem;
+  max-height: 20rem;
+  border-radius: 0.75rem;
+  object-fit: cover;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0;
+}
+
+.facts dt {
+  color: var(--muted);
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.plant-note,
+.article-text {
+  white-space: pre-wrap;
+}
+
+button.link-button {
+  align-self: flex-start;
+  min-height: 2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+button.link-button:hover:not(:disabled) {
+  border: 0;
+  background: transparent;
+  color: var(--primary-hover);
+}
+
+.entry-photos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.entry-photo {
+  position: relative;
+  display: inline-flex;
+}
+
+button.photo-remove {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.35rem;
+  min-height: 0;
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--problem);
+  color: var(--surface);
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.photo-add {
+  min-height: 2.5rem;
+  padding: 0.25rem 0.75rem;
+}
+
 .narrow {
   max-width: 28rem;
 }

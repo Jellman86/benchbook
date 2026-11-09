@@ -1,3 +1,3 @@
 namespace GrowLog.Api.Lookup;
 
-internal sealed record CheckedName(string AcceptedName, long GbifKey);
+internal sealed record CheckedName(string AcceptedName, long GbifKey, string? Family);
