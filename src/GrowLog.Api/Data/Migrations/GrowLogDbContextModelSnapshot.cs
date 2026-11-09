@@ -479,6 +479,46 @@ namespace GrowLog.Api.Data.Migrations
                     b.ToTable("event_lines", (string)null);
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.ExternalSignInSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Authority")
+                        .HasColumnType("text")
+                        .HasColumnName("authority");
+
+                    b.Property<string>("ClientId")
+                        .HasColumnType("text")
+                        .HasColumnName("client_id");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("display_name");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<string>("OwnerGroup")
+                        .HasColumnType("text")
+                        .HasColumnName("owner_group");
+
+                    b.Property<string>("ProtectedClientSecret")
+                        .HasColumnType("text")
+                        .HasColumnName("protected_client_secret");
+
+                    b.HasKey("Id")
+                        .HasName("pk_external_sign_in_settings");
+
+                    b.ToTable("external_sign_in_settings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_external_sign_in_settings_single", "id = 1");
+                        });
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.Location", b =>
                 {
                     b.Property<Guid>("Id")

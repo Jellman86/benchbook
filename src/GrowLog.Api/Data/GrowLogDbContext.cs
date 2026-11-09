@@ -29,6 +29,8 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<Plant> Plants => Set<Plant>();
 
+    public DbSet<ExternalSignInSetting> ExternalSignInSettings => Set<ExternalSignInSetting>();
+
     public DbSet<Species> Species => Set<Species>();
 
     public DbSet<SpeciesPhoto> SpeciesPhotos => Set<SpeciesPhoto>();
@@ -70,6 +72,13 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         ConfigureEvents(modelBuilder);
         ConfigureCatalogue(modelBuilder);
         ConfigureSpeciesAndPhotos(modelBuilder);
+
+        modelBuilder.Entity<ExternalSignInSetting>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.ToTable(table => table.HasCheckConstraint("ck_external_sign_in_settings_single", "id = 1"));
+        });
+
         ConfigureStock(modelBuilder);
 
         modelBuilder.Entity<CatalogueChange>(entity =>

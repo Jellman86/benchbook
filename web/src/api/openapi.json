@@ -702,6 +702,55 @@
         }
       }
     },
+    "/api/external-sign-in": {
+      "get": {
+        "tags": [
+          "ExternalSignInSettingsEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalSignInSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ExternalSignInSettingsEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveExternalSignIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveRefused"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/staff": {
       "get": {
         "tags": [
@@ -3260,6 +3309,54 @@
           }
         }
       },
+      "ExternalSignInSettings": {
+        "required": [
+          "enabled",
+          "authority",
+          "clientId",
+          "hasClientSecret",
+          "displayName",
+          "ownerGroup",
+          "redirectUri",
+          "fromDeployment"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "authority": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "clientId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasClientSecret": {
+            "type": "boolean"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "ownerGroup": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "redirectUri": {
+            "type": "string"
+          },
+          "fromDeployment": {
+            "type": "boolean"
+          }
+        }
+      },
       "Figures": {
         "required": [
           "plants",
@@ -4654,6 +4751,63 @@
           }
         }
       },
+      "SaveExternalSignIn": {
+        "required": [
+          "enabled",
+          "authority",
+          "clientId",
+          "clientSecret",
+          "displayName",
+          "ownerGroup"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "authority": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "clientId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "clientSecret": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ownerGroup": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SaveRefused": {
+        "required": [
+          "problem"
+        ],
+        "type": "object",
+        "properties": {
+          "problem": {
+            "type": "string"
+          }
+        }
+      },
       "SetOwnPasswordRequest": {
         "required": [
           "currentPassword",
@@ -5425,6 +5579,9 @@
     },
     {
       "name": "ExternalSignInEndpoints"
+    },
+    {
+      "name": "ExternalSignInSettingsEndpoints"
     },
     {
       "name": "StaffEndpoints"

@@ -45,22 +45,22 @@ builder.Services.AddHttpClient<SpeciesSources>(client =>
     client.Timeout = TimeSpan.FromSeconds(6);
     client.DefaultRequestHeaders.UserAgent.ParseAdd("GrowLog/1.0 (+https://github.com/Jellman86/growlog)");
 });
-builder.Services.AddGrowLogAccounts(builder.Configuration);
+builder.Services.AddGrowLogAccounts();
 
 var app = builder.Build();
 
-if (AccountServices.ExternalSignInIsOn(app.Configuration))
+// Behind the proxy this application sees plain HTTP. Staff sign-in needs the real address.
+app.Use((context, next) =>
 {
-    // Behind the proxy this application sees plain HTTP. Sign-in needs the real address.
-    var origin = new Uri(AccountServices.PublicOrigin(app.Configuration));
-
-    app.Use((context, next) =>
+    if (context.Request.Path.StartsWithSegments("/signin-oidc", StringComparison.Ordinal) || context.Request.Path.StartsWithSegments("/api/account/external", StringComparison.Ordinal))
     {
+        var origin = new Uri(AccountServices.PublicOrigin(app.Configuration));
         context.Request.Scheme = origin.Scheme;
         context.Request.Host = new HostString(origin.Authority);
-        return next();
-    });
-}
+    }
+
+    return next();
+});
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -72,6 +72,7 @@ app.MapGet("/api/health", () => TypedResults.Ok(new HealthResponse("ok"))).Allow
 app.MapAccountEndpoints();
 app.MapSignInEndpoints();
 app.MapExternalSignInEndpoints();
+app.MapExternalSignInSettingsEndpoints();
 app.MapStaffEndpoints();
 app.MapBenchEndpoints();
 app.MapSpeciesEndpoints();

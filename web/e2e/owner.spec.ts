@@ -305,6 +305,16 @@ test("the owner sets up the nursery and staff can sign in", async ({
     page.getByRole("heading", { name: "Hello, Sam Fielding" }),
   ).toBeVisible();
 
+  // The owner can set up a shared staff login, and bad settings are refused.
+  await openManage(page, "Staff login");
+  await expect(page.getByTestId("redirect-uri")).toContainText("/signin-oidc");
+  await page.getByLabel("Offer this on the sign-in page").check();
+  await page.getByLabel("Provider address").fill("http://not-secure.test");
+  await page.getByLabel("Client ID").fill("growlog");
+  await button(page, "Save").click();
+  await expect(page.getByRole("alert")).toContainText("https address");
+  await leaveManage(page);
+
   // This device becomes a bench station, which signs the owner out of it.
   await openManage(page, "Bench stations");
   await page.getByLabel("Name for this device").fill("Potting shed");
