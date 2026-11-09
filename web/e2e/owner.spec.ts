@@ -333,11 +333,23 @@ test("the owner sets up the nursery and staff can sign in", async ({
 
   // Start a batch.
   await button(page, "New batch").click();
-  await chooser(page, "Plant").selectOption({ label: "Lavender 'Munstead'" });
+  await page.locator(".plant-card", { hasText: "Lavender 'Munstead'" }).click();
   await button(page, "40").click();
-  await chooser(page, "Supplier").selectOption({ label: "Hillside Plants" });
-  await chooser(page, "Place").selectOption({ label: "Greenhouse 2, Bench 1" });
   await chooser(page, "Pot size").selectOption({ label: "9cm" });
+  await button(page, "Next").click();
+  await chooser(page, "Supplier").selectOption({ label: "Hillside Plants" });
+  await button(page, "Next").click();
+  await page.getByLabel("Seed packet").setInputFiles({
+    name: "packet.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "base64",
+    ),
+  });
+  await expect(button(page, "Next")).toBeVisible();
+  await button(page, "Next").click();
+  await chooser(page, "Place").selectOption({ label: "Greenhouse 2, Bench 1" });
   await button(page, "Start batch").click();
   const started = page.getByRole("status");
   await expect(started).toContainText("Started 40 Lavender 'Munstead'");
@@ -480,6 +492,18 @@ test("the owner sets up the nursery and staff can sign in", async ({
     await page.getByRole("status").innerText(),
   )![1];
   expect(repeated).not.toBe(label);
+
+  // A plant not on any list can be added by hand, in the same steps.
+  await button(page, "New batch").click();
+  await page.getByLabel("What are you planting?").fill("Cosmos");
+  await button(page, "Not listed? Add it by hand").click();
+  await expect(page.getByLabel("Common name")).toHaveValue("Cosmos");
+  await button(page, "Next").click();
+  await button(page, "Next").click();
+  await button(page, "Next").click();
+  await button(page, "Skip photos").click();
+  await button(page, "Start batch").click();
+  await expect(page.getByRole("status")).toContainText("Started 1 Cosmos");
 
   // On someone's own phone with no signal: the app still opens and work waits to send.
   await phonePage.evaluate(() => navigator.serviceWorker.ready);

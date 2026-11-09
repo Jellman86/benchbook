@@ -1,4 +1,5 @@
 <script lang="ts">
+  import BatchPhotos from "./BatchPhotos.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import type { Schemas } from "../../lib/types";
@@ -107,6 +108,7 @@
         {plantName(line.commonName, line.variety)}
         <span class="muted">{line.traceabilityCode}</span>
       </p>
+      <BatchPhotos batchId={line.batchId} />
     {:else}
       <p class="muted">This container is empty.</p>
     {/each}

@@ -331,6 +331,102 @@ a {
   gap: 0.75rem;
 }
 
+.stage-bar {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.stage-bar span {
+  flex: 1;
+  height: 0.3rem;
+  border-radius: 1rem;
+  background: var(--line);
+}
+
+.stage-bar span.reached {
+  background: var(--primary);
+}
+
+.plant-card,
+.photo-choice {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  min-height: var(--target);
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 400;
+  text-align: left;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+button.plant-card:hover:not(:disabled),
+.photo-choice:hover {
+  border-color: var(--primary);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.photo-choice {
+  position: relative;
+  font-weight: 600;
+}
+
+.photo-choice:focus-within {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.photo-choice input {
+  position: absolute;
+  width: 1px;
+  min-height: 0;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+}
+
+.plant-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.plant-thumb {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.5rem;
+  background: var(--line);
+  color: var(--muted);
+  object-fit: cover;
+}
+
+.plant-names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.plant-names em {
+  color: var(--muted);
+  font-size: 0.9em;
+}
+
+.credit {
+  font-size: 0.75rem;
+}
+
 .narrow {
   max-width: 28rem;
 }

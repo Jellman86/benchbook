@@ -24,6 +24,177 @@
         }
       }
     },
+    "/api/plants/from-species": {
+      "post": {
+        "tags": [
+          "SpeciesEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlantFromSpeciesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlantFromSpecies"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      }
+    },
+    "/api/batches/{id}/photos": {
+      "post": {
+        "tags": [
+          "PhotoEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BatchPhotoKind"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchPhotoSummary"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "PhotoEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BatchPhotoSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/batch-photos/{id}": {
+      "get": {
+        "tags": [
+          "PhotoEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/plants/{id}/photo": {
+      "put": {
+        "tags": [
+          "PhotoEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "PhotoEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/batches": {
       "post": {
         "tags": [
@@ -813,6 +984,58 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/species/search": {
+      "get": {
+        "tags": [
+          "SpeciesEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpeciesSearchResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/species/{id}/photo": {
+      "get": {
+        "tags": [
+          "SpeciesEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -2508,6 +2731,29 @@
           }
         }
       },
+      "BatchPhotoKind": {
+        "enum": [
+          "Packet",
+          "Label",
+          "Packaging"
+        ]
+      },
+      "BatchPhotoSummary": {
+        "required": [
+          "id",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/BatchPhotoKind"
+          }
+        }
+      },
       "BatchSource": {
         "enum": [
           "SeedLot",
@@ -3286,6 +3532,40 @@
           }
         }
       },
+      "OwnPlantResult": {
+        "required": [
+          "id",
+          "commonName",
+          "variety",
+          "botanicalName",
+          "hasPhoto"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "commonName": {
+            "type": "string"
+          },
+          "variety": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "botanicalName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasPhoto": {
+            "type": "boolean"
+          }
+        }
+      },
       "PaidRequest": {
         "required": [
           "paidOn"
@@ -3570,6 +3850,37 @@
           }
         }
       },
+      "PlantFromSpecies": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "PlantFromSpeciesRequest": {
+        "required": [
+          "speciesId",
+          "variety"
+        ],
+        "type": "object",
+        "properties": {
+          "speciesId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "variety": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "PlantPriceDto": {
         "required": [
           "potSizeId",
@@ -3675,7 +3986,8 @@
           "xylellaHost",
           "protectedVariety",
           "archived",
-          "prices"
+          "prices",
+          "hasPhoto"
         ],
         "type": "object",
         "properties": {
@@ -3736,6 +4048,9 @@
             "items": {
               "$ref": "#/components/schemas/PlantPriceDto"
             }
+          },
+          "hasPhoto": {
+            "type": "boolean"
           }
         }
       },
@@ -4188,6 +4503,69 @@
         "properties": {
           "credential": {
             "$ref": "#/components/schemas/JsonElement"
+          }
+        }
+      },
+      "SpeciesResult": {
+        "required": [
+          "id",
+          "commonName",
+          "scientificName",
+          "rank",
+          "hasPhoto",
+          "photoCredit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "commonName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scientificName": {
+            "type": "string"
+          },
+          "rank": {
+            "type": "string"
+          },
+          "hasPhoto": {
+            "type": "boolean"
+          },
+          "photoCredit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SpeciesSearchResponse": {
+        "required": [
+          "plants",
+          "species",
+          "onlineUnavailable"
+        ],
+        "type": "object",
+        "properties": {
+          "plants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnPlantResult"
+            }
+          },
+          "species": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpeciesResult"
+            }
+          },
+          "onlineUnavailable": {
+            "type": "boolean"
           }
         }
       },
@@ -4719,6 +5097,12 @@
   "tags": [
     {
       "name": "GrowLog.Api"
+    },
+    {
+      "name": "SpeciesEndpoints"
+    },
+    {
+      "name": "PhotoEndpoints"
     },
     {
       "name": "WorkEndpoints"

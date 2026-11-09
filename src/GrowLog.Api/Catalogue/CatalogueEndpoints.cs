@@ -110,7 +110,8 @@ internal static class CatalogueEndpoints
                 row.Plant.XylellaHost,
                 row.Plant.ProtectedVariety,
                 row.Plant.ArchivedAt != null,
-                row.Plant.Prices.Select(price => new PlantPriceDto(price.PotSizeId, price.Price)).ToList()))
+                row.Plant.Prices.Select(price => new PlantPriceDto(price.PotSizeId, price.Price)).ToList(),
+                db.PlantPhotos.Any(photo => photo.PlantId == row.Plant.Id) || db.Species.Any(species => species.Id == row.Plant.SpeciesId && species.PhotoUrl != null)))
             .ToListAsync(cancellationToken);
 
     private static bool IsValid(PlantRequest request) =>
@@ -368,7 +369,8 @@ internal static class CatalogueEndpoints
         bool XylellaHost,
         bool ProtectedVariety,
         bool Archived,
-        IReadOnlyList<PlantPriceDto> Prices);
+        IReadOnlyList<PlantPriceDto> Prices,
+        bool HasPhoto);
 
     internal sealed record SupplierRequest(
         string Name,

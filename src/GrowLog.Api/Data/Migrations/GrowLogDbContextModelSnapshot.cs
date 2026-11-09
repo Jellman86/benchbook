@@ -246,6 +246,53 @@ namespace GrowLog.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.BatchPhoto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("batch_id");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("content");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("kind");
+
+                    b.Property<Guid>("UploadedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("uploaded_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_batch_photos");
+
+                    b.HasIndex("BatchId")
+                        .HasDatabaseName("ix_batch_photos_batch_id");
+
+                    b.HasIndex("UploadedBy")
+                        .HasDatabaseName("ix_batch_photos_uploaded_by");
+
+                    b.ToTable("batch_photos", (string)null);
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.CatalogueChange", b =>
                 {
                     b.Property<Guid>("Id")
@@ -508,6 +555,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("protected_variety");
 
+                    b.Property<Guid?>("SpeciesId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("species_id");
+
                     b.Property<string>("Variety")
                         .HasColumnType("citext")
                         .HasColumnName("variety");
@@ -523,6 +574,9 @@ namespace GrowLog.Api.Data.Migrations
                     b.HasKey("Id")
                         .HasName("pk_plants");
 
+                    b.HasIndex("SpeciesId")
+                        .HasDatabaseName("ix_plants_species_id");
+
                     b.HasIndex("CommonName", "Variety")
                         .IsUnique()
                         .HasDatabaseName("ix_plants_common_name_variety");
@@ -530,6 +584,28 @@ namespace GrowLog.Api.Data.Migrations
                     NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("CommonName", "Variety"), false);
 
                     b.ToTable("plants", (string)null);
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.PlantPhoto", b =>
+                {
+                    b.Property<Guid>("PlantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("plant_id");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("content");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content_type");
+
+                    b.HasKey("PlantId")
+                        .HasName("pk_plant_photos");
+
+                    b.ToTable("plant_photos", (string)null);
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.PlantPrice", b =>
@@ -793,6 +869,140 @@ namespace GrowLog.Api.Data.Migrations
                         {
                             t.HasCheckConstraint("ck_received_passports_status", "status IN ('Held', 'UsedUp', 'NoLongerValid')");
                         });
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.Species", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AcceptedName")
+                        .HasColumnType("text")
+                        .HasColumnName("accepted_name");
+
+                    b.Property<string>("AcceptedNameLicence")
+                        .HasColumnType("text")
+                        .HasColumnName("accepted_name_licence");
+
+                    b.Property<string>("CommonName")
+                        .HasColumnType("text")
+                        .HasColumnName("common_name");
+
+                    b.Property<string>("CommonNameLicence")
+                        .HasColumnType("text")
+                        .HasColumnName("common_name_licence");
+
+                    b.Property<string>("CommonNameSource")
+                        .HasColumnType("text")
+                        .HasColumnName("common_name_source");
+
+                    b.Property<DateTimeOffset>("FetchedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fetched_at");
+
+                    b.Property<long?>("GbifKey")
+                        .HasColumnType("bigint")
+                        .HasColumnName("gbif_key");
+
+                    b.Property<long?>("InaturalistId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("inaturalist_id");
+
+                    b.Property<DateTimeOffset?>("NameCheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("name_checked_at");
+
+                    b.Property<string>("PhotoCredit")
+                        .HasColumnType("text")
+                        .HasColumnName("photo_credit");
+
+                    b.Property<string>("PhotoLicence")
+                        .HasColumnType("text")
+                        .HasColumnName("photo_licence");
+
+                    b.Property<string>("PhotoSource")
+                        .HasColumnType("text")
+                        .HasColumnName("photo_source");
+
+                    b.Property<string>("PhotoUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("photo_url");
+
+                    b.Property<int>("Popularity")
+                        .HasColumnType("integer")
+                        .HasColumnName("popularity");
+
+                    b.Property<string>("Rank")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("rank");
+
+                    b.Property<string>("ScientificName")
+                        .IsRequired()
+                        .HasColumnType("citext")
+                        .HasColumnName("scientific_name");
+
+                    b.Property<string>("ScientificNameLicence")
+                        .HasColumnType("text")
+                        .HasColumnName("scientific_name_licence");
+
+                    b.Property<string>("ScientificNameSource")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("scientific_name_source");
+
+                    b.Property<string>("SearchText")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("search_text");
+
+                    b.HasKey("Id")
+                        .HasName("pk_species");
+
+                    b.HasIndex("ScientificName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_species_scientific_name");
+
+                    b.ToTable("species", (string)null);
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.SpeciesPhoto", b =>
+                {
+                    b.Property<Guid>("SpeciesId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("species_id");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("content");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content_type");
+
+                    b.HasKey("SpeciesId")
+                        .HasName("pk_species_photos");
+
+                    b.ToTable("species_photos", (string)null);
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.SpeciesSearch", b =>
+                {
+                    b.Property<string>("Query")
+                        .HasColumnType("text")
+                        .HasColumnName("query");
+
+                    b.Property<DateTimeOffset>("SearchedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("searched_at");
+
+                    b.HasKey("Query")
+                        .HasName("pk_species_searches");
+
+                    b.ToTable("species_searches", (string)null);
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.Supplier", b =>
@@ -1143,6 +1353,23 @@ namespace GrowLog.Api.Data.Migrations
                         .HasConstraintName("fk_batches_suppliers_supplier_id");
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.BatchPhoto", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Batch", null)
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_batch_photos_batches_batch_id");
+
+                    b.HasOne("GrowLog.Api.Accounts.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UploadedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_batch_photos_asp_net_users_uploaded_by");
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.CatalogueChange", b =>
                 {
                     b.HasOne("GrowLog.Api.Accounts.AppUser", null)
@@ -1218,6 +1445,25 @@ namespace GrowLog.Api.Data.Migrations
                         .HasForeignKey("ParentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_locations_locations_parent_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.Plant", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Species", null)
+                        .WithMany()
+                        .HasForeignKey("SpeciesId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_plants_species_species_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.PlantPhoto", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Plant", null)
+                        .WithOne()
+                        .HasForeignKey("GrowLog.Api.Data.PlantPhoto", "PlantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_plant_photos_plants_plant_id");
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.PlantPrice", b =>
@@ -1303,6 +1549,16 @@ namespace GrowLog.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_received_passports_suppliers_supplier_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.SpeciesPhoto", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Species", null)
+                        .WithOne()
+                        .HasForeignKey("GrowLog.Api.Data.SpeciesPhoto", "SpeciesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_species_photos_species_species_id");
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.TillTaking", b =>

@@ -1,6 +1,8 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import Camera from "@lucide/svelte/icons/camera";
+  import { onDestroy, onMount } from "svelte";
   import { api } from "../../api/client";
+  import { shrinkPhoto } from "../../lib/photo";
   import { attempt, optional, type Schemas } from "../../lib/types";
   import {
     outcomeProblem,
@@ -9,9 +11,14 @@
     work,
     workPlaces,
     type BatchPrefill,
+    type PickedPlant,
   } from "../../lib/work";
   import ActionFrame from "./ActionFrame.svelte";
+  import PlantSearch from "./PlantSearch.svelte";
+  import PlantThumb from "./PlantThumb.svelte";
   import Stepper from "./Stepper.svelte";
+
+  type PhotoKind = Schemas["BatchPhotoKind"] | "Plant";
 
   let {
     prefill,
@@ -23,24 +30,65 @@
     onCancel: () => void;
   } = $props();
 
+  const stages = [
+    "Find the plant",
+    "How many?",
+    "Where from?",
+    "Photos",
+    "Where is it going?",
+  ];
+
+  const photoChoices: { kind: PhotoKind; label: string }[] = [
+    { kind: "Packet", label: "Seed packet" },
+    { kind: "Label", label: "Label" },
+    { kind: "Packaging", label: "Packaging" },
+    { kind: "Plant", label: "The plant itself" },
+  ];
+
+  const sources: { source: Schemas["BatchSource"]; label: string }[] = [
+    { source: "SeedLot", label: "Seed" },
+    { source: "BoughtIn", label: "Bought in" },
+    { source: "Cuttings", label: "Cuttings" },
+  ];
+
   let plants = $state<Schemas["PlantResponse"][]>([]);
   let suppliers = $state<Schemas["SupplierResponse"][]>([]);
   let places = $state<{ id: string; label: string }[]>([]);
   let potSizes = $state<Schemas["NamedEntry"][]>([]);
 
+  let stage = $state(1);
+  let picked = $state<PickedPlant | null>(null);
+  let variety = $state("");
   let plantId = $state("");
   let quantity = $state(1);
   let source = $state<Schemas["BatchSource"]>("SeedLot");
   let sourceReference = $state("");
   let supplierId = $state("");
+  let newSupplier = $state("");
   let locationId = $state("");
   let potSizeId = $state("");
   let containerKind = $state<Schemas["ContainerKind"]>("Tray");
   let originCountry = $state("GB");
+  let photos = $state<Partial<Record<PhotoKind, { blob: Blob; url: string }>>>(
+    {},
+  );
   let problem = $state("");
   let busy = $state(false);
 
   const setProblem = (message: string) => (problem = message);
+
+  const confirming = $derived(stage === 1 && picked?.kind === "species");
+
+  const chosenName = $derived.by(() => {
+    if (picked?.kind === "species") {
+      return plantName(
+        picked.commonName ?? picked.scientificName,
+        variety.trim(),
+      );
+    }
+
+    return picked ? plantName(picked.commonName, picked.variety) : "";
+  });
 
   onMount(() =>
     attempt(async () => {
@@ -48,7 +96,6 @@
       suppliers = (await api.GET("/api/suppliers")).data ?? [];
       places = workPlaces((await api.GET("/api/locations")).data ?? []);
       potSizes = (await api.GET("/api/pot-sizes")).data ?? [];
-      plantId = plants[0]?.id ?? "";
       locationId = places[0]?.id ?? "";
       potSizeId = potSizes[0]?.id ?? "";
 
@@ -60,64 +107,269 @@
     }, setProblem),
   );
 
-  async function start() {
-    busy = true;
-    const plant = plants.find((item) => item.id === plantId);
-    const outcome = await submit(
-      work.startBatch({
-        plantId,
-        quantity,
-        source,
-        sourceReference: optional(sourceReference),
-        supplierId: supplierId || null,
-        parentBatchId: null,
-        motherPlant: null,
-        originCountry,
-        containerKind,
-        locationId: locationId || null,
-        potSizeId: potSizeId || null,
-        purchaseLineId: prefill?.purchaseLineId ?? null,
-      }),
-    );
-    busy = false;
+  onDestroy(() => {
+    for (const photo of Object.values(photos)) {
+      URL.revokeObjectURL(photo.url);
+    }
+  });
 
-    if (outcome.kind === "stored") {
-      onDone(
-        `Started ${quantity} ${plant ? plantName(plant.commonName, plant.variety) : ""}. Label: ${outcome.labelCode}`,
-        outcome.eventId,
-        outcome.labelCode,
-      );
-    } else {
-      problem = outcomeProblem(outcome);
+  function pick(choice: PickedPlant) {
+    problem = "";
+    picked = choice;
+    plantId = choice.kind === "plant" ? choice.id : "";
+
+    if (choice.kind !== "species") {
+      stage = 2;
     }
   }
+
+  function back() {
+    problem = "";
+
+    if (stage > 1) {
+      stage -= 1;
+
+      if (stage === 1 && picked?.kind !== "species") {
+        picked = null;
+      }
+    } else if (picked) {
+      picked = null;
+    } else {
+      onCancel();
+    }
+  }
+
+  function next() {
+    problem = "";
+    stage += 1;
+  }
+
+  const addSupplier = () =>
+    attempt(async () => {
+      const name = newSupplier.trim();
+      const { data, response } = await api.POST("/api/suppliers", {
+        body: {
+          name,
+          contactName: null,
+          phone: null,
+          email: null,
+          address: null,
+          accountReference: null,
+          supplies: null,
+          typicalLeadTimeDays: null,
+          passportRegistrationNumber: null,
+          notes: null,
+        },
+      });
+
+      if (data) {
+        suppliers = (await api.GET("/api/suppliers")).data ?? [];
+        supplierId = data.id;
+        newSupplier = "";
+        problem = "";
+      } else {
+        problem =
+          response.status === 409
+            ? "That supplier is already on the list."
+            : "Please enter a name.";
+      }
+    }, setProblem);
+
+  async function choosePhoto(event: Event, kind: PhotoKind) {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const blob = await shrinkPhoto(file);
+    const previous = photos[kind];
+
+    if (previous) {
+      URL.revokeObjectURL(previous.url);
+    }
+
+    photos[kind] = { blob, url: URL.createObjectURL(blob) };
+    input.value = "";
+  }
+
+  /** Adds the plant only now, so abandoning the steps leaves nothing behind. */
+  async function resolvePlant(): Promise<string | null> {
+    if (plantId || !picked || picked.kind === "plant") {
+      return plantId;
+    }
+
+    if (picked.kind === "species") {
+      const { data, response } = await api.POST("/api/plants/from-species", {
+        body: { speciesId: picked.id, variety: optional(variety) },
+      });
+
+      if (!data) {
+        problem =
+          response.status === 409
+            ? "That plant was taken off the list. Ask the owner to restore it."
+            : "That plant couldn't be added. Please try again.";
+      }
+
+      return data?.id ?? null;
+    }
+
+    const { data, response } = await api.POST("/api/plants", {
+      body: {
+        commonName: picked.commonName,
+        variety: picked.variety,
+        botanicalName: picked.botanicalName,
+        category: null,
+        position: null,
+        watering: null,
+        hardiness: null,
+        xylellaHost: false,
+        protectedVariety: false,
+        prices: [],
+      },
+    });
+
+    if (!data) {
+      problem =
+        response.status === 409
+          ? "That plant is already on the list. Go back and search for it."
+          : "Please check the name.";
+    }
+
+    return data?.id ?? null;
+  }
+
+  async function sendPhotos(batchId: string, savedPlantId: string) {
+    let failed = 0;
+
+    for (const [kind, photo] of Object.entries(photos)) {
+      const address =
+        kind === "Plant"
+          ? `/api/plants/${savedPlantId}/photo`
+          : `/api/batches/${batchId}/photos?kind=${kind}`;
+
+      try {
+        const response = await fetch(address, {
+          method: kind === "Plant" ? "PUT" : "POST",
+          body: photo.blob,
+        });
+        failed += response.ok ? 0 : 1;
+      } catch {
+        failed += 1;
+      }
+    }
+
+    return failed;
+  }
+
+  const start = () =>
+    attempt(async () => {
+      busy = true;
+
+      try {
+        const savedPlantId = await resolvePlant();
+
+        if (!savedPlantId) {
+          return;
+        }
+
+        plantId = savedPlantId;
+        const outcome = await submit(
+          work.startBatch({
+            plantId: savedPlantId,
+            quantity,
+            source,
+            sourceReference: optional(sourceReference),
+            supplierId: source === "Cuttings" ? null : supplierId || null,
+            parentBatchId: null,
+            motherPlant: null,
+            originCountry,
+            containerKind,
+            locationId: locationId || null,
+            potSizeId: potSizeId || null,
+            purchaseLineId: prefill?.purchaseLineId ?? null,
+          }),
+        );
+
+        if (outcome.kind !== "stored") {
+          problem = outcomeProblem(outcome);
+          return;
+        }
+
+        const failed = outcome.batchId
+          ? await sendPhotos(outcome.batchId, savedPlantId)
+          : Object.keys(photos).length;
+
+        onDone(
+          `Started ${quantity} ${chosenName}. Label: ${outcome.labelCode}${failed > 0 ? `. ${failed} photo${failed === 1 ? "" : "s"} didn't save.` : ""}`,
+          outcome.eventId,
+          outcome.labelCode,
+        );
+      } finally {
+        busy = false;
+      }
+    }, setProblem);
 </script>
 
-<ActionFrame title="New batch" {problem} {onCancel}>
+<ActionFrame title={stages[stage - 1]} {problem} onCancel={back}>
+  <p class="muted">Step {stage} of {stages.length}</p>
+  <div class="stage-bar" aria-hidden="true">
+    {#each stages as name, index (name)}
+      <span class:reached={index < stage}></span>
+    {/each}
+  </div>
   {#if prefill}<p class="muted">From purchase: {prefill.description}</p>{/if}
-  {#if plants.length === 0}
-    <p class="muted">No plants on the list yet. Ask the owner to add some.</p>
-  {:else}
+
+  {#if stage === 1 && !confirming}
+    <PlantSearch recent={plants} onPick={pick} />
+  {:else if stage === 1 && picked?.kind === "species"}
+    <div class="card">
+      <div class="plant-head">
+        <PlantThumb url={picked.photoUrl} />
+        <span class="plant-names">
+          <strong>{picked.commonName ?? picked.scientificName}</strong>
+          {#if picked.commonName}<em>{picked.scientificName}</em>{/if}
+        </span>
+      </div>
+      {#if picked.credit}<p class="muted credit">{picked.credit}</p>{/if}
+    </div>
+    <label>Variety (if there is one) <input bind:value={variety} /></label>
+    <button onclick={next}>Next</button>
+    <button class="secondary" onclick={() => (picked = null)}
+      >Choose a different plant</button
+    >
+  {:else if stage === 2}
+    <p class="muted">{chosenName}</p>
+    <Stepper bind:value={quantity} presets={[10, 24, 40, 84]} />
     <label>
-      Plant
-      <select bind:value={plantId}>
-        {#each plants as plant (plant.id)}
-          <option value={plant.id}
-            >{plantName(plant.commonName, plant.variety)}</option
-          >
+      Going into
+      <select bind:value={containerKind}>
+        <option value="Tray">Tray</option>
+        <option value="PotGroup">Group of pots</option>
+        <option value="BenchLot">Bench lot</option>
+      </select>
+    </label>
+    <label>
+      Pot size
+      <select bind:value={potSizeId}>
+        <option value="">Not set</option>
+        {#each potSizes as size (size.id)}
+          <option value={size.id}>{size.name}</option>
         {/each}
       </select>
     </label>
-    <p>How many?</p>
-    <Stepper bind:value={quantity} presets={[10, 24, 40, 84]} />
-    <label>
-      Where from
-      <select bind:value={source}>
-        <option value="SeedLot">Seed</option>
-        <option value="BoughtIn">Bought-in plants</option>
-        <option value="Cuttings">Cuttings</option>
-      </select>
-    </label>
+    <button onclick={next}>Next</button>
+  {:else if stage === 3}
+    <div class="segmented">
+      {#each sources as item (item.source)}
+        <button
+          class={source === item.source ? "" : "secondary"}
+          aria-pressed={source === item.source}
+          onclick={() => (source = item.source)}>{item.label}</button
+        >
+      {/each}
+    </div>
     {#if source !== "Cuttings"}
       <label>
         Supplier
@@ -128,6 +380,12 @@
           {/each}
         </select>
       </label>
+      {#if !supplierId}
+        <label>New supplier <input bind:value={newSupplier} /></label>
+        {#if newSupplier.trim()}
+          <button class="secondary" onclick={addSupplier}>Add supplier</button>
+        {/if}
+      {/if}
       <label>Lot or reference <input bind:value={sourceReference} /></label>
     {/if}
     <label>
@@ -143,6 +401,33 @@
         <option value="ES">Spain</option>
       </select>
     </label>
+    <button onclick={next}>Next</button>
+  {:else if stage === 4}
+    <p class="muted">Take a photo of anything worth keeping. All optional.</p>
+    <div class="card-grid">
+      {#each photoChoices as choice (choice.kind)}
+        <label class="photo-choice">
+          {#if photos[choice.kind]}
+            <img class="plant-thumb" src={photos[choice.kind]?.url} alt="" />
+          {:else}
+            <span class="plant-thumb placeholder"><Camera size={26} /></span>
+          {/if}
+          <span>{choice.label}</span>
+          <input
+            type="file"
+            accept="image/*"
+            onchange={(event) => choosePhoto(event, choice.kind)}
+          />
+        </label>
+      {/each}
+    </div>
+    <button onclick={next}
+      >{Object.keys(photos).length > 0 ? "Next" : "Skip photos"}</button
+    >
+  {:else}
+    <div class="card">
+      <strong>{quantity} {chosenName}</strong>
+    </div>
     <label>
       Place
       <select bind:value={locationId}>
@@ -152,23 +437,6 @@
         {/each}
       </select>
     </label>
-    <label>
-      Pot size
-      <select bind:value={potSizeId}>
-        <option value="">Not set</option>
-        {#each potSizes as size (size.id)}
-          <option value={size.id}>{size.name}</option>
-        {/each}
-      </select>
-    </label>
-    <label>
-      Going into
-      <select bind:value={containerKind}>
-        <option value="Tray">Tray</option>
-        <option value="PotGroup">Group of pots</option>
-        <option value="BenchLot">Bench lot</option>
-      </select>
-    </label>
-    <button disabled={busy || !plantId} onclick={start}>Start batch</button>
+    <button disabled={busy} onclick={start}>Start batch</button>
   {/if}
 </ActionFrame>
