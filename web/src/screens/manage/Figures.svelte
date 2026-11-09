@@ -57,5 +57,5 @@
     {/if}
   {/if}
 
-  <button class="secondary mobile-only" onclick={onBack}>Back</button>
+  <button class="back mobile-only" onclick={onBack}>Back</button>
 </main>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import FormPanel from "../FormPanel.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { attempt, optional, type Schemas } from "../../lib/types";
@@ -131,53 +132,57 @@
 
   <div class="split">
     <section>
-      <form class="stack" onsubmit={save}>
-        <label>
-          Supplier
-          <select bind:value={supplierId} required>
-            <option value="">Choose…</option>
-            {#each suppliers as supplier (supplier.id)}
-              <option value={supplier.id}>{supplier.name}</option>
-            {/each}
-          </select>
-        </label>
-        <label
-          >Date <input type="date" bind:value={purchasedOn} required /></label
-        >
-        <label>Invoice reference <input bind:value={reference} /></label>
+      <FormPanel label="Add a purchase">
+        <form class="stack" onsubmit={save}>
+          <label>
+            Supplier
+            <select bind:value={supplierId} required>
+              <option value="">Choose…</option>
+              {#each suppliers as supplier (supplier.id)}
+                <option value={supplier.id}>{supplier.name}</option>
+              {/each}
+            </select>
+          </label>
+          <label
+            >Date <input type="date" bind:value={purchasedOn} required /></label
+          >
+          <label>Invoice reference <input bind:value={reference} /></label>
 
-        {#each lines as line, index (index)}
-          <div class="card">
-            <label>Item <input bind:value={line.description} required /></label>
-            <label
-              >Quantity <input
-                bind:value={line.quantity}
-                inputmode="numeric"
-              /></label
-            >
-            <label
-              >Cost before VAT (£) <input
-                bind:value={line.net}
-                inputmode="decimal"
-                required
-              /></label
-            >
-            <label
-              >VAT (£) <input
-                bind:value={line.vat}
-                inputmode="decimal"
-              /></label
-            >
-          </div>
-        {/each}
+          {#each lines as line, index (index)}
+            <div class="card">
+              <label
+                >Item <input bind:value={line.description} required /></label
+              >
+              <label
+                >Quantity <input
+                  bind:value={line.quantity}
+                  inputmode="numeric"
+                /></label
+              >
+              <label
+                >Cost before VAT (£) <input
+                  bind:value={line.net}
+                  inputmode="decimal"
+                  required
+                /></label
+              >
+              <label
+                >VAT (£) <input
+                  bind:value={line.vat}
+                  inputmode="decimal"
+                /></label
+              >
+            </div>
+          {/each}
 
-        <button
-          type="button"
-          class="secondary"
-          onclick={() => lines.push(emptyLine())}>Add another item</button
-        >
-        <button type="submit">Save purchase</button>
-      </form>
+          <button
+            type="button"
+            class="secondary"
+            onclick={() => lines.push(emptyLine())}>Add another item</button
+          >
+          <button type="submit">Save purchase</button>
+        </form>
+      </FormPanel>
     </section>
 
     <section>
@@ -258,5 +263,5 @@
     </section>
   </div>
 
-  <button class="secondary mobile-only" onclick={onBack}>Back</button>
+  <button class="back mobile-only" onclick={onBack}>Back</button>
 </main>

@@ -137,6 +137,6 @@
       target="_blank"
       rel="noopener">Print label</a
     >
-    <button class="secondary" onclick={onCancel}>Back</button>
+    <button class="back" onclick={onCancel}>Back</button>
   </main>
 {/if}

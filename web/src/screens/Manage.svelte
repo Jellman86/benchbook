@@ -51,11 +51,15 @@
     <h1>Manage</h1>
     <div class="stack">
       {#each manageSections as item (item.section)}
-        <button class="secondary" onclick={() => onSection(item.section)}
-          >{item.label}</button
+        <button
+          class="secondary menu-item"
+          onclick={() => onSection(item.section)}
         >
+          <item.icon size={20} />
+          {item.label}
+        </button>
       {/each}
     </div>
-    <button class="secondary" onclick={onBack}>Back</button>
+    <button class="back" onclick={onBack}>Back</button>
   </main>
 {/if}

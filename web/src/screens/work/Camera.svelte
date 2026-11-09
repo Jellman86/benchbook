@@ -73,5 +73,5 @@
   <!-- playsinline stops iPhones taking the video full screen. -->
   <video bind:this={video} class="camera" playsinline muted></video>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
-  <button class="secondary" onclick={onCancel}>Back</button>
+  <button class="back" onclick={onCancel}>Back</button>
 </main>

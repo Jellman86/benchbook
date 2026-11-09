@@ -42,6 +42,7 @@
 </script>
 
 <main>
+  <img class="hero-logo" src="/logo-96.png" alt="" />
   <h1>GrowLog</h1>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   <button onclick={signIn} disabled={busy}>Sign in with passkey</button>

@@ -15,7 +15,17 @@
     work,
   } from "../lib/work";
   import type { ManageSection } from "../lib/sections";
+  import {
+    applyTheme,
+    nextTheme,
+    savedCollapsed,
+    savedTheme,
+    saveCollapsed,
+    type Theme,
+  } from "../lib/theme";
+  import BottomNav from "./BottomNav.svelte";
   import Manage from "./Manage.svelte";
+  import More from "./More.svelte";
   import Sidebar from "./Sidebar.svelte";
   import Camera from "./work/Camera.svelte";
   import ContainerView from "./work/ContainerView.svelte";
@@ -36,6 +46,7 @@
     | { name: "container"; label: string }
     | { name: "start"; prefill?: BatchPrefill }
     | { name: "camera" }
+    | { name: "more" }
     | { name: "manage"; section: ManageSection | null };
 
   // svelte-ignore state_referenced_locally
@@ -57,7 +68,19 @@
   let backupStopped = $state(false);
   let demoAvailable = $state(false);
   let loadingDemo = $state(false);
+  let collapsed = $state(savedCollapsed());
+  let theme = $state<Theme>(savedTheme());
   let sending = false;
+
+  function setTheme(chosen: Theme) {
+    theme = chosen;
+    applyTheme(chosen);
+  }
+
+  function toggleCollapsed() {
+    collapsed = !collapsed;
+    saveCollapsed(collapsed);
+  }
 
   function showQueue() {
     waiting = queue.waiting;
@@ -272,6 +295,8 @@
     <StartBatch prefill={view.prefill} onDone={finishWork} onCancel={goHome} />
   {:else if view.name === "camera"}
     <Camera onScan={open} onCancel={goHome} />
+  {:else if view.name === "more"}
+    <More {me} {theme} onTheme={setTheme} onFinished={signOut} />
   {:else if view.name === "container"}
     {#key view.label}
       <ContainerView
@@ -359,9 +384,10 @@
             >
           {/if}
 
-          <button class="mobile-only" onclick={() => (view = { name: "start" })}
-            >New batch</button
-          >
+          {#if atBench}
+            <button onclick={() => (view = { name: "start" })}>New batch</button
+            >
+          {/if}
         </section>
 
         <section>
@@ -381,7 +407,7 @@
           {#if recent.length > 0}
             <h2>Recent</h2>
             {#each recent as action (action.id)}
-              <div class="card">
+              <div class="card recent">
                 <span>{describeRecent(action)}</span>
                 <div class="row">
                   {#if repeatOf(action)}
@@ -400,14 +426,9 @@
         </section>
       </div>
 
-      {#if me.isOwner}
-        <button
-          class="secondary mobile-only"
-          onclick={() => (view = { name: "manage", section: null })}
-          >Manage</button
-        >
+      {#if atBench}
+        <button class="secondary" onclick={signOut}>Finished</button>
       {/if}
-      <button class="secondary mobile-only" onclick={signOut}>Finished</button>
     </main>
   {/if}
 {/snippet}
@@ -415,9 +436,11 @@
 {#if atBench}
   {@render screen()}
 {:else}
-  <div class="with-sidebar">
+  <div class="with-sidebar" class:collapsed>
     <Sidebar
       {me}
+      {collapsed}
+      {theme}
       current={view.name === "manage"
         ? view.section
         : view.name === "home" || view.name === "start"
@@ -426,8 +449,29 @@
       onHome={goHome}
       onNewBatch={() => (view = { name: "start" })}
       onSection={(section) => (view = { name: "manage", section })}
+      onToggleCollapsed={toggleCollapsed}
+      onCycleTheme={() => setTheme(nextTheme(theme))}
       onFinished={signOut}
     />
-    <div class="content">{@render screen()}</div>
+    <div class="content">
+      <div class="topbar">
+        <img src="/logo-96.png" alt="" width="32" height="32" />
+        GrowLog
+      </div>
+      {@render screen()}
+    </div>
+    <BottomNav
+      {me}
+      current={view.name === "home" ||
+      view.name === "start" ||
+      view.name === "manage" ||
+      view.name === "more"
+        ? view.name
+        : null}
+      onHome={goHome}
+      onNewBatch={() => (view = { name: "start" })}
+      onManage={() => (view = { name: "manage", section: null })}
+      onMore={() => (view = { name: "more" })}
+    />
   </div>
 {/if}
