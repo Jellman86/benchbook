@@ -168,7 +168,7 @@ internal sealed class SpeciesSources(HttpClient http, SpeciesThrottle throttle)
         {
             taxa.AddRange((await FindBestKnownSpeciesAsync(genusId, cancellationToken))
                 .Where(child => known.Add(Id(child)))
-                .Select(child => (Taxon: child, Matched: (string?)query)));
+                .Select(child => (Taxon: child, Matched: query)));
         }
 
         var open = taxa.ToDictionary(row => Id(row.Taxon), row => row.Taxon.TryGetProperty("default_photo", out var photo) ? OpenPhoto(photo) : null);

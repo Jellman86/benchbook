@@ -193,11 +193,11 @@ internal static class SpeciesEndpoints
             species.PhotoCredit = photo.Credit;
         }
 
-        foreach (var term in new[] { item.ScientificName, item.CommonName, item.MatchedTerm })
-        {
-            var lower = term?.ToLowerInvariant();
+        var terms = new[] { item.ScientificName, item.CommonName, item.MatchedTerm }.OfType<string>().Select(term => term.ToLowerInvariant());
 
-            if (lower is not null && !species.SearchText.Contains(lower, StringComparison.Ordinal))
+        foreach (var lower in terms)
+        {
+            if (!species.SearchText.Contains(lower, StringComparison.Ordinal))
             {
                 species.SearchText = $"{species.SearchText} {lower}".Trim();
             }
@@ -207,10 +207,10 @@ internal static class SpeciesEndpoints
     private static async Task<List<OwnPlantResult>> FindOwnPlantsAsync(string contains, GrowLogDbContext db, CancellationToken cancellationToken) =>
         await db.Plants
             .AsNoTracking()
-            .Where(plant => plant.ArchivedAt == null
-                && (EF.Functions.ILike(plant.CommonName, contains, Escape)
-                    || (plant.Variety != null && EF.Functions.ILike(plant.Variety, contains, Escape))
-                    || (plant.BotanicalName != null && EF.Functions.ILike(plant.BotanicalName, contains, Escape))))
+            .Where(plant => plant.ArchivedAt == null)
+            .Where(plant => EF.Functions.ILike(plant.CommonName, contains, Escape)
+                || EF.Functions.ILike(plant.Variety!, contains, Escape)
+                || EF.Functions.ILike(plant.BotanicalName!, contains, Escape))
             .OrderBy(plant => plant.CommonName)
             .ThenBy(plant => plant.Variety)
             .Take(MostResults)

@@ -56,7 +56,7 @@ public sealed class SpeciesLookupTests(PostgresFixture database)
 
             if (address.Contains("/photos/", StringComparison.Ordinal))
             {
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(Jpeg) });
+                return Task.FromResult(Reply(new ByteArrayContent(Jpeg)));
             }
 
             var body = address switch
@@ -68,8 +68,10 @@ public sealed class SpeciesLookupTests(PostgresFixture database)
                 _ => GbifMatch,
             };
 
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") });
+            return Task.FromResult(Reply(new StringContent(body, Encoding.UTF8, "application/json")));
         }
+
+        private static HttpResponseMessage Reply(HttpContent content) => new(HttpStatusCode.OK) { Content = content };
     }
 
     private static string Taxon(long id, string name, string? common, string licence, string rank = "species", string? matched = null, int observations = 0) => $$"""
@@ -336,7 +338,7 @@ public sealed class SpeciesLookupTests(PostgresFixture database)
 
         world.Down = true;
 
-        Assert.Equal(HttpStatusCode.OK, await PostStatusAsync(owner, "/api/plants/from-species", new { speciesId, variety = (string?)null }));
+        Assert.Equal(HttpStatusCode.OK, await PostStatusAsync(owner, "/api/plants/from-species", new { speciesId }));
     }
 
     [Fact]
