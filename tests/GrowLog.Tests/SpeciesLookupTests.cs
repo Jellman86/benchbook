@@ -32,6 +32,8 @@ public sealed class SpeciesLookupTests(PostgresFixture database)
 
         public string Wikipedia { get; set; } = """{"query":{"pages":{"-1":{"missing":""}}}}""";
 
+        public string WikipediaPlant { get; set; } = """{"query":{"pages":{"-1":{"missing":""}}}}""";
+
         public bool WikipediaDown { get; set; }
 
         public bool INaturalistDown { get; set; }
@@ -72,6 +74,7 @@ public sealed class SpeciesLookupTests(PostgresFixture database)
 
             var body = address switch
             {
+                _ when Uri.UnescapeDataString(address).Contains(" (plant)", StringComparison.Ordinal) => WikipediaPlant,
                 _ when address.Contains("wikipedia.org", StringComparison.Ordinal) => Wikipedia,
                 _ when address.Contains("taxa/autocomplete", StringComparison.Ordinal) => Autocomplete,
                 _ when address.Contains("/taxa/", StringComparison.Ordinal) => Taxa,
@@ -365,7 +368,7 @@ public sealed class SpeciesLookupTests(PostgresFixture database)
     }
 
     private const string ArticleBody = """
-        Lavender is an aromatic evergreen shrub. It grows to about a metre tall."Lavandula". Plants of the World Online. Kew. Retrieved 27 September 2026.
+        Lavender () is an aromatic evergreen shrub. It grows to about a metre tall."Lavandula". Plants of the World Online. Kew. Retrieved 27 September 2026.
 
         == Description ==
         It has narrow grey leaves.
@@ -478,6 +481,53 @@ public sealed class SpeciesLookupTests(PostgresFixture database)
         Assert.Equal("Lamiaceae", details.GetProperty("family").GetString());
         Assert.Equal(JsonValueKind.Null, details.GetProperty("growing").ValueKind);
         Assert.False(details.GetProperty("unavailable").GetBoolean());
+    }
+
+    [Fact]
+    public async Task A_name_with_several_meanings_finds_the_plant_article()
+    {
+        var world = WorldWithLavender();
+        world.Wikipedia = """{"query":{"pages":{"1":{"title":"Rosa","extract":"Rosa may refer to:","fullurl":"https://en.wikipedia.org/wiki/Rosa","pageprops":{"disambiguation":""}}}}}""";
+        world.WikipediaPlant = Article(ArticleBody);
+        await using var app = await CreateAsync(database, world);
+        using var owner = Client(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+
+        var details = await DetailsAsync(owner, await FindLavenderAsync(owner));
+
+        Assert.StartsWith("It needs full sun", details.GetProperty("growing").GetProperty("text").GetString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Growing_advice_is_found_under_an_ornamental_heading()
+    {
+        var world = WorldWithLavender();
+        world.Wikipedia = Article("A rose is a woody perennial flowering plant.\n\n== Uses ==\n\n=== Ornamental plants ===\nRoses are grown in gardens for their flowers.\n\n=== Perfume ===\nRose oil is used in perfume.");
+        await using var app = await CreateAsync(database, world);
+        using var owner = Client(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+
+        var details = await DetailsAsync(owner, await FindLavenderAsync(owner));
+
+        Assert.Equal("Roses are grown in gardens for their flowers.", details.GetProperty("growing").GetProperty("text").GetString());
+    }
+
+    [Fact]
+    public async Task An_article_about_something_else_is_not_used()
+    {
+        var world = WorldWithLavender();
+        world.Wikipedia = Article("The viola is a string instrument played with a bow.");
+        await using var app = await CreateAsync(database, world);
+        using var owner = Client(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+
+        var details = await DetailsAsync(owner, await FindLavenderAsync(owner));
+
+        Assert.Equal(JsonValueKind.Null, details.GetProperty("description").ValueKind);
+        Assert.Equal("Lamiaceae", details.GetProperty("family").GetString());
     }
 
     [Fact]

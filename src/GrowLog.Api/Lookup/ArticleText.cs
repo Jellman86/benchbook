@@ -11,6 +11,11 @@ internal static partial class ArticleText
     private const int MatchTimeout = 500;
     private const int MostDescription = 900;
     private const int MostGrowing = 2500;
+    private const int OpeningLength = 800;
+
+    /// <summary>Checks the opening of an article, where its subject is stated.</summary>
+    public static bool IsAboutAPlant(string text) =>
+        PlantWordsPattern().IsMatch(text.Length > OpeningLength ? text[..OpeningLength] : text);
 
     public static string? Description(string text)
     {
@@ -90,9 +95,12 @@ internal static partial class ArticleText
             : null;
     }
 
-    /// <summary>Wikipedia's plain text can leave a reference's words running on after a sentence.</summary>
+    /// <summary>
+    /// Wikipedia's plain text can leave a reference's words running on after a sentence,
+    /// and empty brackets where a pronunciation was.
+    /// </summary>
     private static string WithoutCitations(string text) =>
-        CitationPattern().Replace(text, string.Empty).Trim();
+        EmptyBracketsPattern().Replace(CitationPattern().Replace(text, string.Empty), string.Empty).Trim();
 
     /// <summary>Stops at the last full sentence that fits.</summary>
     private static string? Clip(string text, int most)
@@ -114,11 +122,17 @@ internal static partial class ArticleText
     [GeneratedRegex(@"^==+[^=\n]+==+\s*$", RegexOptions.Multiline, MatchTimeout)]
     private static partial Regex HeadingPattern();
 
-    [GeneratedRegex(@"^==+\s*(In cultivation|Cultivation(?: and [^=\n]+)?|Horticulture|Growing|Garden use)\s*==+\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture, MatchTimeout)]
+    [GeneratedRegex(@"^==+\s*(In cultivation|Cultivation(?: and [^=\n]+)?|Horticulture|Growing|Gardening|Garden use|Ornamental plants?|Ornamental use)\s*==+\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture, MatchTimeout)]
     private static partial Regex GrowingHeadingPattern();
 
     [GeneratedRegex(@"\s*""[^""\n]{1,200}""\.[^\n]{0,200}?\bRetrieved [^.\n]{1,40}\.", RegexOptions.None, MatchTimeout)]
     private static partial Regex CitationPattern();
+
+    [GeneratedRegex(@"\s*\(\s*[;,]?\s*\)", RegexOptions.None, MatchTimeout)]
+    private static partial Regex EmptyBracketsPattern();
+
+    [GeneratedRegex(@"\b(?:plants?|genus|species|shrubs?|trees?|flowering|herbs?|herbaceous|perennials?|annuals?|cultivars?|ferns?|grass(?:es)?|climbers?|succulents?|wildflowers?)\b", RegexOptions.IgnoreCase, MatchTimeout)]
+    private static partial Regex PlantWordsPattern();
 
     [GeneratedRegex(@"\bfull sun\b", RegexOptions.IgnoreCase, MatchTimeout)]
     private static partial Regex FullSunPattern();

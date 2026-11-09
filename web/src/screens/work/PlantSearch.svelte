@@ -2,6 +2,7 @@
   import { api } from "../../api/client";
   import type { Schemas } from "../../lib/types";
   import { plantName, type PickedPlant } from "../../lib/work";
+  import Loading from "./Loading.svelte";
   import PlantThumb from "./PlantThumb.svelte";
 
   type Own = Pick<
@@ -163,7 +164,20 @@
     />
   </label>
 
-  {#if searching}<p class="muted" role="status">Searching…</p>{/if}
+  {#if searching}
+    <Loading text="Searching the plant lists…" />
+    <div class="card-grid" aria-hidden="true">
+      {#each [1, 2, 3, 4, 5, 6] as slot (slot)}
+        <div class="plant-card skeleton-card">
+          <span class="plant-thumb skeleton"></span>
+          <span class="skeleton-lines">
+            <span class="skeleton"></span>
+            <span class="skeleton short"></span>
+          </span>
+        </div>
+      {/each}
+    </div>
+  {/if}
   {#if unavailable}
     <p class="muted">
       Can't reach the online plant lists just now, so only saved plants are
@@ -173,7 +187,7 @@
 
   {#if shown.length > 0}
     <h2>{typed ? "Your plants" : "Recent plants"}</h2>
-    <div class="card-grid">
+    <div class="card-grid appear">
       {#each shown as plant (plant.id)}
         <button class="plant-card" onclick={() => pickOwn(plant)}>
           <PlantThumb
@@ -190,7 +204,7 @@
 
   {#if species.length > 0}
     <h2>Other plants</h2>
-    <div class="card-grid">
+    <div class="card-grid appear">
       {#each species as item (item.id)}
         <button class="plant-card" onclick={() => pickSpecies(item)}>
           <PlantThumb

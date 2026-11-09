@@ -3,7 +3,10 @@
   import { api } from "../../api/client";
   import { attempt, optional, type Schemas } from "../../lib/types";
   import { plantName, type PickedPlant } from "../../lib/work";
+  import ArticleSection from "../work/ArticleSection.svelte";
+  import Loading from "../work/Loading.svelte";
   import PlantCard from "../work/PlantCard.svelte";
+  import PlantHero from "../work/PlantHero.svelte";
   import PlantSearch from "../work/PlantSearch.svelte";
   import PlantThumb from "../work/PlantThumb.svelte";
 
@@ -37,6 +40,7 @@
   let editing = $state<string | null>(null);
   let species = $state<SpeciesPick | null>(null);
   let details = $state<Schemas["SpeciesDetailsResponse"] | null>(null);
+  let gathering = $state(false);
   let showForm = $state(false);
   let cardId = $state<string | null>(null);
   let problem = $state("");
@@ -49,6 +53,9 @@
       !!details?.suggestedWatering ||
       !!details?.suggestedHardiness,
   );
+
+  const isSuggestion = (value: string, suggestion?: string | null) =>
+    !!suggestion && value === suggestion;
 
   async function load() {
     plants = (await api.GET("/api/plants")).data ?? [];
@@ -63,6 +70,7 @@
     editing = null;
     species = null;
     details = null;
+    gathering = false;
     showForm = false;
     problem = "";
   }
@@ -94,15 +102,26 @@
     form.botanicalName = choice.scientificName;
     showForm = true;
 
-    return attempt(async () => {
-      const { data } = await api.GET("/api/species/{id}/details", {
-        params: { path: { id: choice.id } },
-      });
+    gathering = true;
 
-      details = data ?? null;
-      form.position = form.position || (data?.suggestedPosition ?? "");
-      form.watering = form.watering || (data?.suggestedWatering ?? "");
-      form.hardiness = form.hardiness || (data?.suggestedHardiness ?? "");
+    return attempt(async () => {
+      try {
+        const { data } = await api.GET("/api/species/{id}/details", {
+          params: { path: { id: choice.id } },
+        });
+
+        // They may have cancelled and moved on while this was being fetched.
+        if (species?.id === choice.id) {
+          details = data ?? null;
+          form.position = form.position || (data?.suggestedPosition ?? "");
+          form.watering = form.watering || (data?.suggestedWatering ?? "");
+          form.hardiness = form.hardiness || (data?.suggestedHardiness ?? "");
+        }
+      } finally {
+        if (species?.id === choice.id) {
+          gathering = false;
+        }
+      }
     }, setProblem);
   };
 
@@ -231,61 +250,156 @@
   <main>
     <h1>{editing ? "Change plant" : "Add a plant"}</h1>
 
-    {#if species}
-      <div class="card">
-        <div class="plant-head">
-          <PlantThumb url={species.photoUrl} />
-          <span class="plant-names">
-            <strong>{species.commonName ?? species.scientificName}</strong>
-            <em>{species.scientificName}</em>
-          </span>
-        </div>
-        {#if details?.family}<p class="muted">Family: {details.family}</p>{/if}
-        {#if details?.description}<p class="article-text">
-            {details.description.text}
-          </p>{/if}
-        {#if species.credit}<p class="muted credit">{species.credit}</p>{/if}
-      </div>
-      {#if suggested}
-        <p class="muted">
-          Position, watering and hardiness are filled in from Wikipedia. Please
-          check them before adding.
-        </p>
-      {/if}
-    {/if}
+    <div class="plant-layout" class:single={!species}>
+      {#if species}
+        <aside class="plant-side">
+          <PlantHero url={species.photoUrl} credit={species.credit} />
+          <div class="plant-title">
+            <h2>{species.commonName ?? species.scientificName}</h2>
+            <p class="plant-botanical"><em>{species.scientificName}</em></p>
+          </div>
 
-    <form class="stack narrow" onsubmit={save}>
-      {#if !species}
-        <label
-          >Common name <input bind:value={form.commonName} required /></label
-        >
+          {#if details?.family || details?.nativeToUk != null}
+            <ul class="tags appear">
+              {#if details.family}<li>{details.family}</li>{/if}
+              {#if details.nativeToUk === true}<li>Native to the UK</li>{/if}
+              {#if details.nativeToUk === false}<li>
+                  Introduced to the UK
+                </li>{/if}
+            </ul>
+          {/if}
+
+          {#if gathering}
+            <span class="skeleton-lines" aria-hidden="true">
+              <span class="skeleton"></span>
+              <span class="skeleton"></span>
+              <span class="skeleton"></span>
+              <span class="skeleton short"></span>
+            </span>
+          {/if}
+          {#if details?.description}
+            <ArticleSection
+              title="About this plant"
+              article={details.description}
+            />
+          {/if}
+          {#if details?.growing}
+            <ArticleSection title="Growing it" article={details.growing} />
+          {/if}
+        </aside>
       {/if}
-      <label>Variety <input bind:value={form.variety} /></label>
-      {#if !species}
-        <label>Botanical name <input bind:value={form.botanicalName} /></label>
-      {/if}
-      <label>Category <input bind:value={form.category} /></label>
-      <label>Position <input bind:value={form.position} /></label>
-      <label>Watering <input bind:value={form.watering} /></label>
-      <label>Hardiness <input bind:value={form.hardiness} /></label>
-      <label class="tick">
-        <input type="checkbox" bind:checked={form.xylellaHost} /> Xylella host
-      </label>
-      <label class="tick">
-        <input type="checkbox" bind:checked={form.protectedVariety} /> Protected variety
-      </label>
-      {#if canManage}
-        {#each potSizes as size (size.id)}
-          <label
-            >Price for {size.name} (£)
-            <input bind:value={prices[size.id]} inputmode="decimal" />
-          </label>
-        {/each}
-      {/if}
-      {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
-      <button type="submit">{editing ? "Save changes" : "Add"}</button>
-      <button type="button" class="secondary" onclick={reset}>Cancel</button>
-    </form>
+
+      <form class="plant-main" onsubmit={save}>
+        <fieldset class="form-card">
+          <legend>The plant</legend>
+          <div class="field-grid">
+            {#if !species}
+              <label
+                >Common name <input
+                  bind:value={form.commonName}
+                  required
+                /></label
+              >
+            {/if}
+            <label>Variety <input bind:value={form.variety} /></label>
+            {#if !species}
+              <label
+                >Botanical name <input bind:value={form.botanicalName} /></label
+              >
+            {/if}
+            <label>Category <input bind:value={form.category} /></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="form-card">
+          <legend>Growing</legend>
+          {#if species}
+            <div class="form-hint">
+              {#if gathering}
+                <Loading text="Looking up how to grow it…" />
+              {:else if details?.unavailable}
+                <p class="muted">
+                  Can't reach the online plant details just now. You can still
+                  add it.
+                </p>
+              {:else if suggested}
+                <p class="muted">
+                  Marked boxes were filled in from Wikipedia. Please check them
+                  before adding.
+                </p>
+              {:else}
+                <p class="muted">
+                  Nothing to suggest for this one, so add what you know.
+                </p>
+              {/if}
+            </div>
+          {/if}
+          <div class="field-grid">
+            <label
+              >Position <input
+                bind:value={form.position}
+                class:suggested={isSuggestion(
+                  form.position,
+                  details?.suggestedPosition,
+                )}
+              /></label
+            >
+            <label
+              >Watering <input
+                bind:value={form.watering}
+                class:suggested={isSuggestion(
+                  form.watering,
+                  details?.suggestedWatering,
+                )}
+              /></label
+            >
+            <label
+              >Hardiness <input
+                bind:value={form.hardiness}
+                class:suggested={isSuggestion(
+                  form.hardiness,
+                  details?.suggestedHardiness,
+                )}
+              /></label
+            >
+          </div>
+        </fieldset>
+
+        <fieldset class="form-card">
+          <legend>Rules that apply</legend>
+          <div class="tick-row">
+            <label class="tick">
+              <input type="checkbox" bind:checked={form.xylellaHost} /> Xylella host
+            </label>
+            <label class="tick">
+              <input type="checkbox" bind:checked={form.protectedVariety} /> Protected
+              variety
+            </label>
+          </div>
+        </fieldset>
+
+        {#if canManage && potSizes.length > 0}
+          <fieldset class="form-card">
+            <legend>Prices</legend>
+            <div class="field-grid">
+              {#each potSizes as size (size.id)}
+                <label
+                  >Price for {size.name} (£)
+                  <input bind:value={prices[size.id]} inputmode="decimal" />
+                </label>
+              {/each}
+            </div>
+          </fieldset>
+        {/if}
+
+        {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+        <div class="form-actions">
+          <button type="submit">{editing ? "Save changes" : "Add"}</button>
+          <button type="button" class="secondary" onclick={reset}>Cancel</button
+          >
+        </div>
+      </form>
+    </div>
   </main>
 {:else}
   <main>
@@ -299,6 +413,13 @@
       label="Find or add a plant"
     />
 
+    {#if plants.length > 0}
+      <h2>All plants</h2>
+    {:else}
+      <p class="note-empty muted">
+        No plants yet. Search above to add the first one.
+      </p>
+    {/if}
     <div class="card-grid">
       {#each plants as plant (plant.id)}
         <button class="plant-card" onclick={() => (cardId = plant.id)}>
@@ -310,8 +431,6 @@
             {#if plant.botanicalName}<em>{plant.botanicalName}</em>{/if}
           </span>
         </button>
-      {:else}
-        <p class="muted">No plants yet. Search above to add the first one.</p>
       {/each}
     </div>
 

@@ -96,6 +96,16 @@ internal sealed class SpeciesSources(HttpClient http, SpeciesThrottle throttle)
     /// <summary>Reached is false when Wikipedia couldn't be asked, as opposed to having no article.</summary>
     public async Task<(FoundArticle? Article, bool Reached)> FetchArticleAsync(string title, CancellationToken cancellationToken)
     {
+        var (article, reached) = await FetchPlantPageAsync(title, cancellationToken);
+
+        // A genus can share its name with something else: "Rosa" is a list of meanings, "Viola" an instrument.
+        return article is not null || !reached
+            ? (article, reached)
+            : await FetchPlantPageAsync($"{title} (plant)", cancellationToken);
+    }
+
+    private async Task<(FoundArticle? Article, bool Reached)> FetchPlantPageAsync(string title, CancellationToken cancellationToken)
+    {
         try
         {
             var reply = await http.GetFromJsonAsync<JsonElement>(
@@ -107,7 +117,8 @@ internal sealed class SpeciesSources(HttpClient http, SpeciesThrottle throttle)
             if (page.TryGetProperty("missing", out _)
                 || (page.TryGetProperty("pageprops", out var properties) && properties.TryGetProperty("disambiguation", out _))
                 || Text(page, "extract") is not { Length: > 0 } text
-                || Text(page, "fullurl") is not { } url)
+                || Text(page, "fullurl") is not { } url
+                || !ArticleText.IsAboutAPlant(text))
             {
                 return (null, true);
             }

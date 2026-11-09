@@ -282,3 +282,7 @@ export function workPlaces(all: Schemas["LocationResponse"][]) {
     .filter((place) => place.kind !== "Site")
     .map((place) => ({ id: place.id, label: placeLabel(place, all) }));
 }
+
+/** iNaturalist names the photographer twice when they uploaded it too; once reads better. */
+export const shortCredit = (credit: string) =>
+  credit.replace(/, uploaded by .*$/u, "");
