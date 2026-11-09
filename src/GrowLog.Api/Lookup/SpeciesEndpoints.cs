@@ -193,15 +193,14 @@ internal static class SpeciesEndpoints
             species.PhotoCredit = photo.Credit;
         }
 
-        var terms = new[] { item.ScientificName, item.CommonName, item.MatchedTerm }.OfType<string>().Select(term => term.ToLowerInvariant());
+        var newTerms = new[] { item.ScientificName, item.CommonName, item.MatchedTerm }
+            .OfType<string>()
+            .Select(term => term.ToLowerInvariant())
+            .Distinct(StringComparer.Ordinal)
+            .Where(term => !species.SearchText.Contains(term, StringComparison.Ordinal))
+            .ToList();
 
-        foreach (var lower in terms)
-        {
-            if (!species.SearchText.Contains(lower, StringComparison.Ordinal))
-            {
-                species.SearchText = $"{species.SearchText} {lower}".Trim();
-            }
-        }
+        species.SearchText = string.Join(' ', newTerms.Prepend(species.SearchText)).Trim();
     }
 
     private static async Task<List<OwnPlantResult>> FindOwnPlantsAsync(string contains, GrowLogDbContext db, CancellationToken cancellationToken) =>
