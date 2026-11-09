@@ -92,6 +92,9 @@ describe("describeRecent", () => {
     expect(describeRecent(action({ type: "Germinated", lines: [] }))).toBe(
       "C000001 germinated",
     );
+    expect(describeRecent(action({ type: "Ready", lines: [] }))).toBe(
+      "C000001 marked ready",
+    );
     expect(
       describeRecent(
         action({ type: "Treated", lines: [], details: { product: "Neem" } }),

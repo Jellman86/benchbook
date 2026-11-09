@@ -493,6 +493,23 @@ test("the owner sets up the nursery and staff can sign in", async ({
   )![1];
   expect(repeated).not.toBe(label);
 
+  // Marking a tray ready moves it along in the production view.
+  await scan(label);
+  await button(page, "Ready").click();
+  await expect(page.getByRole("status")).toContainText(`${label} marked ready`);
+  await button(page, "Production").click();
+  await expect(page.getByRole("heading", { name: "Production" })).toBeVisible();
+  const trayRow = page.locator(".production-row", { hasText: label });
+  await expect(trayRow).toContainText("Ready");
+  await page.locator(".chips button", { hasText: "Sown" }).click();
+  await expect(trayRow).toHaveCount(0);
+  await page.locator(".chips button", { hasText: "Ready" }).click();
+  await trayRow.click();
+  await expect(page.getByRole("heading", { name: label })).toBeVisible();
+  await button(page, "Back").click();
+  await expect(page.getByRole("heading", { name: "Production" })).toBeVisible();
+  await button(page, "Back").click();
+
   // A plant not on any list can be added by hand, in the same steps.
   await button(page, "New batch").click();
   await page.getByLabel("What are you planting?").fill("Cosmos");

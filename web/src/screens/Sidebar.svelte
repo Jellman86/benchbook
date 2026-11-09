@@ -6,6 +6,7 @@
   import PanelLeftOpen from "@lucide/svelte/icons/panel-left-open";
   import Plus from "@lucide/svelte/icons/plus";
   import ScanLine from "@lucide/svelte/icons/scan-line";
+  import Sprout from "@lucide/svelte/icons/sprout";
   import Sun from "@lucide/svelte/icons/sun";
   import UserRound from "@lucide/svelte/icons/user-round";
   import type { Me } from "../lib/boot";
@@ -20,6 +21,7 @@
     theme,
     onHome,
     onNewBatch,
+    onProduction,
     onSection,
     onToggleCollapsed,
     onCycleTheme,
@@ -27,11 +29,12 @@
     onFinished,
   }: {
     me: Me;
-    current: "home" | "start" | "more" | ManageSection | null;
+    current: "home" | "start" | "more" | "production" | ManageSection | null;
     collapsed: boolean;
     theme: Theme;
     onHome: () => void;
     onNewBatch: () => void;
+    onProduction: () => void;
     onSection: (section: ManageSection) => void;
     onToggleCollapsed: () => void;
     onCycleTheme: () => void;
@@ -74,6 +77,16 @@
     >
       <Plus size={20} />
       <span class="nav-text">New batch</span>
+    </button>
+
+    <button
+      aria-current={here("production")}
+      aria-label="Production"
+      title="Production"
+      onclick={onProduction}
+    >
+      <Sprout size={20} />
+      <span class="nav-text">Production</span>
     </button>
 
     {#if me.isOwner}

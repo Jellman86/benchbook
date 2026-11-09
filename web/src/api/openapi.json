@@ -244,6 +244,28 @@
         }
       }
     },
+    "/api/production": {
+      "get": {
+        "tags": [
+          "ProductionEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductionRow"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/figures": {
       "get": {
         "tags": [
@@ -1706,6 +1728,66 @@
         }
       }
     },
+    "/api/containers/{id}/ready": {
+      "post": {
+        "tags": [
+          "WorkEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkRecorded"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkRecorded"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkRefused"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/containers/{id}/losses": {
       "post": {
         "tags": [
@@ -3093,7 +3175,8 @@
           "Sold",
           "StockCounted",
           "Corrected",
-          "Note"
+          "Note",
+          "Ready"
         ]
       },
       "Figures": {
@@ -4054,6 +4137,119 @@
           }
         }
       },
+      "ProductionRow": {
+        "required": [
+          "containerId",
+          "labelCode",
+          "batchId",
+          "traceabilityCode",
+          "plantId",
+          "commonName",
+          "variety",
+          "botanicalName",
+          "quantity",
+          "stage",
+          "stageSince",
+          "locationName",
+          "potSizeName",
+          "supplierName",
+          "hasPhoto"
+        ],
+        "type": "object",
+        "properties": {
+          "containerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "labelCode": {
+            "type": "string"
+          },
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "traceabilityCode": {
+            "type": "string"
+          },
+          "plantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "commonName": {
+            "type": "string"
+          },
+          "variety": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "botanicalName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "stage": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProductionStage"
+              }
+            ]
+          },
+          "stageSince": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "locationName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "potSizeName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "supplierName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasPhoto": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ProductionStage": {
+        "enum": [
+          "Sown",
+          "Cuttings",
+          "BoughtIn",
+          "Germinated",
+          "PrickedOut",
+          "PottedOn",
+          "Ready",
+          null
+        ]
+      },
       "PurchaseCreated": {
         "required": [
           "id"
@@ -4186,6 +4382,23 @@
               "type": "string",
               "format": "uuid"
             }
+          }
+        }
+      },
+      "ReadyRequest": {
+        "required": [
+          "eventId",
+          "occurredAt"
+        ],
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -5106,6 +5319,9 @@
     },
     {
       "name": "WorkEndpoints"
+    },
+    {
+      "name": "ProductionEndpoints"
     },
     {
       "name": "FigureEndpoints"

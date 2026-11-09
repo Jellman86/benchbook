@@ -35,6 +35,7 @@ export const work = {
   startBatch: (details: Details<Schemas["StartBatchRequest"]>) =>
     request("/api/batches", details),
   germinated: (id: string) => request(onContainer(id, "germinated"), {}),
+  ready: (id: string) => request(onContainer(id, "ready"), {}),
   lose: (id: string, details: Details<Schemas["LossRequest"]>) =>
     request(onContainer(id, "losses"), details),
   move: (id: string, details: Details<Schemas["MoveRequest"]>) =>
@@ -208,6 +209,8 @@ export function describeRecent(action: Schemas["RecentAction"]): string {
       return `Counted ${action.labelCode}`;
     case "Germinated":
       return `${action.labelCode} germinated`;
+    case "Ready":
+      return `${action.labelCode} marked ready`;
     case "Treated":
       return `Treated ${action.labelCode} with ${details?.product}`;
     case "Note":

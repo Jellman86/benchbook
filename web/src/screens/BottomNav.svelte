@@ -3,6 +3,7 @@
   import Plus from "@lucide/svelte/icons/plus";
   import ScanLine from "@lucide/svelte/icons/scan-line";
   import Settings from "@lucide/svelte/icons/settings";
+  import Sprout from "@lucide/svelte/icons/sprout";
   import type { Me } from "../lib/boot";
 
   // The phone's main navigation, within reach of a thumb.
@@ -11,13 +12,15 @@
     current,
     onHome,
     onNewBatch,
+    onProduction,
     onManage,
     onMore,
   }: {
     me: Me;
-    current: "home" | "start" | "manage" | "more" | null;
+    current: "home" | "start" | "production" | "manage" | "more" | null;
     onHome: () => void;
     onNewBatch: () => void;
+    onProduction: () => void;
     onManage: () => void;
     onMore: () => void;
   } = $props();
@@ -34,6 +37,10 @@
   <button aria-current={here("start")} onclick={onNewBatch}>
     <Plus size={24} />
     <span>New batch</span>
+  </button>
+  <button aria-current={here("production")} onclick={onProduction}>
+    <Sprout size={24} />
+    <span>Production</span>
   </button>
   {#if me.isOwner}
     <button aria-current={here("manage")} onclick={onManage}>

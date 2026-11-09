@@ -17,4 +17,5 @@ internal enum EventType
     StockCounted,
     Corrected,
     Note,
+    Ready,
 }
