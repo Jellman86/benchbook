@@ -24,7 +24,7 @@ public sealed class ExternalSignInTests(PostgresFixture database)
     /// <summary>A stand-in identity provider that signs real tokens, so the whole handshake runs.</summary>
     private sealed class Provider : HttpMessageHandler
     {
-        private readonly RsaSecurityKey key = new(RSA.Create(2048)) { KeyId = "test" };
+        private readonly RSA rsa = RSA.Create(2048);
 
         public string Nonce { get; set; } = string.Empty;
 
@@ -35,6 +35,18 @@ public sealed class ExternalSignInTests(PostgresFixture database)
         public string[] Groups { get; set; } = [];
 
         public bool Down { get; set; }
+
+        private RsaSecurityKey Key => new(rsa) { KeyId = "test" };
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                rsa.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -49,7 +61,7 @@ public sealed class ExternalSignInTests(PostgresFixture database)
                 "/.well-known/openid-configuration" => $$"""
                     {"issuer":"{{Issuer}}","authorization_endpoint":"{{Issuer}}authorize","token_endpoint":"{{Issuer}}token","jwks_uri":"{{Issuer}}jwks"}
                     """,
-                "/jwks" => JsonSerializer.Serialize(new { keys = new[] { JsonWebKeyConverter.ConvertFromRSASecurityKey(key) } }),
+                "/jwks" => JsonSerializer.Serialize(new { keys = new[] { JsonWebKeyConverter.ConvertFromRSASecurityKey(Key) } }),
                 _ => JsonSerializer.Serialize(new { id_token = Token(), access_token = "unused", token_type = "Bearer" }),
             };
 
@@ -79,7 +91,7 @@ public sealed class ExternalSignInTests(PostgresFixture database)
                 Audience = ClientId,
                 Expires = DateTime.UtcNow.AddMinutes(5),
                 Claims = claims,
-                SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.RsaSha256),
+                SigningCredentials = new SigningCredentials(Key, SecurityAlgorithms.RsaSha256),
             });
         }
     }
