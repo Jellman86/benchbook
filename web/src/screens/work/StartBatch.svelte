@@ -54,10 +54,11 @@
   let plants = $state<Schemas["PlantResponse"][]>([]);
   let suppliers = $state<Schemas["SupplierResponse"][]>([]);
   let places = $state<{ id: string; label: string }[]>([]);
-  let potSizes = $state<Schemas["NamedEntry"][]>([]);
+  let potSizes = $state<Schemas["PotSizeResponse"][]>([]);
 
   let stage = $state(1);
   let picked = $state<PickedPlant | null>(null);
+  let details = $state<Schemas["SpeciesDetailsResponse"] | null>(null);
   let variety = $state("");
   let plantId = $state("");
   let quantity = $state(1);
@@ -116,7 +117,18 @@
   function pick(choice: PickedPlant) {
     problem = "";
     picked = choice;
+    details = null;
     plantId = choice.kind === "plant" ? choice.id : "";
+
+    if (choice.kind === "species") {
+      void attempt(async () => {
+        const { data } = await api.GET("/api/species/{id}/details", {
+          params: { path: { id: choice.id } },
+        });
+
+        details = data ?? null;
+      }, setProblem);
+    }
 
     if (choice.kind !== "species") {
       stage = 2;
@@ -202,7 +214,17 @@
 
     if (picked.kind === "species") {
       const { data, response } = await api.POST("/api/plants/from-species", {
-        body: { speciesId: picked.id, variety: optional(variety) },
+        body: {
+          speciesId: picked.id,
+          variety: optional(variety),
+          category: null,
+          position: details?.suggestedPosition ?? null,
+          watering: details?.suggestedWatering ?? null,
+          hardiness: details?.suggestedHardiness ?? null,
+          xylellaHost: false,
+          protectedVariety: false,
+          prices: [],
+        },
       });
 
       if (!data) {
@@ -334,6 +356,18 @@
       </div>
       {#if picked.credit}<p class="muted credit">{picked.credit}</p>{/if}
     </div>
+    {#if details?.suggestedPosition || details?.suggestedWatering || details?.suggestedHardiness}
+      <p class="muted">
+        From Wikipedia, and saved with the plant:
+        {[
+          details.suggestedPosition,
+          details.suggestedWatering,
+          details.suggestedHardiness,
+        ]
+          .filter(Boolean)
+          .join(". ")}. You can change these under Plants.
+      </p>
+    {/if}
     <label>Variety (if there is one) <input bind:value={variety} /></label>
     <button onclick={next}>Next</button>
     <button class="secondary" onclick={() => (picked = null)}

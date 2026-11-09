@@ -1,5 +1,6 @@
 <script lang="ts">
   import Ellipsis from "@lucide/svelte/icons/ellipsis";
+  import Flower2 from "@lucide/svelte/icons/flower-2";
   import Plus from "@lucide/svelte/icons/plus";
   import ScanLine from "@lucide/svelte/icons/scan-line";
   import Settings from "@lucide/svelte/icons/settings";
@@ -13,14 +14,17 @@
     onHome,
     onNewBatch,
     onProduction,
+    onPlants,
     onManage,
     onMore,
   }: {
     me: Me;
-    current: "home" | "start" | "production" | "manage" | "more" | null;
+    current:
+      "home" | "start" | "production" | "plants" | "manage" | "more" | null;
     onHome: () => void;
     onNewBatch: () => void;
     onProduction: () => void;
+    onPlants: () => void;
     onManage: () => void;
     onMore: () => void;
   } = $props();
@@ -46,6 +50,11 @@
     <button aria-current={here("manage")} onclick={onManage}>
       <Settings size={24} />
       <span>Manage</span>
+    </button>
+  {:else}
+    <button aria-current={here("plants")} onclick={onPlants}>
+      <Flower2 size={24} />
+      <span>Plants</span>
     </button>
   {/if}
   <button aria-current={here("more")} onclick={onMore}>

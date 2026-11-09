@@ -1,5 +1,6 @@
 <script lang="ts">
   import BatchPhotos from "./BatchPhotos.svelte";
+  import PlantCard from "./PlantCard.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import type { Schemas } from "../../lib/types";
@@ -46,6 +47,7 @@
   let action = $state<Action | null>(null);
   let problem = $state("");
   let busy = $state(false);
+  let cardPlant = $state<string | null>(null);
 
   const hasPlants = $derived((container?.contents.length ?? 0) > 0);
   const back = () => (action = null);
@@ -91,6 +93,8 @@
 
 {#if !container}
   <main><p class="muted">Loading…</p></main>
+{:else if cardPlant}
+  <PlantCard plantId={cardPlant} onBack={() => (cardPlant = null)} />
 {:else if action === "lost"}
   <Lose {container} {onDone} onCancel={back} />
 {:else if action === "move"}
@@ -117,6 +121,9 @@
         <span class="muted">{line.traceabilityCode}</span>
       </p>
       <BatchPhotos batchId={line.batchId} />
+      <button class="link-button" onclick={() => (cardPlant = line.plantId)}
+        >About this plant</button
+      >
     {:else}
       <p class="muted">This container is empty.</p>
     {/each}

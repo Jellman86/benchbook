@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using static GrowLog.Tests.AccountHarness;
 
@@ -27,6 +29,10 @@ public sealed class SpeciesLookupTests(PostgresFixture database)
         public string GbifSearch { get; set; } = """{"results":[]}""";
 
         public string GbifMatch { get; set; } = """{"matchType":"NONE"}""";
+
+        public string Wikipedia { get; set; } = """{"query":{"pages":{"-1":{"missing":""}}}}""";
+
+        public bool WikipediaDown { get; set; }
 
         public bool INaturalistDown { get; set; }
 
@@ -54,6 +60,11 @@ public sealed class SpeciesLookupTests(PostgresFixture database)
                 throw new HttpRequestException("Unreachable.");
             }
 
+            if (WikipediaDown && address.Contains("wikipedia.org", StringComparison.Ordinal))
+            {
+                throw new HttpRequestException("Unreachable.");
+            }
+
             if (address.Contains("/photos/", StringComparison.Ordinal))
             {
                 return Task.FromResult(Reply(new ByteArrayContent(Jpeg)));
@@ -61,6 +72,7 @@ public sealed class SpeciesLookupTests(PostgresFixture database)
 
             var body = address switch
             {
+                _ when address.Contains("wikipedia.org", StringComparison.Ordinal) => Wikipedia,
                 _ when address.Contains("taxa/autocomplete", StringComparison.Ordinal) => Autocomplete,
                 _ when address.Contains("/taxa/", StringComparison.Ordinal) => Taxa,
                 _ when address.Contains("taxa?taxon_id=", StringComparison.Ordinal) => Children,
@@ -350,5 +362,199 @@ public sealed class SpeciesLookupTests(PostgresFixture database)
 
         Assert.Equal(HttpStatusCode.Unauthorized, await GetStatusAsync(client, "/api/species/search?q=lavender"));
         Assert.Equal(0, world.Count("taxa"));
+    }
+
+    private const string ArticleBody = """
+        Lavender is an aromatic evergreen shrub. It grows to about a metre tall."Lavandula". Plants of the World Online. Kew. Retrieved 27 September 2026.
+
+        == Description ==
+        It has narrow grey leaves.
+
+        == Cultivation ==
+        It needs full sun or partial shade and well-drained soil. It is rated H6.
+
+        == Uses ==
+        The oil is used in perfume.
+        """;
+
+    private static string Article(string text) =>
+        JsonSerializer.Serialize(new { query = new { pages = new Dictionary<string, object>(StringComparer.Ordinal) { ["1"] = new { title = "Lavandula", extract = text, fullurl = "https://en.wikipedia.org/wiki/Lavandula" } } } });
+
+    private static OutsideWorld WorldWithLavender() => new()
+    {
+        Autocomplete = $$"""{"results":[{{Taxon(1, "Lavandula angustifolia", "Common Lavender", "cc-by")}}]}""",
+        GbifMatch = """{"matchType":"EXACT","status":"ACCEPTED","rank":"SPECIES","canonicalName":"Lavandula angustifolia","usageKey":7,"family":"Lamiaceae"}""",
+        Taxa = """{"results":[{"id":1,"establishment_means":{"establishment_means":"introduced","place":{"id":6857,"name":"United Kingdom"}}}]}""",
+        Wikipedia = Article(ArticleBody),
+    };
+
+    private static async Task<Guid> FindLavenderAsync(HttpClient owner) =>
+        Species(await SearchAsync(owner, "lavender")).Single().GetProperty("id").GetGuid();
+
+    private static async Task<JsonElement> DetailsAsync(HttpClient client, Guid speciesId) =>
+        await client.GetFromJsonAsync<JsonElement>(Route($"/api/species/{speciesId}/details"), Cancellation);
+
+    private static async Task<Guid> AddFromSpeciesAsync(HttpClient owner, Guid speciesId) =>
+        Json(await PostForTextAsync(owner, "/api/plants/from-species", new { speciesId, position = "Full sun", xylellaHost = false, protectedVariety = false })).GetProperty("id").GetGuid();
+
+    private static async Task<JsonElement> CardAsync(HttpClient client, Guid plantId) =>
+        await client.GetFromJsonAsync<JsonElement>(Route($"/api/plants/{plantId}/card"), Cancellation);
+
+    [Fact]
+    public async Task Details_are_gathered_with_their_sources_and_suggestions()
+    {
+        var world = WorldWithLavender();
+        await using var app = await CreateAsync(database, world);
+        using var owner = Client(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+
+        var details = await DetailsAsync(owner, await FindLavenderAsync(owner));
+
+        Assert.Equal("Lamiaceae", details.GetProperty("family").GetString());
+        Assert.False(details.GetProperty("nativeToUk").GetBoolean());
+        Assert.StartsWith("Lavender is an aromatic", details.GetProperty("description").GetProperty("text").GetString(), StringComparison.Ordinal);
+        Assert.DoesNotContain("narrow grey", details.GetProperty("description").GetProperty("text").GetString(), StringComparison.Ordinal);
+        Assert.EndsWith("a metre tall.", details.GetProperty("description").GetProperty("text").GetString(), StringComparison.Ordinal);
+        var growing = details.GetProperty("growing");
+        Assert.StartsWith("It needs full sun", growing.GetProperty("text").GetString(), StringComparison.Ordinal);
+        Assert.DoesNotContain("perfume", growing.GetProperty("text").GetString(), StringComparison.Ordinal);
+        Assert.Equal("Wikipedia", growing.GetProperty("source").GetString());
+        Assert.Equal("CC BY-SA 4.0", growing.GetProperty("licence").GetString());
+        Assert.Equal("https://en.wikipedia.org/wiki/Lavandula", growing.GetProperty("url").GetString());
+        Assert.Equal("Full sun or Part shade", details.GetProperty("suggestedPosition").GetString());
+        Assert.Equal("Well-drained soil", details.GetProperty("suggestedWatering").GetString());
+        Assert.Equal("RHS H6", details.GetProperty("suggestedHardiness").GetString());
+    }
+
+    [Fact]
+    public async Task Details_are_only_fetched_once()
+    {
+        var world = WorldWithLavender();
+        await using var app = await CreateAsync(database, world);
+        using var owner = Client(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+        var id = await FindLavenderAsync(owner);
+
+        await DetailsAsync(owner, id);
+        await DetailsAsync(owner, id);
+
+        Assert.Equal(1, world.Count("wikipedia.org"));
+    }
+
+    [Fact]
+    public async Task A_failed_look_is_not_kept_and_is_tried_again()
+    {
+        var world = WorldWithLavender();
+        world.WikipediaDown = true;
+        await using var app = await CreateAsync(database, world);
+        using var owner = Client(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+        var id = await FindLavenderAsync(owner);
+
+        Assert.True((await DetailsAsync(owner, id)).GetProperty("unavailable").GetBoolean());
+
+        world.WikipediaDown = false;
+        var details = await DetailsAsync(owner, id);
+
+        Assert.False(details.GetProperty("unavailable").GetBoolean());
+        Assert.Equal("Lamiaceae", details.GetProperty("family").GetString());
+    }
+
+    [Fact]
+    public async Task A_plant_with_no_article_still_gets_what_else_is_known()
+    {
+        var world = WorldWithLavender();
+        world.Wikipedia = """{"query":{"pages":{"-1":{"missing":""}}}}""";
+        await using var app = await CreateAsync(database, world);
+        using var owner = Client(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+
+        var details = await DetailsAsync(owner, await FindLavenderAsync(owner));
+
+        Assert.Equal("Lamiaceae", details.GetProperty("family").GetString());
+        Assert.Equal(JsonValueKind.Null, details.GetProperty("growing").ValueKind);
+        Assert.False(details.GetProperty("unavailable").GetBoolean());
+    }
+
+    [Fact]
+    public async Task The_card_shows_what_the_person_chose_and_what_upstream_says()
+    {
+        var world = WorldWithLavender();
+        await using var app = await CreateAsync(database, world);
+        using var owner = Client(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+
+        var card = await CardAsync(owner, await AddFromSpeciesAsync(owner, await FindLavenderAsync(owner)));
+
+        Assert.Equal("Full sun", card.GetProperty("position").GetString());
+        Assert.Equal("Lamiaceae", card.GetProperty("family").GetString());
+        Assert.True(card.GetProperty("linkedToSpecies").GetBoolean());
+        Assert.Equal("Wikipedia", card.GetProperty("growing").GetProperty("source").GetString());
+    }
+
+    [Fact]
+    public async Task Staff_can_add_growing_notes_which_show_newest_first_with_who_wrote_them()
+    {
+        var world = WorldWithLavender();
+        await using var app = await CreateAsync(database, world);
+        using var owner = Client(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+        var plantId = await AddFromSpeciesAsync(owner, await FindLavenderAsync(owner));
+        var staffId = Json(await PostForTextAsync(owner, "/api/staff", new { name = "Jo Reed", nameOnly = true })).GetProperty("id").GetGuid();
+        using var staff = Client(app);
+        await PostStatusAsync(staff, "/api/account/sign-in/name", new { userId = staffId });
+
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(owner, $"/api/plants/{plantId}/notes", new { text = "First note" }));
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(staff, $"/api/plants/{plantId}/notes", new { text = "Second note" }));
+
+        var notes = (await CardAsync(staff, plantId)).GetProperty("notes").EnumerateArray().ToList();
+        Assert.Equal("Second note", notes[0].GetProperty("text").GetString());
+        Assert.Equal("Jo Reed", notes[0].GetProperty("addedBy").GetString());
+        Assert.Equal("Sam Fielding", notes[1].GetProperty("addedBy").GetString());
+    }
+
+    [Fact]
+    public async Task A_blank_note_is_refused_and_notes_cannot_be_changed()
+    {
+        var world = WorldWithLavender();
+        await using var app = await CreateAsync(database, world);
+        using var owner = Client(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+        var plantId = await AddFromSpeciesAsync(owner, await FindLavenderAsync(owner));
+
+        Assert.Equal(HttpStatusCode.BadRequest, await PostStatusAsync(owner, $"/api/plants/{plantId}/notes", new { text = "   " }));
+        await PostStatusAsync(owner, $"/api/plants/{plantId}/notes", new { text = "Keep me" });
+
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<GrowLog.Api.Data.GrowLogDbContext>();
+        var refused = await Assert.ThrowsAnyAsync<Exception>(() => db.PlantNotes.ExecuteDeleteAsync(Cancellation));
+        Assert.Contains("append-only", refused.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Matching_a_plant_to_a_species_only_fills_the_gaps()
+    {
+        var world = WorldWithLavender();
+        await using var app = await CreateAsync(database, world);
+        using var owner = Client(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+        var plantId = Json(await PostForTextAsync(owner, "/api/plants", new { commonName = "Our lavender", position = "By the door", xylellaHost = false, protectedVariety = false })).GetProperty("id").GetGuid();
+        var speciesId = await FindLavenderAsync(owner);
+
+        using var linked = await owner.PutAsJsonAsync(Route($"/api/plants/{plantId}/species"), new { speciesId }, Cancellation);
+        Assert.Equal(HttpStatusCode.NoContent, linked.StatusCode);
+
+        var card = await CardAsync(owner, plantId);
+        Assert.Equal("By the door", card.GetProperty("position").GetString());
+        Assert.Equal("Well-drained soil", card.GetProperty("watering").GetString());
+        Assert.Equal("Lavandula angustifolia", card.GetProperty("botanicalName").GetString());
     }
 }

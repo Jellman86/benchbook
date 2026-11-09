@@ -1,4 +1,5 @@
 using System.Globalization;
+using GrowLog.Api.Catalogue;
 using GrowLog.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -54,7 +55,9 @@ internal static class SpeciesEndpoints
         return photo;
     }
 
-    private static string Clean(string query) => string.Join(' ', query.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)).ToLowerInvariant();
+    private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string CleanQuery(string query) => string.Join(' ', query.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)).ToLowerInvariant();
 
     private static string EscapeLike(string value) =>
         value.Replace(Escape, Escape + Escape, StringComparison.Ordinal)
@@ -85,7 +88,7 @@ internal static class SpeciesEndpoints
         TimeProvider clock,
         CancellationToken cancellationToken)
     {
-        var query = Clean(q);
+        var query = CleanQuery(q);
 
         if (query.Length < MinimumQueryLength)
         {
@@ -238,22 +241,6 @@ internal static class SpeciesEndpoints
             ? Picture(context, photo.Content, photo.ContentType, permanent: true)
             : TypedResults.NotFound();
 
-    private static async Task CheckNameOnceAsync(Species species, GrowLogDbContext db, SpeciesSources sources, IConfiguration configuration, TimeProvider clock, CancellationToken cancellationToken)
-    {
-        if (species.NameCheckedAt is not null
-            || !configuration.GetValue("Species:Online", defaultValue: true)
-            || await sources.CheckNameAsync(species.ScientificName, cancellationToken) is not { } result)
-        {
-            return;
-        }
-
-        species.AcceptedName = result.AcceptedName;
-        species.AcceptedNameLicence = SpeciesSources.GbifLicence;
-        species.GbifKey = result.GbifKey;
-        species.NameCheckedAt = clock.GetUtcNow();
-        await db.SaveChangesAsync(cancellationToken);
-    }
-
     /// <summary>A person has picked this species, so it joins the nursery's own plants, or finds the entry already there.</summary>
     private static async Task<IResult> AddPlantFromSpeciesAsync(
         PlantFromSpeciesRequest request,
@@ -268,7 +255,7 @@ internal static class SpeciesEndpoints
             return TypedResults.NotFound();
         }
 
-        await CheckNameOnceAsync(species, db, sources, configuration, clock, cancellationToken);
+        await SpeciesEnricher.FindOrFetchAsync(species, db, sources, configuration, clock, cancellationToken);
 
         var commonName = species.CommonName ?? species.ScientificName;
         var variety = string.IsNullOrWhiteSpace(request.Variety) ? null : request.Variety.Trim();
@@ -283,7 +270,23 @@ internal static class SpeciesEndpoints
 
         if (plant is null)
         {
-            plant = new Plant { CommonName = commonName, Variety = variety };
+            plant = new Plant
+            {
+                CommonName = commonName,
+                Variety = variety,
+                Category = Clean(request.Category),
+                Position = Clean(request.Position),
+                Watering = Clean(request.Watering),
+                Hardiness = Clean(request.Hardiness),
+                XylellaHost = request.XylellaHost,
+                ProtectedVariety = request.ProtectedVariety,
+            };
+
+            foreach (var price in request.Prices ?? [])
+            {
+                plant.Prices.Add(new PlantPrice { PotSizeId = price.PotSizeId, Price = price.Price });
+            }
+
             db.Plants.Add(plant);
         }
 
@@ -308,7 +311,16 @@ internal static class SpeciesEndpoints
 
     internal sealed record SpeciesResult(Guid Id, string? CommonName, string ScientificName, string Rank, bool HasPhoto, string? PhotoCredit);
 
-    internal sealed record PlantFromSpeciesRequest(Guid SpeciesId, string? Variety);
+    internal sealed record PlantFromSpeciesRequest(
+        Guid SpeciesId,
+        string? Variety,
+        string? Category,
+        string? Position,
+        string? Watering,
+        string? Hardiness,
+        bool XylellaHost,
+        bool ProtectedVariety,
+        IReadOnlyList<CatalogueEndpoints.PlantPriceDto>? Prices);
 
     internal sealed record PlantFromSpecies(Guid Id);
 }

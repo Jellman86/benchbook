@@ -21,6 +21,7 @@ internal static class CatalogueEndpoints
         potSizes.MapGet("/", ListPotSizesAsync);
         potSizes.MapPost("/", AddPotSizeAsync).Produces<EntryCreated>(StatusCodes.Status201Created);
         potSizes.MapPut("/{id:guid}", UpdatePotSizeAsync).RequireAuthorization(AccountServices.OwnerPolicy);
+        potSizes.MapPut("/{id:guid}/quantity", SetPotQuantityAsync).RequireAuthorization(AccountServices.OwnerPolicy);
         MapArchiving<PotSize>(potSizes);
 
         var suppliers = app.MapGroup("/api/suppliers");
@@ -179,24 +180,45 @@ internal static class CatalogueEndpoints
         return await SaveAsync(db, TypedResults.NoContent(), cancellationToken);
     }
 
-    private static async Task<List<NamedEntry>> ListPotSizesAsync(GrowLogDbContext db, bool includeArchived = false, CancellationToken cancellationToken = default) =>
+    private static async Task<List<PotSizeResponse>> ListPotSizesAsync(GrowLogDbContext db, bool includeArchived = false, CancellationToken cancellationToken = default) =>
         await db.PotSizes
             .Where(size => includeArchived || size.ArchivedAt == null)
             .Select(size => new { Size = size, LastUsed = db.Events.Where(e => e.PotSizeId == size.Id).Max(e => (DateTimeOffset?)e.OccurredAt) })
             .OrderByDescending(row => row.LastUsed != null)
             .ThenByDescending(row => row.LastUsed)
             .ThenBy(row => row.Size.Name)
-            .Select(row => new NamedEntry(row.Size.Id, row.Size.Name, row.Size.ArchivedAt != null))
+            .Select(row => new PotSizeResponse(
+                row.Size.Id,
+                row.Size.Name,
+                row.Size.ArchivedAt != null,
+                row.Size.QuantityInStock,
+                db.CatalogueEntryPhotos.Where(photo => photo.Entry == CataloguePhotoEntry.PotSize && photo.EntryId == row.Size.Id).OrderBy(photo => photo.Id).Select(photo => photo.Id).ToList()))
             .ToListAsync(cancellationToken);
 
-    private static async Task<IResult> AddPotSizeAsync(NameRequest request, GrowLogDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> SetPotQuantityAsync(Guid id, PotQuantityRequest request, GrowLogDbContext db, CancellationToken cancellationToken)
     {
-        if (Clean(request.Name) is not { } name)
+        if (request.Quantity is < 0)
         {
             return TypedResults.BadRequest();
         }
 
-        var size = new PotSize { Name = name };
+        if (await db.PotSizes.FindAsync([id], cancellationToken) is not { } size)
+        {
+            return TypedResults.NotFound();
+        }
+
+        size.QuantityInStock = request.Quantity;
+        return await SaveAsync(db, TypedResults.NoContent(), cancellationToken);
+    }
+
+    private static async Task<IResult> AddPotSizeAsync(PotSizeRequest request, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        if (Clean(request.Name) is not { } name || request.QuantityInStock is < 0)
+        {
+            return TypedResults.BadRequest();
+        }
+
+        var size = new PotSize { Name = name, QuantityInStock = request.QuantityInStock };
         db.PotSizes.Add(size);
         return await SaveAsync(db, CreatedEntry("/api/pot-sizes", size.Id), cancellationToken);
     }
@@ -289,7 +311,13 @@ internal static class CatalogueEndpoints
             .OrderByDescending(row => row.LastUsed != null)
             .ThenByDescending(row => row.LastUsed)
             .ThenBy(row => row.Location.Name)
-            .Select(row => new LocationResponse(row.Location.Id, row.Location.Name, row.Location.Kind, row.Location.ParentId, row.Location.ArchivedAt != null))
+            .Select(row => new LocationResponse(
+                row.Location.Id,
+                row.Location.Name,
+                row.Location.Kind,
+                row.Location.ParentId,
+                row.Location.ArchivedAt != null,
+                db.CatalogueEntryPhotos.Where(photo => photo.Entry == CataloguePhotoEntry.Location && photo.EntryId == row.Location.Id).OrderBy(photo => photo.Id).Select(photo => photo.Id).ToList()))
             .ToListAsync(cancellationToken);
 
     private static bool IsAllowedParent(LocationKind kind, LocationKind? parent) => kind switch
@@ -341,7 +369,11 @@ internal static class CatalogueEndpoints
 
     internal sealed record NameRequest(string Name);
 
-    internal sealed record NamedEntry(Guid Id, string Name, bool Archived);
+    internal sealed record PotSizeRequest(string Name, int? QuantityInStock);
+
+    internal sealed record PotQuantityRequest(int? Quantity);
+
+    internal sealed record PotSizeResponse(Guid Id, string Name, bool Archived, int? QuantityInStock, IReadOnlyList<Guid> PhotoIds);
 
     internal sealed record PlantPriceDto(Guid PotSizeId, decimal Price);
 
@@ -400,5 +432,5 @@ internal static class CatalogueEndpoints
 
     internal sealed record LocationRequest(string Name, LocationKind Kind, Guid? ParentId);
 
-    internal sealed record LocationResponse(Guid Id, string Name, LocationKind Kind, Guid? ParentId, bool Archived);
+    internal sealed record LocationResponse(Guid Id, string Name, LocationKind Kind, Guid? ParentId, bool Archived, IReadOnlyList<Guid> PhotoIds);
 }

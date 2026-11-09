@@ -1,7 +1,9 @@
 <script lang="ts">
   import FormPanel from "../FormPanel.svelte";
+  import EntryPhotos from "./EntryPhotos.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
+  import { nestLocations } from "../../lib/locations";
   import { attempt, type Schemas } from "../../lib/types";
 
   let { onBack }: { onBack: () => void } = $props();
@@ -30,6 +32,8 @@
   const parents = $derived(
     locations.filter((location) => parentKinds[kind].includes(location.kind)),
   );
+
+  const nested = $derived(nestLocations(locations));
 
   const setProblem = (message: string) => (problem = message);
 
@@ -124,8 +128,8 @@
     <section>
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
-      {#each locations as location (location.id)}
-        <div class="card">
+      {#each nested as { place: location, depth } (location.id)}
+        <div class="card" style:margin-left="{depth * 1.25}rem">
           {#if renaming === location.id}
             <form
               class="stack"
@@ -137,6 +141,13 @@
           {:else}
             <strong>{location.name}</strong>
             <span class="muted">{location.kind}</span>
+            <EntryPhotos
+              entry="Location"
+              id={location.id}
+              photoIds={location.photoIds as string[]}
+              onChanged={load}
+              onProblem={setProblem}
+            />
             <div class="row">
               <button
                 class="secondary"

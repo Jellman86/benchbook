@@ -113,4 +113,85 @@ public sealed class PhotoTests(PostgresFixture database)
 
         Assert.Equal(HttpStatusCode.Unauthorized, await GetStatusAsync(client, $"/api/batches/{Guid.CreateVersion7()}/photos"));
     }
+
+    private static async Task<JsonElement> FindAsync(HttpClient client, string path, Guid id) =>
+        (await client.GetFromJsonAsync<JsonElement>(Route(path), Cancellation)).EnumerateArray().Single(entry => entry.GetProperty("id").GetGuid() == id);
+
+    [Fact]
+    public async Task A_pot_size_can_have_photos_and_a_count()
+    {
+        await using var app = await CreateAppAsync(database);
+        using var owner = Client(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+        var id = Json(await PostForTextAsync(owner, "/api/pot-sizes", new { name = "9cm", quantityInStock = 40 })).GetProperty("id").GetGuid();
+
+        using var photo = await UploadAsync(owner, $"/api/catalogue-photos/PotSize/{id}", Jpeg);
+        Assert.Equal(HttpStatusCode.Created, photo.StatusCode);
+        using var counted = await owner.PutAsJsonAsync(Route($"/api/pot-sizes/{id}/quantity"), new { quantity = 120 }, Cancellation);
+        Assert.Equal(HttpStatusCode.NoContent, counted.StatusCode);
+
+        var size = await FindAsync(owner, "/api/pot-sizes", id);
+        Assert.Equal(120, size.GetProperty("quantityInStock").GetInt32());
+        using var read = await owner.GetAsync(Route($"/api/catalogue-photos/{size.GetProperty("photoIds")[0].GetGuid()}"), Cancellation);
+        Assert.Equal(Jpeg, await read.Content.ReadAsByteArrayAsync(Cancellation));
+    }
+
+    [Fact]
+    public async Task A_negative_pot_count_is_refused()
+    {
+        await using var app = await CreateAppAsync(database);
+        using var owner = Client(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+        var id = Json(await PostForTextAsync(owner, "/api/pot-sizes", new { name = "9cm" })).GetProperty("id").GetGuid();
+
+        using var refused = await owner.PutAsJsonAsync(Route($"/api/pot-sizes/{id}/quantity"), new { quantity = -1 }, Cancellation);
+
+        Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_place_at_any_level_can_have_several_photos()
+    {
+        await using var app = await CreateAppAsync(database);
+        using var owner = Client(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+        var farm = Json(await PostForTextAsync(owner, "/api/locations", new { name = "The Farm", kind = "Site" })).GetProperty("id").GetGuid();
+        var house = Json(await PostForTextAsync(owner, "/api/locations", new { name = "Greenhouse 1", kind = "Greenhouse", parentId = farm })).GetProperty("id").GetGuid();
+        var bench = Json(await PostForTextAsync(owner, "/api/locations", new { name = "Bench 1", kind = "Bench", parentId = house })).GetProperty("id").GetGuid();
+
+        foreach (var place in new[] { farm, house, bench, bench })
+        {
+            using var added = await UploadAsync(owner, $"/api/catalogue-photos/Location/{place}", Jpeg);
+            Assert.Equal(HttpStatusCode.Created, added.StatusCode);
+        }
+
+        Assert.Equal(1, (await FindAsync(owner, "/api/locations", farm)).GetProperty("photoIds").GetArrayLength());
+        Assert.Equal(2, (await FindAsync(owner, "/api/locations", bench)).GetProperty("photoIds").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task Only_the_owner_can_remove_a_photo_and_a_missing_place_is_refused()
+    {
+        await using var app = await CreateAppAsync(database);
+        using var owner = Client(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+        var farm = Json(await PostForTextAsync(owner, "/api/locations", new { name = "The Farm", kind = "Site" })).GetProperty("id").GetGuid();
+        using var added = await UploadAsync(owner, $"/api/catalogue-photos/Location/{farm}", Jpeg);
+        var photoId = (await FindAsync(owner, "/api/locations", farm)).GetProperty("photoIds")[0].GetGuid();
+        var staffId = Json(await PostForTextAsync(owner, "/api/staff", new { name = "Jo Reed", nameOnly = true })).GetProperty("id").GetGuid();
+        using var staff = Client(app);
+        await PostStatusAsync(staff, "/api/account/sign-in/name", new { userId = staffId });
+
+        using var refused = await staff.DeleteAsync(Route($"/api/catalogue-photos/{photoId}"), Cancellation);
+        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+        using var removed = await owner.DeleteAsync(Route($"/api/catalogue-photos/{photoId}"), Cancellation);
+        Assert.Equal(HttpStatusCode.NoContent, removed.StatusCode);
+
+        using var missing = await UploadAsync(owner, $"/api/catalogue-photos/Location/{Guid.CreateVersion7()}", Jpeg);
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+    }
 }

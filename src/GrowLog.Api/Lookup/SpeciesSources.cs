@@ -17,6 +17,8 @@ internal sealed class SpeciesSources(HttpClient http, SpeciesThrottle throttle)
 
     private const string INaturalist = "https://api.inaturalist.org/v1/";
     private const string Gbif = "https://api.gbif.org/v1/";
+    private const string Wikipedia = "https://en.wikipedia.org/w/api.php";
+    private const int UnitedKingdomPlace = 6857;
     private const string GbifBackbone = "d7dddbf4-2cf0-4f39-9b2a-bb099caae36c";
     private const int INaturalistPlants = 47126;
     private const int GbifPlants = 6;
@@ -82,8 +84,68 @@ internal sealed class SpeciesSources(HttpClient http, SpeciesThrottle throttle)
             };
 
             return accepted is not null && (Number(match, "acceptedUsageKey") ?? Number(match, "usageKey")) is { } key
-                ? new CheckedName(accepted, key)
+                ? new CheckedName(accepted, key, Text(match, "family"))
                 : null;
+        }
+        catch (Exception exception) when (IsUnavailable(exception) && !cancellationToken.IsCancellationRequested)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Reached is false when Wikipedia couldn't be asked, as opposed to having no article.</summary>
+    public async Task<(FoundArticle? Article, bool Reached)> FetchArticleAsync(string title, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var reply = await http.GetFromJsonAsync<JsonElement>(
+                new Uri($"{Wikipedia}?action=query&format=json&prop=extracts%7Cpageprops%7Cinfo&inprop=url&explaintext=1&redirects=1&ppprop=disambiguation&titles={Uri.EscapeDataString(title)}"),
+                cancellationToken);
+
+            var page = reply.GetProperty("query").GetProperty("pages").EnumerateObject().First().Value;
+
+            if (page.TryGetProperty("missing", out _)
+                || (page.TryGetProperty("pageprops", out var properties) && properties.TryGetProperty("disambiguation", out _))
+                || Text(page, "extract") is not { Length: > 0 } text
+                || Text(page, "fullurl") is not { } url)
+            {
+                return (null, true);
+            }
+
+            return (new FoundArticle(text, url), true);
+        }
+        catch (Exception exception) when (IsUnavailable(exception) && !cancellationToken.IsCancellationRequested)
+        {
+            return (null, false);
+        }
+    }
+
+    /// <summary>Null when iNaturalist doesn't say, or can't be reached.</summary>
+    public async Task<bool?> FetchNativeToUkAsync(long taxonId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var reply = await GetFromINaturalistAsync(
+                new Uri(string.Create(CultureInfo.InvariantCulture, $"{INaturalist}taxa/{taxonId}?preferred_place_id={UnitedKingdomPlace}&locale=en-GB")),
+                cancellationToken);
+
+            var taxon = reply.GetProperty("results").EnumerateArray().FirstOrDefault();
+
+            if (taxon.ValueKind != JsonValueKind.Object
+                || !taxon.TryGetProperty("establishment_means", out var means)
+                || means.ValueKind != JsonValueKind.Object
+                || !means.TryGetProperty("place", out var place)
+                || Number(place, "id") != UnitedKingdomPlace)
+            {
+                return null;
+            }
+
+            return Text(means, "establishment_means") switch
+            {
+                "native" or "endemic" => true,
+                "introduced" => false,
+                _ => null,
+            };
         }
         catch (Exception exception) when (IsUnavailable(exception) && !cancellationToken.IsCancellationRequested)
         {

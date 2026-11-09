@@ -241,6 +241,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/species/{id}/details": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SpeciesDetailsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/batches": {
         parameters: {
             query?: never;
@@ -1800,6 +1837,215 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/plants/{id}/card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlantCardResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plants/{id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AddPlantNoteRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlantNoteResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plants/{id}/species": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LinkSpeciesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/catalogue-photos/{entry}/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entry: components["schemas"]["CataloguePhotoEntry"];
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PhotoAdded"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/catalogue-photos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/plants": {
         parameters: {
             query?: never;
@@ -1993,7 +2239,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["NamedEntry"][];
+                        "application/json": components["schemas"]["PotSizeResponse"][];
                     };
                 };
             };
@@ -2008,7 +2254,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["NameRequest"];
+                    "application/json": components["schemas"]["PotSizeRequest"];
                 };
             };
             responses: {
@@ -2049,6 +2295,45 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["NameRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pot-sizes/{id}/quantity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PotQuantityRequest"];
                 };
             };
             responses: {
@@ -3772,6 +4057,9 @@ export interface components {
         AddOwnPasskeyRequest: {
             credential: components["schemas"]["JsonElement"];
         };
+        AddPlantNoteRequest: {
+            text: string;
+        };
         AddStaffRequest: {
             name: string;
             pin: null | string;
@@ -3810,6 +4098,8 @@ export interface components {
             userId: string;
             pin: string;
         };
+        /** @enum {unknown} */
+        CataloguePhotoEntry: "PotSize" | "Location";
         CompleteInviteRequest: {
             /** Format: uuid */
             userId: string;
@@ -3874,6 +4164,12 @@ export interface components {
             batchId: string;
             /** Format: int32 */
             counted: number | string;
+        };
+        Credited: {
+            text: string;
+            source: string;
+            licence: null | string;
+            url: null | string;
         };
         CurrentUser: {
             name: string;
@@ -3946,6 +4242,10 @@ export interface components {
             /** Format: int32 */
             batchCount: number | string;
         };
+        LinkSpeciesRequest: {
+            /** Format: uuid */
+            speciesId: string;
+        };
         /** @enum {unknown} */
         LocationKind: "Site" | "Greenhouse" | "Polytunnel" | "Bench" | "Bay";
         LocationRequest: {
@@ -3962,6 +4262,7 @@ export interface components {
             /** Format: uuid */
             parentId: null | string;
             archived: boolean;
+            photoIds: string[];
         };
         LossFigures: {
             reason: string;
@@ -4000,12 +4301,6 @@ export interface components {
             occurredAt: string;
             /** Format: uuid */
             locationId: string;
-        };
-        NamedEntry: {
-            /** Format: uuid */
-            id: string;
-            name: string;
-            archived: boolean;
         };
         NameRequest: {
             name: string;
@@ -4085,6 +4380,33 @@ export interface components {
             id: string;
             name: string;
         };
+        PhotoAdded: {
+            /** Format: uuid */
+            id: string;
+        };
+        PlantCardResponse: {
+            /** Format: uuid */
+            id: string;
+            commonName: string;
+            variety: null | string;
+            botanicalName: null | string;
+            category: null | string;
+            position: null | string;
+            watering: null | string;
+            hardiness: null | string;
+            xylellaHost: boolean;
+            protectedVariety: boolean;
+            archived: boolean;
+            hasPhoto: boolean;
+            photoCredit: null | string;
+            linkedToSpecies: boolean;
+            family: null | string;
+            nativeToUk: null | boolean;
+            description: null | components["schemas"]["Credited"];
+            growing: null | components["schemas"]["Credited"];
+            notes: components["schemas"]["PlantNoteResponse"][];
+            lookupUnavailable: boolean;
+        };
         PlantFigures: {
             /** Format: uuid */
             plantId: string;
@@ -4111,6 +4433,21 @@ export interface components {
             /** Format: uuid */
             speciesId: string;
             variety: null | string;
+            category: null | string;
+            position: null | string;
+            watering: null | string;
+            hardiness: null | string;
+            xylellaHost: boolean;
+            protectedVariety: boolean;
+            prices: null | components["schemas"]["PlantPriceDto"][];
+        };
+        PlantNoteResponse: {
+            /** Format: uuid */
+            id: string;
+            text: string;
+            addedBy: string;
+            /** Format: date-time */
+            createdAt: string;
         };
         PlantPriceDto: {
             /** Format: uuid */
@@ -4145,6 +4482,24 @@ export interface components {
             archived: boolean;
             prices: components["schemas"]["PlantPriceDto"][];
             hasPhoto: boolean;
+        };
+        PotQuantityRequest: {
+            /** Format: int32 */
+            quantity: null | number | string;
+        };
+        PotSizeRequest: {
+            name: string;
+            /** Format: int32 */
+            quantityInStock: null | number | string;
+        };
+        PotSizeResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            archived: boolean;
+            /** Format: int32 */
+            quantityInStock: null | number | string;
+            photoIds: string[];
         };
         ProductionRow: {
             /** Format: uuid */
@@ -4299,6 +4654,16 @@ export interface components {
         };
         SignInRequest: {
             credential: components["schemas"]["JsonElement"];
+        };
+        SpeciesDetailsResponse: {
+            family: null | string;
+            nativeToUk: null | boolean;
+            description: null | components["schemas"]["Credited"];
+            growing: null | components["schemas"]["Credited"];
+            suggestedPosition: null | string;
+            suggestedWatering: null | string;
+            suggestedHardiness: null | string;
+            unavailable: boolean;
         };
         SpeciesResult: {
             /** Format: uuid */

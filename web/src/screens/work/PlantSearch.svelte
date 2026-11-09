@@ -12,9 +12,15 @@
   let {
     recent,
     onPick,
+    label = "What are you planting?",
+    showRecent = true,
+    speciesOnly = false,
   }: {
     recent: Own[];
     onPick: (picked: PickedPlant) => void;
+    label?: string;
+    showRecent?: boolean;
+    speciesOnly?: boolean;
   } = $props();
 
   const shortestSearch = 3;
@@ -34,7 +40,9 @@
   let inFlight: AbortController | undefined;
 
   const typed = $derived(query.trim().length >= shortestSearch);
-  const shown = $derived(typed ? own : recent.slice(0, 6));
+  const shown = $derived(
+    speciesOnly ? [] : typed ? own : showRecent ? recent.slice(0, 6) : [],
+  );
 
   function matches(plant: Own, text: string) {
     return [plant.commonName, plant.variety, plant.botanicalName].some((name) =>
@@ -145,7 +153,7 @@
   </form>
 {:else}
   <label>
-    What are you planting?
+    {label}
     <input
       type="search"
       bind:value={query}
@@ -201,8 +209,10 @@
     {#if shown.length === 0 && species.length === 0}
       <p class="muted">Nothing found for “{query.trim()}”.</p>
     {/if}
-    <button class="secondary" onclick={startByHand}
-      >Not listed? Add it by hand</button
-    >
+    {#if !speciesOnly}
+      <button class="secondary" onclick={startByHand}
+        >Not listed? Add it by hand</button
+      >
+    {/if}
   {/if}
 {/if}

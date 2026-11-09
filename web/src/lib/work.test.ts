@@ -194,6 +194,7 @@ const place = (
   kind,
   parentId,
   archived: false,
+  photoIds: [],
 });
 
 describe("places", () => {

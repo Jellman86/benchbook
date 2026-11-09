@@ -195,6 +195,36 @@
         }
       }
     },
+    "/api/species/{id}/details": {
+      "get": {
+        "tags": [
+          "PlantCardEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpeciesDetailsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/batches": {
       "post": {
         "tags": [
@@ -1169,6 +1199,191 @@
         }
       }
     },
+    "/api/plants/{id}/card": {
+      "get": {
+        "tags": [
+          "PlantCardEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlantCardResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/plants/{id}/notes": {
+      "post": {
+        "tags": [
+          "PlantCardEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddPlantNoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlantNoteResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/plants/{id}/species": {
+      "put": {
+        "tags": [
+          "PlantCardEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkSpeciesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/catalogue-photos/{entry}/{id}": {
+      "post": {
+        "tags": [
+          "CataloguePhotoEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "entry",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CataloguePhotoEntry"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoAdded"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/catalogue-photos/{id}": {
+      "get": {
+        "tags": [
+          "CataloguePhotoEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "CataloguePhotoEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/plants": {
       "get": {
         "tags": [
@@ -1330,7 +1545,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/NamedEntry"
+                    "$ref": "#/components/schemas/PotSizeResponse"
                   }
                 }
               }
@@ -1346,7 +1561,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NameRequest"
+                "$ref": "#/components/schemas/PotSizeRequest"
               }
             }
           },
@@ -1387,6 +1602,39 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/NameRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/pot-sizes/{id}/quantity": {
+      "put": {
+        "tags": [
+          "CatalogueEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PotQuantityRequest"
               }
             }
           },
@@ -2868,6 +3116,17 @@
           }
         }
       },
+      "AddPlantNoteRequest": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        }
+      },
       "AddStaffRequest": {
         "required": [
           "name",
@@ -3003,6 +3262,12 @@
             "type": "string"
           }
         }
+      },
+      "CataloguePhotoEntry": {
+        "enum": [
+          "PotSize",
+          "Location"
+        ]
       },
       "CompleteInviteRequest": {
         "required": [
@@ -3233,6 +3498,35 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "Credited": {
+        "required": [
+          "text",
+          "source",
+          "licence",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "licence": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -3526,6 +3820,18 @@
           }
         }
       },
+      "LinkSpeciesRequest": {
+        "required": [
+          "speciesId"
+        ],
+        "type": "object",
+        "properties": {
+          "speciesId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "LocationKind": {
         "enum": [
           "Site",
@@ -3564,7 +3870,8 @@
           "name",
           "kind",
           "parentId",
-          "archived"
+          "archived",
+          "photoIds"
         ],
         "type": "object",
         "properties": {
@@ -3587,6 +3894,13 @@
           },
           "archived": {
             "type": "boolean"
+          },
+          "photoIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },
@@ -3726,26 +4040,6 @@
           "locationId": {
             "type": "string",
             "format": "uuid"
-          }
-        }
-      },
-      "NamedEntry": {
-        "required": [
-          "id",
-          "name",
-          "archived"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "archived": {
-            "type": "boolean"
           }
         }
       },
@@ -4032,6 +4326,150 @@
           }
         }
       },
+      "PhotoAdded": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "PlantCardResponse": {
+        "required": [
+          "id",
+          "commonName",
+          "variety",
+          "botanicalName",
+          "category",
+          "position",
+          "watering",
+          "hardiness",
+          "xylellaHost",
+          "protectedVariety",
+          "archived",
+          "hasPhoto",
+          "photoCredit",
+          "linkedToSpecies",
+          "family",
+          "nativeToUk",
+          "description",
+          "growing",
+          "notes",
+          "lookupUnavailable"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "commonName": {
+            "type": "string"
+          },
+          "variety": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "botanicalName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "category": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "position": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "watering": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hardiness": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "xylellaHost": {
+            "type": "boolean"
+          },
+          "protectedVariety": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "hasPhoto": {
+            "type": "boolean"
+          },
+          "photoCredit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "linkedToSpecies": {
+            "type": "boolean"
+          },
+          "family": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nativeToUk": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "description": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Credited"
+              }
+            ]
+          },
+          "growing": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Credited"
+              }
+            ]
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlantNoteResponse"
+            }
+          },
+          "lookupUnavailable": {
+            "type": "boolean"
+          }
+        }
+      },
       "PlantFigures": {
         "required": [
           "plantId",
@@ -4126,7 +4564,14 @@
       "PlantFromSpeciesRequest": {
         "required": [
           "speciesId",
-          "variety"
+          "variety",
+          "category",
+          "position",
+          "watering",
+          "hardiness",
+          "xylellaHost",
+          "protectedVariety",
+          "prices"
         ],
         "type": "object",
         "properties": {
@@ -4139,6 +4584,70 @@
               "null",
               "string"
             ]
+          },
+          "category": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "position": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "watering": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hardiness": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "xylellaHost": {
+            "type": "boolean"
+          },
+          "protectedVariety": {
+            "type": "boolean"
+          },
+          "prices": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/PlantPriceDto"
+            }
+          }
+        }
+      },
+      "PlantNoteResponse": {
+        "required": [
+          "id",
+          "text",
+          "addedBy",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "text": {
+            "type": "string"
+          },
+          "addedBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -4312,6 +4821,82 @@
           },
           "hasPhoto": {
             "type": "boolean"
+          }
+        }
+      },
+      "PotQuantityRequest": {
+        "required": [
+          "quantity"
+        ],
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "PotSizeRequest": {
+        "required": [
+          "name",
+          "quantityInStock"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "quantityInStock": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "PotSizeResponse": {
+        "required": [
+          "id",
+          "name",
+          "archived",
+          "quantityInStock",
+          "photoIds"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "quantityInStock": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "photoIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },
@@ -4954,6 +5539,74 @@
           }
         }
       },
+      "SpeciesDetailsResponse": {
+        "required": [
+          "family",
+          "nativeToUk",
+          "description",
+          "growing",
+          "suggestedPosition",
+          "suggestedWatering",
+          "suggestedHardiness",
+          "unavailable"
+        ],
+        "type": "object",
+        "properties": {
+          "family": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nativeToUk": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "description": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Credited"
+              }
+            ]
+          },
+          "growing": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Credited"
+              }
+            ]
+          },
+          "suggestedPosition": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "suggestedWatering": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "suggestedHardiness": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "unavailable": {
+            "type": "boolean"
+          }
+        }
+      },
       "SpeciesResult": {
         "required": [
           "id",
@@ -5557,6 +6210,9 @@
       "name": "PhotoEndpoints"
     },
     {
+      "name": "PlantCardEndpoints"
+    },
+    {
       "name": "WorkEndpoints"
     },
     {
@@ -5588,6 +6244,9 @@
     },
     {
       "name": "BenchEndpoints"
+    },
+    {
+      "name": "CataloguePhotoEndpoints"
     },
     {
       "name": "CatalogueEndpoints"

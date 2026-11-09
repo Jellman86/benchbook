@@ -88,6 +88,20 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await page.getByLabel("New pot size").fill("9cm");
   await button(page, "Add").click();
   await expect(page.getByText("9cm", { exact: true })).toBeVisible();
+  await expect(page.getByText("Not counted yet")).toBeVisible();
+  await page.getByLabel("Add photo").setInputFiles({
+    name: "pot.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "base64",
+    ),
+  });
+  await expect(page.getByAltText("The pot")).toBeVisible();
+  await button(page, "Count").click();
+  await page.getByLabel("How many we've got", { exact: true }).fill("120");
+  await button(page, "Save count").click();
+  await expect(page.getByText("120 in stock")).toBeVisible();
   await page.getByLabel("New pot size").fill("9CM");
   await button(page, "Add").click();
   await expect(page.getByRole("alert")).toHaveText(
@@ -95,14 +109,24 @@ test("the owner sets up the nursery and staff can sign in", async ({
   );
   await leaveManage(page);
 
+  // Plants start from a search, and fall back to typing them in.
   await openManage(page, "Plants");
-  await page.getByLabel("Common name").fill("Lavender");
-  await page.getByLabel("Variety", { exact: true }).fill("Hidcote");
-  await page.getByLabel("Botanical name").fill("Lavandula angustifolia");
+  await page.getByLabel("Find or add a plant").fill("Lavender");
+  await button(page, "Not listed? Add it by hand").click();
+  await page.getByLabel("Variety (if there is one)").fill("Hidcote");
+  await page
+    .getByLabel("Botanical name (if you know it)")
+    .fill("Lavandula angustifolia");
+  await button(page, "Next").click();
   await page.getByLabel("Price for 9cm (£)").fill("4.50");
   await button(page, "Add").click();
   await expect(page.getByText("Lavender 'Hidcote'")).toBeVisible();
 
+  // The plant's card holds what we know, and growing notes anyone can add to.
+  await page.locator(".plant-card", { hasText: "Lavender 'Hidcote'" }).click();
+  await page.getByLabel("Add a growing note").fill("Cut back hard in August.");
+  await button(page, "Add note").click();
+  await expect(page.getByText("Cut back hard in August.")).toBeVisible();
   await button(page, "Change").click();
   await expect(page.getByLabel("Price for 9cm (£)")).toHaveValue("4.5");
   await page.getByLabel("Variety", { exact: true }).fill("Munstead");
@@ -257,9 +281,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Manage").click();
   await button(page, "Plants").click();
   await expect(page.getByText("Lavender 'Munstead'")).toBeVisible();
-  await expect(page.getByLabel("Common name")).toBeHidden();
-  await button(page, "Add a plant").click();
-  await expect(page.getByLabel("Common name")).toBeVisible();
+  await expect(page.getByLabel("Find or add a plant")).toBeVisible();
   await button(page, "Back").click();
   await button(page, "More").click();
   await expect(page.getByRole("heading", { name: "Appearance" })).toBeVisible();
