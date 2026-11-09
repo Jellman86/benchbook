@@ -39,6 +39,7 @@
     const ways = [
       member.hasPassword ? "password" : null,
       member.hasPasskey ? "passkey" : null,
+      member.hasExternalLogin ? "staff login" : null,
     ].filter((item) => item !== null);
 
     return ways.length > 0

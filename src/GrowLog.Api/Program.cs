@@ -45,9 +45,22 @@ builder.Services.AddHttpClient<SpeciesSources>(client =>
     client.Timeout = TimeSpan.FromSeconds(6);
     client.DefaultRequestHeaders.UserAgent.ParseAdd("GrowLog/1.0 (+https://github.com/Jellman86/growlog)");
 });
-builder.Services.AddGrowLogAccounts();
+builder.Services.AddGrowLogAccounts(builder.Configuration);
 
 var app = builder.Build();
+
+if (AccountServices.ExternalSignInIsOn(app.Configuration))
+{
+    // Behind the proxy this application sees plain HTTP. Sign-in needs the real address.
+    var origin = new Uri(AccountServices.PublicOrigin(app.Configuration));
+
+    app.Use((context, next) =>
+    {
+        context.Request.Scheme = origin.Scheme;
+        context.Request.Host = new HostString(origin.Authority);
+        return next();
+    });
+}
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -58,6 +71,7 @@ app.MapOpenApi().AllowAnonymous();
 app.MapGet("/api/health", () => TypedResults.Ok(new HealthResponse("ok"))).AllowAnonymous();
 app.MapAccountEndpoints();
 app.MapSignInEndpoints();
+app.MapExternalSignInEndpoints();
 app.MapStaffEndpoints();
 app.MapBenchEndpoints();
 app.MapSpeciesEndpoints();

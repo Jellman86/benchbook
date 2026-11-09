@@ -1,8 +1,11 @@
 using GrowLog.Api.Data;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace GrowLog.Api.Accounts;
 
@@ -12,6 +15,20 @@ internal static class AccountServices
     public const string OwnerPolicy = "Owner";
     public const string BenchPolicy = "BenchStation";
     public const string BenchScheme = "BenchStation";
+    public const string OidcScheme = "Oidc";
+
+    public static bool ExternalSignInIsOn(IConfiguration configuration) => !string.IsNullOrEmpty(configuration["Oidc:Authority"]);
+
+    public static string ExternalSignInName(IConfiguration configuration) => configuration["Oidc:DisplayName"] ?? "Croft View";
+
+    /// <summary>The address people use, which this application can't tell from behind the proxy.</summary>
+    public static string PublicOrigin(IConfiguration configuration)
+    {
+        var domain = configuration["Passkeys:ServerDomain"]
+            ?? throw new InvalidOperationException("Passkeys:ServerDomain is not configured.");
+
+        return configuration["Passkeys:Origin"] ?? $"https://{domain}";
+    }
 
     public static void ConfigureIdentity(IdentityOptions options)
     {
@@ -33,7 +50,7 @@ internal static class AccountServices
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     }
 
-    public static IServiceCollection AddGrowLogAccounts(this IServiceCollection services)
+    public static IServiceCollection AddGrowLogAccounts(this IServiceCollection services, IConfiguration appConfiguration)
     {
         // Kept in the database, so a redeploy of the container does not sign everyone out.
         services.AddDataProtection().SetApplicationName("GrowLog").PersistKeysToDbContext<GrowLogDbContext>();
@@ -49,6 +66,8 @@ internal static class AccountServices
             options.SlidingExpiration = true;
             AnswerWithStatusCodes(options);
         });
+
+        AddExternalSignIn(authentication, services, appConfiguration);
 
         services.ConfigureApplicationCookie(options =>
         {
@@ -75,12 +94,9 @@ internal static class AccountServices
 
         services.AddOptions<IdentityPasskeyOptions>().Configure<IConfiguration>((options, configuration) =>
         {
-            var domain = configuration["Passkeys:ServerDomain"]
-                ?? throw new InvalidOperationException("Passkeys:ServerDomain is not configured.");
+            var origin = PublicOrigin(configuration);
 
-            var origin = configuration["Passkeys:Origin"] ?? $"https://{domain}";
-
-            options.ServerDomain = domain;
+            options.ServerDomain = configuration["Passkeys:ServerDomain"];
 
             // Compared with the configured address, so this does not depend on proxy headers.
             options.ValidateOrigin = context => ValueTask.FromResult(
@@ -88,6 +104,50 @@ internal static class AccountServices
         });
 
         return services;
+    }
+
+    /// <summary>Only added when a shared staff login is configured. GrowLog works fully without one.</summary>
+    private static void AddExternalSignIn(AuthenticationBuilder authentication, IServiceCollection services, IConfiguration configuration)
+    {
+        if (!ExternalSignInIsOn(configuration))
+        {
+            return;
+        }
+
+        services.ConfigureExternalCookie(options =>
+        {
+            options.Cookie.Name = "growlog.external";
+            options.Cookie.SameSite = SameSiteMode.Lax;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        });
+
+        authentication.AddOpenIdConnect(OidcScheme, options =>
+        {
+            options.Authority = configuration["Oidc:Authority"];
+            options.ClientId = configuration["Oidc:ClientId"];
+            options.ClientSecret = configuration["Oidc:ClientSecret"];
+            options.ResponseType = OpenIdConnectResponseType.Code;
+
+            // Returned in the address, so Lax cookies are enough for the trip back.
+            options.ResponseMode = OpenIdConnectResponseMode.Query;
+            options.CorrelationCookie.SameSite = SameSiteMode.Lax;
+            options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.NonceCookie.SameSite = SameSiteMode.Lax;
+            options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
+
+            options.SignInScheme = IdentityConstants.ExternalScheme;
+            options.MapInboundClaims = false;
+            options.GetClaimsFromUserInfoEndpoint = false;
+            options.Scope.Add("profile");
+            options.BackchannelTimeout = TimeSpan.FromSeconds(10);
+            options.DisableTelemetry = true;
+            options.Events.OnRemoteFailure = context =>
+            {
+                context.Response.Redirect("/?sso=failed");
+                context.HandleResponse();
+                return Task.CompletedTask;
+            };
+        });
     }
 
     /// <summary>This is an API, so it answers with a status code rather than redirecting to a page.</summary>

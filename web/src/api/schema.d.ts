@@ -1012,6 +1012,140 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/external": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ExternalSignInOptions"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/external/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/external/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/external/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/staff": {
         parameters: {
             query?: never;
@@ -3566,6 +3700,8 @@ export interface components {
             hasPassword: boolean;
             hasPin: boolean;
             hasPasskey: boolean;
+            hasExternalLogin: boolean;
+            externalSignInName: null | string;
             nameOnly: boolean;
         };
         AddOwnPasskeyRequest: {
@@ -3687,6 +3823,10 @@ export interface components {
         };
         /** @enum {unknown} */
         EventType: "Sown" | "Received" | "CuttingsTaken" | "Germinated" | "PrickedOut" | "PottedOn" | "Moved" | "Lost" | "Split" | "Treated" | "Examined" | "Sold" | "StockCounted" | "Corrected" | "Note" | "Ready";
+        ExternalSignInOptions: {
+            enabled: boolean;
+            name: string;
+        };
         Figures: {
             plants: components["schemas"]["PlantFigures"][];
             losses: components["schemas"]["LossFigures"][];
@@ -4101,6 +4241,7 @@ export interface components {
             nameOnly: boolean;
             hasPassword: boolean;
             hasPasskey: boolean;
+            hasExternalLogin: boolean;
             hasPin: boolean;
         };
         StartBatchRequest: {

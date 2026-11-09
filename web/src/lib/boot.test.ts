@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { chooseStart, readInvite, type Probes } from "./boot";
+import {
+  chooseStart,
+  readInvite,
+  type Probes,
+  externalSignInProblem,
+} from "./boot";
 
 const probes = (overrides: Partial<Probes> = {}): Probes => ({
   me: async () => null,
@@ -68,5 +73,24 @@ describe("readInvite", () => {
   it("ignores other pages and incomplete links", () => {
     expect(readInvite("/", "?user=abc&token=x")).toBeNull();
     expect(readInvite("/invite", "?user=abc")).toBeNull();
+  });
+});
+
+describe("externalSignInProblem", () => {
+  it("says nothing when there was no problem", () => {
+    expect(externalSignInProblem("")).toBe("");
+    expect(externalSignInProblem("?user=1")).toBe("");
+  });
+
+  it("explains a name that's already in use", () => {
+    expect(externalSignInProblem("?sso=name-taken")).toContain(
+      "already has that name",
+    );
+  });
+
+  it("has a plain answer for anything unexpected", () => {
+    expect(externalSignInProblem("?sso=whatever")).toBe(
+      "Signing in didn't work. Please try again.",
+    );
   });
 });

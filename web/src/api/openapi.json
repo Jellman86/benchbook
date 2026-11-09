@@ -647,6 +647,61 @@
         }
       }
     },
+    "/api/account/external": {
+      "get": {
+        "tags": [
+          "ExternalSignInEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalSignInOptions"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/external/login": {
+      "get": {
+        "tags": [
+          "ExternalSignInEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/account/external/link": {
+      "get": {
+        "tags": [
+          "ExternalSignInEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/account/external/complete": {
+      "get": {
+        "tags": [
+          "ExternalSignInEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/staff": {
       "get": {
         "tags": [
@@ -2724,6 +2779,8 @@
           "hasPassword",
           "hasPin",
           "hasPasskey",
+          "hasExternalLogin",
+          "externalSignInName",
           "nameOnly"
         ],
         "type": "object",
@@ -2736,6 +2793,15 @@
           },
           "hasPasskey": {
             "type": "boolean"
+          },
+          "hasExternalLogin": {
+            "type": "boolean"
+          },
+          "externalSignInName": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "nameOnly": {
             "type": "boolean"
@@ -3178,6 +3244,21 @@
           "Note",
           "Ready"
         ]
+      },
+      "ExternalSignInOptions": {
+        "required": [
+          "enabled",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
       },
       "Figures": {
         "required": [
@@ -4803,6 +4884,7 @@
           "nameOnly",
           "hasPassword",
           "hasPasskey",
+          "hasExternalLogin",
           "hasPin"
         ],
         "type": "object",
@@ -4827,6 +4909,9 @@
             "type": "boolean"
           },
           "hasPasskey": {
+            "type": "boolean"
+          },
+          "hasExternalLogin": {
             "type": "boolean"
           },
           "hasPin": {
@@ -5337,6 +5422,9 @@
     },
     {
       "name": "SignInEndpoints"
+    },
+    {
+      "name": "ExternalSignInEndpoints"
     },
     {
       "name": "StaffEndpoints"

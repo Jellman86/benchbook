@@ -77,7 +77,7 @@ internal static class SignInEndpoints
         return TypedResults.NoContent();
     }
 
-    private static async Task<IResult> GetSettingsAsync(ClaimsPrincipal principal, UserManager<AppUser> users)
+    private static async Task<IResult> GetSettingsAsync(ClaimsPrincipal principal, UserManager<AppUser> users, IConfiguration configuration)
     {
         if (await users.GetUserAsync(principal) is not { } me)
         {
@@ -85,7 +85,10 @@ internal static class SignInEndpoints
         }
 
         var passkeys = await users.GetPasskeysAsync(me);
-        return TypedResults.Ok(new AccountSettings(me.PasswordHash is not null, me.PinHash is not null, passkeys.Count > 0, me.NameOnlySignIn));
+        var logins = await users.GetLoginsAsync(me);
+        var externalName = AccountServices.ExternalSignInIsOn(configuration) ? AccountServices.ExternalSignInName(configuration) : null;
+
+        return TypedResults.Ok(new AccountSettings(me.PasswordHash is not null, me.PinHash is not null, passkeys.Count > 0, logins.Count > 0, externalName, me.NameOnlySignIn));
     }
 
     private static async Task<IResult> SetOwnPasswordAsync(
@@ -192,7 +195,7 @@ internal static class SignInEndpoints
 
     internal sealed record PasswordSignInRequest(Guid UserId, string Password);
 
-    internal sealed record AccountSettings(bool HasPassword, bool HasPin, bool HasPasskey, bool NameOnly);
+    internal sealed record AccountSettings(bool HasPassword, bool HasPin, bool HasPasskey, bool HasExternalLogin, string? ExternalSignInName, bool NameOnly);
 
     internal sealed record SetOwnPasswordRequest(string? CurrentPassword, string NewPassword);
 

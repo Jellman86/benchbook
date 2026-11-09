@@ -13,6 +13,8 @@ internal sealed class TestApp(params (string Key, string? Value)[] settings) : W
     /// <summary>Answers calls to outside services, so tests never touch the real ones.</summary>
     public HttpMessageHandler? OutsideWorld { get; init; }
 
+    public Action<IServiceCollection>? ConfigureServices { get; init; }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         foreach (var (key, value) in settings)
@@ -23,6 +25,11 @@ internal sealed class TestApp(params (string Key, string? Value)[] settings) : W
         if (Clock is not null)
         {
             builder.ConfigureTestServices(services => services.AddSingleton(Clock));
+        }
+
+        if (ConfigureServices is not null)
+        {
+            builder.ConfigureTestServices(ConfigureServices);
         }
 
         if (OutsideWorld is not null)
