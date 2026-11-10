@@ -671,10 +671,51 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("id");
 
+                    b.Property<string>("Address")
+                        .HasColumnType("text")
+                        .HasColumnName("address");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("text")
+                        .HasColumnName("email");
+
+                    b.Property<string>("LabelStyles")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("label_styles");
+
+                    b.Property<byte[]>("Logo")
+                        .HasColumnType("bytea")
+                        .HasColumnName("logo");
+
+                    b.Property<string>("LogoContentType")
+                        .HasColumnType("text")
+                        .HasColumnName("logo_content_type");
+
+                    b.Property<string>("NurseryName")
+                        .HasColumnType("text")
+                        .HasColumnName("nursery_name");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("text")
+                        .HasColumnName("phone");
+
+                    b.Property<string>("RegistrationNumber")
+                        .HasColumnType("text")
+                        .HasColumnName("registration_number");
+
                     b.Property<string>("SignInLevel")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("sign_in_level");
+
+                    b.Property<string>("VatNumber")
+                        .HasColumnType("text")
+                        .HasColumnName("vat_number");
+
+                    b.Property<string>("Website")
+                        .HasColumnType("text")
+                        .HasColumnName("website");
 
                     b.HasKey("Id")
                         .HasName("pk_nursery_settings");

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PrintButton from "../PrintButton.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { stopUsing } from "../../lib/archive";
@@ -219,12 +220,10 @@
               >
             </div>
           {/if}
-          <a
-            class="button secondary"
+          <PrintButton
             href="/api/labels/places/{place.id}"
-            target="_blank"
-            rel="noopener">Print place label</a
-          >
+            label="Print place label"
+          />
         </div>
 
         {#if canManage}

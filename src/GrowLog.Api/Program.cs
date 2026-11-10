@@ -13,6 +13,7 @@ using GrowLog.Api.Operations;
 using GrowLog.Api.Passports;
 using GrowLog.Api.Production;
 using GrowLog.Api.Selling;
+using GrowLog.Api.Settings;
 using GrowLog.Api.Work;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -83,6 +84,7 @@ app.MapCatalogueEndpoints();
 app.MapWorkEndpoints();
 app.MapContainerHistoryEndpoints();
 app.MapPlaceEndpoints();
+app.MapNurserySettingsEndpoints();
 app.MapProductionEndpoints();
 app.MapLabelEndpoints();
 app.MapFigureEndpoints();

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PrintButton from "../PrintButton.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { stopUsing } from "../../lib/archive";
@@ -222,29 +223,22 @@
           <button class="secondary" onclick={() => edit(selected)}
             >Change</button
           >
-          <a
-            class="button secondary"
+          <PrintButton
             href="/api/labels/bench-cards/{selected.id}"
-            target="_blank"
-            rel="noopener">Bench card</a
-          >
+            label="Bench card"
+          />
           {#each selected.prices as price (price.potSizeId)}
-            <a
-              class="button secondary"
+            <PrintButton
               href="/api/labels/plants/{selected.id}?potSizeId={price.potSizeId}"
-              target="_blank"
-              rel="noopener"
-              >Plant label: {potSizes.find(
+              label="Plant label: {potSizes.find(
                 (size) => size.id === price.potSizeId,
-              )?.name}</a
-            >
+              )?.name}"
+            />
           {:else}
-            <a
-              class="button secondary"
+            <PrintButton
               href="/api/labels/plants/{selected.id}"
-              target="_blank"
-              rel="noopener">Plant label</a
-            >
+              label="Plant label"
+            />
           {/each}
           <button class="secondary" onclick={() => archive(selected)}
             >No longer grown</button

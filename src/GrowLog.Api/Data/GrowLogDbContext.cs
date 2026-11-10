@@ -95,6 +95,7 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         });
 
         ConfigureStock(modelBuilder);
+        ConfigureSettings(modelBuilder);
 
         modelBuilder.Entity<CatalogueChange>(entity =>
         {
@@ -177,6 +178,15 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         });
     }
 
+    private static void ConfigureSettings(ModelBuilder modelBuilder) =>
+        modelBuilder.Entity<NurserySettings>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.SignInLevel).HasConversion<string>();
+            entity.Property(e => e.LabelStyles).HasColumnType("jsonb");
+            entity.ToTable(table => table.HasCheckConstraint("ck_nursery_settings_single", "id = 1"));
+        });
+
     private static void ConfigureStock(ModelBuilder modelBuilder)
     {
         var batchSources = string.Join(", ", Enum.GetNames<BatchSource>().Select(name => $"'{name}'"));
@@ -218,13 +228,6 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.HasOne<Event>().WithMany(e => e.Lines).HasForeignKey(e => e.EventId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Container>().WithMany().HasForeignKey(e => e.ContainerId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Batch>().WithMany().HasForeignKey(e => e.BatchId).OnDelete(DeleteBehavior.Restrict);
-        });
-
-        modelBuilder.Entity<NurserySettings>(entity =>
-        {
-            entity.Property(e => e.Id).ValueGeneratedNever();
-            entity.Property(e => e.SignInLevel).HasConversion<string>();
-            entity.ToTable(table => table.HasCheckConstraint("ck_nursery_settings_single", "id = 1"));
         });
 
         modelBuilder.Entity<CountAdjustment>(entity =>

@@ -4,6 +4,7 @@
   import ExternalSignIn from "./manage/ExternalSignIn.svelte";
   import Figures from "./manage/Figures.svelte";
   import Locations from "./manage/Locations.svelte";
+  import Nursery from "./manage/Nursery.svelte";
   import Money from "./manage/Money.svelte";
   import Plants from "./manage/Plants.svelte";
   import PotSizes from "./manage/PotSizes.svelte";
@@ -51,6 +52,8 @@
   <Locations onBack={back} {onOpenTray} {onMoveTraysHere} />
 {:else if section === "signIn"}
   <ExternalSignIn onBack={back} />
+{:else if section === "nursery"}
+  <Nursery onBack={back} />
 {:else if section === "stations"}
   <Stations onBack={back} {onBecameStation} />
 {:else}
