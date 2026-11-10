@@ -20,7 +20,30 @@ export function rememberMe(me: Me | null) {
   }
 }
 
-export const rememberedMe = () => read<Me>(keys.me);
+/** The last person signed in, for working with no signal; never on a bench, where anyone could pick it up. */
+export const rememberedMe = () => (isBenchDevice() ? null : read<Me>(keys.me));
+
+const benchKey = "growlog.benchDevice";
+
+export function isBenchDevice(): boolean {
+  try {
+    return localStorage.getItem(benchKey) === "yes";
+  } catch {
+    return false;
+  }
+}
+
+export function rememberBench(atBench: boolean) {
+  try {
+    if (atBench) {
+      localStorage.setItem(benchKey, "yes");
+    } else {
+      localStorage.removeItem(benchKey);
+    }
+  } catch {
+    // Without storage nothing is remembered, which is the safe way round.
+  }
+}
 
 export function rememberContainers(containers: Schemas["ContainerResponse"][]) {
   localStorage.setItem(keys.containers, JSON.stringify(containers));

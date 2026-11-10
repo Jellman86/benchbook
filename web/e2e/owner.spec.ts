@@ -159,8 +159,8 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await page.getByLabel("Inside").selectOption({ label: "Greenhouse 2" });
   await page.getByLabel("Add several, numbered").check();
   await page.getByLabel("Name before the number").fill("Bench");
-  await page.getByLabel("From").fill("1");
-  await page.getByLabel("To").fill("3");
+  await page.getByLabel("From", { exact: true }).fill("1");
+  await page.getByLabel("To", { exact: true }).fill("3");
   await button(page, "Add them").click();
   await expect(
     page.locator(".place-row strong", { hasText: "Bench 3" }),
@@ -472,7 +472,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Lost").click();
   await button(page, "Frost").click();
   await page.getByRole("status").getByRole("button", { name: "Undo" }).click();
-  await expect(page.getByRole("status")).toHaveCount(0);
+  await expect(page.getByRole("status")).toContainText("Undone:");
   await scan(label);
   await expect(page.getByText("37 Lavender 'Munstead'")).toBeVisible();
 
@@ -483,10 +483,17 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "+10").click();
   await button(page, "+10").click();
   await expect(page.getByTestId("quantity")).toHaveText("37");
-  await button(page, "Back").click();
+  await expect(page.locator(".action-for")).toContainText(label);
 
-  // Move it.
+  // The phone's Back button steps back to the tray, and a reload stays there.
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: label })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: label })).toBeVisible();
+
+  // Move it. The scan box is ready for a USB scanner straight away.
   await button(page, "Move").click();
+  await expect(page.getByLabel("Scan the place's label")).toBeFocused();
   await button(page, "Greenhouse 2").click();
   await expect(page.getByRole("status")).toContainText(
     `Moved ${label} to Greenhouse 2`,

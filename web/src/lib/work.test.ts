@@ -200,6 +200,7 @@ const place = (
   // Left empty so the label is worked out here from the places it sits in.
   path: "",
   labelCode: `P${id}`,
+  lastUsedAt: null,
 });
 
 describe("places", () => {

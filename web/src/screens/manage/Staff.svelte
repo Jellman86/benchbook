@@ -1,6 +1,6 @@
 <script lang="ts">
   import FormPanel from "../FormPanel.svelte";
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { api } from "../../api/client";
   import { attempt, optional, type Schemas } from "../../lib/types";
 
@@ -50,6 +50,7 @@
   let pin = $state("");
   let problem = $state("");
   let link = $state("");
+  let myId = $state("");
   let inviteQr = $state("");
   let copied = $state(false);
   const canShare = typeof navigator.share === "function";
@@ -98,13 +99,33 @@
 
   async function load() {
     staff = (await api.GET("/api/staff")).data ?? [];
+    myId = (await api.GET("/api/account/me")).data?.id ?? "";
     level =
       (await api.GET("/api/staff/sign-in-settings")).data?.level ?? "Personal";
   }
 
   // Only GrowLog's own sign-in is affected: your account always needs your password or passkey.
+  const looser: Record<string, number> = {
+    Open: 0,
+    Names: 1,
+    Personal: 2,
+    Strict: 3,
+  };
+
   const setLevel = (chosen: Schemas["SignInLevel"]) =>
     attempt(async () => {
+      if (
+        looser[chosen] < looser[level] &&
+        !confirm(
+          chosen === "Open"
+            ? "Let any device on the nursery's network straight in, with no signing in? Only do this if GrowLog can't be reached from outside the nursery."
+            : "Let staff sign in by tapping their name, with nothing to type? Only do this if GrowLog can't be reached from outside the nursery.",
+        )
+      ) {
+        await load();
+        return;
+      }
+
       level = chosen;
       await api.PUT("/api/staff/sign-in-settings", { body: { level: chosen } });
       await load();
@@ -171,6 +192,10 @@
 
       if (data) {
         link = `${location.origin}/invite?user=${id}&token=${encodeURIComponent(data.token)}`;
+        await tick();
+        document
+          .querySelector(".invite-card")
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }, setProblem);
 
@@ -228,6 +253,14 @@
       await load();
     }, setProblem);
   };
+
+  const welcomeBack = (member: Member) =>
+    attempt(async () => {
+      await api.POST("/api/staff/{id}/restore", {
+        params: { path: { id: member.id } },
+      });
+      await load();
+    }, setProblem);
 
   const archive = (member: Member) => {
     if (
@@ -388,13 +421,31 @@
                   >Name only</button
                 >
               {/if}
-              <button class="secondary" onclick={() => archive(member)}
-                >Has left</button
-              >
+              {#if member.id !== myId}
+                <button class="secondary" onclick={() => archive(member)}
+                  >Has left</button
+                >
+              {/if}
             </div>
           {/if}
         </div>
       {/each}
+
+      {#if staff.some((member) => member.archived)}
+        <details class="archived">
+          <summary>People who have left</summary>
+          {#each staff.filter((member) => member.archived) as member (member.id)}
+            <div class="card recent">
+              <span>{member.name}</span>
+              <div class="row">
+                <button class="secondary" onclick={() => welcomeBack(member)}
+                  >Has come back</button
+                >
+              </div>
+            </div>
+          {/each}
+        </details>
+      {/if}
     </section>
   </div>
 

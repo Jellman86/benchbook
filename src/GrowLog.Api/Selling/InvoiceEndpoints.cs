@@ -241,7 +241,8 @@ internal static class InvoiceEndpoints
         var data = InvoiceDocument.Describe(invoice, settings, credited);
         var context = await LabelSettings.LoadAsync(db, LabelKind.Invoice, cancellationToken);
         var pdf = await printer.RenderAsync(LabelKind.Invoice, data, qrText: null, context, copies: 1, cancellationToken);
-        return TypedResults.File(pdf, "application/pdf", $"{(invoice.Kind == InvoiceKind.Invoice ? "invoice" : "credit-note")}-{invoice.Number}.pdf");
+        // Opened in the browser, ready to print or save.
+        return TypedResults.File(pdf, "application/pdf");
     }
 
     internal sealed record InvoiceLineRequest(string Description, int Quantity, decimal UnitPrice, decimal VatRate, Guid? PlantId, Guid? ContainerId, Guid? BatchId);

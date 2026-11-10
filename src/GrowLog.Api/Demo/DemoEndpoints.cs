@@ -41,10 +41,10 @@ internal static class DemoEndpoints
 
         await new ExampleData(db, store).LoadAsync(Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!), cancellationToken);
 
-        // No PIN or passkey, so nobody can sign in as these.
+        // Marked as having left, so nobody can sign in as these at any sign-in level.
         foreach (var name in new[] { "Example Worker", "Sample Helper" })
         {
-            await users.CreateAsync(new AppUser { Id = Guid.CreateVersion7(), UserName = name });
+            await users.CreateAsync(new AppUser { Id = Guid.CreateVersion7(), UserName = name, ArchivedAt = DateTimeOffset.UtcNow });
         }
 
         return TypedResults.NoContent();

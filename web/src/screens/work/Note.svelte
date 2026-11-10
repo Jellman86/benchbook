@@ -32,7 +32,7 @@
   }
 </script>
 
-<ActionFrame title="Note" {problem} {onCancel}>
+<ActionFrame title="Note" {problem} {onCancel} {container}>
   <form class="stack" onsubmit={record}>
     <label>Note <input bind:value={note} required /></label>
     <p class="muted">

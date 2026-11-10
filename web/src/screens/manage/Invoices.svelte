@@ -33,6 +33,13 @@
   let busy = $state(false);
 
   const today = new Date().toISOString().slice(0, 10);
+
+  // The form can open before the customers have loaded; choose the first once they have.
+  $effect(() => {
+    if (writing && !customerId && customers.length > 0) {
+      customerId = customers[0].id;
+    }
+  });
   const sums = $derived(totals(lines));
   const setProblem = (message: string) => (problem = message);
 
@@ -219,7 +226,7 @@
   {#if invoice.kind === "Invoice" && !invoice.credited}
     {#if invoice.paidOn}
       <button class="link-button" onclick={() => setPaid(invoice, false)}
-        >Not paid</button
+        >Mark as not paid</button
       >
     {:else}
       <button class="link-button" onclick={() => setPaid(invoice, true)}

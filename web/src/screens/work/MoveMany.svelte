@@ -10,7 +10,9 @@
   } from "../../lib/places";
   import { recordWork } from "../../lib/queue";
   import type { Schemas } from "../../lib/types";
+  import { signal } from "../../lib/feedback";
   import { isRecorded, outcomeProblem, plantName, work } from "../../lib/work";
+  import Camera from "./Camera.svelte";
 
   // Choose the place once, then scan tray after tray.
   let {
@@ -26,6 +28,8 @@
   let busy = $state(false);
   let moved = $state<{ label: string; what: string; queued: boolean }[]>([]);
   let scanBox = $state<HTMLInputElement | null>(null);
+  let camera = $state(false);
+  const cameraAvailable = !!navigator.mediaDevices?.getUserMedia;
 
   const options = $derived(trayPlaces(places));
   const chosen = $derived(options.find((option) => option.id === target));
@@ -61,58 +65,78 @@
       .join(", ");
   }
 
-  async function scanned(event: SubmitEvent) {
+  function scanned(event: SubmitEvent) {
     event.preventDefault();
     const label = code.trim();
     code = "";
+    void take(label);
+  }
+
+  /** One scanned label, from the scanner box or the camera. The box is always ready for the next. */
+  async function take(label: string) {
     problem = "";
 
     if (!label) {
       return;
     }
 
+    try {
+      busy = true;
+      const ok = await moveOne(label);
+      signal(ok);
+    } finally {
+      busy = false;
+      await tick();
+      scanBox?.focus();
+    }
+  }
+
+  async function moveOne(label: string): Promise<boolean> {
     // Scanning a place's label chooses it, at any point.
     if (isPlaceCode(label)) {
       const place = findPlaceByCode(label, places);
-      target = place && place.kind !== "Site" ? place.id : target;
-      problem = place ? "" : `No place has the label ${label}.`;
-      return;
+
+      if (!place) {
+        problem = `No place has the label ${label}.`;
+      } else if (place.kind === "Site") {
+        problem = `${place.name} is a whole site. Scan a bench or bed in it.`;
+      } else {
+        target = place.id;
+      }
+
+      return !!place && place.kind !== "Site";
     }
 
     if (!chosen) {
       problem = "Choose or scan where they're going first.";
-      return;
+      return false;
     }
 
-    busy = true;
     const tray = await findTray(label);
 
     if (!tray) {
-      busy = false;
       problem = `No tray has the label ${label}.`;
-      return;
+      return false;
     }
 
     const outcome = await recordWork(
       work.move(tray.id, { locationId: chosen.id }),
     );
-    busy = false;
 
-    if (isRecorded(outcome)) {
-      moved = [
-        {
-          label: tray.labelCode,
-          what: describe(tray),
-          queued: outcome.kind === "queued",
-        },
-        ...moved,
-      ];
-    } else {
+    if (!isRecorded(outcome)) {
       problem = outcomeProblem(outcome);
+      return false;
     }
 
-    await tick();
-    scanBox?.focus();
+    moved = [
+      {
+        label: tray.labelCode,
+        what: describe(tray),
+        queued: outcome.kind === "queued",
+      },
+      ...moved,
+    ];
+    return true;
   }
 </script>
 
@@ -163,5 +187,16 @@
     </ol>
   {/if}
 
-  <button onclick={onFinished}>Finished moving</button>
+  {#if camera}
+    <Camera
+      continuous
+      onScan={(scannedCode) => void take(scannedCode)}
+      onCancel={() => (camera = false)}
+    />
+  {:else if cameraAvailable}
+    <button class="secondary" onclick={() => (camera = true)}>Use camera</button
+    >
+  {/if}
+
+  <button class="secondary" onclick={onFinished}>Finished moving</button>
 </main>

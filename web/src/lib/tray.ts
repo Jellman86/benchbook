@@ -144,10 +144,15 @@ export function describeHistory(entry: HistoryEntry): string {
     }
     case "Treated":
       return `Treated with ${details?.product ?? "a product"}`;
-    case "StockCounted":
-      return entry.quantity
-        ? `Counted: ${Number(entry.quantity) > 0 ? "+" : "−"}${quantity}`
-        : "Counted: as expected";
+    case "StockCounted": {
+      const counted = (entry.details as { counted?: number } | null)?.counted;
+      const change = entry.quantity
+        ? ` (${Number(entry.quantity) > 0 ? "+" : "−"}${quantity})`
+        : "";
+      return counted === undefined
+        ? `Counted${change}`
+        : `Counted ${counted}${change || ", as expected"}`;
+    }
     case "Note":
       return `Note: ${details?.note ?? ""}`;
     case "Ready":
@@ -201,8 +206,17 @@ export function nextPotSize(
   return sizes.find((size) => size.id !== currentId)?.id ?? sizes[0]?.id ?? "";
 }
 
-/** Half and all of what's there, for one press. */
-export function quantityPresets(available: number): number[] {
+/** Half and all of what's there, for one press, saying which is which. */
+export function quantityPresets(
+  available: number,
+): { label: string; value: number }[] {
   const half = Math.floor(available / 2);
-  return [...new Set([half, available])].filter((value) => value > 0);
+  return [
+    ...(half > 0 && half < available
+      ? [{ label: `Half (${half})`, value: half }]
+      : []),
+    ...(available > 0
+      ? [{ label: `All (${available})`, value: available }]
+      : []),
+  ];
 }

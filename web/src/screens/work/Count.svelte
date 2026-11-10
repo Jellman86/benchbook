@@ -45,7 +45,7 @@
   }
 </script>
 
-<ActionFrame title="Count" {problem} {onCancel}>
+<ActionFrame title="Count" {problem} {onCancel} {container}>
   <BatchChoice lines={container.contents} bind:selected={chosen} />
   <p>How many are there?</p>
   <Stepper bind:value={counted} min={0} />

@@ -89,6 +89,15 @@ describe("history", () => {
     );
   });
 
+  it("gives the number counted", () => {
+    expect(describeHistory(entry("StockCounted", -2, { counted: 38 }))).toBe(
+      "Counted 38 (−2)",
+    );
+    expect(describeHistory(entry("StockCounted", null, { counted: 40 }))).toBe(
+      "Counted 40, as expected",
+    );
+  });
+
   it("describes a move with the full place", () => {
     expect(describeHistory(entry("Moved", null))).toBe(
       "Moved to Greenhouse 2, Bench A",
@@ -144,7 +153,10 @@ describe("pot sizes", () => {
   });
 
   it("offers half and all", () => {
-    expect(quantityPresets(40)).toEqual([20, 40]);
-    expect(quantityPresets(1)).toEqual([1]);
+    expect(quantityPresets(40)).toEqual([
+      { label: "Half (20)", value: 20 },
+      { label: "All (40)", value: 40 },
+    ]);
+    expect(quantityPresets(1)).toEqual([{ label: "All (1)", value: 1 }]);
   });
 });

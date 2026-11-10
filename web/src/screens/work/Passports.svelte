@@ -124,7 +124,7 @@
     }, setProblem);
 </script>
 
-<ActionFrame title="Received passports" {problem} {onCancel}>
+<ActionFrame title="Received passports" {problem} {onCancel} {container}>
   <BatchChoice lines={container.contents} bind:selected={chosen} />
   <p class="muted">{plantName(line.commonName, line.variety)}</p>
 

@@ -33,8 +33,14 @@ export class WorkQueue {
     this.failedKey = `growlog.failed.${owner}`;
   }
 
+  // Storage that's full, blocked or damaged must not stop the app opening.
   private read<T>(key: string): T[] {
-    return JSON.parse(this.store.getItem(key) ?? "[]") as T[];
+    try {
+      const items = JSON.parse(this.store.getItem(key) ?? "[]") as unknown;
+      return Array.isArray(items) ? (items as T[]) : [];
+    } catch {
+      return [];
+    }
   }
 
   private write<T>(key: string, items: T[]) {
@@ -164,9 +170,56 @@ export async function flush(
 
 let active: WorkQueue | null = null;
 
-export function useQueue(owner: string): WorkQueue {
+const nameKey = (owner: string) => `growlog.queueName.${owner}`;
+
+export function useQueue(owner: string, name?: string): WorkQueue {
   active = new WorkQueue(localStorage, owner);
+
+  try {
+    if (name) {
+      localStorage.setItem(nameKey(owner), name);
+    }
+  } catch {
+    // Without storage, other people's waiting work simply isn't named.
+  }
+
   return active;
+}
+
+/** Work other people recorded on this device that hasn't been sent, so it isn't forgotten. */
+export function waitingByOthers(
+  me: string | null,
+  store: Pick<Storage, "getItem" | "key" | "length"> = localStorage,
+): { owner: string; name: string; count: number }[] {
+  const found: { owner: string; name: string; count: number }[] = [];
+
+  try {
+    for (let index = 0; index < store.length; index += 1) {
+      const key = store.key(index) ?? "";
+      const owner = key.startsWith("growlog.queue.")
+        ? key.slice("growlog.queue.".length)
+        : null;
+
+      if (!owner || owner === me) {
+        continue;
+      }
+
+      const items = JSON.parse(store.getItem(key) ?? "[]") as unknown;
+      const count = Array.isArray(items) ? items.length : 0;
+
+      if (count > 0) {
+        found.push({
+          owner,
+          name: store.getItem(nameKey(owner)) ?? "someone else",
+          count,
+        });
+      }
+    }
+  } catch {
+    return found;
+  }
+
+  return found;
 }
 
 /** Sends work now, or keeps it on this device if the server can't be reached. */

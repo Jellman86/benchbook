@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using GrowLog.Api.Accounts;
 using GrowLog.Api.Data;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -246,7 +247,16 @@ internal static class CatalogueEndpoints
         return await SaveAsync(db, TypedResults.NoContent(), cancellationToken);
     }
 
-    private static async Task<List<SupplierResponse>> ListSuppliersAsync(GrowLogDbContext db, bool includeArchived = false, CancellationToken cancellationToken = default) =>
+    /// <summary>Contact details are personal data, so only the owner sees them; staff need just the names.</summary>
+    private static async Task<List<SupplierResponse>> ListSuppliersAsync(ClaimsPrincipal user, GrowLogDbContext db, bool includeArchived = false, CancellationToken cancellationToken = default)
+    {
+        var suppliers = await ListAllSuppliersAsync(db, includeArchived, cancellationToken);
+        return user.IsInRole(AccountServices.OwnerRole) && user.FindFirst(AccountServices.BenchSessionClaim) is null
+            ? suppliers
+            : suppliers.ConvertAll(supplier => supplier with { ContactName = null, Phone = null, Email = null, Address = null, AccountReference = null, Notes = null });
+    }
+
+    private static async Task<List<SupplierResponse>> ListAllSuppliersAsync(GrowLogDbContext db, bool includeArchived, CancellationToken cancellationToken) =>
         await db.Suppliers
             .Where(supplier => includeArchived || supplier.ArchivedAt == null)
             .Select(supplier => new { Supplier = supplier, LastUsed = db.Batches.Where(b => b.SupplierId == supplier.Id).Max(b => (DateTimeOffset?)b.CreatedAt) })
@@ -329,7 +339,8 @@ internal static class CatalogueEndpoints
                 row.Location.ArchivedAt != null,
                 db.CatalogueEntryPhotos.Where(photo => photo.Entry == CataloguePhotoEntry.Location && photo.EntryId == row.Location.Id).OrderBy(photo => photo.Id).Select(photo => photo.Id).ToList(),
                 row.Location.Name,
-                row.Location.LabelCode))
+                row.Location.LabelCode,
+                row.LastUsed))
             .ToListAsync(cancellationToken);
 
         return places.ConvertAll(place => place with { Path = paths.GetValueOrDefault(place.Id) ?? place.Name });
@@ -462,5 +473,6 @@ internal static class CatalogueEndpoints
     internal sealed record LocationRequest(string Name, LocationKind Kind, Guid? ParentId);
 
     /// <param name="Path">The name with the places it sits in, such as "Greenhouse 2, Bench A".</param>
-    internal sealed record LocationResponse(Guid Id, string Name, LocationKind Kind, Guid? ParentId, bool Archived, IReadOnlyList<Guid> PhotoIds, string Path, string LabelCode);
+    /// <param name="LastUsedAt">When work last named this place, so lists can put the places in use first.</param>
+    internal sealed record LocationResponse(Guid Id, string Name, LocationKind Kind, Guid? ParentId, bool Archived, IReadOnlyList<Guid> PhotoIds, string Path, string LabelCode, DateTimeOffset? LastUsedAt);
 }

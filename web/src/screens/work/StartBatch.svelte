@@ -1,6 +1,12 @@
 <script lang="ts">
   import Camera from "@lucide/svelte/icons/camera";
   import { onDestroy, onMount } from "svelte";
+  import {
+    focusHeading,
+    onStepChange,
+    pushStep,
+    stepOf,
+  } from "../../lib/steps";
   import { api } from "../../api/client";
   import { shrinkPhoto } from "../../lib/photo";
   import { attempt, optional, type Schemas } from "../../lib/types";
@@ -69,7 +75,35 @@
   let locationId = $state("");
   let potSizeId = $state("");
   let containerKind = $state<Schemas["ContainerKind"]>("Tray");
+  // Grown here starts as Great Britain; bought-in plants must have their origin chosen.
   let originCountry = $state("GB");
+  let otherCountry = $state(false);
+
+  const originCountries = [
+    { code: "GB", name: "Great Britain" },
+    { code: "IE", name: "Ireland" },
+    { code: "NL", name: "Netherlands" },
+    { code: "BE", name: "Belgium" },
+    { code: "DE", name: "Germany" },
+    { code: "DK", name: "Denmark" },
+    { code: "FR", name: "France" },
+    { code: "IT", name: "Italy" },
+    { code: "ES", name: "Spain" },
+    { code: "PT", name: "Portugal" },
+    { code: "PL", name: "Poland" },
+  ];
+
+  function chooseSource(chosen: Schemas["BatchSource"]) {
+    source = chosen;
+
+    if (chosen === "BoughtIn") {
+      originCountry = "";
+      // Suppliers come most recently used first.
+      supplierId = supplierId || (suppliers[0]?.id ?? "");
+    } else if (!originCountry) {
+      originCountry = "GB";
+    }
+  }
   let photos = $state<Partial<Record<PhotoKind, { blob: Blob; url: string }>>>(
     {},
   );
@@ -102,11 +136,14 @@
 
       if (prefill) {
         source = "BoughtIn";
+        originCountry = "";
         supplierId = prefill.supplierId;
         quantity = prefill.quantity;
       }
     }, setProblem),
   );
+
+  onMount(() => onStepChange(stepped));
 
   onDestroy(() => {
     for (const photo of Object.values(photos)) {
@@ -131,19 +168,39 @@
     }
 
     if (choice.kind !== "species") {
-      stage = 2;
+      goTo(2);
     }
+  }
+
+  // Each step is a step in the browser's history, so the phone's Back button goes back a step,
+  // keeping what was entered, rather than leaving New batch.
+  function goTo(next: number) {
+    stage = next;
+    pushStep("batchStage", next);
+    void focusHeading();
+  }
+
+  function stepped() {
+    const kept = stepOf<number>("batchStage") ?? 1;
+
+    if (kept < stage) {
+      stage = kept;
+
+      if (stage === 1 && picked?.kind !== "species") {
+        picked = null;
+      }
+    } else {
+      stage = kept;
+    }
+
+    void focusHeading();
   }
 
   function back() {
     problem = "";
 
     if (stage > 1) {
-      stage -= 1;
-
-      if (stage === 1 && picked?.kind !== "species") {
-        picked = null;
-      }
+      history.back();
     } else if (picked) {
       picked = null;
     } else {
@@ -153,7 +210,7 @@
 
   function next() {
     problem = "";
-    stage += 1;
+    goTo(stage + 1);
   }
 
   const addSupplier = () =>
@@ -400,7 +457,7 @@
         <button
           class={source === item.source ? "" : "secondary"}
           aria-pressed={source === item.source}
-          onclick={() => (source = item.source)}>{item.label}</button
+          onclick={() => chooseSource(item.source)}>{item.label}</button
         >
       {/each}
     </div>
@@ -424,18 +481,44 @@
     {/if}
     <label>
       Country of origin
-      <select bind:value={originCountry}>
-        <option value="GB">Great Britain</option>
-        <option value="IE">Ireland</option>
-        <option value="NL">Netherlands</option>
-        <option value="DE">Germany</option>
-        <option value="FR">France</option>
-        <option value="BE">Belgium</option>
-        <option value="IT">Italy</option>
-        <option value="ES">Spain</option>
+      <select
+        value={originCountries.some((item) => item.code === originCountry)
+          ? originCountry
+          : originCountry
+            ? "other"
+            : ""}
+        onchange={(event) => {
+          const chosen = event.currentTarget.value;
+          originCountry = chosen === "other" ? "" : chosen;
+          otherCountry = chosen === "other";
+        }}
+      >
+        <option value="">Choose…</option>
+        {#each originCountries as item (item.code)}
+          <option value={item.code}>{item.name}</option>
+        {/each}
+        <option value="other">Somewhere else…</option>
       </select>
     </label>
-    <button onclick={next}>Next</button>
+    {#if otherCountry}
+      <label
+        >Two-letter country code, as on the passport <input
+          bind:value={originCountry}
+          maxlength="2"
+          autocapitalize="characters"
+        /></label
+      >
+    {/if}
+    {#if source === "BoughtIn" && !supplierId}
+      <p class="muted">
+        Bought-in plants need their supplier, for the passport record.
+      </p>
+    {/if}
+    <button
+      onclick={next}
+      disabled={originCountry.trim().length !== 2 ||
+        (source === "BoughtIn" && !supplierId)}>Next</button
+    >
   {:else if stage === 4}
     <p class="muted">Take a photo of anything worth keeping. All optional.</p>
     <div class="card-grid">

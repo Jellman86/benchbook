@@ -1,20 +1,32 @@
 <script lang="ts">
   import CircleCheck from "@lucide/svelte/icons/circle-check";
   import { onMount, tick } from "svelte";
+  import { focusHeading } from "../lib/steps";
   import { api } from "../api/client";
   import {
     externalSignInProblem,
     signInAsYourselfKey,
     type Me,
   } from "../lib/boot";
-  import { rememberContainers, rememberPlaces } from "../lib/offline";
-  import { flush, recordWork, useQueue, type FailedWork } from "../lib/queue";
+  import {
+    rememberBench,
+    rememberContainers,
+    rememberPlaces,
+  } from "../lib/offline";
+  import {
+    flush,
+    recordWork,
+    useQueue,
+    waitingByOthers,
+    type FailedWork,
+  } from "../lib/queue";
   import type { Schemas } from "../lib/types";
   import {
     describeRecent,
     isRecorded,
     outcomeProblem,
     repeatOf,
+    undoProblem,
     type BatchPrefill,
     submit,
     work,
@@ -50,6 +62,20 @@
   }: { me: Me; atBench: boolean; onSignedOut: () => void } = $props();
 
   const benchIdleLimit = 5 * 60 * 1000;
+  const stockRefreshEvery = 5 * 60 * 1000;
+
+  const screenTitles: Record<string, string> = {
+    home: "Record work",
+    container: "Tray",
+    start: "New batch",
+    camera: "Scan",
+    more: "Settings",
+    production: "Production",
+    place: "Place",
+    moveMany: "Move several",
+    plants: "Plants",
+    manage: "Manage",
+  };
   const sendEvery = 30 * 1000;
   const cameraAvailable = !!navigator.mediaDevices?.getUserMedia;
 
@@ -66,12 +92,16 @@
     | { name: "manage"; section: ManageSection | null };
 
   // svelte-ignore state_referenced_locally
-  const queue = useQueue(me.id);
+  const queue = useQueue(me.id, me.name);
   // Work used to be kept under a person's name, which can change.
   // svelte-ignore state_referenced_locally
   queue.adopt(me.name);
 
-  let view = $state<View>({ name: "home" });
+  // A reload comes back to the screen it was on.
+  const keptView = (history.state as { view?: View } | null)?.view;
+  let view = $state<View>(keptView ?? { name: "home" });
+  let notice = $state("");
+  let lastStockRefresh = 0;
   let label = $state("");
   let scanBox = $state<HTMLInputElement | null>(null);
   let recent = $state<Schemas["RecentAction"][]>([]);
@@ -84,6 +114,8 @@
   let offline = $state(false);
   let waiting = $state(queue.waiting);
   let failed = $state<FailedWork[]>(queue.failed);
+  // svelte-ignore state_referenced_locally
+  const othersWaiting = waitingByOthers(me.id);
   let backupStopped = $state(false);
   let demoAvailable = $state(false);
   let loadingDemo = $state(false);
@@ -107,13 +139,11 @@
       }
     }
 
+    document.title = `${screenTitles[current.name]} · GrowLog`;
+
     // Someone using a screen reader or keyboard starts at the top of the new screen.
     if (current.name !== "home") {
-      void tick().then(() => {
-        const main = document.querySelector("main");
-        main?.setAttribute("tabindex", "-1");
-        main?.focus({ preventScroll: true });
-      });
+      void focusHeading();
     }
   });
 
@@ -143,15 +173,20 @@
         const backups = (await api.GET("/api/backups/status")).data;
         backupStopped = !!backups?.known && !backups.healthy;
       }
-      const containers = (await api.GET("/api/containers/active")).data;
-      const places = (await api.GET("/api/locations")).data;
+      // What the device keeps for no signal is refreshed every few minutes, not after every press.
+      if (Date.now() - lastStockRefresh > stockRefreshEvery) {
+        const containers = (await api.GET("/api/containers/active")).data;
+        const places = (await api.GET("/api/locations")).data;
 
-      if (containers) {
-        rememberContainers(containers);
-      }
+        if (containers) {
+          rememberContainers(containers);
+        }
 
-      if (places) {
-        rememberPlaces(places);
+        if (places) {
+          rememberPlaces(places);
+        }
+
+        lastStockRefresh = Date.now();
       }
 
       offline = false;
@@ -171,6 +206,14 @@
       const before = queue.waiting;
       await flush(queue, submit, outcomeProblem);
       showQueue();
+
+      // Once it has gone, the saved card stops saying it's only on this device.
+      if (done && !queue.has(done.eventId)) {
+        done = {
+          ...done,
+          message: done.message.replace(". Saved on this device for now.", ""),
+        };
+      }
 
       if (queue.waiting < before) {
         await refresh();
@@ -192,6 +235,7 @@
   }
 
   function finishWork(message: string, eventId: string, newLabel?: string) {
+    notice = "";
     const saved = queue.has(eventId);
 
     if (saved) {
@@ -234,6 +278,7 @@
       void openPlace(scanned);
     } else if (scanned) {
       done = null;
+      notice = "";
       problem = "";
       view = { name: "container", label: scanned, fromProduction };
     }
@@ -271,10 +316,13 @@
     }
   }
 
-  async function undo(eventId: string) {
+  async function undo(eventId: string, words: string) {
+    notice = "";
+
     if (queue.has(eventId)) {
       queue.remove(eventId);
       done = null;
+      notice = `Undone: ${words}`;
       showQueue();
       return;
     }
@@ -284,10 +332,11 @@
     if (isRecorded(outcome)) {
       done = null;
       problem = "";
+      notice = `Undone: ${words}`;
       showQueue();
       await refresh();
     } else {
-      problem = outcomeProblem(outcome);
+      problem = undoProblem(outcome);
     }
   }
 
@@ -297,7 +346,7 @@
         `Undo "${describeRecent(action)}"? It stays in the tray's history, marked as undone.`,
       )
     ) {
-      void undo(action.id);
+      void undo(action.id, describeRecent(action));
     }
   }
 
@@ -326,6 +375,15 @@
   }
 
   async function signOut() {
+    if (
+      queue.waiting > 0 &&
+      !confirm(
+        `${queue.waiting} ${queue.waiting === 1 ? "thing you recorded is" : "things you recorded are"} still waiting to send. They'll send next time you sign in on this device. Sign out anyway?`,
+      )
+    ) {
+      return;
+    }
+
     // Leaving the nursery team account means someone wants to sign in as themselves.
     if (me.isTeam) {
       try {
@@ -345,14 +403,12 @@
       history.replaceState(null, "", location.pathname);
     }
 
-    // A reload comes back to the same screen.
-    const kept = (history.state as { view?: View } | null)?.view;
+    rememberBench(atBench);
 
-    if (kept && kept.name !== "home") {
-      view = kept;
-      void refresh();
-    } else {
+    if (view.name === "home") {
       void goHome();
+    } else {
+      void refresh();
     }
 
     const stepBack = (event: PopStateEvent) => {
@@ -497,11 +553,21 @@
               rel="noopener">Print label</a
             >
           {/if}
-          <button class="secondary" onclick={() => undo(done!.eventId)}
-            >Undo</button
+          <button
+            class="secondary"
+            onclick={() => undo(done!.eventId, done!.message)}>Undo</button
           >
         </div>
       {/if}
+      {#if notice}<p class="card" role="status">{notice}</p>{/if}
+      {#each othersWaiting as other (other.owner)}
+        <p class="card">
+          {other.count}
+          {other.count === 1 ? "thing" : "things"} recorded by {other.name}
+          {other.count === 1 ? "is" : "are"} waiting on this device. They'll send
+          when {other.name} signs in here.
+        </p>
+      {/each}
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
       <div class="split">

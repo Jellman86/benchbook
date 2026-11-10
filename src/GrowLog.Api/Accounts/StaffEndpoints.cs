@@ -23,6 +23,7 @@ internal static class StaffEndpoints
         staff.MapPost("/{id:guid}/name-only", SetNameOnlyAsync);
         staff.MapPost("/{id:guid}/invite", InviteAsync).Produces<InviteCreated>();
         staff.MapPost("/{id:guid}/archive", ArchiveAsync);
+        staff.MapPost("/{id:guid}/restore", RestoreAsync);
         staff.MapGet("/sign-in-settings", GetSignInSettingsAsync);
         staff.MapPost("/qr", (QrRequest request) => request.Text.Length is > 0 and <= MaxQrText
             ? Results.Ok(new QrCode(LabelPrinter.QrSvg(request.Text)))
@@ -62,8 +63,10 @@ internal static class StaffEndpoints
     private static async Task<SignInSettings> GetSignInSettingsAsync(GrowLogDbContext db, CancellationToken cancellationToken) =>
         new((await db.GetNurserySettingsAsync(cancellationToken)).SignInLevel);
 
-    private static async Task<IResult> SaveSignInSettingsAsync(SignInSettings request, GrowLogDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> SaveSignInSettingsAsync(SignInSettings request, GrowLogDbContext db, UserManager<AppUser> users, CancellationToken cancellationToken)
     {
+        await EndSessionsWithoutAWayInAsync(request.Level, db, users, cancellationToken);
+
         if (await db.NurserySettings.FirstOrDefaultAsync(cancellationToken) is { } settings)
         {
             settings.SignInLevel = request.Level;
@@ -75,6 +78,27 @@ internal static class StaffEndpoints
 
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.NoContent();
+    }
+
+    /// <summary>
+    /// A stricter level must reach sessions already open: the team account and people who only got in
+    /// by tapping their name are signed out within a minute.
+    /// </summary>
+    private static async Task EndSessionsWithoutAWayInAsync(SignInLevel level, GrowLogDbContext db, UserManager<AppUser> users, CancellationToken cancellationToken)
+    {
+        var affected = await users.Users
+            .Where(user => (level != SignInLevel.Open && user.IsTeamAccount)
+                || (level != SignInLevel.Open && level != SignInLevel.Names
+                    && user.PasswordHash == null
+                    && !db.UserPasskeys.Any(passkey => passkey.UserId == user.Id)
+                    && !db.UserLogins.Any(login => login.UserId == user.Id)
+                    && (level == SignInLevel.Strict || !user.NameOnlySignIn)))
+            .ToListAsync(cancellationToken);
+
+        foreach (var person in affected)
+        {
+            await users.UpdateSecurityStampAsync(person);
+        }
     }
 
     private static async Task<IResult> AddAsync(
@@ -232,6 +256,21 @@ internal static class StaffEndpoints
         // The lockout stops every kind of sign-in. The new stamp ends sessions already open.
         await users.SetLockoutEndDateAsync(member, DateTimeOffset.MaxValue);
         await users.UpdateSecurityStampAsync(member);
+        return TypedResults.NoContent();
+    }
+
+    /// <summary>Someone who left and has come back, such as seasonal staff, with their records kept.</summary>
+    private static async Task<IResult> RestoreAsync(Guid id, UserManager<AppUser> users)
+    {
+        if (await users.FindByIdAsync(id.ToString()) is not { IsTeamAccount: false } member)
+        {
+            return TypedResults.NotFound();
+        }
+
+        member.ArchivedAt = null;
+        await users.UpdateAsync(member);
+        await users.SetLockoutEndDateAsync(member, lockoutEnd: null);
+        await users.ResetAccessFailedCountAsync(member);
         return TypedResults.NoContent();
     }
 

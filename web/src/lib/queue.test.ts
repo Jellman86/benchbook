@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { flush, WorkQueue } from "./queue";
+import { flush, waitingByOthers, WorkQueue } from "./queue";
 import type { Outcome, WorkRequest } from "./work";
 
 function memoryStore() {
@@ -155,5 +155,30 @@ describe("WorkQueue", () => {
 
     expect(queue.waiting).toBe(1);
     expect(old.waiting).toBe(0);
+  });
+
+  it("finds work other people left waiting on the device", () => {
+    const other = new WorkQueue(store, "kim");
+    other.add(request("k"));
+    store.setItem("growlog.queueName.kim", "Kim Bower");
+    const keys = [
+      "growlog.queue.kim",
+      "growlog.queue.Alex",
+      "growlog.queueName.kim",
+    ];
+    const listing = {
+      getItem: store.getItem,
+      key: (index: number) => keys[index] ?? null,
+      length: keys.length,
+    };
+
+    expect(waitingByOthers("Alex", listing)).toEqual([
+      { owner: "kim", name: "Kim Bower", count: 1 },
+    ]);
+  });
+
+  it("opens even when what's stored is damaged", () => {
+    store.setItem("growlog.queue.Alex", "not json");
+    expect(new WorkQueue(store, "Alex").waiting).toBe(0);
   });
 });
