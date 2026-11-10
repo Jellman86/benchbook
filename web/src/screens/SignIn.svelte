@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api } from "../api/client";
-  import { externalSignInProblem } from "../lib/boot";
+  import { externalSignInProblem, signInAsYourselfKey } from "../lib/boot";
   import { passkeyProblem, usePasskey } from "../lib/passkey";
   import type { Schemas } from "../lib/types";
 
@@ -17,6 +17,7 @@
   let password = $state("");
   let problem = $state("");
   let busy = $state(false);
+  let open = $state(false);
 
   onMount(async () => {
     try {
@@ -24,6 +25,8 @@
       history.replaceState(null, "", location.pathname);
       people = (await api.GET("/api/account/people")).data ?? [];
       external = (await api.GET("/api/account/external")).data ?? null;
+      open =
+        (await api.GET("/api/account/sign-in-mode")).data?.level === "Open";
     } catch {
       problem = offline;
     }
@@ -40,6 +43,17 @@
     } finally {
       busy = false;
     }
+  }
+
+  // The nursery chose no signing in: go back in as the nursery team.
+  function carryOn() {
+    try {
+      sessionStorage.removeItem(signInAsYourselfKey);
+    } catch {
+      // Nothing was kept, so there's nothing to clear.
+    }
+
+    onSignedIn();
   }
 
   const signInWithPasskey = () =>
@@ -159,5 +173,10 @@
       onclick={signInWithPasskey}
       disabled={busy}>Sign in with passkey</button
     >
+    {#if open}
+      <button class="secondary" onclick={carryOn}
+        >Carry on without signing in</button
+      >
+    {/if}
   {/if}
 </main>

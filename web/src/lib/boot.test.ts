@@ -10,6 +10,7 @@ const probes = (overrides: Partial<Probes> = {}): Probes => ({
   me: async () => null,
   benchPeople: async () => null,
   needsSetup: async () => false,
+  teamSignIn: async () => false,
   ...overrides,
 });
 
@@ -96,5 +97,31 @@ describe("externalSignInProblem", () => {
     expect(externalSignInProblem("?sso=whatever")).toBe(
       "Signing in didn't work. Please try again.",
     );
+  });
+});
+
+describe("no signing in", () => {
+  it("goes straight in as the nursery team where the nursery chose that", async () => {
+    let signedIn = false;
+    const team = {
+      id: "t",
+      name: "Nursery team",
+      isOwner: false,
+      isTeam: true,
+    };
+
+    const start = await chooseStart(
+      probes({
+        me: async () => (signedIn ? team : null),
+        teamSignIn: async () => (signedIn = true),
+      }),
+      null,
+    );
+
+    expect(start).toEqual({ screen: "home", me: team, atBench: false });
+  });
+
+  it("asks someone to sign in when the nursery wants that", async () => {
+    expect(await chooseStart(probes(), null)).toEqual({ screen: "signIn" });
   });
 });

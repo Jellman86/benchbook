@@ -7,9 +7,6 @@ internal sealed class NurserySettings
 
     public int Id { get; init; } = SingleId;
 
-    /// <summary>
-    /// Whether staff can sign in just by tapping their name. Only safe where GrowLog can't be reached from
-    /// outside the nursery, so the owner turns it on knowingly.
-    /// </summary>
-    public bool AllowNameOnlySignIn { get; set; }
+    /// <summary>How much signing in the nursery wants.</summary>
+    public SignInLevel SignInLevel { get; set; } = SignInLevel.Personal;
 }

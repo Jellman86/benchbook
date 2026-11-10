@@ -632,6 +632,37 @@
         }
       }
     },
+    "/api/account/sign-in/team": {
+      "post": {
+        "tags": [
+          "SignInEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/account/sign-in-mode": {
+      "get": {
+        "tags": [
+          "SignInEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInMode"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/account/settings": {
       "get": {
         "tags": [
@@ -3860,7 +3891,8 @@
         "required": [
           "id",
           "name",
-          "isOwner"
+          "isOwner",
+          "isTeam"
         ],
         "type": "object",
         "properties": {
@@ -3872,6 +3904,9 @@
             "type": "string"
           },
           "isOwner": {
+            "type": "boolean"
+          },
+          "isTeam": {
             "type": "boolean"
           }
         }
@@ -5976,6 +6011,29 @@
           }
         }
       },
+      "SignInLevel": {
+        "enum": [
+          "Open",
+          "Names",
+          "Personal",
+          "Strict"
+        ]
+      },
+      "SignInMode": {
+        "required": [
+          "level",
+          "benchNeedsPin"
+        ],
+        "type": "object",
+        "properties": {
+          "level": {
+            "$ref": "#/components/schemas/SignInLevel"
+          },
+          "benchNeedsPin": {
+            "type": "boolean"
+          }
+        }
+      },
       "SignInPerson": {
         "required": [
           "id",
@@ -6013,12 +6071,12 @@
       },
       "SignInSettings": {
         "required": [
-          "allowNameOnly"
+          "level"
         ],
         "type": "object",
         "properties": {
-          "allowNameOnly": {
-            "type": "boolean"
+          "level": {
+            "$ref": "#/components/schemas/SignInLevel"
           }
         }
       },

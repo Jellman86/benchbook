@@ -2,7 +2,11 @@
   import CircleCheck from "@lucide/svelte/icons/circle-check";
   import { onMount, tick } from "svelte";
   import { api } from "../api/client";
-  import { externalSignInProblem, type Me } from "../lib/boot";
+  import {
+    externalSignInProblem,
+    signInAsYourselfKey,
+    type Me,
+  } from "../lib/boot";
   import { rememberContainers, rememberPlaces } from "../lib/offline";
   import { flush, recordWork, useQueue, type FailedWork } from "../lib/queue";
   import type { Schemas } from "../lib/types";
@@ -321,6 +325,15 @@
   }
 
   async function signOut() {
+    // Leaving the nursery team account means someone wants to sign in as themselves.
+    if (me.isTeam) {
+      try {
+        sessionStorage.setItem(signInAsYourselfKey, "yes");
+      } catch {
+        // Without storage the device simply goes back in as the team.
+      }
+    }
+
     await api.POST("/api/account/sign-out");
     onSignedOut();
   }

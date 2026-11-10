@@ -48,7 +48,8 @@ internal static class BenchEndpoints
         }
 
         // Without anyone who can sign in there, the device would be stuck on an empty list.
-        if (!await users.Users.AnyAsync(user => user.ArchivedAt == null && user.PinHash != null, cancellationToken))
+        if (SignInRules.BenchNeedsPin((await db.GetNurserySettingsAsync(cancellationToken)).SignInLevel)
+            && !await users.Users.AnyAsync(user => user.ArchivedAt == null && user.PinHash != null, cancellationToken))
         {
             return TypedResults.Conflict();
         }
@@ -97,8 +98,10 @@ internal static class BenchEndpoints
             return TypedResults.Unauthorized();
         }
 
+        var needsPin = SignInRules.BenchNeedsPin((await db.GetNurserySettingsAsync(cancellationToken)).SignInLevel);
+
         var people = await users.Users
-            .Where(user => user.ArchivedAt == null && user.PinHash != null)
+            .Where(user => user.ArchivedAt == null && !user.IsTeamAccount && (!needsPin || user.PinHash != null))
             .OrderBy(user => user.UserName)
             .Select(user => new Person(user.Id, user.UserName!))
             .ToListAsync(cancellationToken);
@@ -120,26 +123,17 @@ internal static class BenchEndpoints
             return TypedResults.Unauthorized();
         }
 
-        if (await users.FindByIdAsync(request.UserId.ToString()) is not { PinHash: { } pinHash } person)
+        if (await users.FindByIdAsync(request.UserId.ToString()) is not { ArchivedAt: null, IsTeamAccount: false } person)
         {
             return TypedResults.Unauthorized();
         }
 
-        if (await users.IsLockedOutAsync(person))
+        // Some nurseries choose tapping a name at the bench, with no PIN.
+        if (SignInRules.BenchNeedsPin((await db.GetNurserySettingsAsync(cancellationToken)).SignInLevel)
+            && await RefusePinAsync(person, request.Pin, users, hasher) is { } refused)
         {
-            return TypedResults.StatusCode(StatusCodes.Status423Locked);
+            return refused;
         }
-
-        if (hasher.VerifyHashedPassword(person, pinHash, request.Pin) == PasswordVerificationResult.Failed)
-        {
-            await users.AccessFailedAsync(person);
-
-            return await users.IsLockedOutAsync(person)
-                ? TypedResults.StatusCode(StatusCodes.Status423Locked)
-                : TypedResults.Unauthorized();
-        }
-
-        await users.ResetAccessFailedCountAsync(person);
 
         // Not persistent, and short: sliding expiry returns the station to the name list when idle.
         await signIn.SignInWithClaimsAsync(
@@ -152,6 +146,32 @@ internal static class BenchEndpoints
             [new Claim(AccountServices.BenchSessionClaim, "true")]);
 
         return TypedResults.NoContent();
+    }
+
+    /// <summary>Why a PIN is refused, or null when it's right.</summary>
+    private static async Task<IResult?> RefusePinAsync(AppUser person, string pin, UserManager<AppUser> users, IPasswordHasher<AppUser> hasher)
+    {
+        if (person.PinHash is not { } pinHash)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        if (await users.IsLockedOutAsync(person))
+        {
+            return TypedResults.StatusCode(StatusCodes.Status423Locked);
+        }
+
+        if (hasher.VerifyHashedPassword(person, pinHash, pin) == PasswordVerificationResult.Failed)
+        {
+            await users.AccessFailedAsync(person);
+
+            return await users.IsLockedOutAsync(person)
+                ? TypedResults.StatusCode(StatusCodes.Status423Locked)
+                : TypedResults.Unauthorized();
+        }
+
+        await users.ResetAccessFailedCountAsync(person);
+        return null;
     }
 
     /// <summary>Stops this device being a bench station, so someone can sign in on it as themselves.</summary>

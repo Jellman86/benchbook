@@ -79,10 +79,12 @@ internal static class AccountHarness
 
     public static Task<HttpStatusCode> MeStatusAsync(HttpClient client) => GetStatusAsync(client, "/api/account/me");
 
-    /// <summary>Turns on signing in by tapping a name, which is off until the owner chooses it.</summary>
-    public static async Task AllowNameOnlyAsync(HttpClient owner)
+    /// <summary>Lets the owner choose name-only sign-in for someone: anything but the strict level.</summary>
+    public static Task AllowNameOnlyAsync(HttpClient owner) => SetSignInLevelAsync(owner, "Personal");
+
+    public static async Task SetSignInLevelAsync(HttpClient owner, string level)
     {
-        using var response = await owner.PutAsJsonAsync(Route("/api/staff/sign-in-settings"), new { allowNameOnly = true }, Cancellation);
+        using var response = await owner.PutAsJsonAsync(Route("/api/staff/sign-in-settings"), new { level }, Cancellation);
         response.EnsureSuccessStatusCode();
     }
 }
