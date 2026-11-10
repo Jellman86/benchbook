@@ -40,19 +40,26 @@ internal static class CatalogueEndpoints
     private static void MapArchiving<T>(RouteGroupBuilder group)
         where T : class, IArchivable
     {
-        group.MapPost("/{id:guid}/archive", (Guid id, GrowLogDbContext db, CancellationToken cancellationToken) =>
-            SetArchivedAsync<T>(id, DateTimeOffset.UtcNow, db, cancellationToken)).RequireAuthorization(AccountServices.OwnerPolicy);
+        group.MapPost("/{id:guid}/archive", (Guid id, GrowLogDbContext db, EventStore store, CancellationToken cancellationToken) =>
+            SetArchivedAsync<T>(id, DateTimeOffset.UtcNow, db, store, cancellationToken))
+            .RequireAuthorization(AccountServices.OwnerPolicy)
+            .Produces<ArchiveRefused>(StatusCodes.Status409Conflict);
 
-        group.MapPost("/{id:guid}/restore", (Guid id, GrowLogDbContext db, CancellationToken cancellationToken) =>
-            SetArchivedAsync<T>(id, archivedAt: null, db, cancellationToken)).RequireAuthorization(AccountServices.OwnerPolicy);
+        group.MapPost("/{id:guid}/restore", (Guid id, GrowLogDbContext db, EventStore store, CancellationToken cancellationToken) =>
+            SetArchivedAsync<T>(id, archivedAt: null, db, store, cancellationToken)).RequireAuthorization(AccountServices.OwnerPolicy);
     }
 
-    private static async Task<IResult> SetArchivedAsync<T>(Guid id, DateTimeOffset? archivedAt, GrowLogDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> SetArchivedAsync<T>(Guid id, DateTimeOffset? archivedAt, GrowLogDbContext db, EventStore store, CancellationToken cancellationToken)
         where T : class, IArchivable
     {
         if (await db.Set<T>().FindAsync([id], cancellationToken) is not { } entry)
         {
             return TypedResults.NotFound();
+        }
+
+        if (archivedAt is not null && entry is Location && await WhyPlaceIsInUseAsync(id, db, store, cancellationToken) is { } refused)
+        {
+            return TypedResults.Conflict(refused);
         }
 
         entry.ArchivedAt = archivedAt;
@@ -328,6 +335,22 @@ internal static class CatalogueEndpoints
         _ => false,
     };
 
+    /// <summary>A place still holding trays, or other places, can't stop being used, or they would be left nowhere.</summary>
+    private static async Task<ArchiveRefused?> WhyPlaceIsInUseAsync(Guid id, GrowLogDbContext db, EventStore store, CancellationToken cancellationToken)
+    {
+        var places = await db.Locations.CountAsync(location => location.ParentId == id && location.ArchivedAt == null, cancellationToken);
+
+        if (places > 0)
+        {
+            return new ArchiveRefused("HasPlaces", places);
+        }
+
+        var containerIds = (await store.GetStockAsync(cancellationToken)).Select(row => row.ContainerId).Distinct().ToList();
+        var trays = (await store.GetPlacementsAsync(containerIds, cancellationToken)).Values.Count(placement => placement.LocationId == id);
+
+        return trays > 0 ? new ArchiveRefused("HasTrays", trays) : null;
+    }
+
     private static async Task<IResult> AddLocationAsync(LocationRequest request, GrowLogDbContext db, CancellationToken cancellationToken)
     {
         if (Clean(request.Name) is not { } name)
@@ -373,6 +396,8 @@ internal static class CatalogueEndpoints
 
     internal sealed record PotQuantityRequest(int? Quantity);
 
+    internal sealed record ArchiveRefused(string Problem, int Count);
+
     internal sealed record PotSizeResponse(Guid Id, string Name, bool Archived, int? QuantityInStock, IReadOnlyList<Guid> PhotoIds);
 
     internal sealed record PlantPriceDto(Guid PotSizeId, decimal Price);
@@ -385,7 +410,7 @@ internal static class CatalogueEndpoints
         string? Position,
         string? Watering,
         string? Hardiness,
-        bool XylellaHost,
+        bool? XylellaHost,
         bool ProtectedVariety,
         IReadOnlyList<PlantPriceDto>? Prices);
 
@@ -398,7 +423,7 @@ internal static class CatalogueEndpoints
         string? Position,
         string? Watering,
         string? Hardiness,
-        bool XylellaHost,
+        bool? XylellaHost,
         bool ProtectedVariety,
         bool Archived,
         IReadOnlyList<PlantPriceDto> Prices,

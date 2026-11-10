@@ -247,4 +247,41 @@ public sealed class BenchStationTests(PostgresFixture database)
 
         Assert.Equal(HttpStatusCode.Unauthorized, await MeStatusAsync(nursery.Bench));
     }
+
+    [Fact]
+    public async Task The_owner_signed_in_at_a_bench_can_record_work_but_not_manage()
+    {
+        await using var nursery = await Nursery.CreateAsync(database);
+        var ownerId = (await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/account/me"), Cancellation)).GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(nursery.Owner, $"/api/staff/{ownerId}/pin", new { pin = "9876" }));
+
+        Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(nursery.Bench, "/api/bench/sign-in", new { userId = ownerId, pin = "9876" }));
+
+        var me = await nursery.Bench.GetFromJsonAsync<JsonElement>(Route("/api/account/me"), Cancellation);
+        Assert.False(me.GetProperty("isOwner").GetBoolean());
+        Assert.Equal(HttpStatusCode.Forbidden, await GetStatusAsync(nursery.Bench, "/api/staff"));
+        Assert.Equal(HttpStatusCode.OK, await GetStatusAsync(nursery.Bench, "/api/containers/active"));
+    }
+
+    [Fact]
+    public async Task A_station_cannot_be_made_before_anyone_has_a_pin()
+    {
+        await using var app = await CreateAppAsync(database);
+        using var owner = Client(app);
+        using var ownerKey = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, ownerKey);
+
+        Assert.Equal(HttpStatusCode.Conflict, await PostStatusAsync(owner, "/api/bench/stations", new { name = "Potting shed" }));
+        Assert.Equal(HttpStatusCode.OK, await MeStatusAsync(owner));
+    }
+
+    [Fact]
+    public async Task A_device_can_stop_being_a_bench_station()
+    {
+        await using var nursery = await Nursery.CreateAsync(database);
+
+        Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(nursery.Bench, "/api/bench/leave"));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, await GetStatusAsync(nursery.Bench, "/api/bench/people"));
+    }
 }

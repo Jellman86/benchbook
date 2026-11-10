@@ -79,10 +79,16 @@ internal static class WorkEndpoints
             {
                 AppendResult.Stored => TypedResults.Json(await describe(), statusCode: StatusCodes.Status201Created),
                 AppendResult.AlreadyStored => TypedResults.Json(await describe(), statusCode: StatusCodes.Status200OK),
+                AppendResult.IdInUse => Refused("IdInUse"),
+                AppendResult.NotInContainer => Refused("NotInContainer"),
                 _ => Refused("BelowZero"),
             };
         }
-        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation,
+            ConstraintName: "ix_events_corrects_event_id",
+        })
         {
             return Refused("AlreadyCorrected");
         }
@@ -342,7 +348,8 @@ internal static class WorkEndpoints
             foreach (var line in original.Lines)
             {
                 var change = request.Quantity is { } quantity ? quantity * Math.Sign(line.QuantityChange) : line.QuantityChange;
-                AddLine(correction, line.ContainerId, line.BatchId, change);
+                // The replacement stands where the original stood in time.
+                correction.Lines.Add(new EventLine { ContainerId = line.ContainerId, BatchId = line.BatchId, QuantityChange = change, EffectiveAt = original.OccurredAt });
             }
         }
 

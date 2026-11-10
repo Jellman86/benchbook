@@ -22,7 +22,8 @@ internal sealed class Plant : IAudited, IArchivable
 
     public string? Hardiness { get; set; }
 
-    public bool XylellaHost { get; set; }
+    /// <summary>Whether it is a host of Xylella fastidiosa. Null until someone has checked.</summary>
+    public bool? XylellaHost { get; set; }
 
     public bool ProtectedVariety { get; set; }
 

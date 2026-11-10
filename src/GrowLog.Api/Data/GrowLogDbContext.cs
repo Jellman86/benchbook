@@ -61,6 +61,14 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<EventLine> EventLines => Set<EventLine>();
 
+    public DbSet<CountAdjustment> CountAdjustments => Set<CountAdjustment>();
+
+    public DbSet<NurserySettings> NurserySettings => Set<NurserySettings>();
+
+    /// <summary>The nursery's settings, or the defaults if none have been saved.</summary>
+    public async Task<NurserySettings> GetNurserySettingsAsync(CancellationToken cancellationToken) =>
+        await NurserySettings.AsNoTracking().FirstOrDefaultAsync(cancellationToken) ?? new NurserySettings();
+
     public static void Configure(DbContextOptionsBuilder options, string connectionString) =>
         options.UseNpgsql(connectionString).UseSnakeCaseNamingConvention();
 
@@ -207,6 +215,23 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.HasKey(e => new { e.EventId, e.ContainerId, e.BatchId });
             entity.HasIndex(e => new { e.ContainerId, e.BatchId });
             entity.HasOne<Event>().WithMany(e => e.Lines).HasForeignKey(e => e.EventId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Container>().WithMany().HasForeignKey(e => e.ContainerId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Batch>().WithMany().HasForeignKey(e => e.BatchId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<NurserySettings>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.ToTable(table => table.HasCheckConstraint("ck_nursery_settings_single", "id = 1"));
+        });
+
+        modelBuilder.Entity<CountAdjustment>(entity =>
+        {
+            entity.HasKey(e => new { e.EventId, e.ContainerId, e.BatchId, e.CountEventId });
+            entity.HasIndex(e => new { e.ContainerId, e.BatchId });
+            entity.HasIndex(e => e.CountEventId);
+            entity.HasOne<Event>().WithMany(e => e.Adjustments).HasForeignKey(e => e.EventId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Event>().WithMany().HasForeignKey(e => e.CountEventId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Container>().WithMany().HasForeignKey(e => e.ContainerId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Batch>().WithMany().HasForeignKey(e => e.BatchId).OnDelete(DeleteBehavior.Restrict);
         });

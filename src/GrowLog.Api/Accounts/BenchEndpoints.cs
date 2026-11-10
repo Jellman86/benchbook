@@ -22,6 +22,7 @@ internal static class BenchEndpoints
         var bench = app.MapGroup("/api/bench").RequireAuthorization(AccountServices.BenchPolicy);
         bench.MapGet("/people", ListPeopleAsync).Produces<List<Person>>();
         bench.MapPost("/sign-in", SignInAsync);
+        bench.MapPost("/leave", LeaveAsync);
     }
 
     private static async Task<List<StationSummary>> ListStationsAsync(GrowLogDbContext db, CancellationToken cancellationToken) =>
@@ -35,6 +36,7 @@ internal static class BenchEndpoints
         RegisterStationRequest request,
         HttpContext context,
         GrowLogDbContext db,
+        UserManager<AppUser> users,
         SignInManager<AppUser> signIn,
         CancellationToken cancellationToken)
     {
@@ -43,6 +45,12 @@ internal static class BenchEndpoints
         if (name.Length == 0)
         {
             return TypedResults.BadRequest();
+        }
+
+        // Without anyone who can sign in there, the device would be stuck on an empty list.
+        if (!await users.Users.AnyAsync(user => user.ArchivedAt == null && user.PinHash != null, cancellationToken))
+        {
+            return TypedResults.Conflict();
         }
 
         var station = new BenchStation { Name = name };
@@ -134,12 +142,23 @@ internal static class BenchEndpoints
         await users.ResetAccessFailedCountAsync(person);
 
         // Not persistent, and short: sliding expiry returns the station to the name list when idle.
-        await signIn.SignInAsync(person, new AuthenticationProperties
-        {
-            IsPersistent = false,
-            ExpiresUtc = DateTimeOffset.UtcNow + IdleLimit,
-        });
+        await signIn.SignInWithClaimsAsync(
+            person,
+            new AuthenticationProperties
+            {
+                IsPersistent = false,
+                ExpiresUtc = DateTimeOffset.UtcNow + IdleLimit,
+            },
+            [new Claim(AccountServices.BenchSessionClaim, "true")]);
 
+        return TypedResults.NoContent();
+    }
+
+    /// <summary>Stops this device being a bench station, so someone can sign in on it as themselves.</summary>
+    private static async Task<IResult> LeaveAsync(HttpContext context, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        await context.SignOutAsync(AccountServices.BenchScheme);
         return TypedResults.NoContent();
     }
 

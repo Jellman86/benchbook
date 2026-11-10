@@ -13,6 +13,12 @@
   let problem = $state("");
   let busy = $state(false);
 
+  // Lets the owner sign in on this device again, rather than being stuck on an empty list.
+  async function leave() {
+    await api.POST("/api/bench/leave");
+    location.reload();
+  }
+
   function choose(chosen: Person) {
     person = chosen;
     pin = "";
@@ -89,8 +95,11 @@
     <h1>Who's working?</h1>
     {#if people.length === 0}
       <p class="muted">
-        No staff have been added yet. Ask the owner to add you.
+        Nobody has a bench PIN yet. The owner can give people one under Staff.
       </p>
+      <button class="secondary" onclick={leave}
+        >Stop being a bench station</button
+      >
     {/if}
     <div class="stack">
       {#each people as entry (entry.id)}

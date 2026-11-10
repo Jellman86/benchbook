@@ -38,6 +38,12 @@ internal static class FigureEndpoints
             .Select(line => new Row(line, events[line.EventId], WorkDoneBy(events[line.EventId], events)))
             .ToList();
 
+        // Changes stock counts absorbed when earlier work arrived late or was undone: part of each count's adjustment.
+        var absorbed = (await db.CountAdjustments.AsNoTracking().ToListAsync(cancellationToken))
+            .Where(adjustment => !reversed.Contains(adjustment.EventId) && !reversed.Contains(adjustment.CountEventId))
+            .GroupBy(adjustment => batches[adjustment.BatchId].PlantId)
+            .ToDictionary(group => group.Key, group => group.Sum(adjustment => adjustment.QuantityChange));
+
         var germinatedContainers = events.Values
             .Where(e => e.Type == EventType.Germinated && !reversed.Contains(e.Id) && e.ContainerId is not null)
             .Select(e => e.ContainerId!.Value)
@@ -51,7 +57,7 @@ internal static class FigureEndpoints
 
         var perPlant = lines
             .GroupBy(row => batches[row.Line.BatchId].PlantId)
-            .Select(group => ForPlant(batches[group.First().Line.BatchId], group.ToList(), germinatedBatches))
+            .Select(group => ForPlant(batches[group.First().Line.BatchId], group.ToList(), germinatedBatches, absorbed.GetValueOrDefault(group.Key)))
             .OrderBy(figures => figures.CommonName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(figures => figures.Variety, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -66,11 +72,11 @@ internal static class FigureEndpoints
         return new Figures(perPlant, losses);
     }
 
-    private static PlantFigures ForPlant(BatchFacts batch, List<Row> rows, HashSet<Guid> germinatedBatches)
+    private static PlantFigures ForPlant(BatchFacts batch, List<Row> rows, HashSet<Guid> germinatedBatches, int absorbed)
     {
         var started = rows.Where(row => StartingTypes.Contains(row.Type)).Sum(row => row.Line.QuantityChange);
         var lost = -rows.Where(row => row.Type == EventType.Lost).Sum(row => row.Line.QuantityChange);
-        var adjusted = rows.Where(row => row.Type == EventType.StockCounted).Sum(row => row.Line.QuantityChange);
+        var adjusted = rows.Where(row => row.Type == EventType.StockCounted).Sum(row => row.Line.QuantityChange) + absorbed;
         var watched = rows.Where(row => germinatedBatches.Contains(row.Line.BatchId)).ToList();
         var sown = watched.Where(row => row.Type == EventType.Sown).Sum(row => row.Line.QuantityChange);
         var failed = -watched

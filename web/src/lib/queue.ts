@@ -9,6 +9,8 @@ export interface FailedWork {
   eventId: string;
   description: string;
   reason: string;
+  /** What was sent, so it can be tried again. Missing on work set aside by older versions. */
+  request?: WorkRequest;
 }
 
 type Store = Pick<Storage, "getItem" | "setItem">;
@@ -17,7 +19,7 @@ const fallbackDescription = "Saved work";
 
 /**
  * Work waiting to reach the server. Kept per person, so that anything waiting
- * on a shared device is only ever sent under the name of whoever recorded it.
+ * on a shared device is only ever sent under the account of whoever recorded it.
  */
 export class WorkQueue {
   private readonly waitingKey: string;
@@ -90,8 +92,46 @@ export class WorkQueue {
         eventId: item.request.body.eventId,
         description: item.description,
         reason,
+        request: item.request,
       },
     ]);
+  }
+
+  /** Puts work that couldn't be saved back in line to send again. */
+  retry(eventId: string) {
+    const item = this.failed.find((failed) => failed.eventId === eventId);
+
+    if (!item?.request) {
+      return;
+    }
+
+    this.dismiss(eventId);
+    this.write(this.waitingKey, [
+      ...this.items,
+      { request: item.request, description: item.description },
+    ]);
+  }
+
+  /** Takes over work kept under another key, as queues once were kept by name. */
+  adopt(owner: string) {
+    const previous = new WorkQueue(this.store, owner);
+
+    if (previous.waitingKey === this.waitingKey) {
+      return;
+    }
+
+    const waiting = previous.items;
+    const failed = previous.failed;
+
+    if (waiting.length > 0) {
+      this.write(this.waitingKey, [...this.items, ...waiting]);
+      previous.write(previous.waitingKey, []);
+    }
+
+    if (failed.length > 0) {
+      this.write(this.failedKey, [...this.failed, ...failed]);
+      previous.write(previous.failedKey, []);
+    }
   }
 
   dismiss(eventId: string) {

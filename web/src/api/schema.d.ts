@@ -1491,6 +1491,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/staff/sign-in-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SignInSettings"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SignInSettings"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/invites/passkey-options": {
         parameters: {
             query?: never;
@@ -1749,6 +1805,39 @@ export interface paths {
                     "application/json": components["schemas"]["BenchSignInRequest"];
                 };
             };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bench/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
             responses: {
                 /** @description OK */
                 200: {
@@ -2165,12 +2254,14 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
-                200: {
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ArchiveRefused"];
+                    };
                 };
             };
         };
@@ -2373,12 +2464,14 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
-                200: {
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ArchiveRefused"];
+                    };
                 };
             };
         };
@@ -2542,12 +2635,14 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
-                200: {
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ArchiveRefused"];
+                    };
                 };
             };
         };
@@ -2711,12 +2806,14 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
-                200: {
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ArchiveRefused"];
+                    };
                 };
             };
         };
@@ -4066,6 +4163,11 @@ export interface components {
             password: null | string;
             nameOnly: boolean;
         };
+        ArchiveRefused: {
+            problem: string;
+            /** Format: int32 */
+            count: number | string;
+        };
         BackupHealth: {
             known: boolean;
             healthy: boolean;
@@ -4172,6 +4274,8 @@ export interface components {
             url: null | string;
         };
         CurrentUser: {
+            /** Format: uuid */
+            id: string;
             name: string;
             isOwner: boolean;
         };
@@ -4394,7 +4498,7 @@ export interface components {
             position: null | string;
             watering: null | string;
             hardiness: null | string;
-            xylellaHost: boolean;
+            xylellaHost: null | boolean;
             protectedVariety: boolean;
             archived: boolean;
             hasPhoto: boolean;
@@ -4437,7 +4541,7 @@ export interface components {
             position: null | string;
             watering: null | string;
             hardiness: null | string;
-            xylellaHost: boolean;
+            xylellaHost: null | boolean;
             protectedVariety: boolean;
             prices: null | components["schemas"]["PlantPriceDto"][];
         };
@@ -4463,7 +4567,7 @@ export interface components {
             position: null | string;
             watering: null | string;
             hardiness: null | string;
-            xylellaHost: boolean;
+            xylellaHost: null | boolean;
             protectedVariety: boolean;
             prices: null | components["schemas"]["PlantPriceDto"][];
         };
@@ -4477,7 +4581,7 @@ export interface components {
             position: null | string;
             watering: null | string;
             hardiness: null | string;
-            xylellaHost: boolean;
+            xylellaHost: null | boolean;
             protectedVariety: boolean;
             archived: boolean;
             prices: components["schemas"]["PlantPriceDto"][];
@@ -4654,6 +4758,9 @@ export interface components {
         };
         SignInRequest: {
             credential: components["schemas"]["JsonElement"];
+        };
+        SignInSettings: {
+            allowNameOnly: boolean;
         };
         SpeciesDetailsResponse: {
             family: null | string;

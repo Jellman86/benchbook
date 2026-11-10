@@ -296,9 +296,14 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Set a password").click();
   await expect(page.getByRole("status")).toHaveText("Password saved.");
 
-  // Someone added with just a name can sign in by tapping it.
+  // Once the owner allows it, someone added with just a name can sign in by tapping it.
   await openManage(page, "Staff");
+  await expect(chooser(page, "How they sign in")).not.toContainText(
+    "Just tap their name",
+  );
+  await page.getByLabel("Let staff sign in by tapping their name").check();
   await page.getByLabel("Name", { exact: true }).fill("Jo Reed");
+  await chooser(page, "How they sign in").selectOption("name");
   await button(page, "Add").click();
   await expect(page.getByText("Signs in by tapping their name")).toBeVisible();
   await leaveManage(page);

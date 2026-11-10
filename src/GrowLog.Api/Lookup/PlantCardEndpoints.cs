@@ -179,7 +179,7 @@ internal static class PlantCardEndpoints
         string? Position,
         string? Watering,
         string? Hardiness,
-        bool XylellaHost,
+        bool? XylellaHost,
         bool ProtectedVariety,
         bool Archived,
         bool HasPhoto,

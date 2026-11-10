@@ -36,6 +36,9 @@
 
       if (response.ok) {
         onBecameStation();
+      } else if (response.status === 409) {
+        problem =
+          "Give at least one person a bench PIN under Staff first, or nobody could sign in at the station.";
       } else {
         problem = "Please give the station a name.";
       }

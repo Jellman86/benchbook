@@ -13,7 +13,11 @@ const probes = (overrides: Partial<Probes> = {}): Probes => ({
   ...overrides,
 });
 
-const me = { name: "Sam", isOwner: true };
+const me = {
+  id: "0190a0b2-0000-7000-8000-000000000001",
+  name: "Sam",
+  isOwner: true,
+};
 const people = [{ id: "1", name: "Alex" }];
 
 describe("chooseStart", () => {

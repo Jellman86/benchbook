@@ -170,8 +170,12 @@ internal static class AccountEndpoints
         return TypedResults.NoContent();
     }
 
+    // A PIN at a bench station is enough for recording work, not for the owner's settings.
     private static CurrentUser GetCurrentUser(ClaimsPrincipal user) =>
-        new(user.Identity?.Name ?? string.Empty, user.IsInRole(AccountServices.OwnerRole));
+        new(
+            Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!),
+            user.Identity?.Name ?? string.Empty,
+            user.IsInRole(AccountServices.OwnerRole) && user.FindFirst(AccountServices.BenchSessionClaim) is null);
 
     private static async Task<bool> SetupIsOpenAsync(
         string token,
@@ -196,5 +200,5 @@ internal static class AccountEndpoints
 
     internal sealed record SignInRequest(JsonElement Credential);
 
-    internal sealed record CurrentUser(string Name, bool IsOwner);
+    internal sealed record CurrentUser(Guid Id, string Name, bool IsOwner);
 }

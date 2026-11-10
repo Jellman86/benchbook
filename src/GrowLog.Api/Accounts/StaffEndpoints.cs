@@ -20,6 +20,8 @@ internal static class StaffEndpoints
         staff.MapPost("/{id:guid}/name-only", SetNameOnlyAsync);
         staff.MapPost("/{id:guid}/invite", InviteAsync).Produces<InviteCreated>();
         staff.MapPost("/{id:guid}/archive", ArchiveAsync);
+        staff.MapGet("/sign-in-settings", GetSignInSettingsAsync);
+        staff.MapPut("/sign-in-settings", SaveSignInSettingsAsync);
 
         var invites = app.MapGroup("/api/invites").AllowAnonymous();
         invites.MapPost("/passkey-options", GetInvitePasskeyOptionsAsync);
@@ -50,16 +52,41 @@ internal static class StaffEndpoints
         return [.. staff.Select(member => member with { IsOwner = owners.Contains(member.Id) })];
     }
 
+    private static async Task<SignInSettings> GetSignInSettingsAsync(GrowLogDbContext db, CancellationToken cancellationToken) =>
+        new((await db.GetNurserySettingsAsync(cancellationToken)).AllowNameOnlySignIn);
+
+    private static async Task<IResult> SaveSignInSettingsAsync(SignInSettings request, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        if (await db.NurserySettings.FirstOrDefaultAsync(cancellationToken) is { } settings)
+        {
+            settings.AllowNameOnlySignIn = request.AllowNameOnly;
+        }
+        else
+        {
+            db.NurserySettings.Add(new NurserySettings { AllowNameOnlySignIn = request.AllowNameOnly });
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return TypedResults.NoContent();
+    }
+
     private static async Task<IResult> AddAsync(
         AddStaffRequest request,
+        GrowLogDbContext db,
         UserManager<AppUser> users,
-        IPasswordHasher<AppUser> hasher)
+        IPasswordHasher<AppUser> hasher,
+        CancellationToken cancellationToken)
     {
         var name = request.Name.Trim();
 
         if (name.Length == 0 || (request.Pin is { } chosenPin && !IsValidPin(chosenPin)) || (request.NameOnly && request.Password is not null))
         {
             return TypedResults.BadRequest();
+        }
+
+        if (request.NameOnly && !(await db.GetNurserySettingsAsync(cancellationToken)).AllowNameOnlySignIn)
+        {
+            return TypedResults.Conflict();
         }
 
         if (await users.FindByNameAsync(name) is not null)
@@ -138,7 +165,7 @@ internal static class StaffEndpoints
     }
 
     /// <summary>Lets someone sign in by tapping their name. The owner's account always keeps a password or passkey.</summary>
-    private static async Task<IResult> SetNameOnlyAsync(Guid id, UserManager<AppUser> users)
+    private static async Task<IResult> SetNameOnlyAsync(Guid id, GrowLogDbContext db, UserManager<AppUser> users, CancellationToken cancellationToken)
     {
         if (await users.FindByIdAsync(id.ToString()) is not { ArchivedAt: null } member)
         {
@@ -148,6 +175,11 @@ internal static class StaffEndpoints
         if (await users.IsInRoleAsync(member, AccountServices.OwnerRole))
         {
             return TypedResults.BadRequest();
+        }
+
+        if (!(await db.GetNurserySettingsAsync(cancellationToken)).AllowNameOnlySignIn)
+        {
+            return TypedResults.Conflict();
         }
 
         member.NameOnlySignIn = true;
@@ -274,6 +306,8 @@ internal static class StaffEndpoints
     internal sealed record AddStaffRequest(string Name, string? Pin, string? Password, bool NameOnly);
 
     internal sealed record StaffCreated(Guid Id);
+
+    internal sealed record SignInSettings(bool AllowNameOnly);
 
     internal sealed record SetPinRequest(string Pin);
 

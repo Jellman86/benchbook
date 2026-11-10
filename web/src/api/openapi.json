@@ -972,6 +972,45 @@
         }
       }
     },
+    "/api/staff/sign-in-settings": {
+      "get": {
+        "tags": [
+          "StaffEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "StaffEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/invites/passkey-options": {
       "post": {
         "tags": [
@@ -1140,6 +1179,18 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/bench/leave": {
+      "post": {
+        "tags": [
+          "BenchEndpoints"
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -1493,8 +1544,15 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveRefused"
+                }
+              }
+            }
           }
         }
       }
@@ -1664,8 +1722,15 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveRefused"
+                }
+              }
+            }
           }
         }
       }
@@ -1802,8 +1867,15 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveRefused"
+                }
+              }
+            }
           }
         }
       }
@@ -1940,8 +2012,15 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveRefused"
+                }
+              }
+            }
           }
         }
       }
@@ -3156,6 +3235,26 @@
           }
         }
       },
+      "ArchiveRefused": {
+        "required": [
+          "problem",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "problem": {
+            "type": "string"
+          },
+          "count": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "BackupHealth": {
         "required": [
           "known",
@@ -3532,11 +3631,16 @@
       },
       "CurrentUser": {
         "required": [
+          "id",
           "name",
           "isOwner"
         ],
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
           "name": {
             "type": "string"
           },
@@ -4407,7 +4511,10 @@
             ]
           },
           "xylellaHost": {
-            "type": "boolean"
+            "type": [
+              "null",
+              "boolean"
+            ]
           },
           "protectedVariety": {
             "type": "boolean"
@@ -4610,7 +4717,10 @@
             ]
           },
           "xylellaHost": {
-            "type": "boolean"
+            "type": [
+              "null",
+              "boolean"
+            ]
           },
           "protectedVariety": {
             "type": "boolean"
@@ -4727,7 +4837,10 @@
             ]
           },
           "xylellaHost": {
-            "type": "boolean"
+            "type": [
+              "null",
+              "boolean"
+            ]
           },
           "protectedVariety": {
             "type": "boolean"
@@ -4805,7 +4918,10 @@
             ]
           },
           "xylellaHost": {
-            "type": "boolean"
+            "type": [
+              "null",
+              "boolean"
+            ]
           },
           "protectedVariety": {
             "type": "boolean"
@@ -5536,6 +5652,17 @@
         "properties": {
           "credential": {
             "$ref": "#/components/schemas/JsonElement"
+          }
+        }
+      },
+      "SignInSettings": {
+        "required": [
+          "allowNameOnly"
+        ],
+        "type": "object",
+        "properties": {
+          "allowNameOnly": {
+            "type": "boolean"
           }
         }
       },

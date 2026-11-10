@@ -3,6 +3,8 @@
   import EntryPhotos from "./EntryPhotos.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
+  import { stopUsing } from "../../lib/archive";
+  import ArchivedEntries from "./ArchivedEntries.svelte";
   import { attempt, optional, type Schemas } from "../../lib/types";
 
   let { onBack }: { onBack: () => void } = $props();
@@ -92,11 +94,9 @@
     }, setProblem);
   };
 
-  const archive = (id: string) =>
+  const archive = (size: Schemas["PotSizeResponse"]) =>
     attempt(async () => {
-      await api.POST("/api/pot-sizes/{id}/archive", {
-        params: { path: { id } },
-      });
+      problem = (await stopUsing("pot-sizes", size.id, size.name)) ?? "";
       await load();
     }, setProblem);
 </script>
@@ -169,13 +169,14 @@
                   newName = size.name;
                 }}>Rename</button
               >
-              <button class="secondary" onclick={() => archive(size.id)}
+              <button class="secondary" onclick={() => archive(size)}
                 >No longer used</button
               >
             </div>
           {/if}
         </div>
       {/each}
+      <ArchivedEntries list="pot-sizes" onRestored={load} />
     </section>
   </div>
 

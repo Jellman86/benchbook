@@ -25,21 +25,28 @@ internal static class SignInEndpoints
     }
 
     /// <summary>Names everyone who can sign in here, so they can tap theirs rather than type it.</summary>
-    private static async Task<List<SignInPerson>> ListPeopleAsync(GrowLogDbContext db, UserManager<AppUser> users, CancellationToken cancellationToken) =>
-        await users.Users
+    private static async Task<List<SignInPerson>> ListPeopleAsync(GrowLogDbContext db, UserManager<AppUser> users, CancellationToken cancellationToken)
+    {
+        var nameOnly = (await db.GetNurserySettingsAsync(cancellationToken)).AllowNameOnlySignIn;
+
+        return await users.Users
             .Where(user => user.ArchivedAt == null
-                && (user.NameOnlySignIn || user.PasswordHash != null || db.UserPasskeys.Any(passkey => passkey.UserId == user.Id)))
+                && ((nameOnly && user.NameOnlySignIn) || user.PasswordHash != null || db.UserPasskeys.Any(passkey => passkey.UserId == user.Id)))
             .OrderBy(user => user.UserName)
-            .Select(user => new SignInPerson(user.Id, user.UserName!, user.NameOnlySignIn, user.PasswordHash != null))
+            .Select(user => new SignInPerson(user.Id, user.UserName!, nameOnly && user.NameOnlySignIn, user.PasswordHash != null))
             .ToListAsync(cancellationToken);
+    }
 
     private static async Task<IResult> SignInByNameAsync(
         NameSignInRequest request,
+        GrowLogDbContext db,
         UserManager<AppUser> users,
-        SignInManager<AppUser> signIn)
+        SignInManager<AppUser> signIn,
+        CancellationToken cancellationToken)
     {
         // The role is checked here too, so that nothing can open up the owner's account.
-        if (await users.FindByIdAsync(request.UserId.ToString()) is not { ArchivedAt: null, NameOnlySignIn: true } person
+        if (!(await db.GetNurserySettingsAsync(cancellationToken)).AllowNameOnlySignIn
+            || await users.FindByIdAsync(request.UserId.ToString()) is not { ArchivedAt: null, NameOnlySignIn: true } person
             || await users.IsLockedOutAsync(person)
             || await users.IsInRoleAsync(person, AccountServices.OwnerRole))
         {

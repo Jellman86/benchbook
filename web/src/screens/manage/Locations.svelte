@@ -3,6 +3,8 @@
   import EntryPhotos from "./EntryPhotos.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
+  import { stopUsing } from "../../lib/archive";
+  import ArchivedEntries from "./ArchivedEntries.svelte";
   import { nestLocations } from "../../lib/locations";
   import { attempt, type Schemas } from "../../lib/types";
 
@@ -85,11 +87,10 @@
     }, setProblem);
   };
 
-  const archive = (id: string) =>
+  const archive = (location: { id: string; name: string }) =>
     attempt(async () => {
-      await api.POST("/api/locations/{id}/archive", {
-        params: { path: { id } },
-      });
+      problem =
+        (await stopUsing("locations", location.id, location.name)) ?? "";
       await load();
     }, setProblem);
 </script>
@@ -156,13 +157,14 @@
                   newName = location.name;
                 }}>Rename</button
               >
-              <button class="secondary" onclick={() => archive(location.id)}
+              <button class="secondary" onclick={() => archive(location)}
                 >No longer used</button
               >
             </div>
           {/if}
         </div>
       {/each}
+      <ArchivedEntries list="locations" onRestored={load} />
     </section>
   </div>
 

@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api } from "../../api/client";
+  import { stopUsing } from "../../lib/archive";
+  import ArchivedEntries from "./ArchivedEntries.svelte";
   import { attempt, optional, type Schemas } from "../../lib/types";
   import { plantName, type PickedPlant } from "../../lib/work";
   import ArticleSection from "../work/ArticleSection.svelte";
@@ -29,7 +31,7 @@
     position: "",
     watering: "",
     hardiness: "",
-    xylellaHost: false,
+    xylellaHost: null as boolean | null,
     protectedVariety: false,
   };
 
@@ -192,9 +194,14 @@
     }, setProblem);
   };
 
-  const archive = (id: string) =>
+  const archive = (plant: Plant) =>
     attempt(async () => {
-      await api.POST("/api/plants/{id}/archive", { params: { path: { id } } });
+      const refused = await stopUsing(
+        "plants",
+        plant.id,
+        plantName(plant.commonName, plant.variety),
+      );
+      problem = refused ?? "";
       cardId = null;
       await load();
     }, setProblem);
@@ -239,7 +246,7 @@
               rel="noopener">Plant label</a
             >
           {/each}
-          <button class="secondary" onclick={() => archive(selected.id)}
+          <button class="secondary" onclick={() => archive(selected)}
             >No longer grown</button
           >
         </div>
@@ -368,8 +375,13 @@
         <fieldset class="form-card">
           <legend>Rules that apply</legend>
           <div class="tick-row">
-            <label class="tick">
-              <input type="checkbox" bind:checked={form.xylellaHost} /> Xylella host
+            <label>
+              Xylella host
+              <select bind:value={form.xylellaHost}>
+                <option value={null}>Not checked yet</option>
+                <option value={true}>Yes</option>
+                <option value={false}>No</option>
+              </select>
             </label>
             <label class="tick">
               <input type="checkbox" bind:checked={form.protectedVariety} /> Protected
@@ -433,6 +445,8 @@
         </button>
       {/each}
     </div>
+
+    {#if canManage}<ArchivedEntries list="plants" onRestored={load} />{/if}
 
     <button class="back mobile-only" onclick={onBack}>Back</button>
   </main>

@@ -48,7 +48,7 @@ Labels must survive wet conditions: polypropylene or polyester stock with resin 
 - **Issued passport:** belongs to a package. May list several species. Every Part C code must resolve to every batch in the package.
 - **Sale, customer, task, treatment record:** described below.
 
-Plants, suppliers, locations and pot sizes are archived rather than deleted, so older records keep their meaning. Names in these lists are unique regardless of capitals. Every change to them is kept with who made it and when, except that the values of personal contact details are not kept in that history, so they can be erased.
+Plants, suppliers, locations and pot sizes are archived rather than deleted, so older records keep their meaning, and can be brought back. A place can't be archived while trays or other places are in it. Names in these lists are unique regardless of capitals. Every change to them is kept with who made it and when, except that the values of personal contact details are not kept in that history, so they can be erased.
 
 Partial potting-on creates a new container from the same batch, and no new batch. A split creates a new batch only when lineage truly forks, such as different treatment, destination or passporting.
 
@@ -65,7 +65,9 @@ Partial potting-on creates a new container from the same batch, and no new batch
 
 ### Corrections and counts
 
-A **corrected** event references the event it reverses and carries the replacement. **Stock counted** sets the count, and the difference is recorded as an **adjustment,** separate from losses in statistics. A derived count can never go below zero: the interface asks for a correction or a stock count instead.
+A **corrected** event references the event it reverses and carries the replacement. **Stock counted** records what was there when the count was made, and the difference from the stock at that moment is recorded as an **adjustment,** separate from losses in statistics. Work from before a count that reaches the server later, or is undone later, is absorbed by that count's adjustment, so the count still stands. A derived count can never go below zero: the interface asks for a correction or a stock count instead. A count can only name a batch that has been in that container.
+
+The time a device gives for work is believed unless it is more than a few minutes ahead of the server, when the server's time is used. Work is sent with an identifier made on the device, so a resend is recognised; an identifier already used for different work is refused. Work that can't reach the server, including while it restarts, waits on the device and is sent later; work the server refuses is kept on the device so it can be tried again.
 
 A container's location, pot size and contents are derived from its events. Location and pot size follow the order the work happened, so events arriving late from an offline device fall into place.
 
@@ -85,7 +87,7 @@ Source: GOV.UK, "Issuing plant passports to trade plants in Great Britain", upda
 - Who supplied every received passport must be recorded. Issued passports are recorded for 3 years, with who they went to. GOV.UK sets no period for received passports, so GrowLog keeps them permanently. Records must allow APHA to investigate outbreaks.
 - Authorisation is renewed yearly, with a chargeable inspection. The system reminds the owner.
 
-The system validates botanical names before issue; retains records for at least 3 years and blocks earlier deletion; flags Xylella hosts; warns when taking cuttings from a protected variety; records suspected quarantine pests and prompts a call to APHA; and produces inspection, trace-back and trace-forward reports.
+The system validates botanical names before issue; retains records for at least 3 years and blocks earlier deletion; flags Xylella hosts, treating a plant nobody has checked as not checked rather than as not a host; warns when taking cuttings from a protected variety; records suspected quarantine pests and prompts a call to APHA; and produces inspection, trace-back and trace-forward reports.
 
 ## Other legal records
 
@@ -142,7 +144,7 @@ Reminders, cuttings from mother plants, pest and disease notes with photos, rese
 | Web | Svelte 5, static build served by the API, installable with camera scanning |
 | iPhone | Native SwiftUI, after the web flows are proven |
 | Contract | OpenAPI, generating web and Swift clients |
-| Sign-in | ASP.NET Identity. The owner chooses per person: a passkey, a password, or just tapping their name, which is only suitable on a private network. The owner's account always needs a password or passkey. Anyone can then set their own password, PIN or passkey in settings. A shared staff login through OpenID Connect can be set up by the owner under Manage, with deployment settings as the starting point until they save; it is optional, GrowLog's own sign-in keeps working without it, and accounts are matched only by the provider's stable identifier, never by name. The owner signs a bench station in once; staff then tap their name and enter a short PIN, and it returns to the name list after a few minutes idle |
+| Sign-in | ASP.NET Identity. The owner chooses per person: a passkey, a password, or just tapping their name, which is only suitable on a private network and is off until the owner turns it on for the nursery. The owner's account always needs a password or passkey. Anyone can then set their own password, PIN or passkey in settings. A shared staff login through OpenID Connect can be set up by the owner under Manage, with deployment settings as the starting point until they save; it is optional, GrowLog's own sign-in keeps working without it, and accounts are matched only by the provider's stable identifier, never by name. The owner signs a bench station in once, which needs at least one person with a PIN; staff then tap their name and enter a short PIN, and it returns to the name list after a few minutes idle. A PIN at a bench never carries the owner's powers, and a bench station can be turned back into an ordinary device |
 | Printing | QRCoder and Typst, producing PDFs |
 | Deployment | One application container plus PostgreSQL, using Docker Compose |
 

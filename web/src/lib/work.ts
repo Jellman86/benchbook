@@ -55,6 +55,8 @@ export const work = {
     }),
 };
 
+const passingTrouble = [408, 425, 429, 502, 503, 504];
+
 export async function submit(item: WorkRequest): Promise<Outcome> {
   let response: Response;
 
@@ -71,6 +73,11 @@ export async function submit(item: WorkRequest): Promise<Outcome> {
   if (response.status === 401) {
     window.dispatchEvent(new Event(sessionEnded));
     return { kind: "signedOut" };
+  }
+
+  // The server is restarting or busy, as during an update: keep the work and send it later.
+  if (passingTrouble.includes(response.status)) {
+    return { kind: "unreachable" };
   }
 
   if (response.ok) {
@@ -109,9 +116,16 @@ export function outcomeProblem(outcome: Outcome): string {
     case "signedOut":
       return "You've been signed out. Please sign in again.";
     case "refused":
-      return outcome.problem === "BelowZero"
-        ? "There aren't that many here. Check the number, or count the stock."
-        : "That has already been corrected.";
+      switch (outcome.problem) {
+        case "BelowZero":
+          return "There aren't that many here. Check the number, or count the stock.";
+        case "NotInContainer":
+          return "That plant isn't in this tray. Please start again from the label.";
+        case "IdInUse":
+          return "That clashed with other work. Please record it again.";
+        default:
+          return "That has already been corrected.";
+      }
     case "unreachable":
       return "Can't reach GrowLog. Check the connection and try again.";
     case "rejected":
