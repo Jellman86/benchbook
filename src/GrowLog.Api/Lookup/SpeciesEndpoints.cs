@@ -318,7 +318,7 @@ internal static class SpeciesEndpoints
         string? Position,
         string? Watering,
         string? Hardiness,
-        bool XylellaHost,
+        bool? XylellaHost,
         bool ProtectedVariety,
         IReadOnlyList<CatalogueEndpoints.PlantPriceDto>? Prices);
 

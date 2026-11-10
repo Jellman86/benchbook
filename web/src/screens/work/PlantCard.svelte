@@ -52,7 +52,14 @@
             ["Position", card.position],
             ["Watering", card.watering],
             ["Hardiness", card.hardiness],
-            ["Xylella host", card.xylellaHost ? "Yes" : null],
+            [
+              "Xylella host",
+              card.xylellaHost === true
+                ? "Yes"
+                : card.xylellaHost === false
+                  ? "No"
+                  : "Not checked yet",
+            ],
             ["Protected variety", card.protectedVariety ? "Yes" : null],
           ] as [string, string | null | undefined][]
         ).filter(([, value]) => value)

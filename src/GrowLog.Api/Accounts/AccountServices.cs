@@ -16,6 +16,9 @@ internal static class AccountServices
     public const string OwnerPolicy = "Owner";
     public const string BenchPolicy = "BenchStation";
     public const string BenchScheme = "BenchStation";
+
+    /// <summary>Marks a session started with a PIN at a bench station, which never carries the owner's powers.</summary>
+    public const string BenchSessionClaim = "growlog:bench_session";
     public const string OidcScheme = "Oidc";
 
     /// <summary>The address people use, which this application can't tell from behind the proxy.</summary>
@@ -78,7 +81,9 @@ internal static class AccountServices
 
         services.AddAuthorizationBuilder()
             .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
-            .AddPolicy(OwnerPolicy, policy => policy.RequireRole(OwnerRole))
+            .AddPolicy(OwnerPolicy, policy => policy
+                .RequireRole(OwnerRole)
+                .RequireAssertion(context => context.User.FindFirst(BenchSessionClaim) is null))
             .AddPolicy(BenchPolicy, policy => policy.AddAuthenticationSchemes(BenchScheme).RequireAuthenticatedUser());
 
         services.AddIdentityCore<AppUser>(ConfigureIdentity)

@@ -2,6 +2,8 @@
   import FormPanel from "../FormPanel.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
+  import { stopUsing } from "../../lib/archive";
+  import ArchivedEntries from "./ArchivedEntries.svelte";
   import { attempt, optional, type Schemas } from "../../lib/types";
 
   let { onBack }: { onBack: () => void } = $props();
@@ -94,11 +96,10 @@
     }, setProblem);
   };
 
-  const archive = (id: string) =>
+  const archive = (supplier: { id: string; name: string }) =>
     attempt(async () => {
-      await api.POST("/api/suppliers/{id}/archive", {
-        params: { path: { id } },
-      });
+      problem =
+        (await stopUsing("suppliers", supplier.id, supplier.name)) ?? "";
       await load();
     }, setProblem);
 </script>
@@ -151,12 +152,13 @@
             <button class="secondary" onclick={() => edit(supplier)}
               >Change</button
             >
-            <button class="secondary" onclick={() => archive(supplier.id)}
+            <button class="secondary" onclick={() => archive(supplier)}
               >No longer used</button
             >
           </div>
         </div>
       {/each}
+      <ArchivedEntries list="suppliers" onRestored={load} />
     </section>
   </div>
 

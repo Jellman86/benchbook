@@ -8,11 +8,14 @@ internal sealed class Event
 
     public required EventType Type { get; init; }
 
-    /// <summary>When the work happened, which can be well before it reached the server.</summary>
+    /// <summary>
+    /// When the work happened, which can be well before it reached the server. Settable only so the event store
+    /// can bring back a time from a device whose clock is ahead, before the event is saved.
+    /// </summary>
     public required DateTimeOffset OccurredAt
     {
         get;
-        init => field = value.ToUniversalTime();
+        set => field = value.ToUniversalTime();
     }
 
     /// <summary>When the server stored the event. Set by the database.</summary>
@@ -33,7 +36,10 @@ internal sealed class Event
     public Guid? PotSizeId { get; init; }
 
     /// <summary>Details specific to the event type, as JSON. Must not contain personal data, which has to stay erasable.</summary>
-    public string Payload { get; init; } = "{}";
+    public string Payload { get; set; } = "{}";
 
     public ICollection<EventLine> Lines { get; } = new List<EventLine>();
+
+    /// <summary>Changes to stock that stock counts absorb because of this event. Worked out by the event store.</summary>
+    public ICollection<CountAdjustment> Adjustments { get; } = new List<CountAdjustment>();
 }

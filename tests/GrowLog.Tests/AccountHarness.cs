@@ -78,4 +78,11 @@ internal static class AccountHarness
     }
 
     public static Task<HttpStatusCode> MeStatusAsync(HttpClient client) => GetStatusAsync(client, "/api/account/me");
+
+    /// <summary>Turns on signing in by tapping a name, which is off until the owner chooses it.</summary>
+    public static async Task AllowNameOnlyAsync(HttpClient owner)
+    {
+        using var response = await owner.PutAsJsonAsync(Route("/api/staff/sign-in-settings"), new { allowNameOnly = true }, Cancellation);
+        response.EnsureSuccessStatusCode();
+    }
 }

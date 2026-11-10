@@ -556,6 +556,7 @@ public sealed class SpeciesLookupTests(PostgresFixture database)
         using var key = new TestAuthenticator();
         await SetUpOwnerAsync(owner, key);
         var plantId = await AddFromSpeciesAsync(owner, await FindLavenderAsync(owner));
+        await AllowNameOnlyAsync(owner);
         var staffId = Json(await PostForTextAsync(owner, "/api/staff", new { name = "Jo Reed", nameOnly = true })).GetProperty("id").GetGuid();
         using var staff = Client(app);
         await PostStatusAsync(staff, "/api/account/sign-in/name", new { userId = staffId });

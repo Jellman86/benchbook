@@ -54,7 +54,10 @@
     | { name: "manage"; section: ManageSection | null };
 
   // svelte-ignore state_referenced_locally
-  const queue = useQueue(me.name);
+  const queue = useQueue(me.id);
+  // Work used to be kept under a person's name, which can change.
+  // svelte-ignore state_referenced_locally
+  queue.adopt(me.name);
 
   let view = $state<View>({ name: "home" });
   let label = $state("");
@@ -246,6 +249,12 @@
     showQueue();
   }
 
+  function retry(eventId: string) {
+    queue.retry(eventId);
+    showQueue();
+    void sendWaiting();
+  }
+
   async function signOut() {
     await api.POST("/api/account/sign-out");
     onSignedOut();
@@ -353,9 +362,14 @@
         <div class="card" role="alert">
           <strong>Couldn't be saved: {item.description}</strong>
           <span>{item.reason}</span>
-          <button class="secondary" onclick={() => dismiss(item.eventId)}
-            >OK</button
-          >
+          <div class="row">
+            {#if item.request}
+              <button onclick={() => retry(item.eventId)}>Try again</button>
+            {/if}
+            <button class="secondary" onclick={() => dismiss(item.eventId)}
+              >Forget it</button
+            >
+          </div>
         </div>
       {/each}
 

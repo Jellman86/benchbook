@@ -165,6 +165,7 @@ public sealed class ProductionTests(PostgresFixture database)
         using var key = new TestAuthenticator();
         await SetUpOwnerAsync(owner, key);
         await StartAsync(owner, await AddPlantAsync(owner));
+        await AllowNameOnlyAsync(owner);
         var staffId = Json(await PostForTextAsync(owner, "/api/staff", new { name = "Jo Reed", nameOnly = true })).GetProperty("id").GetGuid();
 
         using var staff = Client(app);

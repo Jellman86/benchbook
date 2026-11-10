@@ -23,7 +23,7 @@ public sealed class EventStoreTests(PostgresFixture database)
     private async Task<AppendResult> AppendAsync(Event newEvent)
     {
         await using var db = database.CreateContext();
-        return await new EventStore(db).AppendAsync(newEvent, Cancellation);
+        return await new EventStore(db, TimeProvider.System).AppendAsync(newEvent, Cancellation);
     }
 
     private async Task<Event> ReadAsync(Guid id)
@@ -60,7 +60,7 @@ public sealed class EventStoreTests(PostgresFixture database)
         var resent = new Event
         {
             Id = original.Id,
-            Type = EventType.Lost,
+            Type = EventType.Note,
             OccurredAt = DateTimeOffset.UtcNow,
             RecordedBy = database.UserId,
             Payload = """{"count": 99}""",
@@ -69,7 +69,8 @@ public sealed class EventStoreTests(PostgresFixture database)
         Assert.Equal(AppendResult.AlreadyStored, await AppendAsync(resent));
 
         var stored = await ReadAsync(original.Id);
-        Assert.Equal(EventType.Note, stored.Type);
+        Assert.Contains("1", stored.Payload, StringComparison.Ordinal);
+        Assert.DoesNotContain("99", stored.Payload, StringComparison.Ordinal);
         Assert.Equal(original.RecordedBy, stored.RecordedBy);
     }
 

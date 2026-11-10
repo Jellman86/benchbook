@@ -423,6 +423,43 @@ namespace GrowLog.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.CountAdjustment", b =>
+                {
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
+
+                    b.Property<Guid>("ContainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("container_id");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("batch_id");
+
+                    b.Property<Guid>("CountEventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("count_event_id");
+
+                    b.Property<int>("QuantityChange")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity_change");
+
+                    b.HasKey("EventId", "ContainerId", "BatchId", "CountEventId")
+                        .HasName("pk_count_adjustments");
+
+                    b.HasIndex("BatchId")
+                        .HasDatabaseName("ix_count_adjustments_batch_id");
+
+                    b.HasIndex("CountEventId")
+                        .HasDatabaseName("ix_count_adjustments_count_event_id");
+
+                    b.HasIndex("ContainerId", "BatchId")
+                        .HasDatabaseName("ix_count_adjustments_container_id_batch_id");
+
+                    b.ToTable("count_adjustments", (string)null);
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.Event", b =>
                 {
                     b.Property<Guid>("Id")
@@ -509,6 +546,10 @@ namespace GrowLog.Api.Data.Migrations
                     b.Property<Guid>("BatchId")
                         .HasColumnType("uuid")
                         .HasColumnName("batch_id");
+
+                    b.Property<DateTimeOffset?>("EffectiveAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("effective_at");
 
                     b.Property<int>("QuantityChange")
                         .HasColumnType("integer")
@@ -607,6 +648,25 @@ namespace GrowLog.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.NurserySettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AllowNameOnlySignIn")
+                        .HasColumnType("boolean")
+                        .HasColumnName("allow_name_only_sign_in");
+
+                    b.HasKey("Id")
+                        .HasName("pk_nursery_settings");
+
+                    b.ToTable("nursery_settings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_nursery_settings_single", "id = 1");
+                        });
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.Plant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -654,7 +714,7 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("watering");
 
-                    b.Property<bool>("XylellaHost")
+                    b.Property<bool?>("XylellaHost")
                         .HasColumnType("boolean")
                         .HasColumnName("xylella_host");
 
@@ -1586,6 +1646,37 @@ namespace GrowLog.Api.Data.Migrations
                         .HasConstraintName("fk_catalogue_entry_photos_asp_net_users_uploaded_by");
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.CountAdjustment", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Batch", null)
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_count_adjustments_batches_batch_id");
+
+                    b.HasOne("GrowLog.Api.Data.Container", null)
+                        .WithMany()
+                        .HasForeignKey("ContainerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_count_adjustments_containers_container_id");
+
+                    b.HasOne("GrowLog.Api.Data.Event", null)
+                        .WithMany()
+                        .HasForeignKey("CountEventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_count_adjustments_events_count_event_id");
+
+                    b.HasOne("GrowLog.Api.Data.Event", null)
+                        .WithMany("Adjustments")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_count_adjustments_events_event_id");
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.Event", b =>
                 {
                     b.HasOne("GrowLog.Api.Data.Container", null)
@@ -1916,6 +2007,8 @@ namespace GrowLog.Api.Data.Migrations
 
             modelBuilder.Entity("GrowLog.Api.Data.Event", b =>
                 {
+                    b.Navigation("Adjustments");
+
                     b.Navigation("Lines");
                 });
 

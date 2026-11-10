@@ -13,8 +13,11 @@ public sealed class SignInOptionsTests(PostgresFixture database)
     private static async Task<Guid> AddAsync(HttpClient owner, object person) =>
         Json(await PostForTextAsync(owner, "/api/staff", person)).GetProperty("id").GetGuid();
 
-    private static Task<Guid> AddNameOnlyAsync(HttpClient owner, string name = "Jo Reed") =>
-        AddAsync(owner, new { name, nameOnly = true });
+    private static async Task<Guid> AddNameOnlyAsync(HttpClient owner, string name = "Jo Reed")
+    {
+        await AllowNameOnlyAsync(owner);
+        return await AddAsync(owner, new { name, nameOnly = true });
+    }
 
     private static Task<Guid> AddWithPasswordAsync(HttpClient owner, string name = "Jo Reed") =>
         AddAsync(owner, new { name, password = Password });
@@ -221,6 +224,7 @@ public sealed class SignInOptionsTests(PostgresFixture database)
         using var ownerKey = new TestAuthenticator();
         await SetUpOwnerAsync(owner, ownerKey);
         var id = await AddWithPasswordAsync(owner);
+        await AllowNameOnlyAsync(owner);
 
         Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(owner, $"/api/staff/{id}/name-only"));
 
@@ -276,5 +280,25 @@ public sealed class SignInOptionsTests(PostgresFixture database)
 
         Assert.Equal(HttpStatusCode.Unauthorized, await GetStatusAsync(client, "/api/account/settings"));
         Assert.Equal(HttpStatusCode.Unauthorized, await PostStatusAsync(client, "/api/account/settings/password", new { newPassword = Password }));
+    }
+
+    [Fact]
+    public async Task Tapping_a_name_is_off_until_the_owner_turns_it_on()
+    {
+        await using var app = await CreateAppAsync(database);
+        using var owner = Client(app);
+        using var ownerKey = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, ownerKey);
+
+        Assert.Equal(HttpStatusCode.Conflict, await PostStatusAsync(owner, "/api/staff", new { name = "Jo Reed", nameOnly = true }));
+
+        var id = await AddNameOnlyAsync(owner);
+        using var staff = Client(app);
+        Assert.Equal(HttpStatusCode.NoContent, await ByNameAsync(staff, id));
+
+        using var off = await owner.PutAsJsonAsync(Route("/api/staff/sign-in-settings"), new { allowNameOnly = false }, Cancellation);
+        using var other = Client(app);
+        Assert.Equal(HttpStatusCode.Unauthorized, await ByNameAsync(other, id));
+        Assert.DoesNotContain((await PeopleAsync(other)).EnumerateArray(), person => person.GetProperty("id").GetGuid() == id);
     }
 }

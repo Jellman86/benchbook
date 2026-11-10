@@ -80,19 +80,35 @@ public sealed class ContainerStockTests(PostgresFixture database)
     private async Task<AppendResult> AppendAsync(Event work)
     {
         await using var db = database.CreateContext();
-        return await new EventStore(db).AppendAsync(work, Cancellation);
+        return await new EventStore(db, TimeProvider.System).AppendAsync(work, Cancellation);
     }
 
-    private async Task<AppendResult> CountAsync(Guid container, Guid batch, int counted)
+    private async Task<AppendResult> CountAsync(Guid container, Guid batch, int counted, DateTimeOffset? occurredAt = null, Guid? id = null)
     {
         await using var db = database.CreateContext();
-        return await new EventStore(db).AppendStockCountAsync(Work(EventType.StockCounted, container), batch, counted, Cancellation);
+        var work = Work(EventType.StockCounted, container, occurredAt: occurredAt);
+
+        if (id is { } chosen)
+        {
+            work = new Event { Id = chosen, Type = work.Type, OccurredAt = work.OccurredAt, RecordedBy = work.RecordedBy, ContainerId = container };
+        }
+
+        return await new EventStore(db, TimeProvider.System).AppendStockCountAsync(work, batch, counted, Cancellation);
+    }
+
+    private static DateTimeOffset HoursAgo(int hours) => DateTimeOffset.UtcNow.AddHours(-hours);
+
+    private async Task<(Guid Container, Guid Batch)> SownEarlierAsync(int quantity)
+    {
+        var (container, batch) = (await NewContainerAsync(), await NewBatchAsync());
+        Assert.Equal(AppendResult.Stored, await AppendAsync(Lines(Work(EventType.Sown, container, occurredAt: HoursAgo(10)), (container, batch, quantity))));
+        return (container, batch);
     }
 
     private async Task<ContainerState> StateAsync(Guid container)
     {
         await using var db = database.CreateContext();
-        return await new EventStore(db).GetContainerStateAsync(container, Cancellation);
+        return await new EventStore(db, TimeProvider.System).GetContainerStateAsync(container, Cancellation);
     }
 
     private async Task<int> QuantityAsync(Guid container, Guid batch) =>
@@ -389,5 +405,102 @@ public sealed class ContainerStockTests(PostgresFixture database)
             db.Plants.Where(p => p.Id == plant.Id).ExecuteDeleteAsync(Cancellation));
 
         Assert.Equal(PostgresErrorCodes.RestrictViolation, exception.SqlState);
+    }
+
+    [Fact]
+    public async Task A_count_arriving_late_is_compared_with_the_stock_when_it_was_made()
+    {
+        var (container, batch) = await SownEarlierAsync(100);
+
+        // Counted 90 offline at 5 hours ago; meanwhile 10 more were lost an hour ago and recorded first.
+        await AppendAsync(Lines(Work(EventType.Lost, container, occurredAt: HoursAgo(1)), (container, batch, -10)));
+        Assert.Equal(AppendResult.Stored, await CountAsync(container, batch, 90, HoursAgo(5)));
+
+        Assert.Equal(80, await QuantityAsync(container, batch));
+    }
+
+    [Fact]
+    public async Task Work_from_before_a_count_arriving_late_leaves_the_count_standing()
+    {
+        var (container, batch) = await SownEarlierAsync(100);
+        await CountAsync(container, batch, 90, HoursAgo(2));
+
+        // A loss from before the count reaches the server afterwards: the count already saw its effect.
+        Assert.Equal(AppendResult.Stored, await AppendAsync(Lines(Work(EventType.Lost, container, occurredAt: HoursAgo(5)), (container, batch, -10))));
+
+        Assert.Equal(90, await QuantityAsync(container, batch));
+    }
+
+    [Fact]
+    public async Task Undoing_work_from_before_a_count_leaves_the_count_standing()
+    {
+        var (container, batch) = await SownEarlierAsync(100);
+        var loss = Lines(Work(EventType.Lost, container, occurredAt: HoursAgo(5)), (container, batch, -10));
+        await AppendAsync(loss);
+        await CountAsync(container, batch, 85, HoursAgo(2));
+
+        Assert.Equal(AppendResult.Stored, await AppendAsync(Work(EventType.Corrected, container, corrects: loss.Id)));
+
+        Assert.Equal(85, await QuantityAsync(container, batch));
+    }
+
+    [Fact]
+    public async Task Undoing_a_count_brings_back_what_it_replaced_and_what_followed()
+    {
+        var (container, batch) = await SownEarlierAsync(100);
+        var countId = Guid.NewGuid();
+        await CountAsync(container, batch, 90, HoursAgo(5), countId);
+        await AppendAsync(Lines(Work(EventType.Lost, container, occurredAt: HoursAgo(1)), (container, batch, -5)));
+        Assert.Equal(85, await QuantityAsync(container, batch));
+
+        Assert.Equal(AppendResult.Stored, await AppendAsync(Work(EventType.Corrected, container, corrects: countId)));
+
+        Assert.Equal(95, await QuantityAsync(container, batch));
+    }
+
+    [Fact]
+    public async Task A_later_count_still_holds_when_an_earlier_count_arrives()
+    {
+        var (container, batch) = await SownEarlierAsync(100);
+        await CountAsync(container, batch, 70, HoursAgo(1));
+
+        Assert.Equal(AppendResult.Stored, await CountAsync(container, batch, 95, HoursAgo(5)));
+
+        Assert.Equal(70, await QuantityAsync(container, batch));
+    }
+
+    [Fact]
+    public async Task A_count_of_a_batch_never_in_the_container_is_refused()
+    {
+        var (container, _) = await SownAsync(10);
+        var stranger = await NewBatchAsync();
+
+        Assert.Equal(AppendResult.NotInContainer, await CountAsync(container, stranger, 5));
+    }
+
+    [Fact]
+    public async Task A_time_from_a_clock_running_ahead_is_brought_back_to_now()
+    {
+        var (container, batch) = await SownAsync(10);
+        var loss = Lines(Work(EventType.Lost, container, occurredAt: DateTimeOffset.UtcNow.AddDays(3)), (container, batch, -1));
+
+        await AppendAsync(loss);
+
+        await using var db = database.CreateContext();
+        var stored = await db.Events.SingleAsync(e => e.Id == loss.Id, Cancellation);
+        Assert.True(stored.OccurredAt <= DateTimeOffset.UtcNow.AddMinutes(1));
+    }
+
+    [Fact]
+    public async Task An_identifier_already_used_for_different_work_is_refused()
+    {
+        var (container, batch) = await SownAsync(10);
+        var loss = Lines(Work(EventType.Lost, container), (container, batch, -1));
+        await AppendAsync(loss);
+
+        var clash = new Event { Id = loss.Id, Type = EventType.Note, OccurredAt = DateTimeOffset.UtcNow, RecordedBy = database.UserId, ContainerId = container };
+
+        Assert.Equal(AppendResult.IdInUse, await AppendAsync(clash));
+        Assert.Equal(AppendResult.AlreadyStored, await AppendAsync(Lines(new Event { Id = loss.Id, Type = EventType.Lost, OccurredAt = DateTimeOffset.UtcNow, RecordedBy = database.UserId, ContainerId = container }, (container, batch, -1))));
     }
 }

@@ -1,4 +1,5 @@
 export interface Me {
+  id: string;
   name: string;
   isOwner: boolean;
 }

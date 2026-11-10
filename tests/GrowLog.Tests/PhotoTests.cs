@@ -182,6 +182,7 @@ public sealed class PhotoTests(PostgresFixture database)
         var farm = Json(await PostForTextAsync(owner, "/api/locations", new { name = "The Farm", kind = "Site" })).GetProperty("id").GetGuid();
         using var added = await UploadAsync(owner, $"/api/catalogue-photos/Location/{farm}", Jpeg);
         var photoId = (await FindAsync(owner, "/api/locations", farm)).GetProperty("photoIds")[0].GetGuid();
+        await AllowNameOnlyAsync(owner);
         var staffId = Json(await PostForTextAsync(owner, "/api/staff", new { name = "Jo Reed", nameOnly = true })).GetProperty("id").GetGuid();
         using var staff = Client(app);
         await PostStatusAsync(staff, "/api/account/sign-in/name", new { userId = staffId });

@@ -11,7 +11,8 @@
 
   let staff = $state<Member[]>([]);
   let name = $state("");
-  let way = $state<SignInWay>("name");
+  let way = $state<SignInWay>("invite");
+  let allowNameOnly = $state(false);
   let password = $state("");
   let pin = $state("");
   let problem = $state("");
@@ -27,13 +28,36 @@
 
   async function load() {
     staff = (await api.GET("/api/staff")).data ?? [];
+    allowNameOnly =
+      (await api.GET("/api/staff/sign-in-settings")).data?.allowNameOnly ??
+      false;
   }
+
+  const setAllowNameOnly = (allow: boolean) => {
+    if (
+      allow &&
+      !confirm(
+        "Let staff sign in just by tapping their name? Anyone who can reach GrowLog could sign in as them, so only do this if it is on the nursery's private network.",
+      )
+    ) {
+      return;
+    }
+
+    return attempt(async () => {
+      await api.PUT("/api/staff/sign-in-settings", {
+        body: { allowNameOnly: allow },
+      });
+      await load();
+    }, setProblem);
+  };
 
   onMount(() => void attempt(load, setProblem));
 
   function signsInWith(member: Member) {
     if (member.nameOnly) {
-      return "Signs in by tapping their name";
+      return allowNameOnly
+        ? "Signs in by tapping their name"
+        : "Tapping their name is turned off, so give them a password or PIN";
     }
 
     const ways = [
@@ -174,7 +198,9 @@
           <label>
             How they sign in
             <select bind:value={way}>
-              <option value="name">Just tap their name</option>
+              {#if allowNameOnly}
+                <option value="name">Just tap their name</option>
+              {/if}
               <option value="password">A password you give them</option>
               <option value="invite">Send them an invitation later</option>
             </select>
@@ -207,6 +233,15 @@
           <p class="link" data-testid="invite-link">{link}</p>
         </div>
       {/if}
+
+      <label class="tick">
+        <input
+          type="checkbox"
+          checked={allowNameOnly}
+          onchange={(event) => setAllowNameOnly(event.currentTarget.checked)}
+        />
+        Let staff sign in by tapping their name
+      </label>
 
       {#each staff.filter((member) => !member.archived) as member (member.id)}
         <div class="card">
@@ -250,7 +285,7 @@
                 onclick={() => (settingPasswordFor = member.id)}
                 >Set password</button
               >
-              {#if !member.isOwner && !member.nameOnly}
+              {#if allowNameOnly && !member.isOwner && !member.nameOnly}
                 <button class="secondary" onclick={() => makeNameOnly(member)}
                   >Name only</button
                 >

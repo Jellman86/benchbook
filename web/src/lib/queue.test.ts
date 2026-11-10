@@ -122,6 +122,7 @@ describe("WorkQueue", () => {
           eventId: "a",
           description: "Lost 99 Lavender",
           reason: "It went wrong",
+          request: request("a"),
         },
       ]);
     });
@@ -134,5 +135,25 @@ describe("WorkQueue", () => {
 
       expect(queue.failed).toEqual([]);
     });
+
+    it("puts work that couldn't be saved back in line to try again", async () => {
+      queue.add(request("a"));
+      await flush(queue, async () => ({ kind: "rejected" }), explain);
+
+      queue.retry("a");
+
+      expect(queue.failed).toEqual([]);
+      expect(queue.next?.request).toEqual(request("a"));
+    });
+  });
+
+  it("takes over work kept under a person's old key", () => {
+    const old = new WorkQueue(store, "Alex Reed");
+    old.add(request("a"));
+
+    queue.adopt("Alex Reed");
+
+    expect(queue.waiting).toBe(1);
+    expect(old.waiting).toBe(0);
   });
 });

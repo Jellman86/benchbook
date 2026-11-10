@@ -10,4 +10,11 @@ internal sealed class EventLine
     public required Guid BatchId { get; init; }
 
     public required int QuantityChange { get; init; }
+
+    /// <summary>When the change takes effect, if not when its event happened: a correction's replacement takes the original's time.</summary>
+    public DateTimeOffset? EffectiveAt
+    {
+        get;
+        init => field = value?.ToUniversalTime();
+    }
 }

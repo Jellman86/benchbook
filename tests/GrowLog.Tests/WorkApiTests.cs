@@ -543,4 +543,23 @@ public sealed class WorkApiTests(PostgresFixture database)
         Assert.Equal(HttpStatusCode.Unauthorized, await GetStatusAsync(stranger, "/api/events/recent"));
         Assert.Equal(HttpStatusCode.Unauthorized, await PostStatusAsync(stranger, "/api/batches", StartBody(scene, Guid.NewGuid())));
     }
+
+    [Fact]
+    public async Task A_place_with_trays_or_places_in_it_cannot_stop_being_used()
+    {
+        await using var scene = await CreateSceneAsync();
+        await StartAsync(scene);
+        var owner = scene.Nursery.Owner;
+
+        using var withTrays = await PostAsync(owner, $"/api/locations/{scene.Bench1}/archive");
+        Assert.Equal("HasTrays", await ProblemAsync(withTrays));
+
+        var house = (await owner.GetFromJsonAsync<JsonElement>(Route("/api/locations"), Cancellation)).EnumerateArray()
+            .Single(place => string.Equals(place.GetProperty("name").GetString(), "Greenhouse 2", StringComparison.Ordinal)).GetProperty("id").GetGuid();
+        using var withPlaces = await PostAsync(owner, $"/api/locations/{house}/archive");
+        Assert.Equal("HasPlaces", await ProblemAsync(withPlaces));
+
+        Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(owner, $"/api/locations/{scene.Bench2}/archive"));
+        Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(owner, $"/api/locations/{scene.Bench2}/restore"));
+    }
 }
