@@ -22,7 +22,7 @@ internal sealed class LabelPrinter(IConfiguration configuration)
     /// Renders one label, or several copies of it as pages of one PDF, in the style chosen for its kind.
     /// As a picture it is a single PNG at the printer's 300 dots an inch, for showing on a screen.
     /// </summary>
-    public async Task<byte[]> RenderAsync(LabelKind kind, object data, string? qrText, LabelContext context, int copies, CancellationToken cancellationToken, bool asPicture = false)
+    public async Task<byte[]> RenderAsync(LabelKind kind, object data, string? qrText, LabelContext context, int copies, CancellationToken cancellationToken, bool asPicture = false, int dotsPerInch = 300)
     {
         var directory = Directory.CreateTempSubdirectory("growlog-label-");
 
@@ -61,7 +61,7 @@ internal sealed class LabelPrinter(IConfiguration configuration)
                 await File.WriteAllTextAsync(Path.Join(directory.FullName, "qr.svg"), qr.Value.Svg, cancellationToken);
             }
 
-            await RunTypstAsync(style, directory.FullName, template, output, asPicture, cancellationToken);
+            await RunTypstAsync(style, directory.FullName, template, output, asPicture ? dotsPerInch : null, cancellationToken);
             return await File.ReadAllBytesAsync(output, cancellationToken);
         }
         finally
@@ -109,7 +109,7 @@ internal sealed class LabelPrinter(IConfiguration configuration)
         return name;
     }
 
-    private async Task RunTypstAsync(LabelStyle style, string root, string template, string output, bool asPicture, CancellationToken cancellationToken)
+    private async Task RunTypstAsync(LabelStyle style, string root, string template, string output, int? pictureDotsPerInch, CancellationToken cancellationToken)
     {
         var width = style.WidthMm.ToString(CultureInfo.InvariantCulture);
         var height = style.HeightMm.ToString(CultureInfo.InvariantCulture);
@@ -128,7 +128,7 @@ internal sealed class LabelPrinter(IConfiguration configuration)
             "--ignore-system-fonts",
             "--input", $"width={width}",
             "--input", $"height={height}",
-            .. asPicture ? ["--format", "png", "--ppi", "300"] : Array.Empty<string>(),
+            .. pictureDotsPerInch is { } ppi ? ["--format", "png", "--ppi", ppi.ToString(CultureInfo.InvariantCulture)] : Array.Empty<string>(),
             template,
             output,
         ];

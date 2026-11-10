@@ -11,6 +11,7 @@
   import MapSettings from "./settings/MapSettings.svelte";
   import NurseryDetails from "./settings/NurseryDetails.svelte";
   import PotSizes from "./settings/PotSizes.svelte";
+  import Printers from "./settings/Printers.svelte";
   import SigningIn from "./settings/SigningIn.svelte";
   import Staff from "./settings/Staff.svelte";
   import Stations from "./settings/Stations.svelte";
@@ -101,8 +102,14 @@
       <NurseryDetails onBack={toList} />
     {:else if shown === "map"}
       <MapSettings onBack={toList} />
+    {:else if shown === "printers"}
+      <Printers onBack={toList} onLabels={() => onPage("labels")} />
     {:else if shown === "labels"}
-      <Labels onBack={toList} onNurseryDetails={() => onPage("nursery")} />
+      <Labels
+        onBack={toList}
+        onNurseryDetails={() => onPage("nursery")}
+        onPrinters={() => onPage("printers")}
+      />
     {:else if shown === "potSizes"}
       <PotSizes onBack={toList} />
     {:else if shown === "staff"}

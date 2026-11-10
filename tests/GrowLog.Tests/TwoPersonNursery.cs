@@ -27,9 +27,9 @@ internal sealed class TwoPersonNursery : IAsyncDisposable
 
     public Guid StaffId { get; private set; }
 
-    public static async Task<TwoPersonNursery> CreateAsync(PostgresFixture database, bool demo = false)
+    public static async Task<TwoPersonNursery> CreateAsync(PostgresFixture database, bool demo = false, params (string Key, string? Value)[] settings)
     {
-        var nursery = new TwoPersonNursery(await CreateAppAsync(database, demo: demo));
+        var nursery = new TwoPersonNursery(await CreateAppAsync(database, demo: demo, settings: settings));
         await SetUpOwnerAsync(nursery.Owner, nursery.ownerKey);
 
         var userId = Json(await PostForTextAsync(nursery.Owner, "/api/staff", new { name = "Alex Moss", pin = "4821" })).GetProperty("id").GetGuid();

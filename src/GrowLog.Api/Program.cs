@@ -11,6 +11,7 @@ using GrowLog.Api.Labels;
 using GrowLog.Api.Lookup;
 using GrowLog.Api.Operations;
 using GrowLog.Api.Passports;
+using GrowLog.Api.Printing;
 using GrowLog.Api.Production;
 using GrowLog.Api.Selling;
 using GrowLog.Api.Settings;
@@ -41,6 +42,7 @@ builder.Services.AddDbContext<GrowLogDbContext>((services, options) =>
 builder.Services.AddScoped<DeviceClock>();
 builder.Services.AddScoped<EventStore>();
 builder.Services.AddSingleton<LabelPrinter>();
+builder.Services.AddSingleton<PrinterConnection>();
 builder.Services.AddSingleton<SpeciesThrottle>();
 builder.Services.AddHttpClient<SpeciesSources>(client =>
 {
@@ -99,6 +101,7 @@ app.MapWorkEndpoints();
 app.MapContainerHistoryEndpoints();
 app.MapPlaceEndpoints();
 app.MapPlaceMapEndpoints();
+app.MapPrinterEndpoints();
 app.MapNurserySettingsEndpoints();
 app.MapClearRecordsEndpoints();
 app.MapProductionEndpoints();

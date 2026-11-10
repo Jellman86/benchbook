@@ -992,10 +992,45 @@ button.place-row:hover:not(:disabled) {
 }
 
 /* Only beside other buttons: in a column the same rule would set its height. */
-.row .print-button {
+.print-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.row .print-block {
   flex: 1 1 14rem;
 }
 
+.print-choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.print-choice label {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 400;
+}
+
+.print-choice select {
+  width: auto;
+  min-height: 0;
+  padding: 0.15rem 0.4rem;
+}
+
+.print-choice a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.print-button button,
 .print-button a.button {
   display: inline-flex;
   flex: 1;

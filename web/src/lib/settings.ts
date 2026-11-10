@@ -1,6 +1,7 @@
 import Cylinder from "@lucide/svelte/icons/cylinder";
 import DatabaseBackup from "@lucide/svelte/icons/database-backup";
 import Info from "@lucide/svelte/icons/info";
+import Printer from "@lucide/svelte/icons/printer";
 import KeyRound from "@lucide/svelte/icons/key-round";
 import MapIcon from "@lucide/svelte/icons/map";
 import Store from "@lucide/svelte/icons/store";
@@ -14,6 +15,7 @@ export type SettingsPage =
   | "account"
   | "nursery"
   | "map"
+  | "printers"
   | "labels"
   | "potSizes"
   | "staff"
@@ -46,8 +48,15 @@ const groups: SettingsGroup[] = [
     items: [
       { page: "nursery", label: "Nursery details", icon: Store },
       { page: "map", label: "Map", icon: MapIcon },
-      { page: "labels", label: "Labels", icon: Tag },
       { page: "potSizes", label: "Pot sizes", icon: Cylinder },
+    ],
+  },
+  {
+    heading: "Printing",
+    ownerOnly: true,
+    items: [
+      { page: "printers", label: "Printers", icon: Printer },
+      { page: "labels", label: "Labels", icon: Tag },
     ],
   },
   {

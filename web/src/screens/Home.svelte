@@ -46,6 +46,7 @@
   import Production from "./Production.svelte";
   import Plants from "./manage/Plants.svelte";
   import Overview from "./Overview.svelte";
+  import PrintButton from "./PrintButton.svelte";
   import Settings from "./Settings.svelte";
   import Sidebar from "./Sidebar.svelte";
   import Camera from "./work/Camera.svelte";
@@ -568,12 +569,11 @@
             ><CircleCheck size={22} />{done.message}</strong
           >
           {#if done.newLabel}
-            <a
-              class="button"
+            <PrintButton
               href="/api/labels/containers/{encodeURIComponent(done.newLabel)}"
-              target="_blank"
-              rel="noopener">Print label</a
-            >
+              label="Print label"
+              onPrinted={() => scanBox?.focus()}
+            />
           {/if}
           <button
             class="secondary"

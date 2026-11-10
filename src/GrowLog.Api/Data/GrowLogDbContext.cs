@@ -65,6 +65,8 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<NurserySettings> NurserySettings => Set<NurserySettings>();
 
+    public DbSet<Printer> Printers => Set<Printer>();
+
     public DbSet<Customer> Customers => Set<Customer>();
 
     public DbSet<Invoice> Invoices => Set<Invoice>();
@@ -181,6 +183,14 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     private static void ConfigureSettings(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Printer>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Name).HasColumnType("citext");
+            entity.HasIndex(e => e.Name).IsUnique();
+            entity.Property(e => e.Language).HasConversion<string>();
+        });
+
         modelBuilder.Entity<ExternalSignInSetting>(entity =>
         {
             entity.Property(e => e.Id).ValueGeneratedNever();

@@ -17,7 +17,12 @@
   let {
     onBack,
     onNurseryDetails,
-  }: { onBack: () => void; onNurseryDetails: () => void } = $props();
+    onPrinters,
+  }: {
+    onBack: () => void;
+    onNurseryDetails: () => void;
+    onPrinters: () => void;
+  } = $props();
 
   // Only what the hints below need: whether there's a logo and a name to print.
   let details = $state<Schemas["NurseryDetails"] | null>(null);
@@ -162,7 +167,10 @@
   <h1>Labels</h1>
   <p class="muted">
     How each kind of label looks. A change applies to every label printed after
-    you save it.
+    you save it. Which printer prints each kind is under <button
+      class="link-button"
+      onclick={onPrinters}>Printers</button
+    >.
   </p>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   {#if saved}<p class="card done" role="status">{saved}</p>{/if}
@@ -336,7 +344,7 @@
       </div>
 
       <details class="form-card printing-tips">
-        <summary>Printing for the first time</summary>
+        <summary>Printing through the print window</summary>
         <ol>
           <li>
             <strong>Buy plastic labels and a resin ribbon.</strong>

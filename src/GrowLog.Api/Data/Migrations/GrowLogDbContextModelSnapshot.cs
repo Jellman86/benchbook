@@ -1124,6 +1124,50 @@ namespace GrowLog.Api.Data.Migrations
                     b.ToTable("pot_sizes", (string)null);
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.Printer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("address");
+
+                    b.Property<int>("DotsPerInch")
+                        .HasColumnType("integer")
+                        .HasColumnName("dots_per_inch");
+
+                    b.PrimitiveCollection<string[]>("Labels")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("labels");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("language");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("citext")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Port")
+                        .HasColumnType("integer")
+                        .HasColumnName("port");
+
+                    b.HasKey("Id")
+                        .HasName("pk_printers");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_printers_name");
+
+                    b.ToTable("printers", (string)null);
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.Purchase", b =>
                 {
                     b.Property<Guid>("Id")
