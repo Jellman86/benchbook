@@ -407,6 +407,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MapSettingsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/settings/clear-records": {
         parameters: {
             query?: never;
@@ -3863,6 +3900,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/locations/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlaceMap"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/locations/{id}/outline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["OutlineRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/settings/nursery": {
         parameters: {
             query?: never;
@@ -5616,6 +5727,9 @@ export interface components {
             quantity: number | string;
             reason: components["schemas"]["LossReason"];
         };
+        MapSettingsRequest: {
+            imageryKey: null | string;
+        };
         MoneySummary: {
             months: components["schemas"]["MonthFigures"][];
             /** Format: double */
@@ -5668,6 +5782,9 @@ export interface components {
             vatRegistered: boolean;
             /** Format: int32 */
             paymentTermsDays: number | string;
+        };
+        OutlineRequest: {
+            points: null | (number | string)[][];
         };
         OwnPlantResult: {
             /** Format: uuid */
@@ -5736,6 +5853,15 @@ export interface components {
         PhotoAdded: {
             /** Format: uuid */
             id: string;
+        };
+        PlaceMap: {
+            imageryKey: null | string;
+            outlines: components["schemas"]["PlaceOutline"][];
+        };
+        PlaceOutline: {
+            /** Format: uuid */
+            id: string;
+            points: (number | string)[][];
         };
         PlacesCreated: {
             ids: string[];

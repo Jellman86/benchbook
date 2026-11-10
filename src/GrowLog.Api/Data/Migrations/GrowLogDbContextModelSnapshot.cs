@@ -841,6 +841,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("citext")
                         .HasColumnName("name");
 
+                    b.Property<string>("Outline")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("outline");
+
                     b.Property<Guid?>("ParentId")
                         .HasColumnType("uuid")
                         .HasColumnName("parent_id");
@@ -892,6 +896,10 @@ namespace GrowLog.Api.Data.Migrations
                     b.Property<string>("LogoContentType")
                         .HasColumnType("text")
                         .HasColumnName("logo_content_type");
+
+                    b.Property<string>("MapImageryKey")
+                        .HasColumnType("text")
+                        .HasColumnName("map_imagery_key");
 
                     b.Property<string>("NurseryName")
                         .HasColumnType("text")

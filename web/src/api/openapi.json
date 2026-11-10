@@ -326,6 +326,28 @@
         }
       }
     },
+    "/api/settings/map": {
+      "put": {
+        "tags": [
+          "PlaceMapEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MapSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/settings/clear-records": {
       "post": {
         "tags": [
@@ -2918,6 +2940,58 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/locations/map": {
+      "get": {
+        "tags": [
+          "PlaceMapEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceMap"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/locations/{id}/outline": {
+      "put": {
+        "tags": [
+          "PlaceMapEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutlineRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -5599,6 +5673,20 @@
           }
         }
       },
+      "MapSettingsRequest": {
+        "required": [
+          "imageryKey"
+        ],
+        "type": "object",
+        "properties": {
+          "imageryKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "MoneySummary": {
         "required": [
           "months",
@@ -5808,6 +5896,31 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "OutlineRequest": {
+        "required": [
+          "points"
+        ],
+        "type": "object",
+        "properties": {
+          "points": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "array",
+              "items": {
+                "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+                "type": [
+                  "number",
+                  "string"
+                ],
+                "format": "double"
+              }
+            }
           }
         }
       },
@@ -6059,6 +6172,54 @@
           "id": {
             "type": "string",
             "format": "uuid"
+          }
+        }
+      },
+      "PlaceMap": {
+        "required": [
+          "imageryKey",
+          "outlines"
+        ],
+        "type": "object",
+        "properties": {
+          "imageryKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "outlines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlaceOutline"
+            }
+          }
+        }
+      },
+      "PlaceOutline": {
+        "required": [
+          "id",
+          "points"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+                "type": [
+                  "number",
+                  "string"
+                ],
+                "format": "double"
+              }
+            }
           }
         }
       },
@@ -8067,6 +8228,9 @@
     },
     {
       "name": "ContainerHistoryEndpoints"
+    },
+    {
+      "name": "PlaceMapEndpoints"
     },
     {
       "name": "ClearRecordsEndpoints"

@@ -24,6 +24,7 @@
     "@playwright/test": "^1.65.0",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@tsconfig/svelte": "^5.0.8",
+    "@types/leaflet": "1.9.22",
     "eslint": "^10.14.0",
     "eslint-plugin-svelte": "^3.24.1",
     "globals": "^17.14.0",
@@ -38,8 +39,10 @@
     "vitest": "^5.1.0"
   },
   "dependencies": {
+    "@geoman-io/leaflet-geoman-free": "2.20.6",
     "@lucide/svelte": "^1.70.0",
     "jsqr": "^1.4.0",
+    "leaflet": "1.9.4",
     "openapi-fetch": "^0.17.0"
   }
 }

@@ -190,6 +190,32 @@ test("the owner sets up the nursery and staff can sign in", async ({
     page.getByRole("link", { name: "Print place label" }),
   ).toBeVisible();
   await button(page, "Back").click();
+
+  // The greenhouse is drawn on the map by tapping its corners. Map pictures aren't fetched in tests.
+  await page.route(/tile\.openstreetmap\.org|api\.postcodes\.io/, (route) =>
+    route.abort(),
+  );
+  await button(page, "Map").click();
+  await page.locator(".place-row", { hasText: "Greenhouse 2" }).click();
+  await button(page, "Draw its outline").click();
+  const canvas = page.locator(".place-map-canvas");
+  const area = (await canvas.boundingBox())!;
+  for (const [x, y] of [
+    [0.3, 0.3],
+    [0.7, 0.3],
+    [0.7, 0.7],
+    [0.3, 0.7],
+  ]) {
+    await page.mouse.click(area.x + area.width * x, area.y + area.height * y);
+  }
+  await button(page, "Finish").click();
+  await expect(button(page, "Change outline")).toBeVisible();
+  await button(page, "Open").click();
+  await expect(
+    page.getByRole("heading", { name: "Greenhouse 2" }),
+  ).toBeVisible();
+  await button(page, "Back").click();
+  await button(page, "List").click();
   await leaveManage(page);
 
   // Money out: a purchase with its VAT, then paying it.
