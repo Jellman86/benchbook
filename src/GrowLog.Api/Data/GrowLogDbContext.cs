@@ -223,6 +223,7 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         modelBuilder.Entity<NurserySettings>(entity =>
         {
             entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.SignInLevel).HasConversion<string>();
             entity.ToTable(table => table.HasCheckConstraint("ck_nursery_settings_single", "id = 1"));
         });
 

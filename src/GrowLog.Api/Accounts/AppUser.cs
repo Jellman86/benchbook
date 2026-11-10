@@ -14,6 +14,9 @@ internal sealed class AppUser : IdentityUser<Guid>
     /// </summary>
     public bool NameOnlySignIn { get; set; }
 
+    /// <summary>The shared account work is recorded under when the nursery chooses no signing in.</summary>
+    public bool IsTeamAccount { get; set; }
+
     /// <summary>Set when someone leaves. They are kept so that older records still name them.</summary>
     public DateTimeOffset? ArchivedAt { get; set; }
 }

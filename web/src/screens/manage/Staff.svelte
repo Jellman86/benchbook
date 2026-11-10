@@ -12,7 +12,40 @@
   let staff = $state<Member[]>([]);
   let name = $state("");
   let way = $state<SignInWay>("invite");
-  let allowNameOnly = $state(false);
+  let level = $state<Schemas["SignInLevel"]>("Personal");
+  const allowNameOnly = $derived(level !== "Strict");
+  const everyoneTaps = $derived(level === "Open" || level === "Names");
+
+  const levels: {
+    level: Schemas["SignInLevel"];
+    title: string;
+    detail: string;
+  }[] = [
+    {
+      level: "Open",
+      title: "No signing in",
+      detail:
+        "Devices go straight in. Work is recorded as the nursery team, so you won't see who did what.",
+    },
+    {
+      level: "Names",
+      title: "Tap your name",
+      detail:
+        "Everyone taps their name, with nothing to type, at a bench too. Work shows who did it.",
+    },
+    {
+      level: "Personal",
+      title: "Each person's own way",
+      detail:
+        "Each person signs in the way you set for them below. A bench asks for a PIN.",
+    },
+    {
+      level: "Strict",
+      title: "Strict",
+      detail:
+        "A password, passkey or staff login for everyone, and a PIN at a bench.",
+    },
+  ];
   let password = $state("");
   let pin = $state("");
   let problem = $state("");
@@ -65,32 +98,25 @@
 
   async function load() {
     staff = (await api.GET("/api/staff")).data ?? [];
-    allowNameOnly =
-      (await api.GET("/api/staff/sign-in-settings")).data?.allowNameOnly ??
-      false;
+    level =
+      (await api.GET("/api/staff/sign-in-settings")).data?.level ?? "Personal";
   }
 
-  const setAllowNameOnly = (allow: boolean) => {
-    if (
-      allow &&
-      !confirm(
-        "Let staff sign in just by tapping their name? Anyone who can reach GrowLog could sign in as them, so only do this if it is on the nursery's private network.",
-      )
-    ) {
-      return;
-    }
-
-    return attempt(async () => {
-      await api.PUT("/api/staff/sign-in-settings", {
-        body: { allowNameOnly: allow },
-      });
+  // Only GrowLog's own sign-in is affected: your account always needs your password or passkey.
+  const setLevel = (chosen: Schemas["SignInLevel"]) =>
+    attempt(async () => {
+      level = chosen;
+      await api.PUT("/api/staff/sign-in-settings", { body: { level: chosen } });
       await load();
     }, setProblem);
-  };
 
   onMount(() => void attempt(load, setProblem));
 
   function signsInWith(member: Member) {
+    if (everyoneTaps && !member.isOwner) {
+      return "Taps their name";
+    }
+
     if (member.nameOnly) {
       return allowNameOnly
         ? "Signs in by tapping their name"
@@ -291,14 +317,29 @@
         </div>
       {/if}
 
-      <label class="tick">
-        <input
-          type="checkbox"
-          checked={allowNameOnly}
-          onchange={(event) => setAllowNameOnly(event.currentTarget.checked)}
-        />
-        Let staff sign in by tapping their name
-      </label>
+      <fieldset class="form-card sign-in-levels">
+        <legend>How much signing in</legend>
+        <div class="stack">
+          {#each levels as option (option.level)}
+            <label class="level-choice" class:chosen={level === option.level}>
+              <input
+                type="radio"
+                name="sign-in-level"
+                checked={level === option.level}
+                onchange={() => setLevel(option.level)}
+              />
+              <span class="stack-tight">
+                <strong>{option.title}</strong>
+                <span class="muted">{option.detail}</span>
+              </span>
+            </label>
+          {/each}
+        </div>
+        <p class="muted credit">
+          Your own account always needs your password or passkey, so Manage
+          stays yours.
+        </p>
+      </fieldset>
 
       {#each staff.filter((member) => !member.archived) as member (member.id)}
         <div class="card">

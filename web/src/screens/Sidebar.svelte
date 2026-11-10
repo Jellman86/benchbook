@@ -164,9 +164,15 @@
       {/if}
       <span class="nav-text">Collapse</span>
     </button>
-    <button aria-label="Sign out" title="Sign out" onclick={onFinished}>
+    <button
+      aria-label={me.isTeam ? "Sign in as yourself" : "Sign out"}
+      title={me.isTeam ? "Sign in as yourself" : "Sign out"}
+      onclick={onFinished}
+    >
       <LogOut size={20} />
-      <span class="nav-text">Sign out</span>
+      <span class="nav-text"
+        >{me.isTeam ? "Sign in as yourself" : "Sign out"}</span
+      >
     </button>
   </div>
 </aside>

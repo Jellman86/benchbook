@@ -2,7 +2,12 @@ export interface Me {
   id: string;
   name: string;
   isOwner: boolean;
+  /** Signed in as the nursery team, because the nursery chose no signing in. */
+  isTeam?: boolean;
 }
+
+/** Set on this device when someone chooses to sign in as themselves rather than as the nursery team. */
+export const signInAsYourselfKey = "growlog.signInAsYourself";
 
 export interface Person {
   id: string;
@@ -25,6 +30,8 @@ export interface Probes {
   me(): Promise<Me | null>;
   benchPeople(): Promise<Person[] | null>;
   needsSetup(): Promise<boolean>;
+  /** Goes straight in as the nursery team, where the nursery chose no signing in. */
+  teamSignIn(): Promise<boolean>;
 }
 
 /** Reads an invitation from a link like /invite?user=...&token=... */
@@ -78,7 +85,13 @@ export async function chooseStart(
     return { screen: "bench", people };
   }
 
-  return (await probes.needsSetup())
-    ? { screen: "setup" }
+  if (await probes.needsSetup()) {
+    return { screen: "setup" };
+  }
+
+  const team = (await probes.teamSignIn()) ? await probes.me() : null;
+
+  return team
+    ? { screen: "home", me: team, atBench: false }
     : { screen: "signIn" };
 }
