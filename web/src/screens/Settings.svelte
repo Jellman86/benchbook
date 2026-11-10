@@ -8,6 +8,7 @@
   import Account from "./settings/Account.svelte";
   import DataAndBackups from "./settings/DataAndBackups.svelte";
   import Labels from "./settings/Labels.svelte";
+  import MapSettings from "./settings/MapSettings.svelte";
   import NurseryDetails from "./settings/NurseryDetails.svelte";
   import PotSizes from "./settings/PotSizes.svelte";
   import SigningIn from "./settings/SigningIn.svelte";
@@ -98,6 +99,8 @@
       <Account {me} {theme} {onTheme} onBack={toList} />
     {:else if shown === "nursery"}
       <NurseryDetails onBack={toList} />
+    {:else if shown === "map"}
+      <MapSettings onBack={toList} />
     {:else if shown === "labels"}
       <Labels onBack={toList} onNurseryDetails={() => onPage("nursery")} />
     {:else if shown === "potSizes"}

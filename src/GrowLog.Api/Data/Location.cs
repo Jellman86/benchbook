@@ -15,5 +15,8 @@ internal sealed class Location : IAudited, IArchivable
     /// <summary>A short code such as P0001 for the place's printed label, given by the database.</summary>
     public string LabelCode { get; private set; } = null!;
 
+    /// <summary>Its outline on the map, as JSON [[latitude, longitude], …], or null if it hasn't been drawn.</summary>
+    public string? Outline { get; set; }
+
     public DateTimeOffset? ArchivedAt { get; set; }
 }

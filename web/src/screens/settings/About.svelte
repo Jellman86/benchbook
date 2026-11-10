@@ -38,6 +38,12 @@
     },
     { name: "jsQR", use: "scanning with the camera", licence: "Apache 2.0" },
     { name: "PdfPig", use: "reading supplier invoices", licence: "Apache 2.0" },
+    { name: "Leaflet", use: "the places map", licence: "BSD 2-clause" },
+    {
+      name: "Leaflet-Geoman",
+      use: "drawing places on the map",
+      licence: "MIT",
+    },
     { name: "Lucide", use: "icons", licence: "ISC" },
   ];
 </script>

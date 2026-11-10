@@ -98,6 +98,7 @@ app.Use(async (context, next) =>
 app.MapWorkEndpoints();
 app.MapContainerHistoryEndpoints();
 app.MapPlaceEndpoints();
+app.MapPlaceMapEndpoints();
 app.MapNurserySettingsEndpoints();
 app.MapClearRecordsEndpoints();
 app.MapProductionEndpoints();

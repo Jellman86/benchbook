@@ -38,4 +38,7 @@ internal sealed class NurserySettings
 
     /// <summary>Each kind of label's chosen style, as JSON keyed by label kind.</summary>
     public string LabelStyles { get; set; } = "{}";
+
+    /// <summary>An ArcGIS Location Platform key for satellite pictures behind the places map. Optional.</summary>
+    public string? MapImageryKey { get; set; }
 }
