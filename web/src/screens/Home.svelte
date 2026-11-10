@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CircleCheck from "@lucide/svelte/icons/circle-check";
   import { onMount, tick } from "svelte";
   import { api } from "../api/client";
   import { externalSignInProblem, type Me } from "../lib/boot";
@@ -78,6 +79,32 @@
   let collapsed = $state(savedCollapsed());
   let theme = $state<Theme>(savedTheme());
   let sending = false;
+  let fromHistory = false;
+
+  // Each screen is a step in the browser's history, so the phone's Back button goes back a screen.
+  $effect(() => {
+    const current = $state.snapshot(view);
+    const kept = (history.state as { view?: View } | null)?.view;
+
+    if (fromHistory) {
+      fromHistory = false;
+    } else if (JSON.stringify(kept) !== JSON.stringify(current)) {
+      if (kept) {
+        history.pushState({ view: current }, "");
+      } else {
+        history.replaceState({ view: current }, "");
+      }
+    }
+
+    // Someone using a screen reader or keyboard starts at the top of the new screen.
+    if (current.name !== "home") {
+      void tick().then(() => {
+        const main = document.querySelector("main");
+        main?.setAttribute("tabindex", "-1");
+        main?.focus({ preventScroll: true });
+      });
+    }
+  });
 
   function setTheme(chosen: Theme) {
     theme = chosen;
@@ -231,6 +258,16 @@
     }
   }
 
+  function undoRecent(action: Schemas["RecentAction"]) {
+    if (
+      confirm(
+        `Undo "${describeRecent(action)}"? It stays in the tray's history, marked as undone.`,
+      )
+    ) {
+      void undo(action.id);
+    }
+  }
+
   async function loadExampleData() {
     loadingDemo = true;
     const { response } = await api.POST("/api/demo/load");
@@ -266,7 +303,23 @@
       history.replaceState(null, "", location.pathname);
     }
 
-    void goHome();
+    // A reload comes back to the same screen.
+    const kept = (history.state as { view?: View } | null)?.view;
+
+    if (kept && kept.name !== "home") {
+      view = kept;
+      void refresh();
+    } else {
+      void goHome();
+    }
+
+    const stepBack = (event: PopStateEvent) => {
+      fromHistory = true;
+      view = (event.state as { view?: View } | null)?.view ?? {
+        name: "home",
+      };
+    };
+    window.addEventListener("popstate", stepBack);
 
     const send = () => void sendWaiting();
     const timer = setInterval(send, sendEvery);
@@ -275,6 +328,7 @@
     const stopSending = () => {
       clearInterval(timer);
       window.removeEventListener("online", send);
+      window.removeEventListener("popstate", stepBack);
     };
 
     if (!atBench) {
@@ -375,7 +429,9 @@
 
       {#if done}
         <div class="card done" role="status">
-          <strong>{done.message}</strong>
+          <strong class="done-heading"
+            ><CircleCheck size={22} />{done.message}</strong
+          >
           {#if done.newLabel}
             <a
               class="button"
@@ -452,6 +508,9 @@
                       >Again</button
                     >
                   {/if}
+                  <button class="secondary" onclick={() => undoRecent(action)}
+                    >Undo</button
+                  >
                 </div>
               </div>
             {/each}
@@ -480,13 +539,17 @@
       {theme}
       current={view.name === "manage"
         ? view.section
-        : view.name === "home" ||
-            view.name === "start" ||
-            view.name === "more" ||
-            view.name === "plants" ||
-            view.name === "production"
-          ? view.name
-          : null}
+        : view.name === "container"
+          ? view.fromProduction
+            ? "production"
+            : "home"
+          : view.name === "home" ||
+              view.name === "start" ||
+              view.name === "more" ||
+              view.name === "plants" ||
+              view.name === "production"
+            ? view.name
+            : null}
       onHome={goHome}
       onNewBatch={() => (view = { name: "start" })}
       onSection={(section) => (view = { name: "manage", section })}

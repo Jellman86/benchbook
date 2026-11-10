@@ -41,8 +41,9 @@
   let inFlight: AbortController | undefined;
 
   const typed = $derived(query.trim().length >= shortestSearch);
+  const anyTyped = $derived(query.trim().length > 0);
   const shown = $derived(
-    speciesOnly ? [] : typed ? own : showRecent ? recent.slice(0, 6) : [],
+    speciesOnly ? [] : anyTyped ? own : showRecent ? recent.slice(0, 6) : [],
   );
 
   function matches(plant: Own, text: string) {
@@ -83,8 +84,10 @@
     latest += 1;
     const id = latest;
 
-    // Never leave the last search's plants showing, where one could be tapped by mistake.
-    own = [];
+    // The nursery's own plants show straight away; the online lists follow.
+    // Nothing from the last search is left showing, where it could be tapped by mistake.
+    const text = query.trim().toLowerCase();
+    own = text ? recent.filter((plant) => matches(plant, text)) : [];
     species = [];
     unavailable = false;
 
@@ -94,10 +97,10 @@
     }
 
     searching = true;
-    const text = query.trim();
     inFlight = new AbortController();
     const { signal } = inFlight;
-    timer = setTimeout(() => void search(text, id, signal), 400);
+    const sent = query.trim();
+    timer = setTimeout(() => void search(sent, id, signal), 400);
   }
 
   function pickOwn(plant: Own) {
@@ -166,6 +169,8 @@
 
   {#if searching}
     <Loading text="Searching the plant lists…" />
+  {/if}
+  {#if searching && shown.length === 0}
     <div class="card-grid" aria-hidden="true">
       {#each [1, 2, 3, 4, 5, 6] as slot (slot)}
         <div class="plant-card skeleton-card">
@@ -186,7 +191,7 @@
   {/if}
 
   {#if shown.length > 0}
-    <h2>{typed ? "Your plants" : "Recent plants"}</h2>
+    <h2>{anyTyped ? "Your plants" : "Recent plants"}</h2>
     <div class="card-grid appear">
       {#each shown as plant (plant.id)}
         <button class="plant-card" onclick={() => pickOwn(plant)}>

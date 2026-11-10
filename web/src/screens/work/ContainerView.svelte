@@ -6,6 +6,16 @@
   import type { Schemas } from "../../lib/types";
   import { rememberedContainer } from "../../lib/offline";
   import { recordWork } from "../../lib/queue";
+  import { stageLabel, timeAtStage } from "../../lib/production";
+  import {
+    actionLabels,
+    describeHistory,
+    likelyNext,
+    otherActions,
+    whenWords,
+    type HistoryEntry,
+    type TrayAction,
+  } from "../../lib/tray";
   import {
     isRecorded,
     outcomeProblem,
@@ -33,36 +43,36 @@
     onNotFound: (message: string) => void;
   } = $props();
 
-  type Action =
-    | "lost"
-    | "move"
-    | "potOn"
-    | "prickOut"
-    | "count"
-    | "treat"
-    | "note"
-    | "passports";
-
   let container = $state<Schemas["ContainerResponse"] | null>(null);
-  let action = $state<Action | null>(null);
+  let history = $state<HistoryEntry[]>([]);
+  let action = $state<TrayAction | null>(null);
   let problem = $state("");
   let busy = $state(false);
   let cardPlant = $state<string | null>(null);
 
-  const hasPlants = $derived((container?.contents.length ?? 0) > 0);
+  const now = new Date();
+  const first = $derived(container ? likelyNext(container) : []);
+  const rest = $derived(container ? otherActions(container) : []);
   const back = () => (action = null);
 
-  onMount(async () => {
+  async function load() {
     try {
       const { data } = await api.GET("/api/containers/by-label/{label}", {
         params: { path: { label } },
       });
 
-      if (data) {
-        container = data;
-      } else {
+      if (!data) {
         onNotFound(`No container has the label ${label}.`);
+        return;
       }
+
+      container = data;
+      history =
+        (
+          await api.GET("/api/containers/{id}/history", {
+            params: { path: { id: data.id } },
+          })
+        ).data ?? [];
     } catch {
       container = rememberedContainer(label);
 
@@ -70,7 +80,9 @@
         onNotFound(`No connection, and ${label} isn't saved on this device.`);
       }
     }
-  });
+  }
+
+  onMount(load);
 
   async function record(item: WorkRequest, words: string) {
     busy = true;
@@ -84,11 +96,38 @@
     }
   }
 
-  const germinated = () =>
-    container && record(work.germinated(container.id), "germinated");
+  function choose(chosen: TrayAction) {
+    problem = "";
 
-  const ready = () =>
-    container && record(work.ready(container.id), "marked ready");
+    if (chosen === "germinated" && container) {
+      void record(work.germinated(container.id), "germinated");
+    } else if (chosen === "ready" && container) {
+      void record(work.ready(container.id), "marked ready");
+    } else {
+      action = chosen;
+    }
+  }
+
+  async function undo(entry: HistoryEntry) {
+    if (
+      !confirm(
+        `Undo "${describeHistory(entry)}"? It stays in the history, marked as undone.`,
+      )
+    ) {
+      return;
+    }
+
+    busy = true;
+    const outcome = await recordWork(work.undo(entry.eventId));
+    busy = false;
+
+    if (isRecorded(outcome)) {
+      problem = "";
+      await load();
+    } else {
+      problem = outcomeProblem(outcome);
+    }
+  }
 </script>
 
 {#if !container}
@@ -112,49 +151,99 @@
 {:else if action === "note"}
   <Note {container} {onDone} onCancel={back} />
 {:else}
-  <main>
-    <h1>{container.labelCode}</h1>
-    {#each container.contents as line (line.batchId)}
-      <p>
-        <strong>{line.quantity}</strong>
-        {plantName(line.commonName, line.variety)}
-        <span class="muted">{line.traceabilityCode}</span>
+  <main class="tray">
+    <header class="plant-title">
+      <h1>{container.labelCode}</h1>
+      <p class="muted">
+        {container.locationName ?? "No place recorded"}{container.potSizeName
+          ? ` · ${container.potSizeName}`
+          : ""}
       </p>
-      <BatchPhotos batchId={line.batchId} />
-      <button class="link-button" onclick={() => (cardPlant = line.plantId)}
-        >About this plant</button
-      >
-    {:else}
-      <p class="muted">This container is empty.</p>
-    {/each}
-    <p class="muted">
-      {container.locationName ?? "No place recorded"}{container.potSizeName
-        ? `, ${container.potSizeName}`
-        : ""}
-    </p>
+    </header>
 
-    {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+    <div class="tray-layout">
+      <section class="tray-details">
+        {#if container.stage}
+          <ul class="tags">
+            <li class="stage-tag">{stageLabel(container.stage)}</li>
+            {#if container.stageSince}<li>
+                for {timeAtStage(container.stageSince, now)}
+              </li>{/if}
+          </ul>
+        {/if}
 
-    <div class="stack actions">
-      {#if hasPlants}
-        <button onclick={() => (action = "lost")}>Lost</button>
-        <button onclick={() => (action = "potOn")}>Pot on</button>
-        <button onclick={() => (action = "prickOut")}>Prick out</button>
-        <button disabled={busy} onclick={germinated}>Germinated</button>
-        <button disabled={busy} onclick={ready}>Ready</button>
-        <button onclick={() => (action = "count")}>Count</button>
-        <button onclick={() => (action = "passports")}>Passports</button>
+        {#each container.contents as line (line.batchId)}
+          <div class="card tray-line">
+            <p>
+              <strong class="tray-quantity">{line.quantity}</strong>
+              {plantName(line.commonName, line.variety)}
+            </p>
+            <span class="muted credit">Batch {line.traceabilityCode}</span>
+            <BatchPhotos batchId={line.batchId} />
+            <button
+              class="link-button"
+              onclick={() => (cardPlant = line.plantId)}
+              >About this plant</button
+            >
+          </div>
+        {:else}
+          <p class="note-empty muted">This container is empty.</p>
+        {/each}
+      </section>
+
+      <section class="tray-actions">
+        {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+        <div class="next-actions">
+          {#each first as item (item)}
+            <button disabled={busy} onclick={() => choose(item)}
+              >{actionLabels[item]}</button
+            >
+          {/each}
+        </div>
+        <div class="other-actions">
+          {#each rest as item (item)}
+            <button
+              class="secondary"
+              disabled={busy}
+              onclick={() => choose(item)}>{actionLabels[item]}</button
+            >
+          {/each}
+        </div>
+        <a
+          class="button secondary"
+          href="/api/labels/containers/{encodeURIComponent(
+            container.labelCode,
+          )}"
+          target="_blank"
+          rel="noopener">Print label</a
+        >
+      </section>
+
+      {#if history.length > 0}
+        <section class="tray-history">
+          <h2>What's happened</h2>
+          <ol class="timeline">
+            {#each history as entry (entry.eventId)}
+              <li class:undone={entry.undone}>
+                <span class="timeline-what">{describeHistory(entry)}</span>
+                <span class="muted credit">
+                  {whenWords(entry.occurredAt, now)}{entry.recordedBy
+                    ? `, ${entry.recordedBy}`
+                    : ""}{entry.undone ? " · undone" : ""}
+                </span>
+                {#if !entry.undone}
+                  <button
+                    class="link-button"
+                    disabled={busy}
+                    onclick={() => undo(entry)}>Undo</button
+                  >
+                {/if}
+              </li>
+            {/each}
+          </ol>
+        </section>
       {/if}
-      <button onclick={() => (action = "move")}>Move</button>
-      <button onclick={() => (action = "treat")}>Treated</button>
-      <button onclick={() => (action = "note")}>Note</button>
     </div>
-    <a
-      class="button secondary"
-      href="/api/labels/containers/{encodeURIComponent(container.labelCode)}"
-      target="_blank"
-      rel="noopener">Print label</a
-    >
     <button class="back" onclick={onCancel}>Back</button>
   </main>
 {/if}

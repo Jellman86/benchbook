@@ -71,7 +71,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
 
   // Signing out and back in uses the passkey just made.
   await button(page, "More").click();
-  await button(page, "Finished").click();
+  await button(page, "Sign out").click();
   await button(page, "Sign in with passkey").click();
   await expect(
     page.getByRole("heading", { name: "Hello, Sam Fielding" }),
@@ -308,7 +308,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(page.getByText("Signs in by tapping their name")).toBeVisible();
   await leaveManage(page);
   await button(page, "More").click();
-  await button(page, "Finished").click();
+  await button(page, "Sign out").click();
   await button(page, "Jo Reed").click();
   await expect(
     page.getByRole("heading", { name: "Hello, Jo Reed" }),
@@ -317,7 +317,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
 
   // The owner has a password, so tapping their name asks for it.
   await button(page, "More").click();
-  await button(page, "Finished").click();
+  await button(page, "Sign out").click();
   await button(page, "Sam Fielding").click();
   await page.getByLabel("Password", { exact: true }).fill("not the one");
   await button(page, "Sign in").click();
@@ -432,7 +432,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await scan(label);
   await button(page, "Lost").click();
   await button(page, "Frost").click();
-  await button(page, "Undo").click();
+  await page.getByRole("status").getByRole("button", { name: "Undo" }).click();
   await expect(page.getByRole("status")).toHaveCount(0);
   await scan(label);
   await expect(page.getByText("37 Lavender 'Munstead'")).toBeVisible();
@@ -453,10 +453,14 @@ test("the owner sets up the nursery and staff can sign in", async ({
     `Moved ${label} to Greenhouse 2`,
   );
 
-  // Pot on part of it, which makes a new label.
+  // Pot on part of it, which makes a new label. It starts at the whole tray.
   await scan(label);
   await button(page, "Pot on").click();
-  await button(page, "+10").click();
+  await expect(page.getByTestId("quantity")).toHaveText("37");
+  await button(page, "Type a number instead").click();
+  await page.getByLabel("How many", { exact: true }).fill("11");
+  await page.getByLabel("How many", { exact: true }).press("Tab");
+  await expect(page.getByTestId("quantity")).toHaveText("11");
   await button(page, "Done").click();
   await expect(page.getByRole("status")).toContainText("Potted on 11");
   const newLabel = /New label: (C\d+)/.exec(

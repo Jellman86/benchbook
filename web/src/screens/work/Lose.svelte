@@ -11,6 +11,7 @@
   } from "../../lib/work";
   import ActionFrame from "./ActionFrame.svelte";
   import BatchChoice from "./BatchChoice.svelte";
+  import { quantityPresets } from "../../lib/tray";
   import Stepper from "./Stepper.svelte";
 
   let {
@@ -60,7 +61,7 @@
   <Stepper
     bind:value={quantity}
     max={Number(line.quantity)}
-    presets={[Number(line.quantity)]}
+    presets={quantityPresets(Number(line.quantity))}
   />
   <p>Why?</p>
   <div class="stack">

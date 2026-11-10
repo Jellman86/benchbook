@@ -335,6 +335,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/containers/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HistoryEntry"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/treatments/choices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TreatmentChoices"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/production": {
         parameters: {
             query?: never;
@@ -1541,6 +1613,45 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/staff/qr": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["QrRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QrCode"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -4233,6 +4344,7 @@ export interface components {
             variety: null | string;
             /** Format: int32 */
             quantity: number | string;
+            source: components["schemas"]["BatchSource"];
         };
         ContainerResponse: {
             /** Format: uuid */
@@ -4246,6 +4358,9 @@ export interface components {
             /** Format: uuid */
             potSizeId: null | string;
             potSizeName: null | string;
+            stage: null | components["schemas"]["ProductionStage"];
+            /** Format: date-time */
+            stageSince: null | string;
         };
         CorrectRequest: {
             /** Format: uuid */
@@ -4315,6 +4430,20 @@ export interface components {
         HealthResponse: {
             status: string;
         };
+        HistoryEntry: {
+            /** Format: uuid */
+            eventId: string;
+            type: components["schemas"]["EventType"];
+            /** Format: date-time */
+            occurredAt: string;
+            recordedBy: null | string;
+            /** Format: int32 */
+            quantity: null | number | string;
+            locationName: null | string;
+            potSizeName: null | string;
+            details: components["schemas"]["JsonElement"];
+            undone: boolean;
+        };
         InviteCreated: {
             token: string;
         };
@@ -4367,6 +4496,7 @@ export interface components {
             parentId: null | string;
             archived: boolean;
             photoIds: string[];
+            path: string;
         };
         LossFigures: {
             reason: string;
@@ -4662,6 +4792,12 @@ export interface components {
             lines: components["schemas"]["LineResponse"][];
             receiptIds: string[];
         };
+        QrCode: {
+            svg: string;
+        };
+        QrRequest: {
+            text: string;
+        };
         ReadyRequest: {
             /** Format: uuid */
             eventId: string;
@@ -4900,6 +5036,11 @@ export interface components {
             potSizeId: null | string;
             /** Format: uuid */
             locationId: null | string;
+        };
+        TreatmentChoices: {
+            products: string[];
+            doses: string[];
+            areas: string[];
         };
         TreatmentRequest: {
             /** Format: uuid */

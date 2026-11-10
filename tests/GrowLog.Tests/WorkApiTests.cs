@@ -93,7 +93,9 @@ public sealed class WorkApiTests(PostgresFixture database)
 
         var scanned = await ScanAsync(scene, batch.LabelCode);
         Assert.Equal(batch.ContainerId, scanned.GetProperty("id").GetGuid());
-        Assert.Equal("Bench 1", scanned.GetProperty("locationName").GetString());
+        Assert.Equal("Greenhouse 2, Bench 1", scanned.GetProperty("locationName").GetString());
+        Assert.Equal("Sown", scanned.GetProperty("stage").GetString());
+        Assert.Equal("SeedLot", scanned.GetProperty("contents")[0].GetProperty("source").GetString());
         Assert.Equal("9cm", scanned.GetProperty("potSizeName").GetString());
         var line = scanned.GetProperty("contents").EnumerateArray().Single();
         Assert.Equal("Lavender", line.GetProperty("commonName").GetString());
@@ -229,7 +231,7 @@ public sealed class WorkApiTests(PostgresFixture database)
 
         Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(scene.Staff, $"/api/containers/{batch.ContainerId}/move", new { eventId = Guid.NewGuid(), occurredAt = Now, locationId = scene.Bench2 }));
 
-        Assert.Equal("Bench 2", (await ScanAsync(scene, batch.LabelCode)).GetProperty("locationName").GetString());
+        Assert.Equal("Greenhouse 2, Bench 2", (await ScanAsync(scene, batch.LabelCode)).GetProperty("locationName").GetString());
     }
 
     [Fact]
@@ -268,7 +270,7 @@ public sealed class WorkApiTests(PostgresFixture database)
         Assert.Equal(15, target.GetProperty("contents")[0].GetProperty("quantity").GetInt32());
         Assert.Equal(batch.TraceabilityCode, target.GetProperty("contents")[0].GetProperty("traceabilityCode").GetString());
         Assert.Equal("2L", target.GetProperty("potSizeName").GetString());
-        Assert.Equal("Bench 1", target.GetProperty("locationName").GetString());
+        Assert.Equal("Greenhouse 2, Bench 1", target.GetProperty("locationName").GetString());
     }
 
     [Fact]
@@ -421,7 +423,7 @@ public sealed class WorkApiTests(PostgresFixture database)
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var scanned = await ScanAsync(scene, batch.LabelCode);
-        Assert.Equal("Bench 2", scanned.GetProperty("locationName").GetString());
+        Assert.Equal("Greenhouse 2, Bench 2", scanned.GetProperty("locationName").GetString());
         Assert.Equal(40, scanned.GetProperty("contents")[0].GetProperty("quantity").GetInt32());
     }
 
@@ -495,7 +497,7 @@ public sealed class WorkApiTests(PostgresFixture database)
         Assert.Equal("Hidcote", line.GetProperty("variety").GetString());
         Assert.Equal(40, line.GetProperty("quantityChange").GetInt32());
         Assert.Equal("SeedLot", line.GetProperty("source").GetString());
-        Assert.Equal("Bench 1", mine[1].GetProperty("locationName").GetString());
+        Assert.Equal("Greenhouse 2, Bench 1", mine[1].GetProperty("locationName").GetString());
 
         Assert.Equal(0, (await RecentAsync(scene.Nursery.Owner)).GetArrayLength());
     }
@@ -514,7 +516,7 @@ public sealed class WorkApiTests(PostgresFixture database)
 
         var container = active.EnumerateArray().Single();
         Assert.Equal(kept.LabelCode, container.GetProperty("labelCode").GetString());
-        Assert.Equal("Bench 2", container.GetProperty("locationName").GetString());
+        Assert.Equal("Greenhouse 2, Bench 2", container.GetProperty("locationName").GetString());
         Assert.Equal("9cm", container.GetProperty("potSizeName").GetString());
         var line = container.GetProperty("contents")[0];
         Assert.Equal(6, line.GetProperty("quantity").GetInt32());
@@ -561,5 +563,41 @@ public sealed class WorkApiTests(PostgresFixture database)
 
         Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(owner, $"/api/locations/{scene.Bench2}/archive"));
         Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(owner, $"/api/locations/{scene.Bench2}/restore"));
+    }
+
+    [Fact]
+    public async Task A_containers_history_shows_who_did_what_with_undone_work_marked()
+    {
+        await using var scene = await CreateSceneAsync();
+        var batch = await StartAsync(scene);
+        var loss = Guid.NewGuid();
+        await LoseAsync(scene, batch, 3, loss);
+        await PostStatusAsync(scene.Staff, $"/api/containers/{batch.ContainerId}/move", new { eventId = Guid.NewGuid(), occurredAt = Now, locationId = scene.Bench2 });
+        using var undone = await CorrectAsync(scene, loss);
+
+        var history = (await scene.Staff.GetFromJsonAsync<JsonElement>(Route($"/api/containers/{batch.ContainerId}/history"), Cancellation)).EnumerateArray().ToList();
+
+        Assert.Equal(["Moved", "Lost", "Sown"], history.Select(entry => entry.GetProperty("type").GetString()), StringComparer.Ordinal);
+        Assert.Equal("Greenhouse 2, Bench 2", history[0].GetProperty("locationName").GetString());
+        Assert.True(history[1].GetProperty("undone").GetBoolean());
+        Assert.Equal(-3, history[1].GetProperty("quantity").GetInt32());
+        Assert.Equal("Alex Moss", history[2].GetProperty("recordedBy").GetString());
+    }
+
+    [Fact]
+    public async Task Treatments_used_before_are_offered_newest_first()
+    {
+        await using var scene = await CreateSceneAsync();
+        var batch = await StartAsync(scene);
+
+        foreach (var product in new[] { "Neem oil", "Nemasys", "Neem oil" })
+        {
+            await PostStatusAsync(scene.Staff, $"/api/containers/{batch.ContainerId}/treatments", new { eventId = Guid.NewGuid(), occurredAt = Now, product, dose = "5ml per litre", area = "Bench 1" });
+        }
+
+        var choices = await scene.Staff.GetFromJsonAsync<JsonElement>(Route("/api/treatments/choices"), Cancellation);
+
+        Assert.Equal(["Neem oil", "Nemasys"], choices.GetProperty("products").EnumerateArray().Select(item => item.GetString()), StringComparer.Ordinal);
+        Assert.Equal(["5ml per litre"], choices.GetProperty("doses").EnumerateArray().Select(item => item.GetString()), StringComparer.Ordinal);
     }
 }

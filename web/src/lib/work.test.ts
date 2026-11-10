@@ -196,6 +196,7 @@ const place = (
   parentId,
   archived: false,
   photoIds: [],
+  path: name,
 });
 
 describe("places", () => {

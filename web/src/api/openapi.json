@@ -274,6 +274,58 @@
         }
       }
     },
+    "/api/containers/{id}/history": {
+      "get": {
+        "tags": [
+          "ContainerHistoryEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HistoryEntry"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/treatments/choices": {
+      "get": {
+        "tags": [
+          "ContainerHistoryEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentChoices"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/production": {
       "get": {
         "tags": [
@@ -1007,6 +1059,35 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/staff/qr": {
+      "post": {
+        "tags": [
+          "GrowLog.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QrRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QrCode"
+                }
+              }
+            }
           }
         }
       }
@@ -3443,7 +3524,8 @@
           "plantId",
           "commonName",
           "variety",
-          "quantity"
+          "quantity",
+          "source"
         ],
         "type": "object",
         "properties": {
@@ -3474,6 +3556,9 @@
               "string"
             ],
             "format": "int32"
+          },
+          "source": {
+            "$ref": "#/components/schemas/BatchSource"
           }
         }
       },
@@ -3486,7 +3571,9 @@
           "locationId",
           "locationName",
           "potSizeId",
-          "potSizeName"
+          "potSizeName",
+          "stage",
+          "stageSince"
         ],
         "type": "object",
         "properties": {
@@ -3531,6 +3618,23 @@
               "null",
               "string"
             ]
+          },
+          "stage": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProductionStage"
+              }
+            ]
+          },
+          "stageSince": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -3804,6 +3908,66 @@
           }
         }
       },
+      "HistoryEntry": {
+        "required": [
+          "eventId",
+          "type",
+          "occurredAt",
+          "recordedBy",
+          "quantity",
+          "locationName",
+          "potSizeName",
+          "details",
+          "undone"
+        ],
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "$ref": "#/components/schemas/EventType"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recordedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "locationName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "potSizeName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "details": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "undone": {
+            "type": "boolean"
+          }
+        }
+      },
       "InviteCreated": {
         "required": [
           "token"
@@ -3975,7 +4139,8 @@
           "kind",
           "parentId",
           "archived",
-          "photoIds"
+          "photoIds",
+          "path"
         ],
         "type": "object",
         "properties": {
@@ -4005,6 +4170,9 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "path": {
+            "type": "string"
           }
         }
       },
@@ -5264,6 +5432,28 @@
           }
         }
       },
+      "QrCode": {
+        "required": [
+          "svg"
+        ],
+        "type": "object",
+        "properties": {
+          "svg": {
+            "type": "string"
+          }
+        }
+      },
+      "QrRequest": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        }
+      },
       "ReadyRequest": {
         "required": [
           "eventId",
@@ -6272,6 +6462,34 @@
           }
         }
       },
+      "TreatmentChoices": {
+        "required": [
+          "products",
+          "doses",
+          "areas"
+        ],
+        "type": "object",
+        "properties": {
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "doses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "areas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "TreatmentRequest": {
         "required": [
           "eventId",
@@ -6341,6 +6559,9 @@
     },
     {
       "name": "WorkEndpoints"
+    },
+    {
+      "name": "ContainerHistoryEndpoints"
     },
     {
       "name": "ProductionEndpoints"

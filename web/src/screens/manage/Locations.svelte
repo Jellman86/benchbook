@@ -137,7 +137,14 @@
               onsubmit={(event) => rename(event, location.id)}
             >
               <label>Name <input bind:value={newName} required /></label>
-              <button type="submit">Save</button>
+              <div class="row">
+                <button type="submit">Save</button>
+                <button
+                  type="button"
+                  class="secondary"
+                  onclick={() => (renaming = null)}>Cancel</button
+                >
+              </div>
             </form>
           {:else}
             <strong>{location.name}</strong>

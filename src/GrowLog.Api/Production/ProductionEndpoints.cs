@@ -1,3 +1,4 @@
+using GrowLog.Api.Catalogue;
 using GrowLog.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,7 +32,7 @@ internal static class ProductionEndpoints
         var batches = await FindBatchesAsync(batchIds, db, cancellationToken);
         var stages = await FindStagesAsync(containerIds, db, cancellationToken);
         var places = await store.GetPlacementsAsync(containerIds, cancellationToken);
-        var locationNames = await db.Locations.ToDictionaryAsync(location => location.Id, location => location.Name, cancellationToken);
+        var locationNames = await PlacePaths.LoadAsync(db, cancellationToken);
         var potSizeNames = await db.PotSizes.ToDictionaryAsync(size => size.Id, size => size.Name, cancellationToken);
 
         return [.. stock.Select(row =>
@@ -74,7 +75,7 @@ internal static class ProductionEndpoints
             .ToDictionaryAsync(batch => batch.Id, cancellationToken);
 
     /// <summary>The latest stage for each container that hasn't been undone. A correction that replaces work stands in for it.</summary>
-    private static async Task<Dictionary<Guid, StageReached>> FindStagesAsync(List<Guid> containerIds, GrowLogDbContext db, CancellationToken cancellationToken)
+    internal static async Task<Dictionary<Guid, StageReached>> FindStagesAsync(List<Guid> containerIds, GrowLogDbContext db, CancellationToken cancellationToken)
     {
         var events = await db.Events
             .AsNoTracking()
@@ -119,7 +120,7 @@ internal static class ProductionEndpoints
 
     private sealed record EventFacts(Guid Id, EventType Type, Guid ContainerId, Guid? CorrectsEventId, DateTimeOffset OccurredAt, DateTimeOffset RecordedAt, bool Replaces);
 
-    private sealed record StageReached(ProductionStage Stage, DateTimeOffset Since);
+    internal sealed record StageReached(ProductionStage Stage, DateTimeOffset Since);
 
     private sealed record BatchFacts(Guid Id, string TraceabilityCode, Guid PlantId, string CommonName, string? Variety, string? BotanicalName, string? SupplierName, bool HasPhoto);
 

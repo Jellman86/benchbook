@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api } from "../../api/client";
+  import { dayLabel } from "../../lib/dates";
   import { attempt, type Schemas } from "../../lib/types";
   import { money } from "../../lib/work";
 
@@ -52,7 +53,7 @@
   };
 
   const voidTaking = (taking: Schemas["TakingResponse"]) => {
-    if (!confirm(`Void the takings for ${taking.takenOn}?`)) {
+    if (!confirm(`Void the takings for ${dayLabel(taking.takenOn)}?`)) {
       return;
     }
 
@@ -89,10 +90,16 @@
 
       <h2>Recent takings</h2>
       {#each takings as taking (taking.id)}
-        <div class="card">
-          <strong>{taking.takenOn}: {money(Number(taking.amount))}</strong>
-          {#if taking.notes}<span class="muted">{taking.notes}</span>{/if}
-          <button class="secondary" onclick={() => voidTaking(taking)}
+        <div class="card recent">
+          <span class="stack-tight">
+            <strong
+              >{dayLabel(taking.takenOn)}: {money(
+                Number(taking.amount),
+              )}</strong
+            >
+            {#if taking.notes}<span class="muted">{taking.notes}</span>{/if}
+          </span>
+          <button class="link-button" onclick={() => voidTaking(taking)}
             >Void</button
           >
         </div>

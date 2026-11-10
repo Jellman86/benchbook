@@ -81,6 +81,7 @@ app.MapPlantCardEndpoints();
 app.MapCataloguePhotoEndpoints();
 app.MapCatalogueEndpoints();
 app.MapWorkEndpoints();
+app.MapContainerHistoryEndpoints();
 app.MapProductionEndpoints();
 app.MapLabelEndpoints();
 app.MapFigureEndpoints();

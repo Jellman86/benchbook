@@ -12,8 +12,18 @@
     presets?: number[];
   } = $props();
 
+  let typing = $state(false);
+
   function change(by: number) {
     value = Math.min(max, Math.max(min, value + by));
+  }
+
+  function typed(event: Event) {
+    const entered = Number((event.currentTarget as HTMLInputElement).value);
+
+    if (Number.isFinite(entered)) {
+      value = Math.min(max, Math.max(min, Math.round(entered)));
+    }
   }
 </script>
 
@@ -32,6 +42,23 @@
       >+10</button
     >
   </div>
+  {#if typing}
+    <label>
+      How many
+      <input
+        type="number"
+        inputmode="numeric"
+        {min}
+        {max}
+        {value}
+        onchange={typed}
+      />
+    </label>
+  {:else}
+    <button type="button" class="link-button" onclick={() => (typing = true)}
+      >Type a number instead</button
+    >
+  {/if}
   {#if presets.length > 0}
     <div class="row">
       {#each presets.filter((preset) => preset <= max) as preset (preset)}
