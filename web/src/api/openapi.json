@@ -2757,6 +2757,68 @@
         }
       }
     },
+    "/api/locations/{id}/parent": {
+      "put": {
+        "tags": [
+          "PlaceEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MovePlaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/locations/several": {
+      "post": {
+        "tags": [
+          "PlaceEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddPlacesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacesCreated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/labels/containers/{label}": {
       "get": {
         "tags": [
@@ -2811,6 +2873,29 @@
       }
     },
     "/api/labels/bench-cards/{id}": {
+      "get": {
+        "tags": [
+          "LabelEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/labels/places/{id}": {
       "get": {
         "tags": [
           "LabelEndpoints"
@@ -3273,6 +3358,44 @@
         "properties": {
           "credential": {
             "$ref": "#/components/schemas/JsonElement"
+          }
+        }
+      },
+      "AddPlacesRequest": {
+        "required": [
+          "kind",
+          "parentId",
+          "prefix",
+          "from",
+          "to"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/LocationKind"
+          },
+          "parentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "from": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "to": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -4106,7 +4229,11 @@
           "Greenhouse",
           "Polytunnel",
           "Bench",
-          "Bay"
+          "Bay",
+          "StandingBed",
+          "ColdFrame",
+          "SalesArea",
+          "Area"
         ]
       },
       "LocationRequest": {
@@ -4140,7 +4267,8 @@
           "parentId",
           "archived",
           "photoIds",
-          "path"
+          "path",
+          "labelCode"
         ],
         "type": "object",
         "properties": {
@@ -4172,6 +4300,9 @@
             }
           },
           "path": {
+            "type": "string"
+          },
+          "labelCode": {
             "type": "string"
           }
         }
@@ -4290,6 +4421,18 @@
               "string"
             ],
             "format": "double"
+          }
+        }
+      },
+      "MovePlaceRequest": {
+        "required": [
+          "parentId"
+        ],
+        "type": "object",
+        "properties": {
+          "parentId": {
+            "type": "string",
+            "format": "uuid"
           }
         }
       },
@@ -4607,6 +4750,21 @@
           "id": {
             "type": "string",
             "format": "uuid"
+          }
+        }
+      },
+      "PlacesCreated": {
+        "required": [
+          "ids"
+        ],
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },
@@ -5200,7 +5358,8 @@
           "locationName",
           "potSizeName",
           "supplierName",
-          "hasPhoto"
+          "hasPhoto",
+          "locationId"
         ],
         "type": "object",
         "properties": {
@@ -5282,6 +5441,13 @@
           },
           "hasPhoto": {
             "type": "boolean"
+          },
+          "locationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -6598,6 +6764,9 @@
     },
     {
       "name": "CatalogueEndpoints"
+    },
+    {
+      "name": "PlaceEndpoints"
     },
     {
       "name": "LabelEndpoints"

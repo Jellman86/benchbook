@@ -165,12 +165,14 @@ public sealed class CatalogueApiTests(PostgresFixture database)
     }
 
     [Fact]
-    public async Task A_bench_cannot_sit_directly_on_a_site()
+    public async Task A_bench_can_sit_on_a_site_but_a_site_stands_alone_and_others_need_a_place()
     {
         await using var nursery = await TwoPersonNursery.CreateAsync(database);
         var site = await AddAsync(nursery.Owner, "/api/locations", new { name = "Croft", kind = "Site" });
 
-        Assert.Equal(HttpStatusCode.BadRequest, await PostStatusAsync(nursery.Owner, "/api/locations", new { name = "Bench 1", kind = "Bench", parentId = site }));
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Owner, "/api/locations", new { name = "Bench 1", kind = "Bench", parentId = site }));
+        Assert.Equal(HttpStatusCode.BadRequest, await PostStatusAsync(nursery.Owner, "/api/locations", new { name = "Other farm", kind = "Site", parentId = site }));
+        Assert.Equal(HttpStatusCode.BadRequest, await PostStatusAsync(nursery.Owner, "/api/locations", new { name = "Loose bench", kind = "Bench" }));
     }
 
     [Fact]

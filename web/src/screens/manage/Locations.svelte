@@ -1,179 +1,94 @@
 <script lang="ts">
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import FormPanel from "../FormPanel.svelte";
-  import EntryPhotos from "./EntryPhotos.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
-  import { stopUsing } from "../../lib/archive";
-  import ArchivedEntries from "./ArchivedEntries.svelte";
   import { nestLocations } from "../../lib/locations";
-  import { attempt, type Schemas } from "../../lib/types";
+  import { kindLabel, type Place } from "../../lib/places";
+  import { attempt } from "../../lib/types";
+  import PlaceView from "../work/PlaceView.svelte";
+  import AddPlaces from "./AddPlaces.svelte";
+  import ArchivedEntries from "./ArchivedEntries.svelte";
 
-  let { onBack }: { onBack: () => void } = $props();
+  let {
+    onBack,
+    onOpenTray,
+    onMoveTraysHere,
+  }: {
+    onBack: () => void;
+    onOpenTray: (label: string) => void;
+    onMoveTraysHere: (id: string) => void;
+  } = $props();
 
-  type Location = Schemas["LocationResponse"];
-  type Kind = Schemas["LocationKind"];
-
-  const kinds: Kind[] = ["Site", "Greenhouse", "Polytunnel", "Bench", "Bay"];
-
-  const parentKinds: Record<Kind, Kind[]> = {
-    Site: [],
-    Greenhouse: ["Site"],
-    Polytunnel: ["Site"],
-    Bench: ["Greenhouse", "Polytunnel"],
-    Bay: ["Greenhouse", "Polytunnel"],
-  };
-
-  let locations = $state<Location[]>([]);
-  let name = $state("");
-  let kind = $state<Kind>("Site");
-  let parentId = $state("");
+  let places = $state<Place[]>([]);
+  let openId = $state<string | null>(null);
   let problem = $state("");
-  let renaming = $state<string | null>(null);
-  let newName = $state("");
 
-  const parents = $derived(
-    locations.filter((location) => parentKinds[kind].includes(location.kind)),
-  );
-
-  const nested = $derived(nestLocations(locations));
-
+  const nested = $derived(nestLocations(places));
   const setProblem = (message: string) => (problem = message);
 
-  function explain(status: number) {
-    problem =
-      status === 409
-        ? "There's already a place with that name there."
-        : "Please check the name and where it belongs.";
-  }
-
   async function load() {
-    locations = (await api.GET("/api/locations")).data ?? [];
+    places = (await api.GET("/api/locations")).data ?? [];
   }
 
   onMount(() => void attempt(load, setProblem));
-
-  const add = (event: SubmitEvent) => {
-    event.preventDefault();
-
-    return attempt(async () => {
-      const { response } = await api.POST("/api/locations", {
-        body: { name, kind, parentId: kind === "Site" ? null : parentId },
-      });
-
-      if (response.ok) {
-        name = "";
-        await load();
-      } else {
-        explain(response.status);
-      }
-    }, setProblem);
-  };
-
-  const rename = (event: SubmitEvent, id: string) => {
-    event.preventDefault();
-
-    return attempt(async () => {
-      const { response } = await api.PUT("/api/locations/{id}", {
-        params: { path: { id } },
-        body: { name: newName },
-      });
-
-      if (response.ok) {
-        renaming = null;
-        await load();
-      } else {
-        explain(response.status);
-      }
-    }, setProblem);
-  };
-
-  const archive = (location: { id: string; name: string }) =>
-    attempt(async () => {
-      problem =
-        (await stopUsing("locations", location.id, location.name)) ?? "";
-      await load();
-    }, setProblem);
 </script>
 
-<main>
-  <h1>Places</h1>
+{#if openId}
+  {#key openId}
+    <PlaceView
+      placeId={openId}
+      canManage
+      onBack={() => {
+        openId = null;
+        void attempt(load, setProblem);
+      }}
+      {onOpenTray}
+      onOpenPlace={(id) => (openId = id)}
+      {onMoveTraysHere}
+    />
+  {/key}
+{:else}
+  <main>
+    <h1>Places</h1>
 
-  <div class="split">
-    <section>
-      <FormPanel label="Add a place">
-        <form class="stack" onsubmit={add}>
-          <label>
-            Type
-            <select bind:value={kind}>
-              {#each kinds as option (option)}<option value={option}
-                  >{option}</option
-                >{/each}
-            </select>
-          </label>
-          {#if kind !== "Site"}
-            <label>
-              Inside
-              <select bind:value={parentId} required>
-                <option value="">Choose…</option>
-                {#each parents as parent (parent.id)}
-                  <option value={parent.id}>{parent.name}</option>
-                {/each}
-              </select>
-            </label>
-          {/if}
-          <label>Name <input bind:value={name} required /></label>
-          <button type="submit">Add</button>
-        </form>
-      </FormPanel>
-    </section>
-    <section>
-      {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+    <div class="split">
+      <section>
+        <FormPanel label="Add a place">
+          <AddPlaces {places} onAdded={load} />
+        </FormPanel>
+      </section>
+      <section>
+        {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
-      {#each nested as { place: location, depth } (location.id)}
-        <div class="card" style:margin-left="{depth * 1.25}rem">
-          {#if renaming === location.id}
-            <form
-              class="stack"
-              onsubmit={(event) => rename(event, location.id)}
-            >
-              <label>Name <input bind:value={newName} required /></label>
-              <div class="row">
-                <button type="submit">Save</button>
-                <button
-                  type="button"
-                  class="secondary"
-                  onclick={() => (renaming = null)}>Cancel</button
-                >
-              </div>
-            </form>
+        <ul class="place-tree">
+          {#each nested as { place, depth } (place.id)}
+            <li style:--depth={depth}>
+              <button class="place-row" onclick={() => (openId = place.id)}>
+                <span class="plant-names">
+                  <strong>{place.name}</strong>
+                  <em>{kindLabel(place.kind)} · {place.labelCode}</em>
+                </span>
+                {#if place.photoIds.length > 0}
+                  <span class="muted credit"
+                    >{place.photoIds.length} photo{place.photoIds.length === 1
+                      ? ""
+                      : "s"}</span
+                  >
+                {/if}
+                <ChevronRight size={18} />
+              </button>
+            </li>
           {:else}
-            <strong>{location.name}</strong>
-            <span class="muted">{location.kind}</span>
-            <EntryPhotos
-              entry="Location"
-              id={location.id}
-              photoIds={location.photoIds as string[]}
-              onChanged={load}
-              onProblem={setProblem}
-            />
-            <div class="row">
-              <button
-                class="secondary"
-                onclick={() => {
-                  renaming = location.id;
-                  newName = location.name;
-                }}>Rename</button
-              >
-              <button class="secondary" onclick={() => archive(location)}
-                >No longer used</button
-              >
-            </div>
-          {/if}
-        </div>
-      {/each}
-      <ArchivedEntries list="locations" onRestored={load} />
-    </section>
-  </div>
+            <li class="muted">
+              No places yet. Start with the site, such as the farm.
+            </li>
+          {/each}
+        </ul>
+        <ArchivedEntries list="locations" onRestored={load} />
+      </section>
+    </div>
 
-  <button class="back mobile-only" onclick={onBack}>Back</button>
-</main>
+    <button class="back mobile-only" onclick={onBack}>Back</button>
+  </main>
+{/if}

@@ -600,4 +600,71 @@ public sealed class WorkApiTests(PostgresFixture database)
         Assert.Equal(["Neem oil", "Nemasys"], choices.GetProperty("products").EnumerateArray().Select(item => item.GetString()), StringComparer.Ordinal);
         Assert.Equal(["5ml per litre"], choices.GetProperty("doses").EnumerateArray().Select(item => item.GetString()), StringComparer.Ordinal);
     }
+
+    private static async Task<JsonElement> PlaceAsync(HttpClient client, Guid id) =>
+        (await client.GetFromJsonAsync<JsonElement>(Route("/api/locations"), Cancellation)).EnumerateArray().Single(place => place.GetProperty("id").GetGuid() == id);
+
+    [Fact]
+    public async Task Places_can_sit_inside_any_other_place_and_each_gets_a_label_code()
+    {
+        await using var scene = await CreateSceneAsync();
+        var owner = scene.Nursery.Owner;
+
+        var bay = await AddAsync(owner, "/api/locations", new { name = "Left end", kind = "Bay", parentId = scene.Bench1 });
+        var site = (await PlaceAsync(owner, scene.Bench1)).GetProperty("parentId").GetGuid();
+        var bed = await AddAsync(owner, "/api/locations", new { name = "Bed 1", kind = "StandingBed", parentId = site });
+
+        Assert.Equal("Greenhouse 2, Bench 1, Left end", (await PlaceAsync(owner, bay)).GetProperty("path").GetString());
+        Assert.Matches("^P\\d{4}$", (await PlaceAsync(owner, bed)).GetProperty("labelCode").GetString()!);
+        Assert.NotEqual((await PlaceAsync(owner, bay)).GetProperty("labelCode").GetString(), (await PlaceAsync(owner, bed)).GetProperty("labelCode").GetString(), StringComparer.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_place_can_move_inside_another_but_never_inside_itself()
+    {
+        await using var scene = await CreateSceneAsync();
+        var owner = scene.Nursery.Owner;
+        var house = (await PlaceAsync(owner, scene.Bench1)).GetProperty("parentId").GetGuid();
+
+        using var into = await owner.PutAsJsonAsync(Route($"/api/locations/{scene.Bench2}/parent"), new { parentId = scene.Bench1 }, Cancellation);
+        Assert.Equal(HttpStatusCode.NoContent, into.StatusCode);
+        Assert.Equal("Greenhouse 2, Bench 1, Bench 2", (await PlaceAsync(owner, scene.Bench2)).GetProperty("path").GetString());
+
+        using var loop = await owner.PutAsJsonAsync(Route($"/api/locations/{house}/parent"), new { parentId = scene.Bench2 }, Cancellation);
+        Assert.Equal(HttpStatusCode.BadRequest, loop.StatusCode);
+    }
+
+    [Fact]
+    public async Task Several_numbered_places_are_added_together_or_not_at_all()
+    {
+        await using var scene = await CreateSceneAsync();
+        var owner = scene.Nursery.Owner;
+        var house = (await PlaceAsync(owner, scene.Bench1)).GetProperty("parentId").GetGuid();
+
+        using var clash = await PostAsync(owner, "/api/locations/several", new { kind = "Bench", parentId = house, prefix = "Bench", from = 1, to = 4 });
+        Assert.Equal(HttpStatusCode.Conflict, clash.StatusCode);
+
+        using var added = await PostAsync(owner, "/api/locations/several", new { kind = "Bench", parentId = house, prefix = "Bench", from = 3, to = 12 });
+        Assert.Equal(HttpStatusCode.Created, added.StatusCode);
+
+        var names = (await owner.GetFromJsonAsync<JsonElement>(Route("/api/locations"), Cancellation)).EnumerateArray()
+            .Where(place => place.GetProperty("parentId").ValueKind == JsonValueKind.String && place.GetProperty("parentId").GetGuid() == house)
+            .Select(place => place.GetProperty("name").GetString())
+            .ToList();
+        Assert.Equal(12, names.Count);
+        Assert.Contains("Bench 12", names, StringComparer.Ordinal);
+    }
+
+    [Fact]
+    public async Task Only_the_owner_arranges_places_and_production_shows_where_each_tray_is()
+    {
+        await using var scene = await CreateSceneAsync();
+        var batch = await StartAsync(scene);
+
+        using var refused = await scene.Staff.PutAsJsonAsync(Route($"/api/locations/{scene.Bench2}/parent"), new { parentId = scene.Bench1 }, Cancellation);
+        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+
+        var row = (await scene.Staff.GetFromJsonAsync<JsonElement>(Route("/api/production"), Cancellation)).EnumerateArray().Single(item => item.GetProperty("containerId").GetGuid() == batch.ContainerId);
+        Assert.Equal(scene.Bench1, row.GetProperty("locationId").GetGuid());
+    }
 }

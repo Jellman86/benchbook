@@ -39,7 +39,7 @@ Labels must survive wet conditions: polypropylene or polyester stock with resin 
 - **Plant:** catalogue entry. Common name, variety, botanical name, category, position, watering, hardiness, Xylella host flag, protected-variety flag, photo, default price per pot size.
 - **Supplier:** name, contact details, address, account or order reference, what they supply, typical lead time, notes, passport registration number where relevant, and price and purchase history.
 - **Purchase:** a record of buying from a supplier: date, lines, cost, VAT, paid or unpaid, and a photo of the receipt. Plant lines can create a batch and its received-passport record.
-- **Location:** site, greenhouse or polytunnel, bench or bay.
+- **Location:** a site, and any place inside it: greenhouse, polytunnel, bench, bay, standing bed, cold frame, sales area or area. Any place can sit inside any other, and can be moved to another. Each has a short code such as P0001 for a printed label, so moving a tray can be: scan the tray, scan the place.
 - **Batch:** lineage only. One plant raised together, with a traceability code, source (seed lot, bought-in plants or cuttings), parent batch or mother plant, and original origin country.
 - **Container:** the physical unit: tray, pot group or bench lot. It has a label, location, pot size, count, and the batch or batches it holds. A mixed tray is one container with several batch lines.
 - **Event:** sown, received (bought-in plants), cuttings taken, germinated, pricked out, potted on, moved, lost, split, treated, examined, sold, stock counted, corrected, note. May carry a photo.
@@ -58,7 +58,7 @@ Partial potting-on creates a new container from the same batch, and no new batch
 2. **Record what happened.** Scan, choose an action, confirm, with an undo for the last action. Recent actions appear as one-press shortcuts, such as "another tray of Lavender 'Hidcote', Greenhouse 2".
 3. **Record losses.** Scan, Lost, how many, why: failed to germinate, damping off, pest, disease, frost, other.
 4. **Pot on.** Scan, how many, new pot size. Prints new container labels.
-5. **Move.** Scan the container, scan or choose the bench.
+5. **Move.** Scan the container, scan or choose the bench. To move many, choose or scan the place once, then scan tray after tray; a place's page can also move everything on it at once.
 6. **Count stock.** Scan, enter the count.
 7. **Sell or dispatch.** Build a consignment; the system decides whether a passport is required.
 8. **Print.** Plant labels, bench cards, container labels, passports, invoices.

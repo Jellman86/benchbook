@@ -81,6 +81,17 @@ public sealed class LabelTests(PostgresFixture database)
         await AssertIsPdfAsync(nursery.Staff, $"/api/labels/bench-cards/{plant}");
     }
 
+    [Fact]
+    public async Task A_place_label_is_a_pdf_and_a_typed_name_is_only_printed()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var site = await AddAsync(nursery.Owner, "/api/locations", new { name = "Farm", kind = "Site" });
+        var bench = await AddAsync(nursery.Owner, "/api/locations", new { name = "#panic(\"boom\")", kind = "Bench", parentId = site });
+
+        await AssertIsPdfAsync(nursery.Staff, $"/api/labels/places/{bench}");
+        Assert.Equal(HttpStatusCode.NotFound, await GetStatusAsync(nursery.Staff, $"/api/labels/places/{Guid.NewGuid()}"));
+    }
+
     [Theory]
     [InlineData("#panic(\"boom\")")]
     [InlineData("]  #let x = [")]

@@ -56,7 +56,8 @@ internal static class ProductionEndpoints
                 place?.LocationId is { } locationId ? locationNames[locationId] : null,
                 place?.PotSizeId is { } potSizeId ? potSizeNames[potSizeId] : null,
                 batch.SupplierName,
-                batch.HasPhoto);
+                batch.HasPhoto,
+                place?.LocationId);
         })];
     }
 
@@ -139,5 +140,6 @@ internal static class ProductionEndpoints
         string? LocationName,
         string? PotSizeName,
         string? SupplierName,
-        bool HasPhoto);
+        bool HasPhoto,
+        Guid? LocationId);
 }

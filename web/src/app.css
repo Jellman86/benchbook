@@ -623,6 +623,45 @@ button.photo-remove {
   background: #fff;
 }
 
+/* Places as a tree: one compact row each, indented under the place it's in. */
+.place-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.place-tree li {
+  padding-left: calc(var(--depth, 0) * 1.25rem);
+}
+
+button.place-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: var(--target);
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 400;
+  text-align: left;
+}
+
+button.place-row .plant-names {
+  flex: 1;
+}
+
+button.place-row:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--surface);
+  color: var(--text);
+}
+
 /* Values used before, to choose with one press. */
 .choice-row {
   display: flex;

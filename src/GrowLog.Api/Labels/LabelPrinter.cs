@@ -62,7 +62,7 @@ internal sealed class LabelPrinter(IConfiguration configuration)
     {
         var (width, height) = kind switch
         {
-            LabelKind.ContainerLabel => (70, 40),
+            LabelKind.ContainerLabel or LabelKind.PlaceLabel => (70, 40),
             LabelKind.PlantLabel => (70, 25),
             _ => (105, 148),
         };

@@ -328,19 +328,16 @@ internal static class CatalogueEndpoints
                 row.Location.ParentId,
                 row.Location.ArchivedAt != null,
                 db.CatalogueEntryPhotos.Where(photo => photo.Entry == CataloguePhotoEntry.Location && photo.EntryId == row.Location.Id).OrderBy(photo => photo.Id).Select(photo => photo.Id).ToList(),
-                row.Location.Name))
+                row.Location.Name,
+                row.Location.LabelCode))
             .ToListAsync(cancellationToken);
 
         return places.ConvertAll(place => place with { Path = paths.GetValueOrDefault(place.Id) ?? place.Name });
     }
 
-    private static bool IsAllowedParent(LocationKind kind, LocationKind? parent) => kind switch
-    {
-        LocationKind.Site => parent is null,
-        LocationKind.Greenhouse or LocationKind.Polytunnel => parent is LocationKind.Site,
-        LocationKind.Bench or LocationKind.Bay => parent is LocationKind.Greenhouse or LocationKind.Polytunnel,
-        _ => false,
-    };
+    /// <summary>A site stands alone; anything else sits inside another place, of any kind.</summary>
+    private static bool IsAllowedParent(LocationKind kind, LocationKind? parent) =>
+        kind == LocationKind.Site ? parent is null : parent is not null;
 
     /// <summary>A place still holding trays, or other places, can't stop being used, or they would be left nowhere.</summary>
     private static async Task<ArchiveRefused?> WhyPlaceIsInUseAsync(Guid id, GrowLogDbContext db, EventStore store, CancellationToken cancellationToken)
@@ -465,5 +462,5 @@ internal static class CatalogueEndpoints
     internal sealed record LocationRequest(string Name, LocationKind Kind, Guid? ParentId);
 
     /// <param name="Path">The name with the places it sits in, such as "Greenhouse 2, Bench A".</param>
-    internal sealed record LocationResponse(Guid Id, string Name, LocationKind Kind, Guid? ParentId, bool Archived, IReadOnlyList<Guid> PhotoIds, string Path);
+    internal sealed record LocationResponse(Guid Id, string Name, LocationKind Kind, Guid? ParentId, bool Archived, IReadOnlyList<Guid> PhotoIds, string Path, string LabelCode);
 }

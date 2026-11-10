@@ -196,7 +196,9 @@ const place = (
   parentId,
   archived: false,
   photoIds: [],
-  path: name,
+  // Left empty so the label is worked out here from the places it sits in.
+  path: "",
+  labelCode: `P${id}`,
 });
 
 describe("places", () => {
