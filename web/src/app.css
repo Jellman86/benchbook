@@ -798,23 +798,103 @@ button.place-row:hover:not(:disabled) {
   background: #fff;
 }
 
+/* The label editor: what to choose, and beside or below it a sample drawn as it will print. */
+.label-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .label-preview {
-  min-height: 16rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 12rem;
+  margin: 0;
+  padding: 1.25rem 1rem;
   border: 1px solid var(--line);
   border-radius: 0.75rem;
-  background: var(--surface);
-  overflow: hidden;
+  background: color-mix(in srgb, var(--line) 45%, var(--background));
+  text-align: center;
 }
 
-.label-preview iframe {
+/* Always white with black print, like the label itself, whatever the theme. */
+.label-preview img {
   display: block;
-  width: 100%;
-  height: 26rem;
-  border: 0;
+  height: auto;
+  border-radius: 0.2rem;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgb(46 35 32 / 18%),
+    0 4px 14px rgb(46 35 32 / 16%);
+  transition: opacity 0.15s;
 }
 
-.label-preview[aria-busy="true"] {
-  opacity: 0.7;
+.label-preview[aria-busy="true"] img {
+  opacity: 0.55;
+}
+
+.label-preview figcaption {
+  max-width: 32rem;
+  font-size: 0.85rem;
+}
+
+.field-label {
+  font-weight: 600;
+}
+
+.stack.tight {
+  gap: 0.35rem;
+}
+
+.caution {
+  padding: 0.6rem 0.75rem;
+  border-left: 4px solid var(--border);
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--line) 50%, transparent);
+  font-weight: 600;
+}
+
+.segmented.four {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.printing-tips summary {
+  min-height: 2.5rem;
+  font-family: var(--heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.printing-tips ol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0.5rem 0 0.75rem;
+  padding-left: 1.4rem;
+}
+
+@media (min-width: 640px) {
+  .segmented.four {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* With room to spare, the sample stays in view beside the choices while they change. */
+@media (min-width: 1500px) {
+  .with-sidebar .label-editor {
+    display: grid;
+    grid-template-columns: minmax(22rem, 28rem) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .with-sidebar .label-preview {
+    position: sticky;
+    top: 1rem;
+  }
 }
 
 .print-button {

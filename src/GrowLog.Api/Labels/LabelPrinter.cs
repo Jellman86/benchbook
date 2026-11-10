@@ -15,24 +15,32 @@ internal sealed class LabelPrinter(IConfiguration configuration)
 
     public const int MostCopies = 100;
 
-    /// <summary>Renders one label, or several copies of it as pages of one PDF, in the style chosen for its kind.</summary>
-    public async Task<byte[]> RenderAsync(LabelKind kind, object data, string? qrText, LabelContext context, int copies, CancellationToken cancellationToken)
+    /// <summary>The page set-up and fitting that every design imports.</summary>
+    private const string Shared = "Shared";
+
+    /// <summary>
+    /// Renders one label, or several copies of it as pages of one PDF, in the style chosen for its kind.
+    /// As a picture it is a single PNG at the printer's 300 dots an inch, for showing on a screen.
+    /// </summary>
+    public async Task<byte[]> RenderAsync(LabelKind kind, object data, string? qrText, LabelContext context, int copies, CancellationToken cancellationToken, bool asPicture = false)
     {
         var directory = Directory.CreateTempSubdirectory("growlog-label-");
 
         try
         {
             var template = Path.Join(directory.FullName, "label.typ");
-            var output = Path.Join(directory.FullName, "label.pdf");
+            var output = Path.Join(directory.FullName, asPicture ? "label.png" : "label.pdf");
             var logo = await WriteLogoAsync(directory.FullName, context, cancellationToken);
             var style = context.Style;
+            (string Svg, int Modules)? qr = qrText is null ? null : Qr(qrText);
 
             var everything = new
             {
                 item = data,
-                copies = Math.Clamp(copies, 1, MostCopies),
+                copies = asPicture ? 1 : Math.Clamp(copies, 1, MostCopies),
                 nursery = context.NurseryName ?? string.Empty,
                 logo,
+                qrModules = qr?.Modules ?? 0,
                 style = new
                 {
                     layout = style.Layout.ToString(),
@@ -44,15 +52,16 @@ internal sealed class LabelPrinter(IConfiguration configuration)
                 },
             };
 
-            await File.WriteAllTextAsync(template, await ReadTemplateAsync(kind, cancellationToken), cancellationToken);
+            await File.WriteAllTextAsync(template, await ReadTemplateAsync(kind.ToString(), cancellationToken), cancellationToken);
+            await File.WriteAllTextAsync(Path.Join(directory.FullName, $"{Shared}.typ"), await ReadTemplateAsync(Shared, cancellationToken), cancellationToken);
             await File.WriteAllTextAsync(Path.Join(directory.FullName, "data.json"), JsonSerializer.Serialize(everything), cancellationToken);
 
-            if (qrText is not null)
+            if (qr is not null)
             {
-                await File.WriteAllTextAsync(Path.Join(directory.FullName, "qr.svg"), QrSvg(qrText), cancellationToken);
+                await File.WriteAllTextAsync(Path.Join(directory.FullName, "qr.svg"), qr.Value.Svg, cancellationToken);
             }
 
-            await RunTypstAsync(style, directory.FullName, template, output, cancellationToken);
+            await RunTypstAsync(style, directory.FullName, template, output, asPicture, cancellationToken);
             return await File.ReadAllBytesAsync(output, cancellationToken);
         }
         finally
@@ -61,18 +70,22 @@ internal sealed class LabelPrinter(IConfiguration configuration)
         }
     }
 
-    internal static string QrSvg(string text)
+    /// <summary>
+    /// The QR code as a picture, and how many squares wide it is with its white border. The design
+    /// uses the count to make every square a whole number of printer dots, which keeps edges crisp.
+    /// </summary>
+    internal static (string Svg, int Modules) Qr(string text)
     {
         using var generator = new QRCodeGenerator();
         using var code = generator.CreateQrCode(text, QRCodeGenerator.ECCLevel.Q);
         using var svg = new SvgQRCode(code);
-        return svg.GetGraphic(8);
+        return (svg.GetGraphic(8), code.ModuleMatrix.Count);
     }
 
-    private static async Task<string> ReadTemplateAsync(LabelKind kind, CancellationToken cancellationToken)
+    private static async Task<string> ReadTemplateAsync(string name, CancellationToken cancellationToken)
     {
-        await using var stream = typeof(LabelPrinter).Assembly.GetManifestResourceStream($"{kind}.typ")
-            ?? throw new InvalidOperationException($"The {kind} template is missing.");
+        await using var stream = typeof(LabelPrinter).Assembly.GetManifestResourceStream($"{name}.typ")
+            ?? throw new InvalidOperationException($"The {name} template is missing.");
         using var reader = new StreamReader(stream);
         return await reader.ReadToEndAsync(cancellationToken);
     }
@@ -96,7 +109,7 @@ internal sealed class LabelPrinter(IConfiguration configuration)
         return name;
     }
 
-    private async Task RunTypstAsync(LabelStyle style, string root, string template, string output, CancellationToken cancellationToken)
+    private async Task RunTypstAsync(LabelStyle style, string root, string template, string output, bool asPicture, CancellationToken cancellationToken)
     {
         var width = style.WidthMm.ToString(CultureInfo.InvariantCulture);
         var height = style.HeightMm.ToString(CultureInfo.InvariantCulture);
@@ -108,16 +121,19 @@ internal sealed class LabelPrinter(IConfiguration configuration)
             UseShellExecute = false,
         };
 
-        foreach (var argument in new[]
-        {
+        string[] arguments =
+        [
             "compile",
             "--root", root,
             "--ignore-system-fonts",
             "--input", $"width={width}",
             "--input", $"height={height}",
+            .. asPicture ? ["--format", "png", "--ppi", "300"] : Array.Empty<string>(),
             template,
             output,
-        })
+        ];
+
+        foreach (var argument in arguments)
         {
             start.ArgumentList.Add(argument);
         }

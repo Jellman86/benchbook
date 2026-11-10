@@ -183,6 +183,66 @@ public sealed class LabelTests(PostgresFixture database)
         await AssertIsPdfAsync(nursery.Staff, $"/api/labels/bench-cards/{plant}?copies=2");
     }
 
+    // Each roll size offered on the labels screen, with every kind of label asked to show everything.
+    [Theory]
+    [InlineData(50, 25)]
+    [InlineData(57, 32)]
+    [InlineData(76, 51)]
+    [InlineData(100, 50)]
+    [InlineData(100, 75)]
+    [InlineData(100, 100)]
+    [InlineData(100, 150)]
+    [InlineData(20, 20)]
+    [InlineData(300, 20)]
+    [InlineData(20, 300)]
+    public async Task However_awkward_the_words_a_label_never_runs_onto_a_second_page(int widthMm, int heightMm)
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var details = new { name = "Croft View Nursery and Garden Plants of Derbyshire", address = (string?)null, phone = (string?)null, email = (string?)null, website = (string?)null, registrationNumber = (string?)null, vatNumber = (string?)null, hasLogo = false };
+        using var named = await nursery.Owner.PutAsJsonAsync(Route("/api/settings/nursery"), details, Cancellation);
+        Assert.Equal(HttpStatusCode.NoContent, await PutBytesAsync(nursery.Owner, "/api/settings/nursery/logo", Png));
+
+        var sizes = new List<object>();
+        foreach (var size in new[] { "9cm", "1 litre", "2 litre", "3 litre", "5 litre", "Large specimen (10 litre)" })
+        {
+            sizes.Add(new { potSizeId = await AddAsync(nursery.Owner, "/api/pot-sizes", new { name = size }), price = 125m });
+        }
+
+        var plant = await AddAsync(nursery.Owner, "/api/plants", new
+        {
+            commonName = "Mesembryanthemum and a very long plant name that goes on and on and on and on and on",
+            variety = "Supercalifragilisticexpialidocious",
+            botanicalName = "Mesembryanthemum crystallinum subsp. pseudolongissimum var. interminabile",
+            position = "Sun or partial shade, sheltered from cold winds",
+            watering = "Moist but well-drained soil; water in dry spells",
+            hardiness = "Hardy to −20°C (RHS H7)",
+            xylellaHost = false,
+            protectedVariety = false,
+            prices = sizes,
+        });
+        var tray = await StartBatchAsync(nursery.Staff, plant);
+        var site = await AddAsync(nursery.Owner, "/api/locations", new { name = "Farm", kind = "Site" });
+        var bench = await AddAsync(nursery.Owner, "/api/locations", new { name = "Standing-out bed by the far hedge beyond the propagation-greenhouse", kind = "Bench", parentId = site });
+
+        foreach (var layout in new[] { "Compact", "Standard", "Large" })
+        {
+            var style = new { layout, widthMm, heightMm, showLogo = true, showNurseryName = true, showBotanical = true, showPrice = true, showCare = true };
+
+            foreach (var kind in new[] { "PlantLabel", "BenchCard", "ContainerLabel", "PlaceLabel" })
+            {
+                using var saved = await nursery.Owner.PutAsJsonAsync(Route($"/api/settings/labels/{kind}"), style, Cancellation);
+                Assert.Equal(HttpStatusCode.NoContent, saved.StatusCode);
+            }
+
+            foreach (var path in new[] { $"/api/labels/plants/{plant}", $"/api/labels/bench-cards/{plant}", $"/api/labels/containers/{tray}", $"/api/labels/places/{bench}" })
+            {
+                using var printed = await nursery.Staff.GetAsync(Route($"{path}?copies=2"), Cancellation);
+                Assert.Equal(HttpStatusCode.OK, printed.StatusCode);
+                Assert.Equal(2, Pages(await printed.Content.ReadAsByteArrayAsync(Cancellation)));
+            }
+        }
+    }
+
     [Fact]
     public async Task The_owner_can_preview_a_style_before_saving_it_but_not_a_silly_size()
     {
@@ -195,6 +255,10 @@ public sealed class LabelTests(PostgresFixture database)
             Assert.Equal(HttpStatusCode.OK, preview.StatusCode);
             Assert.Equal("application/pdf", preview.Content.Headers.ContentType?.MediaType);
         }
+
+        using var picture = await nursery.Owner.PostAsJsonAsync(Route("/api/labels/preview/PlantLabel?picture=true"), style, Cancellation);
+        Assert.Equal("image/png", picture.Content.Headers.ContentType?.MediaType);
+        Assert.Equal([0x89, (byte)'P', (byte)'N', (byte)'G'], (await picture.Content.ReadAsByteArrayAsync(Cancellation))[..4]);
 
         using var huge = await nursery.Owner.PutAsJsonAsync(Route("/api/settings/labels/PlantLabel"), new { layout = "Compact", widthMm = 5, heightMm = 20, showLogo = false, showNurseryName = false, showBotanical = true, showPrice = true, showCare = false }, Cancellation);
         Assert.Equal(HttpStatusCode.BadRequest, huge.StatusCode);

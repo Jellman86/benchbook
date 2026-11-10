@@ -3170,6 +3170,14 @@
             "schema": {
               "$ref": "#/components/schemas/LabelKind"
             }
+          },
+          {
+            "name": "picture",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "requestBody": {

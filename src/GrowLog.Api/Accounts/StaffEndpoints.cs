@@ -26,7 +26,7 @@ internal static class StaffEndpoints
         staff.MapPost("/{id:guid}/restore", RestoreAsync);
         staff.MapGet("/sign-in-settings", GetSignInSettingsAsync);
         staff.MapPost("/qr", (QrRequest request) => request.Text.Length is > 0 and <= MaxQrText
-            ? Results.Ok(new QrCode(LabelPrinter.QrSvg(request.Text)))
+            ? Results.Ok(new QrCode(LabelPrinter.Qr(request.Text).Svg))
             : Results.BadRequest()).Produces<QrCode>();
         staff.MapPut("/sign-in-settings", SaveSignInSettingsAsync);
 

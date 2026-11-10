@@ -16,7 +16,10 @@ internal static class LabelEndpoints
         labels.MapGet("/plants/{id:guid}", PrintPlantLabelAsync).ProducesPdf();
         labels.MapGet("/bench-cards/{id:guid}", PrintBenchCardAsync).ProducesPdf();
         labels.MapGet("/places/{id:guid}", PrintPlaceLabelAsync).ProducesPdf();
-        labels.MapPost("/preview/{kind}", PreviewAsync).ProducesPdf().RequireAuthorization(AccountServices.OwnerPolicy);
+        labels.MapPost("/preview/{kind}", PreviewAsync)
+            .ProducesPdf()
+            .Produces(StatusCodes.Status200OK, contentType: "image/png")
+            .RequireAuthorization(AccountServices.OwnerPolicy);
     }
 
     private static RouteHandlerBuilder ProducesPdf(this RouteHandlerBuilder builder) =>
@@ -140,8 +143,17 @@ internal static class LabelEndpoints
         return Pdf(await printer.RenderAsync(LabelKind.BenchCard, data, qrText: null, context, copies, cancellationToken));
     }
 
-    /// <summary>A sample label in a style not yet saved, so the owner sees a change before keeping it.</summary>
-    private static async Task<IResult> PreviewAsync(LabelKind kind, LabelStyle style, GrowLogDbContext db, LabelPrinter printer, CancellationToken cancellationToken)
+    /// <summary>
+    /// A sample label in a style not yet saved, so the owner sees a change before keeping it. It comes
+    /// as a PDF to print as a test, or as a picture, which every phone can show inside the page.
+    /// </summary>
+    private static async Task<IResult> PreviewAsync(
+        LabelKind kind,
+        LabelStyle style,
+        GrowLogDbContext db,
+        LabelPrinter printer,
+        CancellationToken cancellationToken,
+        bool picture = false)
     {
         if (!style.IsSensible)
         {
@@ -168,6 +180,7 @@ internal static class LabelEndpoints
         };
 
         var qr = kind is LabelKind.ContainerLabel or LabelKind.PlaceLabel ? "PREVIEW" : null;
-        return Pdf(await printer.RenderAsync(kind, sample, qr, context, copies: 1, cancellationToken));
+        var content = await printer.RenderAsync(kind, sample, qr, context, copies: 1, cancellationToken, asPicture: picture);
+        return picture ? TypedResults.File(content, "image/png") : Pdf(content);
     }
 }

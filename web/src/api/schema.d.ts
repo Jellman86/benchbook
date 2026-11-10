@@ -4150,7 +4150,9 @@ export interface paths {
         put?: never;
         post: {
             parameters: {
-                query?: never;
+                query?: {
+                    picture?: boolean;
+                };
                 header?: never;
                 path: {
                     kind: components["schemas"]["LabelKind"];

@@ -20,12 +20,18 @@ internal sealed record LabelStyle(
     public bool IsSensible =>
         WidthMm is >= Smallest and <= Largest && HeightMm is >= Smallest and <= Largest;
 
-    /// <summary>What each label looked like before the nursery chose anything.</summary>
+    /// <summary>
+    /// What each label looks like before the nursery chooses anything. The sizes are stock that is
+    /// easy to buy in weatherproof polypropylene, and need only two rolls: a small one for plant and
+    /// tray labels, and a 100mm wide one for bench cards and place signs. A desktop label printer
+    /// prints about 104mm wide at most, so no default is wider than 100mm.
+    /// </summary>
     public static LabelStyle DefaultFor(LabelKind kind) => kind switch
     {
-        LabelKind.PlantLabel => new(LabelLayout.Standard, 70, 25, ShowLogo: false, ShowNurseryName: false, ShowBotanical: true, ShowPrice: true, ShowCare: false),
+        LabelKind.PlantLabel => new(LabelLayout.Standard, 50, 25, ShowLogo: false, ShowNurseryName: false, ShowBotanical: true, ShowPrice: true, ShowCare: false),
         LabelKind.Invoice => new(LabelLayout.Standard, 210, 297, ShowLogo: true, ShowNurseryName: true, ShowBotanical: false, ShowPrice: true, ShowCare: false),
-        LabelKind.BenchCard => new(LabelLayout.Standard, 105, 148, ShowLogo: true, ShowNurseryName: true, ShowBotanical: true, ShowPrice: true, ShowCare: true),
-        _ => new(LabelLayout.Standard, 70, 40, ShowLogo: false, ShowNurseryName: false, ShowBotanical: true, ShowPrice: false, ShowCare: false),
+        LabelKind.BenchCard => new(LabelLayout.Standard, 100, 150, ShowLogo: true, ShowNurseryName: true, ShowBotanical: true, ShowPrice: true, ShowCare: true),
+        LabelKind.PlaceLabel => new(LabelLayout.Standard, 100, 150, ShowLogo: false, ShowNurseryName: false, ShowBotanical: true, ShowPrice: false, ShowCare: false),
+        _ => new(LabelLayout.Standard, 50, 25, ShowLogo: false, ShowNurseryName: false, ShowBotanical: true, ShowPrice: false, ShowCare: false),
     };
 }

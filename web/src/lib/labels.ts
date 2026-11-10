@@ -8,17 +8,31 @@ type Switch = keyof Pick<
   "showLogo" | "showNurseryName" | "showBotanical" | "showPrice" | "showCare"
 >;
 
-/** Each kind of label, what it's for, and the switches that make sense on it. */
+export type LabelSize = { width: number; height: number };
+
+/**
+ * Each kind of label, what it's for, the roll sizes that suit it and the switches that make sense
+ * on it. The sizes are stock that is easy to buy in weatherproof polypropylene, and the first is
+ * the one GrowLog starts with. None is wider than 100 mm, because a desktop label printer prints
+ * about 104 mm wide at most.
+ */
 export const kindsOfLabel: {
   kind: LabelKind;
   label: string;
   use: string;
+  sizes: LabelSize[];
   switches: { key: Switch; label: string }[];
 }[] = [
   {
     kind: "PlantLabel",
     label: "Plant label",
-    use: "Goes in the pot or on it, for customers.",
+    use: "Sticks on the pot, for customers: the name, and the price if you want it.",
+    sizes: [
+      { width: 50, height: 25 },
+      { width: 57, height: 32 },
+      { width: 76, height: 51 },
+      { width: 100, height: 50 },
+    ],
     switches: [
       { key: "showBotanical", label: "Latin name" },
       { key: "showPrice", label: "Price" },
@@ -30,7 +44,13 @@ export const kindsOfLabel: {
   {
     kind: "BenchCard",
     label: "Bench card",
-    use: "Stands on the sales bench, read from a distance.",
+    use: "Stands on the sales bench, read from a step away: how to grow it and every pot size's price.",
+    sizes: [
+      { width: 100, height: 150 },
+      { width: 100, height: 100 },
+      { width: 100, height: 75 },
+      { width: 100, height: 50 },
+    ],
     switches: [
       { key: "showBotanical", label: "Latin name" },
       { key: "showPrice", label: "Prices" },
@@ -43,6 +63,12 @@ export const kindsOfLabel: {
     kind: "ContainerLabel",
     label: "Tray label",
     use: "Goes on a tray or pot group, to scan when recording work.",
+    sizes: [
+      { width: 50, height: 25 },
+      { width: 57, height: 32 },
+      { width: 76, height: 51 },
+      { width: 100, height: 50 },
+    ],
     switches: [
       { key: "showBotanical", label: "Latin name" },
       { key: "showLogo", label: "Logo" },
@@ -52,7 +78,13 @@ export const kindsOfLabel: {
   {
     kind: "PlaceLabel",
     label: "Place label",
-    use: "Goes on a bench or bed, to scan when moving trays.",
+    use: "Goes on a bench or bed, to scan when moving trays. The tall size is a sign you can read from the path.",
+    sizes: [
+      { width: 100, height: 150 },
+      { width: 100, height: 50 },
+      { width: 76, height: 51 },
+      { width: 50, height: 25 },
+    ],
     switches: [
       { key: "showLogo", label: "Logo" },
       { key: "showNurseryName", label: "Nursery name" },
@@ -60,19 +92,45 @@ export const kindsOfLabel: {
   },
 ];
 
-/** Common label roll sizes, width by height, in millimetres. */
-export const sizePresets: { width: number; height: number }[] = [
-  { width: 50, height: 25 },
-  { width: 57, height: 32 },
-  { width: 70, height: 25 },
-  { width: 70, height: 40 },
-  { width: 100, height: 50 },
-  { width: 100, height: 150 },
-  { width: 105, height: 148 },
+/** The text sizes, in the words the owner sees. */
+export const textSizes: { layout: LabelStyle["layout"]; label: string }[] = [
+  { layout: "Compact", label: "Small" },
+  { layout: "Standard", label: "Medium" },
+  { layout: "Large", label: "Large" },
 ];
 
-export function sizeLabel(size: { width: number; height: number }): string {
+export const smallestSize = 20;
+export const largestSize = 300;
+
+/** A desktop label printer with a 4 inch head prints about this wide and no wider. */
+export const widestPrint = 104;
+
+export function sizeLabel(size: LabelSize): string {
   return `${size.width} × ${size.height} mm`;
+}
+
+/** What is wrong with a size, or worth knowing about it, in words for the owner. */
+export function sizeAdvice(size: LabelSize): {
+  problem: string;
+  warning: string;
+} {
+  const outside = (value: number) =>
+    !Number.isFinite(value) || value < smallestSize || value > largestSize;
+
+  if (outside(size.width) || outside(size.height)) {
+    return {
+      problem: `Width and height must each be between ${smallestSize} and ${largestSize} mm.`,
+      warning: "",
+    };
+  }
+
+  return {
+    problem: "",
+    warning:
+      size.width > widestPrint
+        ? `Most desktop label printers print ${widestPrint} mm wide at most, so the edges of a ${size.width} mm label would be cut off.`
+        : "",
+  };
 }
 
 /** Adds how many copies to print to a label's address. */
