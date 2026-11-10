@@ -112,10 +112,18 @@
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
       {#if summary}
-        <p>
-          <strong>Still owed to suppliers: {money(Number(summary.owed))}</strong
-          >
-        </p>
+        <div class="stat-tiles">
+          <div class="stat-tile">
+            <strong>{money(Number(summary.owed))}</strong><span
+              >still owed to suppliers</span
+            >
+          </div>
+          <div class="stat-tile">
+            <strong>{money(Number(summary.owedToUs))}</strong><span
+              >still owed by customers</span
+            >
+          </div>
+        </div>
         {#each summary.months as month (month.month)}
           <div class="card">
             <strong>{monthName(month.month)}</strong>

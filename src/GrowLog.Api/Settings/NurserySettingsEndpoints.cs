@@ -10,6 +10,7 @@ internal static class NurserySettingsEndpoints
 {
     private const int LargestLogo = 2 * 1024 * 1024;
     private const int LongestField = 500;
+    private const int MostPaymentDays = 365;
 
     public static void MapNurserySettingsEndpoints(this IEndpointRouteBuilder app)
     {
@@ -50,7 +51,9 @@ internal static class NurserySettingsEndpoints
             settings.Website,
             settings.RegistrationNumber,
             settings.VatNumber,
-            settings.Logo is { Length: > 0 });
+            settings.Logo is { Length: > 0 },
+            settings.VatRegistered,
+            settings.PaymentTermsDays);
     }
 
     private static async Task<IResult> SaveDetailsAsync(NurseryDetails request, GrowLogDbContext db, CancellationToken cancellationToken)
@@ -63,6 +66,8 @@ internal static class NurserySettingsEndpoints
         settings.Website = Clean(request.Website);
         settings.RegistrationNumber = Clean(request.RegistrationNumber);
         settings.VatNumber = Clean(request.VatNumber);
+        settings.VatRegistered = request.VatRegistered;
+        settings.PaymentTermsDays = Math.Clamp(request.PaymentTermsDays, 0, MostPaymentDays);
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.NoContent();
     }
@@ -138,5 +143,7 @@ internal static class NurserySettingsEndpoints
         string? Website,
         string? RegistrationNumber,
         string? VatNumber,
-        bool HasLogo);
+        bool HasLogo,
+        bool VatRegistered,
+        int PaymentTermsDays);
 }

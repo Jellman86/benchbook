@@ -24,6 +24,7 @@ internal sealed record LabelStyle(
     public static LabelStyle DefaultFor(LabelKind kind) => kind switch
     {
         LabelKind.PlantLabel => new(LabelLayout.Standard, 70, 25, ShowLogo: false, ShowNurseryName: false, ShowBotanical: true, ShowPrice: true, ShowCare: false),
+        LabelKind.Invoice => new(LabelLayout.Standard, 210, 297, ShowLogo: true, ShowNurseryName: true, ShowBotanical: false, ShowPrice: true, ShowCare: false),
         LabelKind.BenchCard => new(LabelLayout.Standard, 105, 148, ShowLogo: true, ShowNurseryName: true, ShowBotanical: true, ShowPrice: true, ShowCare: true),
         _ => new(LabelLayout.Standard, 70, 40, ShowLogo: false, ShowNurseryName: false, ShowBotanical: true, ShowPrice: false, ShowCare: false),
     };

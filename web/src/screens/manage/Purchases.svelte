@@ -1,6 +1,7 @@
 <script lang="ts">
   import FormPanel from "../FormPanel.svelte";
   import { onMount } from "svelte";
+  import FileUp from "@lucide/svelte/icons/file-up";
   import Paperclip from "@lucide/svelte/icons/paperclip";
   import { api } from "../../api/client";
   import { dayLabel } from "../../lib/dates";
@@ -16,7 +17,13 @@
   } = $props();
 
   const today = () => new Date().toISOString().slice(0, 10);
-  const emptyLine = () => ({ description: "", quantity: "", net: "", vat: "" });
+  const emptyLine = () => ({
+    description: "",
+    quantity: "",
+    net: "",
+    vat: "",
+    isPlants: true,
+  });
 
   let purchases = $state<Schemas["PurchaseResponse"][]>([]);
   let suppliers = $state<Schemas["SupplierResponse"][]>([]);
@@ -24,6 +31,57 @@
   let purchasedOn = $state(today());
   let reference = $state("");
   let lines = $state([emptyLine()]);
+  let reading = $state(false);
+  let readNote = $state("");
+
+  /** Fills the form from a supplier's PDF invoice, for a person to check before saving. */
+  const readInvoice = (event: Event) => {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    return attempt(async () => {
+      reading = true;
+
+      try {
+        const response = await fetch("/api/purchases/read-invoice", {
+          method: "POST",
+          body: file,
+        });
+        input.value = "";
+
+        if (!response.ok) {
+          readNote =
+            "That PDF couldn't be read. Photos and scans can't be read, so please type it in.";
+          return;
+        }
+
+        const draft = (await response.json()) as Schemas["InvoiceDraft"];
+        reference = draft.reference ?? reference;
+        purchasedOn = draft.date ?? purchasedOn;
+
+        if (draft.lines.length > 0) {
+          lines = draft.lines.map((line) => ({
+            description: line.description,
+            quantity: line.quantity === null ? "" : String(line.quantity),
+            net: String(line.netCost),
+            vat: "",
+            isPlants: true,
+          }));
+        }
+
+        readNote =
+          draft.lines.length > 0
+            ? `Filled in ${draft.lines.length} line${draft.lines.length === 1 ? "" : "s"} from the invoice. Please check each one, mark compost and pots, and add the VAT.`
+            : "No item lines could be found in that PDF, so please type them in.";
+      } finally {
+        reading = false;
+      }
+    }, setProblem);
+  };
   let problem = $state("");
 
   const setProblem = (message: string) => (problem = message);
@@ -65,6 +123,7 @@
               line.quantity.trim() === "" ? null : Number(line.quantity),
             netCost: Number(line.net),
             vat: Number(line.vat || 0),
+            isPlants: line.isPlants,
           })),
         },
       });
@@ -148,6 +207,21 @@
           <label
             >Date <input type="date" bind:value={purchasedOn} required /></label
           >
+          <label class="photo-choice">
+            <FileUp size={20} />
+            <span
+              >{reading
+                ? "Reading the invoice…"
+                : "Fill in from the supplier's PDF invoice"}</span
+            >
+            <input
+              type="file"
+              accept="application/pdf"
+              onchange={readInvoice}
+              disabled={reading}
+            />
+          </label>
+          {#if readNote}<p class="muted" role="status">{readNote}</p>{/if}
           <label>Invoice reference <input bind:value={reference} /></label>
 
           {#each lines as line, index (index)}
@@ -155,6 +229,19 @@
               <label
                 >Item <input bind:value={line.description} required /></label
               >
+              <div class="segmented" role="group" aria-label="What it is">
+                <button
+                  type="button"
+                  aria-pressed={line.isPlants}
+                  onclick={() => (line.isPlants = true)}>Plants</button
+                >
+                <button
+                  type="button"
+                  aria-pressed={!line.isPlants}
+                  onclick={() => (line.isPlants = false)}
+                  >Compost, pots and other things</button
+                >
+              </div>
               <label
                 >Quantity <input
                   bind:value={line.quantity}
@@ -215,7 +302,9 @@
                   Number(line.vat),
                 )}</span
               >
-              {#if Number(line.batchCount) > 0}
+              {#if line.isPlants === false}
+                <!-- Sundries such as compost never become batches. -->
+              {:else if Number(line.batchCount) > 0}
                 <span class="muted">Batch started</span>
               {:else}
                 <button

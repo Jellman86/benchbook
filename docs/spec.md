@@ -129,6 +129,10 @@ Users asked for simple record keeping for buying and selling, so this covers mor
 
 Purchases and daily till totals are not edited once recorded: a mistake is voided and entered again.
 
+Each purchase line is either plants, which can become batches, or sundries such as compost and pots. A supplier's PDF invoice can fill in the purchase: its reference, date and item lines are read from the PDF's text, on the server and sent nowhere, and a person checks and completes them before saving. Photos and scans can't be read this way.
+
+Trade customers are kept by the owner; their address, email and phone can be forgotten on request. Trade invoices are numbered without gaps and never changed once issued: a mistake is cancelled with a credit note. An invoice keeps the customer's name and address as they were. When the nursery is registered for VAT each line carries a rate (20, 5 or 0 per cent) and VAT is shown for each rate; otherwise the invoice says no VAT is charged. A line can take plants from a tray, which records them as sold; a credit note puts them back. Invoices print as PDFs with the nursery's details and logo, count as income when issued, and show as owed until marked paid.
+
 This is single-entry record keeping, not a full accounting package. It does not take payments, and it does not file tax returns or submit anything to HMRC. Square remains the record of card payments.
 
 ## Voice

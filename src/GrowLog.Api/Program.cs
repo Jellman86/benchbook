@@ -91,6 +91,8 @@ app.MapFigureEndpoints();
 app.MapReceivedPassportEndpoints();
 app.MapPurchaseEndpoints();
 app.MapMoneyEndpoints();
+app.MapCustomerEndpoints();
+app.MapInvoiceEndpoints();
 app.MapBackupStatusEndpoints();
 app.MapDemoEndpoints();
 

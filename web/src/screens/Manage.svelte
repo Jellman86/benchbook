@@ -5,6 +5,8 @@
   import Figures from "./manage/Figures.svelte";
   import Locations from "./manage/Locations.svelte";
   import Nursery from "./manage/Nursery.svelte";
+  import Invoices from "./manage/Invoices.svelte";
+  import Customers from "./manage/Customers.svelte";
   import Money from "./manage/Money.svelte";
   import Plants from "./manage/Plants.svelte";
   import PotSizes from "./manage/PotSizes.svelte";
@@ -52,6 +54,10 @@
   <Locations onBack={back} {onOpenTray} {onMoveTraysHere} />
 {:else if section === "signIn"}
   <ExternalSignIn onBack={back} />
+{:else if section === "invoices"}
+  <Invoices onBack={back} />
+{:else if section === "customers"}
+  <Customers onBack={back} />
 {:else if section === "nursery"}
   <Nursery onBack={back} />
 {:else if section === "stations"}
