@@ -49,7 +49,13 @@
   <div class="split">
     <section class="stack">
       <div class="about-intro">
-        <img src="/logo-96.png" alt="" width="64" height="64" />
+        <img
+          src="/logo-96.png"
+          srcset="/logo-96.png 1x, /icon-192.png 2x"
+          alt=""
+          width="64"
+          height="64"
+        />
         <p>
           Simple, open-source record keeping for small plant nurseries. Scan a
           label, press what happened, and get on with the day.

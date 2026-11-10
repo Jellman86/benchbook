@@ -79,7 +79,7 @@
 </script>
 
 <main>
-  <img class="hero-logo" src="/logo-96.png" alt="" />
+  <img class="hero-logo" src="/icon-192.png" alt="" />
   <h1>Set up GrowLog</h1>
   <p>
     You'll be the owner. Choose a password, or save a passkey on this phone or

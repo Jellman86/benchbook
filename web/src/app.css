@@ -1,28 +1,45 @@
-/* Colours are taken from the GrowLog artwork. Sign-in screens and bench stations
-   keep the large sizes below, for gloved hands; signed-in phones and desks get
-   tighter ones further down. */
+/* Colours are taken from the GrowLog artwork, a lacecap hydrangea. Its leaf green
+   leads: green is for things to press. The florets are highlights with one job
+   each: periwinkle blue (--accent) for where you are, what's chosen and what's
+   just been saved; lilac (--badge) for stage badges; and blue, lilac and pink
+   together for chart series. Red is kept for problems. The two dark blocks must
+   say the same thing.
+
+   Sign-in screens and bench stations keep the large sizes below, for gloved
+   hands; signed-in phones and desks get tighter ones further down. */
 :root {
   color-scheme: light;
-  --background: #f7efe1;
-  --text: #2e2320;
-  --muted: #6f5b37;
-  --primary: #842f30;
-  --primary-hover: #631e20;
+  --background: #f5f4ea;
+  --surface: #fdfcf6;
+  --text: #1f2a1b;
+  --muted: #566040;
+  --primary: #3d5a2c;
+  --primary-hover: #2c4420;
   --on-primary: #ffffff;
-  --surface: #fffaf2;
-  --line: #e6d9c2;
-  --border: #a1855e;
-  --problem: #a3241c;
-  --done: #6f5b37;
-  --success: #2f6b3a;
-  --chart: #842f30;
-  --success-surface: #e6f2e4;
-  --sidebar: #631e20;
-  --sidebar-text: #f6debe;
-  --sidebar-hover: rgb(255 255 255 / 12%);
-  --sidebar-active: #f6debe;
-  --sidebar-active-text: #631e20;
-  --shadow: 0 1px 2px rgb(46 35 32 / 8%), 0 2px 8px rgb(46 35 32 / 5%);
+  --line: #e0e1cc;
+  --border: #7c8562;
+  --problem: #a8231a;
+  --problem-hover: #85190f;
+  --on-problem: #ffffff;
+  --success: #2a6b3c;
+  --accent: #4a5cc0;
+  --on-accent: #ffffff;
+  --accent-surface: #e7eafb;
+  --accent-text: #34409b;
+  --badge-surface: #f1e4f3;
+  --badge-text: #6c3b79;
+  --chart-1: #6b8cee;
+  --chart-2: #9846ab;
+  --chart-3: #e86494;
+  --sidebar: #26391f;
+  --sidebar-text: #edf0dc;
+  --sidebar-hover: rgb(255 255 255 / 10%);
+  --sidebar-line: rgb(255 255 255 / 18%);
+  --sidebar-active: #dfe4fb;
+  --sidebar-active-text: #1f2553;
+  --paper: #ffffff;
+  --paper-edge: 0 0 0 1px rgb(31 42 27 / 18%), 0 4px 14px rgb(31 42 27 / 16%);
+  --shadow: 0 1px 2px rgb(31 42 27 / 8%), 0 2px 8px rgb(31 42 27 / 5%);
   --target: 4rem;
   --radius: 0.6rem;
   --heading: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
@@ -38,50 +55,72 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --background: #1b1516;
-    --text: #f6e6cf;
-    --muted: #c9b595;
-    --primary: #e9a8a4;
-    --primary-hover: #f3c0bc;
-    --on-primary: #3a1316;
-    --surface: #281f20;
-    --line: #3e3132;
-    --border: #8a7a66;
-    --problem: #ffa899;
-    --done: #b6a17b;
-    --success: #9fd8a8;
-    --chart: #e8776f;
-    --success-surface: #1f2e22;
-    --sidebar: #2a1416;
-    --sidebar-text: #f6debe;
-    --sidebar-hover: rgb(255 255 255 / 10%);
-    --sidebar-active: #f6debe;
-    --sidebar-active-text: #3a1316;
+    --background: #111a12;
+    --surface: #1a261b;
+    --text: #e8eddc;
+    --muted: #a8b497;
+    --primary: #a6c888;
+    --primary-hover: #badaa0;
+    --on-primary: #14210f;
+    --line: #2c3b2c;
+    --border: #74856c;
+    --problem: #ff9e8f;
+    --problem-hover: #ffb5a8;
+    --on-problem: #3d0c07;
+    --success: #8dd7a0;
+    --accent: #a9b7f8;
+    --on-accent: #141a42;
+    --accent-surface: #232c4d;
+    --accent-text: #c2ccfb;
+    --badge-surface: #33243a;
+    --badge-text: #e2bfe8;
+    --chart-1: #6889ea;
+    --chart-2: #a24fb4;
+    --chart-3: #e15a7b;
+    --sidebar: #1b2e1c;
+    --sidebar-text: #e6ecd6;
+    --sidebar-hover: rgb(255 255 255 / 9%);
+    --sidebar-line: rgb(255 255 255 / 14%);
+    --sidebar-active: #b3bff9;
+    --sidebar-active-text: #141a42;
+    --paper: #ffffff;
+    --paper-edge: 0 0 0 1px rgb(0 0 0 / 40%), 0 4px 14px rgb(0 0 0 / 35%);
     --shadow: 0 1px 2px rgb(0 0 0 / 40%);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --background: #1b1516;
-  --text: #f6e6cf;
-  --muted: #c9b595;
-  --primary: #e9a8a4;
-  --primary-hover: #f3c0bc;
-  --on-primary: #3a1316;
-  --surface: #281f20;
-  --line: #3e3132;
-  --border: #8a7a66;
-  --problem: #ffa899;
-  --done: #b6a17b;
-  --success: #9fd8a8;
-  --chart: #e8776f;
-  --success-surface: #1f2e22;
-  --sidebar: #2a1416;
-  --sidebar-text: #f6debe;
-  --sidebar-hover: rgb(255 255 255 / 10%);
-  --sidebar-active: #f6debe;
-  --sidebar-active-text: #3a1316;
+  --background: #111a12;
+  --surface: #1a261b;
+  --text: #e8eddc;
+  --muted: #a8b497;
+  --primary: #a6c888;
+  --primary-hover: #badaa0;
+  --on-primary: #14210f;
+  --line: #2c3b2c;
+  --border: #74856c;
+  --problem: #ff9e8f;
+  --problem-hover: #ffb5a8;
+  --on-problem: #3d0c07;
+  --success: #8dd7a0;
+  --accent: #a9b7f8;
+  --on-accent: #141a42;
+  --accent-surface: #232c4d;
+  --accent-text: #c2ccfb;
+  --badge-surface: #33243a;
+  --badge-text: #e2bfe8;
+  --chart-1: #6889ea;
+  --chart-2: #a24fb4;
+  --chart-3: #e15a7b;
+  --sidebar: #1b2e1c;
+  --sidebar-text: #e6ecd6;
+  --sidebar-hover: rgb(255 255 255 / 9%);
+  --sidebar-line: rgb(255 255 255 / 14%);
+  --sidebar-active: #b3bff9;
+  --sidebar-active-text: #141a42;
+  --paper: #ffffff;
+  --paper-edge: 0 0 0 1px rgb(0 0 0 / 40%), 0 4px 14px rgb(0 0 0 / 35%);
   --shadow: 0 1px 2px rgb(0 0 0 / 40%);
 }
 
@@ -149,6 +188,12 @@ input[type="file"] {
   padding: 0.5rem;
 }
 
+/* The browser's own placeholder grey is too faint to read on these backgrounds. */
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
 button,
 a.button {
   display: inline-flex;
@@ -168,7 +213,8 @@ a.button {
   cursor: pointer;
   transition:
     background-color 0.12s ease,
-    border-color 0.12s ease;
+    border-color 0.12s ease,
+    color 0.12s ease;
 }
 
 button:hover:not(:disabled),
@@ -177,18 +223,30 @@ a.button:hover {
   background: var(--primary-hover);
 }
 
+/* One of a set that isn't the chosen one looks like any other quiet button. */
 button.secondary,
-a.button.secondary {
+a.button.secondary,
+button[aria-pressed="false"] {
   border-color: var(--border);
   background: var(--surface);
   color: var(--text);
 }
 
 button.secondary:hover:not(:disabled),
-a.button.secondary:hover {
+a.button.secondary:hover,
+button[aria-pressed="false"]:hover:not(:disabled) {
   border-color: var(--primary);
-  background: var(--surface);
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
   color: var(--primary);
+}
+
+/* The chosen one of a set wears the flower's blue, so it's never mistaken for
+   a green button waiting to be pressed. */
+button[aria-pressed="true"],
+button[aria-pressed="true"]:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 /* A plain way back, kept at the top of the page where it can be found. */
@@ -228,9 +286,22 @@ button:disabled {
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
-select:focus-visible {
-  outline: 3px solid var(--primary);
+select:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  border-color: var(--accent);
+}
+
+/* A new screen's heading takes focus so reading starts there. It isn't a control,
+   so it gets no ring. */
+h1[tabindex="-1"]:focus {
+  outline: none;
 }
 
 a {
@@ -279,22 +350,23 @@ a {
   display: none;
 }
 
-.done {
-  border-left: 4px solid var(--done);
-}
-
-/* Saved: clear at a glance, even in sunlight. */
+/* Saved: clear at a glance, even in sunlight, and not the green of things to press. */
 .card.done {
-  border: 2px solid var(--success);
+  border: 2px solid var(--accent);
   border-left-width: 6px;
-  background: var(--success-surface);
+  background: var(--accent-surface);
 }
 
 .done-heading {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--success);
+  color: var(--accent-text);
+}
+
+.card.problem {
+  border-color: var(--problem);
+  border-left-width: 6px;
 }
 
 .row {
@@ -328,7 +400,7 @@ a {
   width: 1.5rem;
   height: 1.5rem;
   min-height: 0;
-  accent-color: var(--primary);
+  accent-color: var(--accent);
 }
 
 .link {
@@ -402,7 +474,7 @@ button.plant-card:hover:not(:disabled),
 }
 
 .photo-choice:focus-within {
-  outline: 3px solid var(--primary);
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -466,11 +538,17 @@ button.plant-card:hover:not(:disabled),
   font-size: 0.9rem;
 }
 
+.chips button:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--primary);
+}
+
 .chips button[aria-pressed="true"],
 .chips button[aria-pressed="true"]:hover:not(:disabled) {
-  border-color: var(--primary);
-  background: var(--primary);
-  color: var(--on-primary);
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .chip-count {
@@ -490,10 +568,10 @@ button.plant-card:hover:not(:disabled),
 
 .pill {
   display: inline-block;
-  padding: 0 0.45rem;
-  border: 1px solid var(--border);
+  padding: 0.05rem 0.55rem;
   border-radius: 1rem;
-  color: var(--text);
+  background: var(--badge-surface);
+  color: var(--badge-text);
   font-size: 0.8em;
   font-weight: 600;
 }
@@ -511,7 +589,7 @@ textarea {
 }
 
 textarea:focus-visible {
-  outline: 3px solid var(--primary);
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -602,9 +680,13 @@ button.photo-remove {
   border: 0;
   border-radius: 50%;
   background: var(--problem);
-  color: var(--surface);
+  color: var(--on-problem);
   font-size: 0.9rem;
   line-height: 1;
+}
+
+button.photo-remove:hover:not(:disabled) {
+  background: var(--problem-hover);
 }
 
 .photo-add {
@@ -623,7 +705,7 @@ button.photo-remove {
   width: min(14rem, 100%);
   padding: 0.5rem;
   border-radius: 0.5rem;
-  background: #fff;
+  background: var(--paper);
 }
 
 /* Places as a tree: one compact row each, indented under the place it's in. */
@@ -678,8 +760,9 @@ button.place-row:hover:not(:disabled) {
 }
 
 .level-choice.chosen {
-  border-color: var(--primary);
-  box-shadow: inset 0 0 0 1px var(--primary);
+  border-color: var(--accent);
+  background: var(--accent-surface);
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 .level-choice input {
@@ -687,10 +770,11 @@ button.place-row:hover:not(:disabled) {
   min-height: 0;
   height: 1.25rem;
   margin-top: 0.15rem;
-  accent-color: var(--primary);
+  accent-color: var(--accent);
 }
 
-/* Horizontal bars: one series, labelled at the tip, so colour never carries meaning alone. */
+/* Horizontal bars: one series, labelled at the tip, so colour never carries meaning alone.
+   Each kind of measure keeps its own floret colour wherever it's charted. */
 .bar-list {
   display: grid;
   grid-template-columns: minmax(6rem, max-content) 1fr;
@@ -719,7 +803,15 @@ button.place-row:hover:not(:disabled) {
   height: 14px;
   min-width: 2px;
   border-radius: 0 4px 4px 0;
-  background: var(--chart);
+  background: var(--chart-1);
+}
+
+.bar-list.series-2 .bar {
+  background: var(--chart-2);
+}
+
+.bar-list.series-3 .bar {
+  background: var(--chart-3);
 }
 
 .stat-tiles {
@@ -795,7 +887,7 @@ button.place-row:hover:not(:disabled) {
   object-fit: contain;
   padding: 0.5rem;
   border-radius: 0.5rem;
-  background: #fff;
+  background: var(--paper);
 }
 
 /* The label editor: what to choose, and beside or below it a sample drawn as it will print. */
@@ -825,10 +917,8 @@ button.place-row:hover:not(:disabled) {
   display: block;
   height: auto;
   border-radius: 0.2rem;
-  background: #fff;
-  box-shadow:
-    0 0 0 1px rgb(46 35 32 / 18%),
-    0 4px 14px rgb(46 35 32 / 16%);
+  background: var(--paper);
+  box-shadow: var(--paper-edge);
   transition: opacity 0.15s;
 }
 
@@ -900,6 +990,10 @@ button.place-row:hover:not(:disabled) {
 .print-button {
   display: flex;
   gap: 0.4rem;
+}
+
+/* Only beside other buttons: in a column the same rule would set its height. */
+.row .print-button {
   flex: 1 1 14rem;
 }
 
@@ -1064,11 +1158,6 @@ label.tick {
   font-weight: 600;
 }
 
-.choice-row button[aria-pressed="true"] {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
 /* A tray: what's in it and what happened, beside what to do next. */
 .tray-layout {
   display: grid;
@@ -1108,11 +1197,6 @@ label.tick {
   margin-right: 0.35rem;
   font-family: var(--heading);
   font-size: 1.6rem;
-}
-
-.stage-tag {
-  border-color: var(--primary) !important;
-  color: var(--primary) !important;
 }
 
 .next-actions,
@@ -1240,6 +1324,12 @@ label.tick {
   font-weight: 600;
 }
 
+.tags li.stage-tag {
+  border-color: transparent;
+  background: var(--badge-surface);
+  color: var(--badge-text);
+}
+
 .article-block {
   display: flex;
   flex-direction: column;
@@ -1298,7 +1388,7 @@ label.tick {
 }
 
 .form-card input.suggested {
-  border-left: 4px solid var(--primary);
+  border-left: 4px solid var(--accent);
 }
 
 .form-hint {
@@ -1458,8 +1548,8 @@ label.tick {
 
 .hero-logo {
   display: block;
-  width: 5rem;
-  height: 5rem;
+  width: 6rem;
+  height: 6rem;
   margin: 1rem auto 0;
 }
 
@@ -1565,8 +1655,11 @@ label.tick {
   color: var(--primary);
 }
 
-.bottom-nav button[aria-current="page"] {
-  color: var(--primary);
+/* A bar above it as well as the colour, so the current place isn't told by colour alone. */
+.bottom-nav button[aria-current="page"],
+.bottom-nav button[aria-current="page"]:hover:not(:disabled) {
+  box-shadow: inset 0 3px 0 var(--accent);
+  color: var(--accent-text);
 }
 
 .with-sidebar main {
@@ -1619,6 +1712,7 @@ label.tick {
     padding: 1rem 0.65rem;
     overflow-y: auto;
     background: var(--sidebar);
+    box-shadow: inset -1px 0 0 var(--sidebar-line);
     color: var(--sidebar-text);
   }
 
@@ -1693,12 +1787,12 @@ label.tick {
     width: 100%;
     margin: 0.5rem 0;
     border: 0;
-    border-top: 1px solid rgb(255 255 255 / 20%);
+    border-top: 1px solid var(--sidebar-line);
   }
 
   .sidebar-foot {
     padding-top: 0.6rem;
-    border-top: 1px solid rgb(255 255 255 / 20%);
+    border-top: 1px solid var(--sidebar-line);
   }
 
   .collapsed .nav-text {
@@ -1805,7 +1899,12 @@ label.tick {
 button.danger {
   border-color: var(--problem);
   background: var(--problem);
-  color: var(--surface);
+  color: var(--on-problem);
+}
+
+button.danger:hover:not(:disabled) {
+  border-color: var(--problem-hover);
+  background: var(--problem-hover);
 }
 
 .start-afresh {
@@ -1941,9 +2040,9 @@ button.danger {
 
   .settings-nav button[aria-current="page"],
   .settings-nav button[aria-current="page"]:hover:not(:disabled) {
-    background: var(--surface);
-    box-shadow: inset 3px 0 0 var(--primary);
-    color: var(--primary);
+    background: var(--accent-surface);
+    box-shadow: inset 3px 0 0 var(--accent);
+    color: var(--accent-text);
     font-weight: 700;
   }
 

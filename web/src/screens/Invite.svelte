@@ -79,7 +79,7 @@
 </script>
 
 <main>
-  <img class="hero-logo" src="/logo-96.png" alt="" />
+  <img class="hero-logo" src="/icon-192.png" alt="" />
   <h1>Welcome to GrowLog</h1>
   <p>Save a passkey on your phone, or choose a password.</p>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
