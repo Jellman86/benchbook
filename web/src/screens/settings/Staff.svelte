@@ -4,7 +4,8 @@
   import { api } from "../../api/client";
   import { attempt, optional, type Schemas } from "../../lib/types";
 
-  let { onBack }: { onBack: () => void } = $props();
+  let { onBack, onSigningIn }: { onBack: () => void; onSigningIn: () => void } =
+    $props();
 
   type Member = Schemas["StaffMember"];
   type SignInWay = "name" | "password" | "invite";
@@ -14,38 +15,14 @@
   let way = $state<SignInWay>("invite");
   let level = $state<Schemas["SignInLevel"]>("Personal");
   const allowNameOnly = $derived(level !== "Strict");
+  const levels: Record<Schemas["SignInLevel"], string> = {
+    Open: "No signing in: devices go straight in as the nursery team.",
+    Names: "Everyone signs in by tapping their name.",
+    Personal: "Each person signs in the way you set for them here.",
+    Strict: "Everyone needs a password, passkey or staff login.",
+  };
   const everyoneTaps = $derived(level === "Open" || level === "Names");
 
-  const levels: {
-    level: Schemas["SignInLevel"];
-    title: string;
-    detail: string;
-  }[] = [
-    {
-      level: "Open",
-      title: "No signing in",
-      detail:
-        "Devices go straight in. Work is recorded as the nursery team, so you won't see who did what.",
-    },
-    {
-      level: "Names",
-      title: "Tap your name",
-      detail:
-        "Everyone taps their name, with nothing to type, at a bench too. Work shows who did it.",
-    },
-    {
-      level: "Personal",
-      title: "Each person's own way",
-      detail:
-        "Each person signs in the way you set for them below. A bench asks for a PIN.",
-    },
-    {
-      level: "Strict",
-      title: "Strict",
-      detail:
-        "A password, passkey or staff login for everyone, and a PIN at a bench.",
-    },
-  ];
   let password = $state("");
   let pin = $state("");
   let problem = $state("");
@@ -103,33 +80,6 @@
     level =
       (await api.GET("/api/staff/sign-in-settings")).data?.level ?? "Personal";
   }
-
-  // Only GrowLog's own sign-in is affected: your account always needs your password or passkey.
-  const looser: Record<string, number> = {
-    Open: 0,
-    Names: 1,
-    Personal: 2,
-    Strict: 3,
-  };
-
-  const setLevel = (chosen: Schemas["SignInLevel"]) =>
-    attempt(async () => {
-      if (
-        looser[chosen] < looser[level] &&
-        !confirm(
-          chosen === "Open"
-            ? "Let any device on the nursery's network straight in, with no signing in? Only do this if GrowLog can't be reached from outside the nursery."
-            : "Let staff sign in by tapping their name, with nothing to type? Only do this if GrowLog can't be reached from outside the nursery.",
-        )
-      ) {
-        await load();
-        return;
-      }
-
-      level = chosen;
-      await api.PUT("/api/staff/sign-in-settings", { body: { level: chosen } });
-      await load();
-    }, setProblem);
 
   onMount(() => void attempt(load, setProblem));
 
@@ -350,29 +300,12 @@
         </div>
       {/if}
 
-      <fieldset class="form-card sign-in-levels">
-        <legend>How much signing in</legend>
-        <div class="stack">
-          {#each levels as option (option.level)}
-            <label class="level-choice" class:chosen={level === option.level}>
-              <input
-                type="radio"
-                name="sign-in-level"
-                checked={level === option.level}
-                onchange={() => setLevel(option.level)}
-              />
-              <span class="stack-tight">
-                <strong>{option.title}</strong>
-                <span class="muted">{option.detail}</span>
-              </span>
-            </label>
-          {/each}
-        </div>
-        <p class="muted credit">
-          Your own account always needs your password or passkey, so Manage
-          stays yours.
-        </p>
-      </fieldset>
+      <p class="muted">
+        {levels[level]}
+        <button class="link-button" onclick={onSigningIn}
+          >Change under Signing in</button
+        >
+      </p>
 
       {#each staff.filter((member) => !member.archived) as member (member.id)}
         <div class="card">

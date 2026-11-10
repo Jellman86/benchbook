@@ -586,6 +586,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/about": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["About"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/setup/status": {
         parameters: {
             query?: never;
@@ -5172,6 +5207,15 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        About: {
+            version: string;
+            commit: null | string;
+            /** Format: date-time */
+            builtAt: null | string;
+            sourceUrl: string;
+            runtime: string;
+            database: string;
+        };
         AccountSettings: {
             hasPassword: boolean;
             hasPin: boolean;

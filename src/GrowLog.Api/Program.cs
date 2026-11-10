@@ -109,6 +109,7 @@ app.MapMoneyEndpoints();
 app.MapCustomerEndpoints();
 app.MapInvoiceEndpoints();
 app.MapBackupStatusEndpoints();
+app.MapAboutEndpoints();
 app.MapDemoEndpoints();
 
 // Deep links load the web app. Unknown API paths must not.

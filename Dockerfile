@@ -25,6 +25,11 @@ COPY --from=typst /tmp/typst /usr/local/bin/typst
 COPY --from=typst /tmp/LICENSE /usr/share/licenses/typst/LICENSE
 ENV Typst__Path=/usr/local/bin/typst
 ENV ASPNETCORE_HTTP_PORTS=8080
+# Shown under Settings, About GrowLog, with a link to this exact source. Set by the publish workflow.
+ARG GROWLOG_VERSION=development
+ARG GROWLOG_COMMIT=
+ARG GROWLOG_BUILT=
+ENV Build__Version=$GROWLOG_VERSION Build__Commit=$GROWLOG_COMMIT Build__Date=$GROWLOG_BUILT
 EXPOSE 8080
 USER $APP_UID
 ENTRYPOINT ["dotnet", "GrowLog.Api.dll"]

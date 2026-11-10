@@ -1,10 +1,10 @@
 <script lang="ts">
   import FormPanel from "../FormPanel.svelte";
-  import EntryPhotos from "./EntryPhotos.svelte";
+  import EntryPhotos from "../manage/EntryPhotos.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { stopUsing } from "../../lib/archive";
-  import ArchivedEntries from "./ArchivedEntries.svelte";
+  import ArchivedEntries from "../manage/ArchivedEntries.svelte";
   import { attempt, optional, type Schemas } from "../../lib/types";
 
   let { onBack }: { onBack: () => void } = $props();

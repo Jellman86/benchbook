@@ -13,15 +13,23 @@ internal static class AccountHarness
 
     public static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    public static async Task<TestApp> CreateAppAsync(PostgresFixture database, string? setupToken = SetupToken, TimeProvider? clock = null, bool demo = false)
+    public static async Task<TestApp> CreateAppAsync(
+        PostgresFixture database,
+        string? setupToken = SetupToken,
+        TimeProvider? clock = null,
+        bool demo = false,
+        params (string Key, string? Value)[] settings)
     {
         var connectionString = await database.CreateDatabaseAsync();
 
         return new TestApp(
-            ("ConnectionStrings:GrowLog", connectionString),
-            ("Passkeys:ServerDomain", "localhost"),
-            ("Setup:Token", setupToken),
-            ("Demo:Enabled", demo ? "true" : "false"))
+            [
+                ("ConnectionStrings:GrowLog", connectionString),
+                ("Passkeys:ServerDomain", "localhost"),
+                ("Setup:Token", setupToken),
+                ("Demo:Enabled", demo ? "true" : "false"),
+                .. settings,
+            ])
         {
             Clock = clock,
         };
