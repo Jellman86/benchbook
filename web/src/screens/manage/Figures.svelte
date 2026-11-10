@@ -165,6 +165,7 @@
             <h2>Losses by reason</h2>
             <BarList
               caption="Plants lost, by reason"
+              series={3}
               rows={figures.losses.map((loss) => ({
                 label: reasonLabel(String(loss.reason)),
                 value: Number(loss.quantity),
@@ -179,6 +180,7 @@
             <BarList
               caption={item.title}
               max={100}
+              series={2}
               rows={survivalBars(item.groups, item.name)}
             />
             <details>

@@ -1,5 +1,5 @@
 // Lets the app open with no signal. Recording is handled by the work queue, so the API is never cached here.
-const cacheName = "growlog-v2";
+const cacheName = "growlog-v3";
 
 async function precache() {
   const cache = await caches.open(cacheName);
@@ -47,8 +47,19 @@ self.addEventListener("install", (event) => {
   event.waitUntil(precache().then(() => self.skipWaiting()));
 });
 
+// Files like the icon keep their names when they change, and are looked up in every
+// cache. Earlier caches go, so a new version shows its own files.
+async function dropEarlierCaches() {
+  const names = await caches.keys();
+  await Promise.all(
+    names
+      .filter((name) => name !== cacheName)
+      .map((name) => caches.delete(name)),
+  );
+}
+
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(dropEarlierCaches().then(() => self.clients.claim()));
 });
 
 self.addEventListener("fetch", (event) => {
