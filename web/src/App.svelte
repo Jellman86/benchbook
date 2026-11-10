@@ -2,7 +2,12 @@
   import { onMount } from "svelte";
   import { api, sessionEnded } from "./api/client";
   import { rememberMe, rememberedMe } from "./lib/offline";
-  import { chooseStart, readInvite, type Start } from "./lib/boot";
+  import {
+    chooseStart,
+    readInvite,
+    signInAsYourselfKey,
+    type Start,
+  } from "./lib/boot";
   import Bench from "./screens/Bench.svelte";
   import Home from "./screens/Home.svelte";
   import Invite from "./screens/Invite.svelte";
@@ -35,6 +40,18 @@
           },
           needsSetup: async () =>
             (await api.GET("/api/setup/status")).data?.needsSetup ?? false,
+          teamSignIn: async () => {
+            try {
+              if (sessionStorage.getItem(signInAsYourselfKey)) {
+                return false;
+              }
+            } catch {
+              // Storage can be unavailable; going straight in is still fine.
+            }
+
+            const { response } = await api.POST("/api/account/sign-in/team");
+            return response.ok;
+          },
         },
         invite,
       );

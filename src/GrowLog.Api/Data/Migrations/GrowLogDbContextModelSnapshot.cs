@@ -58,6 +58,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("email_confirmed");
 
+                    b.Property<bool>("IsTeamAccount")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_team_account");
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean")
                         .HasColumnName("lockout_enabled");
@@ -667,9 +671,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("id");
 
-                    b.Property<bool>("AllowNameOnlySignIn")
-                        .HasColumnType("boolean")
-                        .HasColumnName("allow_name_only_sign_in");
+                    b.Property<string>("SignInLevel")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("sign_in_level");
 
                     b.HasKey("Id")
                         .HasName("pk_nursery_settings");

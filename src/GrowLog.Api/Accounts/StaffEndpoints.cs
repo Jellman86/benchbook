@@ -42,6 +42,7 @@ internal static class StaffEndpoints
         var owners = (await users.GetUsersInRoleAsync(AccountServices.OwnerRole)).Select(owner => owner.Id).ToHashSet();
 
         var staff = await users.Users
+            .Where(user => !user.IsTeamAccount)
             .OrderBy(user => user.UserName)
             .Select(user => new StaffMember(
                 user.Id,
@@ -59,17 +60,17 @@ internal static class StaffEndpoints
     }
 
     private static async Task<SignInSettings> GetSignInSettingsAsync(GrowLogDbContext db, CancellationToken cancellationToken) =>
-        new((await db.GetNurserySettingsAsync(cancellationToken)).AllowNameOnlySignIn);
+        new((await db.GetNurserySettingsAsync(cancellationToken)).SignInLevel);
 
     private static async Task<IResult> SaveSignInSettingsAsync(SignInSettings request, GrowLogDbContext db, CancellationToken cancellationToken)
     {
         if (await db.NurserySettings.FirstOrDefaultAsync(cancellationToken) is { } settings)
         {
-            settings.AllowNameOnlySignIn = request.AllowNameOnly;
+            settings.SignInLevel = request.Level;
         }
         else
         {
-            db.NurserySettings.Add(new NurserySettings { AllowNameOnlySignIn = request.AllowNameOnly });
+            db.NurserySettings.Add(new NurserySettings { SignInLevel = request.Level });
         }
 
         await db.SaveChangesAsync(cancellationToken);
@@ -90,7 +91,7 @@ internal static class StaffEndpoints
             return TypedResults.BadRequest();
         }
 
-        if (request.NameOnly && !(await db.GetNurserySettingsAsync(cancellationToken)).AllowNameOnlySignIn)
+        if (request.NameOnly && !SignInRules.AllowsNameOnly((await db.GetNurserySettingsAsync(cancellationToken)).SignInLevel))
         {
             return TypedResults.Conflict();
         }
@@ -183,7 +184,7 @@ internal static class StaffEndpoints
             return TypedResults.BadRequest();
         }
 
-        if (!(await db.GetNurserySettingsAsync(cancellationToken)).AllowNameOnlySignIn)
+        if (!SignInRules.AllowsNameOnly((await db.GetNurserySettingsAsync(cancellationToken)).SignInLevel))
         {
             return TypedResults.Conflict();
         }
@@ -313,7 +314,7 @@ internal static class StaffEndpoints
 
     internal sealed record StaffCreated(Guid Id);
 
-    internal sealed record SignInSettings(bool AllowNameOnly);
+    internal sealed record SignInSettings(SignInLevel Level);
 
     /// <summary>Sent in the body, not the address, because an invitation link holds its token.</summary>
     internal sealed record QrRequest(string Text);

@@ -312,12 +312,9 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Set a password").click();
   await expect(page.getByRole("status")).toHaveText("Password saved.");
 
-  // Once the owner allows it, someone added with just a name can sign in by tapping it.
+  // The owner chooses how much signing in the nursery wants, and can set someone to just tap their name.
   await openManage(page, "Staff");
-  await expect(chooser(page, "How they sign in")).not.toContainText(
-    "Just tap their name",
-  );
-  await page.getByLabel("Let staff sign in by tapping their name").check();
+  await expect(page.getByLabel(/Each person's own way/)).toBeChecked();
   await page.getByLabel("Name", { exact: true }).fill("Jo Reed");
   await chooser(page, "How they sign in").selectOption("name");
   await button(page, "Add").click();

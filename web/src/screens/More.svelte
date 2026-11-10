@@ -194,6 +194,8 @@
       </form>
     {/if}
 
-    <button class="secondary mobile-only" onclick={onFinished}>Sign out</button>
+    <button class="secondary mobile-only" onclick={onFinished}
+      >{me.isTeam ? "Sign in as yourself" : "Sign out"}</button
+    >
   </div>
 </main>

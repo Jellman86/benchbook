@@ -283,22 +283,60 @@ public sealed class SignInOptionsTests(PostgresFixture database)
     }
 
     [Fact]
-    public async Task Tapping_a_name_is_off_until_the_owner_turns_it_on()
+    public async Task The_strict_level_turns_tapping_a_name_off()
     {
         await using var app = await CreateAppAsync(database);
         using var owner = Client(app);
         using var ownerKey = new TestAuthenticator();
         await SetUpOwnerAsync(owner, ownerKey);
-
-        Assert.Equal(HttpStatusCode.Conflict, await PostStatusAsync(owner, "/api/staff", new { name = "Jo Reed", nameOnly = true }));
-
         var id = await AddNameOnlyAsync(owner);
-        using var staff = Client(app);
-        Assert.Equal(HttpStatusCode.NoContent, await ByNameAsync(staff, id));
 
-        using var off = await owner.PutAsJsonAsync(Route("/api/staff/sign-in-settings"), new { allowNameOnly = false }, Cancellation);
-        using var other = Client(app);
-        Assert.Equal(HttpStatusCode.Unauthorized, await ByNameAsync(other, id));
-        Assert.DoesNotContain((await PeopleAsync(other)).EnumerateArray(), person => person.GetProperty("id").GetGuid() == id);
+        await SetSignInLevelAsync(owner, "Strict");
+
+        Assert.Equal(HttpStatusCode.Conflict, await PostStatusAsync(owner, "/api/staff", new { name = "Sam Reed", nameOnly = true }));
+        using var staff = Client(app);
+        Assert.Equal(HttpStatusCode.Unauthorized, await ByNameAsync(staff, id));
+        Assert.DoesNotContain((await PeopleAsync(staff)).EnumerateArray(), person => person.GetProperty("id").GetGuid() == id);
+    }
+
+    [Fact]
+    public async Task At_the_tap_your_name_level_everyone_but_the_owner_taps_their_name()
+    {
+        await using var app = await CreateAppAsync(database);
+        using var owner = Client(app);
+        using var ownerKey = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, ownerKey);
+        var id = await AddWithPasswordAsync(owner);
+
+        await SetSignInLevelAsync(owner, "Names");
+
+        using var staff = Client(app);
+        var people = (await PeopleAsync(staff)).EnumerateArray().ToList();
+        Assert.True(people.Single(person => person.GetProperty("id").GetGuid() == id).GetProperty("nameOnly").GetBoolean());
+        Assert.False(people.Single(person => string.Equals(person.GetProperty("name").GetString(), "Sam Fielding", StringComparison.Ordinal)).GetProperty("nameOnly").GetBoolean());
+        Assert.Equal(HttpStatusCode.NoContent, await ByNameAsync(staff, id));
+        Assert.Equal(HttpStatusCode.Unauthorized, await ByNameAsync(Client(app), await OwnerIdAsync(staff)));
+    }
+
+    [Fact]
+    public async Task With_no_signing_in_a_device_goes_straight_in_as_the_nursery_team_but_not_into_manage()
+    {
+        await using var app = await CreateAppAsync(database);
+        using var owner = Client(app);
+        using var ownerKey = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, ownerKey);
+        using var device = Client(app);
+
+        Assert.Equal(HttpStatusCode.Conflict, await PostStatusAsync(device, "/api/account/sign-in/team"));
+
+        await SetSignInLevelAsync(owner, "Open");
+
+        Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(device, "/api/account/sign-in/team"));
+        var me = await device.GetFromJsonAsync<JsonElement>(Route("/api/account/me"), Cancellation);
+        Assert.Equal("Nursery team", me.GetProperty("name").GetString());
+        Assert.True(me.GetProperty("isTeam").GetBoolean());
+        Assert.False(me.GetProperty("isOwner").GetBoolean());
+        Assert.Equal(HttpStatusCode.Forbidden, await GetStatusAsync(device, "/api/staff"));
+        Assert.DoesNotContain((await owner.GetFromJsonAsync<JsonElement>(Route("/api/staff"), Cancellation)).EnumerateArray(), person => person.GetProperty("name").GetString()!.StartsWith("Nursery team", StringComparison.Ordinal));
     }
 }

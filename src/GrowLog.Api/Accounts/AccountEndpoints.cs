@@ -24,7 +24,7 @@ internal static class AccountEndpoints
         account.MapPost("/passkey-options", GetSignInPasskeyOptionsAsync).AllowAnonymous();
         account.MapPost("/sign-in", SignInAsync).AllowAnonymous();
         account.MapPost("/sign-out", SignOutAsync);
-        account.MapGet("/me", GetCurrentUser);
+        account.MapGet("/me", GetCurrentUserAsync);
     }
 
     private static async Task<SetupStatus> GetSetupStatusAsync(UserManager<AppUser> users, CancellationToken cancellationToken) =>
@@ -171,11 +171,16 @@ internal static class AccountEndpoints
     }
 
     // A PIN at a bench station is enough for recording work, not for the owner's settings.
-    private static CurrentUser GetCurrentUser(ClaimsPrincipal user) =>
-        new(
+    private static async Task<CurrentUser> GetCurrentUserAsync(ClaimsPrincipal user, UserManager<AppUser> users)
+    {
+        var person = await users.GetUserAsync(user);
+
+        return new CurrentUser(
             Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!),
             user.Identity?.Name ?? string.Empty,
-            user.IsInRole(AccountServices.OwnerRole) && user.FindFirst(AccountServices.BenchSessionClaim) is null);
+            user.IsInRole(AccountServices.OwnerRole) && user.FindFirst(AccountServices.BenchSessionClaim) is null,
+            person?.IsTeamAccount ?? false);
+    }
 
     private static async Task<bool> SetupIsOpenAsync(
         string token,
@@ -200,5 +205,6 @@ internal static class AccountEndpoints
 
     internal sealed record SignInRequest(JsonElement Credential);
 
-    internal sealed record CurrentUser(Guid Id, string Name, bool IsOwner);
+    /// <param name="IsTeam">Signed in as the nursery team, because the nursery chose no signing in.</param>
+    internal sealed record CurrentUser(Guid Id, string Name, bool IsOwner, bool IsTeam);
 }

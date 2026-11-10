@@ -15,6 +15,8 @@ internal static class SignInEndpoints
         account.MapGet("/people", ListPeopleAsync);
         account.MapPost("/sign-in/name", SignInByNameAsync);
         account.MapPost("/sign-in/password", SignInWithPasswordAsync);
+        account.MapPost("/sign-in/team", SignInAsTeamAsync);
+        account.MapGet("/sign-in-mode", GetModeAsync);
 
         var settings = app.MapGroup("/api/account/settings");
         settings.MapGet("/", GetSettingsAsync).Produces<AccountSettings>();
@@ -24,17 +26,37 @@ internal static class SignInEndpoints
         settings.MapPost("/passkey", AddOwnPasskeyAsync);
     }
 
+    /// <summary>How much signing in the nursery wants, so a device knows what to show first.</summary>
+    private static async Task<SignInMode> GetModeAsync(GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        var level = (await db.GetNurserySettingsAsync(cancellationToken)).SignInLevel;
+        return new SignInMode(level, SignInRules.BenchNeedsPin(level));
+    }
+
     /// <summary>Names everyone who can sign in here, so they can tap theirs rather than type it.</summary>
     private static async Task<List<SignInPerson>> ListPeopleAsync(GrowLogDbContext db, UserManager<AppUser> users, CancellationToken cancellationToken)
     {
-        var nameOnly = (await db.GetNurserySettingsAsync(cancellationToken)).AllowNameOnlySignIn;
+        var level = (await db.GetNurserySettingsAsync(cancellationToken)).SignInLevel;
+        var owners = (await users.GetUsersInRoleAsync(AccountServices.OwnerRole)).Select(owner => owner.Id).ToHashSet();
 
-        return await users.Users
-            .Where(user => user.ArchivedAt == null
-                && ((nameOnly && user.NameOnlySignIn) || user.PasswordHash != null || db.UserPasskeys.Any(passkey => passkey.UserId == user.Id)))
+        var people = await users.Users
+            .Where(user => user.ArchivedAt == null && !user.IsTeamAccount)
             .OrderBy(user => user.UserName)
-            .Select(user => new SignInPerson(user.Id, user.UserName!, nameOnly && user.NameOnlySignIn, user.PasswordHash != null))
+            .Select(user => new
+            {
+                user.Id,
+                Name = user.UserName!,
+                user.NameOnlySignIn,
+                HasPassword = user.PasswordHash != null,
+                HasPasskey = db.UserPasskeys.Any(passkey => passkey.UserId == user.Id),
+            })
             .ToListAsync(cancellationToken);
+
+        return people
+            .Select(person => (Person: person, Tap: SignInRules.CanTapName(level, person.NameOnlySignIn, owners.Contains(person.Id))))
+            .Where(row => row.Tap || row.Person.HasPassword || row.Person.HasPasskey)
+            .Select(row => new SignInPerson(row.Person.Id, row.Person.Name, row.Tap, row.Person.HasPassword))
+            .ToList();
     }
 
     private static async Task<IResult> SignInByNameAsync(
@@ -44,16 +66,46 @@ internal static class SignInEndpoints
         SignInManager<AppUser> signIn,
         CancellationToken cancellationToken)
     {
+        var level = (await db.GetNurserySettingsAsync(cancellationToken)).SignInLevel;
+
         // The role is checked here too, so that nothing can open up the owner's account.
-        if (!(await db.GetNurserySettingsAsync(cancellationToken)).AllowNameOnlySignIn
-            || await users.FindByIdAsync(request.UserId.ToString()) is not { ArchivedAt: null, NameOnlySignIn: true } person
+        if (await users.FindByIdAsync(request.UserId.ToString()) is not { ArchivedAt: null, IsTeamAccount: false } person
             || await users.IsLockedOutAsync(person)
-            || await users.IsInRoleAsync(person, AccountServices.OwnerRole))
+            || !SignInRules.CanTapName(level, person.NameOnlySignIn, await users.IsInRoleAsync(person, AccountServices.OwnerRole)))
         {
             return TypedResults.Unauthorized();
         }
 
         await signIn.SignInAsync(person, isPersistent: true);
+        return TypedResults.NoContent();
+    }
+
+    /// <summary>With no signing in chosen, a device goes straight in as the nursery team.</summary>
+    private static async Task<IResult> SignInAsTeamAsync(
+        GrowLogDbContext db,
+        UserManager<AppUser> users,
+        SignInManager<AppUser> signIn,
+        CancellationToken cancellationToken)
+    {
+        if ((await db.GetNurserySettingsAsync(cancellationToken)).SignInLevel != SignInLevel.Open)
+        {
+            return TypedResults.Conflict();
+        }
+
+        var team = await users.Users.FirstOrDefaultAsync(user => user.IsTeamAccount, cancellationToken);
+
+        if (team is null)
+        {
+            var name = await users.FindByNameAsync(SignInRules.TeamName) is null ? SignInRules.TeamName : $"{SignInRules.TeamName} (shared)";
+            team = new AppUser { Id = Guid.CreateVersion7(), UserName = name, IsTeamAccount = true };
+
+            if (!(await users.CreateAsync(team)).Succeeded)
+            {
+                return TypedResults.Problem("The nursery team account couldn't be made.");
+            }
+        }
+
+        await signIn.SignInAsync(team, isPersistent: true);
         return TypedResults.NoContent();
     }
 
@@ -199,6 +251,8 @@ internal static class SignInEndpoints
     internal sealed record SignInPerson(Guid Id, string Name, bool NameOnly, bool HasPassword);
 
     internal sealed record NameSignInRequest(Guid UserId);
+
+    internal sealed record SignInMode(SignInLevel Level, bool BenchNeedsPin);
 
     internal sealed record PasswordSignInRequest(Guid UserId, string Password);
 
