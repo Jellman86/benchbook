@@ -351,7 +351,7 @@ public sealed class SignInOptionsTests(PostgresFixture database)
         await SetSignInLevelAsync(owner, "Open");
         using var device = Client(app);
         Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(device, "/api/account/sign-in/team"));
-        Assert.Equal(HttpStatusCode.Forbidden, await PostStatusAsync(device, "/api/account/settings/password", new { currentPassword = (string?)null, newPassword = "a long enough password" }));
+        Assert.Equal(HttpStatusCode.Forbidden, await PostStatusAsync(device, "/api/account/settings/password", new { currentPassword = "", newPassword = "a long enough password" }));
 
         await SetSignInLevelAsync(owner, "Strict");
         clock.Advance(TimeSpan.FromMinutes(2));

@@ -148,7 +148,7 @@ public sealed class LabelTests(PostgresFixture database)
     public async Task The_owner_sets_the_nurserys_details_and_logo_and_staff_can_read_them()
     {
         await using var nursery = await TwoPersonNursery.CreateAsync(database);
-        var details = new { name = "Croft View Nursery", address = "Croft Lane", phone = (string?)null, email = (string?)null, website = (string?)null, registrationNumber = "GB-12345", vatNumber = (string?)null, hasLogo = false };
+        var details = new { name = "Croft View Nursery", address = "Croft Lane", phone = "", email = "", website = "", registrationNumber = "GB-12345", vatNumber = "", hasLogo = false };
 
         using var refused = await nursery.Staff.PutAsJsonAsync(Route("/api/settings/nursery"), details, Cancellation);
         Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
@@ -198,7 +198,7 @@ public sealed class LabelTests(PostgresFixture database)
     public async Task However_awkward_the_words_a_label_never_runs_onto_a_second_page(int widthMm, int heightMm)
     {
         await using var nursery = await TwoPersonNursery.CreateAsync(database);
-        var details = new { name = "Croft View Nursery and Garden Plants of Derbyshire", address = (string?)null, phone = (string?)null, email = (string?)null, website = (string?)null, registrationNumber = (string?)null, vatNumber = (string?)null, hasLogo = false };
+        var details = new { name = "Croft View Nursery and Garden Plants of Derbyshire", address = "", phone = "", email = "", website = "", registrationNumber = "", vatNumber = "", hasLogo = false };
         using var named = await nursery.Owner.PutAsJsonAsync(Route("/api/settings/nursery"), details, Cancellation);
         Assert.Equal(HttpStatusCode.NoContent, await PutBytesAsync(nursery.Owner, "/api/settings/nursery/logo", Png));
 

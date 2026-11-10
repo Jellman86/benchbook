@@ -304,7 +304,7 @@ public sealed class BenchStationTests(PostgresFixture database)
         await using var nursery = await Nursery.CreateAsync(database);
         Assert.Equal(HttpStatusCode.NoContent, await nursery.PinSignInAsync(Pin));
 
-        Assert.Equal(HttpStatusCode.Forbidden, await PostStatusAsync(nursery.Bench, "/api/account/settings/password", new { currentPassword = (string?)null, newPassword = "a long enough password" }));
+        Assert.Equal(HttpStatusCode.Forbidden, await PostStatusAsync(nursery.Bench, "/api/account/settings/password", new { currentPassword = "", newPassword = "a long enough password" }));
         Assert.Equal(HttpStatusCode.Forbidden, await PostStatusAsync(nursery.Bench, "/api/account/settings/passkey-options"));
         Assert.Equal(HttpStatusCode.Forbidden, await PostStatusAsync(nursery.Bench, "/api/account/settings/pin", new { pin = "1111" }));
     }

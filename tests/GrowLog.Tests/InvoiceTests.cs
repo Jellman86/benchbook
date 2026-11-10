@@ -16,19 +16,19 @@ public sealed class InvoiceTests(PostgresFixture database)
         Json(await PostForTextAsync(client, path, body)).GetProperty("id").GetGuid();
 
     private static Task<Guid> AddCustomerAsync(HttpClient owner, string name = "Hilltop Garden Centre") =>
-        AddAsync(owner, "/api/customers", new { name, address = "1 High Street\nBakewell", email = "buyer@example.com", phone = (string?)null, vatNumber = (string?)null });
+        AddAsync(owner, "/api/customers", new { name, address = "1 High Street\nBakewell", email = "buyer@example.com", phone = "", vatNumber = "" });
 
     private static async Task SetVatAsync(HttpClient owner, bool registered)
     {
-        using var response = await owner.PutAsJsonAsync(Route("/api/settings/nursery"), new { name = "Croft View", address = "Croft Lane", phone = (string?)null, email = (string?)null, website = (string?)null, registrationNumber = (string?)null, vatNumber = registered ? "GB123456789" : null, hasLogo = false, vatRegistered = registered, paymentTermsDays = 14 }, Cancellation);
+        using var response = await owner.PutAsJsonAsync(Route("/api/settings/nursery"), new { name = "Croft View", address = "Croft Lane", phone = "", email = "", website = "", registrationNumber = "", vatNumber = registered ? "GB123456789" : null, hasLogo = false, vatRegistered = registered, paymentTermsDays = 14 }, Cancellation);
         response.EnsureSuccessStatusCode();
     }
 
     private static object Line(string description, int quantity, decimal unitPrice, decimal vatRate = 0, Guid? containerId = null, Guid? batchId = null) =>
-        new { description, quantity, unitPrice, vatRate, plantId = (Guid?)null, containerId, batchId };
+        new { description, quantity, unitPrice, vatRate, containerId, batchId };
 
     private static Task<HttpResponseMessage> IssueAsync(HttpClient owner, Guid customerId, params object[] lines) =>
-        PostAsync(owner, "/api/invoices", new { customerId, issuedOn = (DateOnly?)null, notes = (string?)null, lines });
+        PostAsync(owner, "/api/invoices", new { customerId, notes = "", lines });
 
     private static async Task<JsonElement> IssuedAsync(HttpClient owner, Guid customerId, params object[] lines)
     {
