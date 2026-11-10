@@ -15,6 +15,8 @@ internal static class WorkEndpoints
 {
     private const int MaxQuantity = 1_000_000;
     private const int MaxRecent = 50;
+    private const int LongestNote = 1000;
+    private const int LongestShortText = 200;
 
     public static void MapWorkEndpoints(this IEndpointRouteBuilder app)
     {
@@ -252,8 +254,16 @@ internal static class WorkEndpoints
         return await StoreSimpleAsync(store, work, cancellationToken);
     }
 
-    private static Task<IResult> MoveAsync(Guid id, MoveRequest request, ClaimsPrincipal user, EventStore store, CancellationToken cancellationToken) =>
-        StoreSimpleAsync(store, NewEvent(request.EventId, EventType.Moved, request.OccurredAt, user, id, request.LocationId), cancellationToken);
+    /// <summary>A tray goes on a bench, bed or house that's still in use, never on the site as a whole.</summary>
+    private static async Task<IResult> MoveAsync(Guid id, MoveRequest request, ClaimsPrincipal user, GrowLogDbContext db, EventStore store, CancellationToken cancellationToken)
+    {
+        if (!await db.Locations.AnyAsync(place => place.Id == request.LocationId && place.ArchivedAt == null && place.Kind != LocationKind.Site, cancellationToken))
+        {
+            return TypedResults.BadRequest();
+        }
+
+        return await StoreSimpleAsync(store, NewEvent(request.EventId, EventType.Moved, request.OccurredAt, user, id, request.LocationId), cancellationToken);
+    }
 
     /// <summary>Potting on or pricking out: moves plants into a new container, within the same batch.</summary>
     private static async Task<IResult> TransferAsync(
@@ -303,7 +313,9 @@ internal static class WorkEndpoints
 
     private static async Task<IResult> RecordTreatmentAsync(Guid id, TreatmentRequest request, ClaimsPrincipal user, EventStore store, CancellationToken cancellationToken)
     {
-        if (Clean(request.Product) is not { } product || Clean(request.Dose) is not { } dose || Clean(request.Area) is not { } area)
+        if (Clean(request.Product) is not { Length: <= LongestShortText } product
+            || Clean(request.Dose) is not { Length: <= LongestShortText } dose
+            || Clean(request.Area) is not { Length: <= LongestShortText } area)
         {
             return TypedResults.BadRequest();
         }
@@ -313,7 +325,7 @@ internal static class WorkEndpoints
 
     private static async Task<IResult> RecordNoteAsync(Guid id, NoteRequest request, ClaimsPrincipal user, EventStore store, CancellationToken cancellationToken)
     {
-        if (Clean(request.Note) is not { } note)
+        if (Clean(request.Note) is not { Length: <= LongestNote } note)
         {
             return TypedResults.BadRequest();
         }

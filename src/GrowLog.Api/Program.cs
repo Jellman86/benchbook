@@ -13,6 +13,7 @@ using GrowLog.Api.Operations;
 using GrowLog.Api.Passports;
 using GrowLog.Api.Production;
 using GrowLog.Api.Selling;
+using GrowLog.Api.Settings;
 using GrowLog.Api.Work;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,6 +38,7 @@ builder.Services.AddDbContext<GrowLogDbContext>((services, options) =>
             ?? throw new InvalidOperationException("Connection string 'GrowLog' is not configured."));
     options.AddInterceptors(services.GetRequiredService<CatalogueAuditInterceptor>());
 });
+builder.Services.AddScoped<DeviceClock>();
 builder.Services.AddScoped<EventStore>();
 builder.Services.AddSingleton<LabelPrinter>();
 builder.Services.AddSingleton<SpeciesThrottle>();
@@ -80,15 +82,31 @@ app.MapPhotoEndpoints();
 app.MapPlantCardEndpoints();
 app.MapCataloguePhotoEndpoints();
 app.MapCatalogueEndpoints();
+// A device says when it sent each request, so work from a device with a wrong clock can be put right.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Headers[DeviceClock.Header] is [{ } sent]
+        && DateTimeOffset.TryParse(sent, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal, out var deviceTime))
+    {
+        context.RequestServices.GetRequiredService<DeviceClock>().Skew =
+            context.RequestServices.GetRequiredService<TimeProvider>().GetUtcNow() - deviceTime;
+    }
+
+    await next(context);
+});
+
 app.MapWorkEndpoints();
 app.MapContainerHistoryEndpoints();
 app.MapPlaceEndpoints();
+app.MapNurserySettingsEndpoints();
 app.MapProductionEndpoints();
 app.MapLabelEndpoints();
 app.MapFigureEndpoints();
 app.MapReceivedPassportEndpoints();
 app.MapPurchaseEndpoints();
 app.MapMoneyEndpoints();
+app.MapCustomerEndpoints();
+app.MapInvoiceEndpoints();
 app.MapBackupStatusEndpoints();
 app.MapDemoEndpoints();
 

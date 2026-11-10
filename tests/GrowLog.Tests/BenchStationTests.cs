@@ -297,4 +297,28 @@ public sealed class BenchStationTests(PostgresFixture database)
         Assert.Contains(people.EnumerateArray(), person => person.GetProperty("id").GetGuid() == noPin);
         Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(nursery.Bench, "/api/bench/sign-in", new { userId = noPin, pin = "" }));
     }
+
+    [Fact]
+    public async Task A_bench_session_cannot_change_how_anyone_signs_in()
+    {
+        await using var nursery = await Nursery.CreateAsync(database);
+        Assert.Equal(HttpStatusCode.NoContent, await nursery.PinSignInAsync(Pin));
+
+        Assert.Equal(HttpStatusCode.Forbidden, await PostStatusAsync(nursery.Bench, "/api/account/settings/password", new { currentPassword = "", newPassword = "a long enough password" }));
+        Assert.Equal(HttpStatusCode.Forbidden, await PostStatusAsync(nursery.Bench, "/api/account/settings/passkey-options"));
+        Assert.Equal(HttpStatusCode.Forbidden, await PostStatusAsync(nursery.Bench, "/api/account/settings/pin", new { pin = "1111" }));
+    }
+
+    [Fact]
+    public async Task With_nothing_to_type_at_the_bench_the_owner_is_not_offered_there()
+    {
+        await using var nursery = await Nursery.CreateAsync(database);
+        await SetSignInLevelAsync(nursery.Owner, "Names");
+        var ownerId = (await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/account/me"), Cancellation)).GetProperty("id").GetGuid();
+
+        var people = await nursery.Bench.GetFromJsonAsync<JsonElement>(Route("/api/bench/people"), Cancellation);
+
+        Assert.DoesNotContain(people.EnumerateArray(), person => person.GetProperty("id").GetGuid() == ownerId);
+        Assert.Equal(HttpStatusCode.Unauthorized, await PostStatusAsync(nursery.Bench, "/api/bench/sign-in", new { userId = ownerId, pin = "" }));
+    }
 }

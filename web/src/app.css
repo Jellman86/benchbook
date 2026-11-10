@@ -784,6 +784,138 @@ button.place-row:hover:not(:disabled) {
   cursor: pointer;
 }
 
+.form-heading {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.logo-preview {
+  max-width: 12rem;
+  max-height: 6rem;
+  object-fit: contain;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  background: #fff;
+}
+
+/* The label editor: what to choose, and beside or below it a sample drawn as it will print. */
+.label-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.label-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 12rem;
+  margin: 0;
+  padding: 1.25rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--line) 45%, var(--background));
+  text-align: center;
+}
+
+/* Always white with black print, like the label itself, whatever the theme. */
+.label-preview img {
+  display: block;
+  height: auto;
+  border-radius: 0.2rem;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgb(46 35 32 / 18%),
+    0 4px 14px rgb(46 35 32 / 16%);
+  transition: opacity 0.15s;
+}
+
+.label-preview[aria-busy="true"] img {
+  opacity: 0.55;
+}
+
+.label-preview figcaption {
+  max-width: 32rem;
+  font-size: 0.85rem;
+}
+
+.field-label {
+  font-weight: 600;
+}
+
+.stack.tight {
+  gap: 0.35rem;
+}
+
+.caution {
+  padding: 0.6rem 0.75rem;
+  border-left: 4px solid var(--border);
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--line) 50%, transparent);
+  font-weight: 600;
+}
+
+.segmented.four {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.printing-tips summary {
+  min-height: 2.5rem;
+  font-family: var(--heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.printing-tips ol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0.5rem 0 0.75rem;
+  padding-left: 1.4rem;
+}
+
+@media (min-width: 640px) {
+  .segmented.four {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* With room to spare, the sample stays in view beside the choices while they change. */
+@media (min-width: 1500px) {
+  .with-sidebar .label-editor {
+    display: grid;
+    grid-template-columns: minmax(22rem, 28rem) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .with-sidebar .label-preview {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+.print-button {
+  display: flex;
+  gap: 0.4rem;
+  flex: 1 1 14rem;
+}
+
+.print-button a.button {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.print-button select {
+  width: auto;
+  min-width: 7rem;
+}
+
 /* Tables, for wide screens. */
 .table-wrap {
   overflow-x: auto;
@@ -852,6 +984,15 @@ button.sort-button:hover:not(:disabled) {
   min-height: 0;
 }
 
+.data-table td.row-actions {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.data-table td.row-actions > * + * {
+  margin-left: 0.75rem;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -859,6 +1000,54 @@ button.sort-button:hover:not(:disabled) {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+.action-for {
+  margin-top: -0.5rem;
+  color: var(--muted);
+}
+
+.action-for strong {
+  margin-right: 0.35rem;
+  color: var(--text);
+  font-family: var(--heading);
+}
+
+/* On a bench tablet, the number on the left and the choices on the right, so nothing is below the fold. */
+.action-columns {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 700px) {
+  .action-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  main.action-frame:has(.action-columns) {
+    max-width: 56rem;
+  }
+}
+
+/* Touch targets: links that act as buttons and ticks are still at least 44px tall. */
+button.link-button {
+  min-height: 2.75rem;
+}
+
+label.tick {
+  min-height: 2.75rem;
+}
+
+.bottom-nav span {
+  font-size: 0.8125rem;
+}
+
+.card.recent .row {
+  flex-wrap: nowrap;
 }
 
 /* Values used before, to choose with one press. */
@@ -1540,6 +1729,10 @@ button.sort-button:hover:not(:disabled) {
   /* One task at a time reads better at a comfortable width than stretched across a big screen. */
   .with-sidebar main.action-frame {
     max-width: 40rem;
+  }
+
+  .with-sidebar main.action-frame:has(.action-columns) {
+    max-width: 56rem;
   }
 
   .with-sidebar .tray-layout {

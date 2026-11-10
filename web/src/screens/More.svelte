@@ -127,12 +127,17 @@
       {/each}
     </div>
 
-    {#if settings}
+    {#if me.isTeam}
+      <p class="muted">
+        This device is signed in as the nursery team. To use your own account,
+        sign in as yourself.
+      </p>
+    {:else if settings}
       <h2>Signing in</h2>
       {#if settings.nameOnly}
         <p class="muted">
-          You sign in by tapping your name. Set a password or passkey to stop
-          anyone else doing that.
+          You sign in by tapping your name. A password or passkey lets you sign
+          in on other devices too.
         </p>
       {/if}
 

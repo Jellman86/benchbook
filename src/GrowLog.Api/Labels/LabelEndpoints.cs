@@ -1,4 +1,6 @@
 using System.Globalization;
+using GrowLog.Api.Accounts;
+using GrowLog.Api.Catalogue;
 using GrowLog.Api.Data;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +16,10 @@ internal static class LabelEndpoints
         labels.MapGet("/plants/{id:guid}", PrintPlantLabelAsync).ProducesPdf();
         labels.MapGet("/bench-cards/{id:guid}", PrintBenchCardAsync).ProducesPdf();
         labels.MapGet("/places/{id:guid}", PrintPlaceLabelAsync).ProducesPdf();
+        labels.MapPost("/preview/{kind}", PreviewAsync)
+            .ProducesPdf()
+            .Produces(StatusCodes.Status200OK, contentType: "image/png")
+            .RequireAuthorization(AccountServices.OwnerPolicy);
     }
 
     private static RouteHandlerBuilder ProducesPdf(this RouteHandlerBuilder builder) =>
@@ -25,15 +31,19 @@ internal static class LabelEndpoints
     private static string Money(decimal value) =>
         string.Create(CultureInfo.InvariantCulture, $"£{value:0.00}");
 
-    private static FileContentHttpResult Pdf(byte[] content, string name) =>
-        TypedResults.File(content, "application/pdf", $"{name}.pdf");
+    private static string Care(params string?[] parts) =>
+        string.Join(" · ", parts.Where(part => !string.IsNullOrWhiteSpace(part)));
+
+    /// <summary>Opened in the browser, ready to print, rather than downloaded first.</summary>
+    private static FileContentHttpResult Pdf(byte[] content) => TypedResults.File(content, "application/pdf");
 
     private static async Task<IResult> PrintContainerLabelAsync(
         string label,
         GrowLogDbContext db,
         EventStore store,
         LabelPrinter printer,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int copies = 1)
     {
         if (await db.Containers.AsNoTracking().FirstOrDefaultAsync(container => container.LabelCode == label, cancellationToken) is not { } container)
         {
@@ -59,21 +69,23 @@ internal static class LabelEndpoints
             }),
         };
 
-        return Pdf(await printer.RenderAsync(LabelKind.ContainerLabel, data, container.LabelCode, cancellationToken), container.LabelCode);
+        var context = await LabelSettings.LoadAsync(db, LabelKind.ContainerLabel, cancellationToken);
+        return Pdf(await printer.RenderAsync(LabelKind.ContainerLabel, data, container.LabelCode, context, copies, cancellationToken));
     }
 
     /// <summary>A label for a bench or bed, so moving a tray can be "scan the tray, scan the bench".</summary>
-    private static async Task<IResult> PrintPlaceLabelAsync(Guid id, GrowLogDbContext db, LabelPrinter printer, CancellationToken cancellationToken)
+    private static async Task<IResult> PrintPlaceLabelAsync(Guid id, GrowLogDbContext db, LabelPrinter printer, CancellationToken cancellationToken, int copies = 1)
     {
         if (await db.Locations.AsNoTracking().FirstOrDefaultAsync(place => place.Id == id, cancellationToken) is not { } place)
         {
             return TypedResults.NotFound();
         }
 
-        var paths = await Catalogue.PlacePaths.LoadAsync(db, cancellationToken);
+        var paths = await PlacePaths.LoadAsync(db, cancellationToken);
         var data = new { code = place.LabelCode, name = place.Name, path = paths.GetValueOrDefault(place.Id) ?? place.Name };
+        var context = await LabelSettings.LoadAsync(db, LabelKind.PlaceLabel, cancellationToken);
 
-        return Pdf(await printer.RenderAsync(LabelKind.PlaceLabel, data, place.LabelCode, cancellationToken), place.LabelCode);
+        return Pdf(await printer.RenderAsync(LabelKind.PlaceLabel, data, place.LabelCode, context, copies, cancellationToken));
     }
 
     private static async Task<IResult> PrintPlantLabelAsync(
@@ -81,7 +93,8 @@ internal static class LabelEndpoints
         Guid? potSizeId,
         GrowLogDbContext db,
         LabelPrinter printer,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int copies = 1)
     {
         if (await db.Plants.AsNoTracking().Include(plant => plant.Prices).FirstOrDefaultAsync(plant => plant.Id == id, cancellationToken) is not { } plant)
         {
@@ -95,16 +108,19 @@ internal static class LabelEndpoints
             plant = PlantName(plant.CommonName, plant.Variety),
             botanical = plant.BotanicalName ?? string.Empty,
             price = price is null ? string.Empty : Money(price.Price),
+            care = Care(plant.Position, plant.Watering, plant.Hardiness),
         };
 
-        return Pdf(await printer.RenderAsync(LabelKind.PlantLabel, data, qrText: null, cancellationToken), "plant-label");
+        var context = await LabelSettings.LoadAsync(db, LabelKind.PlantLabel, cancellationToken);
+        return Pdf(await printer.RenderAsync(LabelKind.PlantLabel, data, qrText: null, context, copies, cancellationToken));
     }
 
     private static async Task<IResult> PrintBenchCardAsync(
         Guid id,
         GrowLogDbContext db,
         LabelPrinter printer,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int copies = 1)
     {
         if (await db.Plants.AsNoTracking().Include(plant => plant.Prices).FirstOrDefaultAsync(plant => plant.Id == id, cancellationToken) is not { } plant)
         {
@@ -119,9 +135,52 @@ internal static class LabelEndpoints
             botanical = plant.BotanicalName ?? string.Empty,
             position = plant.Position ?? string.Empty,
             watering = plant.Watering ?? string.Empty,
+            hardiness = plant.Hardiness ?? string.Empty,
             prices = plant.Prices.Select(price => new { size = potSizeNames[price.PotSizeId], price = Money(price.Price) }).ToList(),
         };
 
-        return Pdf(await printer.RenderAsync(LabelKind.BenchCard, data, qrText: null, cancellationToken), "bench-card");
+        var context = await LabelSettings.LoadAsync(db, LabelKind.BenchCard, cancellationToken);
+        return Pdf(await printer.RenderAsync(LabelKind.BenchCard, data, qrText: null, context, copies, cancellationToken));
+    }
+
+    /// <summary>
+    /// A sample label in a style not yet saved, so the owner sees a change before keeping it. It comes
+    /// as a PDF to print as a test, or as a picture, which every phone can show inside the page.
+    /// </summary>
+    private static async Task<IResult> PreviewAsync(
+        LabelKind kind,
+        LabelStyle style,
+        GrowLogDbContext db,
+        LabelPrinter printer,
+        CancellationToken cancellationToken,
+        bool picture = false)
+    {
+        if (!style.IsSensible)
+        {
+            return TypedResults.BadRequest();
+        }
+
+        var saved = await LabelSettings.LoadAsync(db, kind, cancellationToken);
+        var context = saved with { Style = style };
+
+        object sample = kind switch
+        {
+            LabelKind.PlantLabel => new { plant = "Lavender 'Hidcote'", botanical = "Lavandula angustifolia", price = Money(4.5m), care = "Full sun · Well-drained soil · RHS H5" },
+            LabelKind.BenchCard => new
+            {
+                plant = "Lavender 'Hidcote'",
+                botanical = "Lavandula angustifolia",
+                position = "Full sun",
+                watering = "Well-drained soil",
+                hardiness = "RHS H5",
+                prices = new[] { new { size = "9cm", price = Money(4.5m) }, new { size = "2L", price = Money(9.95m) } },
+            },
+            LabelKind.PlaceLabel => new { code = "P0001", name = "Bench 1", path = "Greenhouse 2, Bench 1" },
+            _ => new { code = "C000001", lines = new[] { new { plant = "Lavender 'Hidcote'", botanical = "Lavandula angustifolia", batch = "B000001" } } },
+        };
+
+        var qr = kind is LabelKind.ContainerLabel or LabelKind.PlaceLabel ? "PREVIEW" : null;
+        var content = await printer.RenderAsync(kind, sample, qr, context, copies: 1, cancellationToken, asPicture: picture);
+        return picture ? TypedResults.File(content, "image/png") : Pdf(content);
     }
 }

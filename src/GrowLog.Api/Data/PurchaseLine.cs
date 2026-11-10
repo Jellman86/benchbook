@@ -13,4 +13,7 @@ internal sealed class PurchaseLine : IAudited
     public required decimal NetCost { get; init; }
 
     public required decimal Vat { get; init; }
+
+    /// <summary>Whether the line was plants, which become batches, or sundries such as compost. Null on older lines.</summary>
+    public bool? IsPlants { get; init; }
 }

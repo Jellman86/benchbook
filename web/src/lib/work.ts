@@ -1,4 +1,5 @@
 import { sessionEnded } from "../api/client";
+import { trayPlaces } from "./places";
 import type { Schemas } from "./types";
 
 /** A piece of work ready to send. Plain data, so it can wait in a queue. */
@@ -63,7 +64,11 @@ export async function submit(item: WorkRequest): Promise<Outcome> {
   try {
     response = await fetch(item.url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        // When this was sent by this device's clock, so a clock that's out can be allowed for.
+        "X-Device-Time": new Date().toISOString(),
+      },
       body: JSON.stringify(item.body),
     });
   } catch {
@@ -76,7 +81,7 @@ export async function submit(item: WorkRequest): Promise<Outcome> {
   }
 
   // The server is restarting or busy, as during an update: keep the work and send it later.
-  if (passingTrouble.includes(response.status)) {
+  if (response.status >= 500 || passingTrouble.includes(response.status)) {
     return { kind: "unreachable" };
   }
 
@@ -131,6 +136,13 @@ export function outcomeProblem(outcome: Outcome): string {
     case "rejected":
       return "That wasn't accepted. Please check it and try again.";
   }
+}
+
+/** Plain words for an undo that didn't happen. */
+export function undoProblem(outcome: Outcome): string {
+  return outcome.kind === "refused" && outcome.problem === "BelowZero"
+    ? "This can't be undone, because later work depends on it."
+    : outcomeProblem(outcome);
 }
 
 export function plantName(commonName: string, variety?: string | null): string {
@@ -292,13 +304,12 @@ export function placeLabel(
 
 /** Places a container can actually stand in. */
 export function workPlaces(all: Schemas["LocationResponse"][]) {
-  return all
-    .filter((place) => place.kind !== "Site" && !place.archived)
-    .map((place) => ({
-      id: place.id,
-      label: place.path || placeLabel(place, all),
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label, "en-GB", { numeric: true }));
+  return trayPlaces(
+    all.map((place) => ({
+      ...place,
+      path: place.path || placeLabel(place, all),
+    })),
+  );
 }
 
 /** iNaturalist names the photographer twice when they uploaded it too; once reads better. */

@@ -339,4 +339,40 @@ public sealed class SignInOptionsTests(PostgresFixture database)
         Assert.Equal(HttpStatusCode.Forbidden, await GetStatusAsync(device, "/api/staff"));
         Assert.DoesNotContain((await owner.GetFromJsonAsync<JsonElement>(Route("/api/staff"), Cancellation)).EnumerateArray(), person => person.GetProperty("name").GetString()!.StartsWith("Nursery team", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public async Task A_stricter_level_ends_the_nursery_team_session_within_a_minute()
+    {
+        var clock = new TestClock();
+        await using var app = await CreateAppAsync(database, clock: clock);
+        using var owner = Client(app);
+        using var ownerKey = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, ownerKey);
+        await SetSignInLevelAsync(owner, "Open");
+        using var device = Client(app);
+        Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(device, "/api/account/sign-in/team"));
+        Assert.Equal(HttpStatusCode.Forbidden, await PostStatusAsync(device, "/api/account/settings/password", new { currentPassword = "", newPassword = "a long enough password" }));
+
+        await SetSignInLevelAsync(owner, "Strict");
+        clock.Advance(TimeSpan.FromMinutes(2));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, await MeStatusAsync(device));
+        Assert.Equal(HttpStatusCode.OK, await MeStatusAsync(owner));
+    }
+
+    [Fact]
+    public async Task Someone_who_left_can_come_back()
+    {
+        await using var app = await CreateAppAsync(database);
+        using var owner = Client(app);
+        using var ownerKey = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, ownerKey);
+        var id = await AddWithPasswordAsync(owner);
+        Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(owner, $"/api/staff/{id}/archive"));
+
+        Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(owner, $"/api/staff/{id}/restore"));
+
+        using var phone = Client(app);
+        Assert.Equal(HttpStatusCode.NoContent, await ByPasswordAsync(phone, id));
+    }
 }

@@ -36,9 +36,19 @@
   // Usually the whole lot moves on, into the next size up.
   let quantity = $derived(Number(line.quantity));
 
+  let potSizesUnavailable = $state(false);
+
+  // Pricking out usually goes into a tray of modules; potting on into a group of pots.
+  // svelte-ignore state_referenced_locally
+  kind = type === "PrickedOut" ? "Tray" : "PotGroup";
+
   onMount(async () => {
-    potSizes = (await api.GET("/api/pot-sizes")).data ?? [];
-    potSizeId = nextPotSize(potSizes, container.potSizeId);
+    try {
+      potSizes = (await api.GET("/api/pot-sizes")).data ?? [];
+      potSizeId = nextPotSize(potSizes, container.potSizeId);
+    } catch {
+      potSizesUnavailable = true;
+    }
   });
 
   async function record() {
@@ -71,29 +81,44 @@
   title={type === "PottedOn" ? "Pot on" : "Prick out"}
   {problem}
   {onCancel}
+  {container}
 >
-  <BatchChoice lines={container.contents} bind:selected={chosen} />
-  <p>How many?</p>
-  <Stepper
-    bind:value={quantity}
-    max={Number(line.quantity)}
-    presets={quantityPresets(Number(line.quantity))}
-  />
-  <label>
-    New pot size
-    <select bind:value={potSizeId}>
-      {#each potSizes as size (size.id)}
-        <option value={size.id}>{size.name}</option>
-      {/each}
-    </select>
-  </label>
-  <label>
-    Going into
-    <select bind:value={kind}>
-      <option value="PotGroup">Group of pots</option>
-      <option value="Tray">Tray</option>
-      <option value="BenchLot">Bench lot</option>
-    </select>
-  </label>
-  <button disabled={busy} onclick={record}>Done</button>
+  <div class="action-columns">
+    <div class="stack">
+      <BatchChoice lines={container.contents} bind:selected={chosen} />
+      <p>How many?</p>
+      <Stepper
+        bind:value={quantity}
+        max={Number(line.quantity)}
+        presets={quantityPresets(Number(line.quantity))}
+      />
+    </div>
+    <div class="stack">
+      {#if potSizesUnavailable}
+        <p class="problem">
+          Potting on needs a connection, to make the new label. Try again with
+          signal.
+        </p>
+      {/if}
+      <label>
+        New pot size
+        <select bind:value={potSizeId}>
+          {#each potSizes as size (size.id)}
+            <option value={size.id}>{size.name}</option>
+          {/each}
+        </select>
+      </label>
+      <label>
+        Going into
+        <select bind:value={kind}>
+          <option value="PotGroup">Group of pots</option>
+          <option value="Tray">Tray</option>
+          <option value="BenchLot">Bench lot</option>
+        </select>
+      </label>
+      <button disabled={busy || potSizesUnavailable} onclick={record}
+        >Done</button
+      >
+    </div>
+  </div>
 </ActionFrame>

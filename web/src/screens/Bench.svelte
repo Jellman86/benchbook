@@ -53,12 +53,15 @@
       return;
     }
 
+    // Taken now, so digits pressed while it's checked start the next try rather than being wiped.
+    const entered = pin;
+    pin = "";
     busy = true;
     problem = "";
 
     try {
       const { response } = await api.POST("/api/bench/sign-in", {
-        body: { userId: person.id, pin },
+        body: { userId: person.id, pin: entered },
       });
 
       if (response.ok) {
@@ -75,7 +78,6 @@
       problem = "Can't reach GrowLog. Check the connection and try again.";
     } finally {
       busy = false;
-      pin = "";
     }
   }
 </script>

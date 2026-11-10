@@ -48,7 +48,7 @@
   }
 </script>
 
-<ActionFrame title="Treated" {problem} {onCancel}>
+<ActionFrame title="Treated" {problem} {onCancel} {container}>
   <form class="stack" onsubmit={record}>
     <label>Product <input bind:value={product} required /></label>
     {#if choices?.products.length}

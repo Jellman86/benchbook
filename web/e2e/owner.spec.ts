@@ -159,8 +159,8 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await page.getByLabel("Inside").selectOption({ label: "Greenhouse 2" });
   await page.getByLabel("Add several, numbered").check();
   await page.getByLabel("Name before the number").fill("Bench");
-  await page.getByLabel("From").fill("1");
-  await page.getByLabel("To").fill("3");
+  await page.getByLabel("From", { exact: true }).fill("1");
+  await page.getByLabel("To", { exact: true }).fill("3");
   await button(page, "Add them").click();
   await expect(
     page.locator(".place-row strong", { hasText: "Bench 3" }),
@@ -204,10 +204,36 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Save takings").click();
   await expect(page.getByText("Income: £123.45")).toBeVisible();
   await expect(page.getByText("Spending: £54.60")).toBeVisible();
-  await expect(page.getByText("Still owed to suppliers: £0.00")).toBeVisible();
+  await expect(
+    page.locator(".stat-tile", { hasText: "still owed to suppliers" }),
+  ).toContainText("£0.00");
   await page.getByLabel("Amount taken (£)").fill("10");
   await button(page, "Save takings").click();
   await expect(page.getByRole("alert")).toContainText("already entered");
+  await leaveManage(page);
+
+  // Trade sales: a customer, then an invoice that prints as a PDF.
+  await openManage(page, "Customers");
+  await page.getByLabel("Name", { exact: true }).fill("Hilltop Garden Centre");
+  await page.getByLabel("Address").fill("1 High Street\nBakewell");
+  await button(page, "Add").click();
+  await expect(page.getByText("Hilltop Garden Centre")).toBeVisible();
+  await leaveManage(page);
+
+  await openManage(page, "Invoices");
+  await button(page, "New invoice").click();
+  await page.getByLabel("Description").fill("Mixed perennials");
+  await page.getByLabel("Quantity").fill("12");
+  await page.getByLabel("Price each (£)").fill("4.50");
+  await expect(page.getByText("Total £54.00")).toBeVisible();
+  await button(page, "Issue invoice").click();
+  await expect(page.getByRole("status")).toContainText("Invoice 0001 issued");
+  const invoicePdf = await page.request.get(
+    (await page
+      .getByRole("link", { name: "Open the PDF" })
+      .getAttribute("href"))!,
+  );
+  expect((await invoicePdf.body()).subarray(0, 4).toString()).toBe("%PDF");
   await leaveManage(page);
 
   // Figures open, with nothing recorded yet.
@@ -446,7 +472,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Lost").click();
   await button(page, "Frost").click();
   await page.getByRole("status").getByRole("button", { name: "Undo" }).click();
-  await expect(page.getByRole("status")).toHaveCount(0);
+  await expect(page.getByRole("status")).toContainText("Undone:");
   await scan(label);
   await expect(page.getByText("37 Lavender 'Munstead'")).toBeVisible();
 
@@ -457,10 +483,17 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "+10").click();
   await button(page, "+10").click();
   await expect(page.getByTestId("quantity")).toHaveText("37");
-  await button(page, "Back").click();
+  await expect(page.locator(".action-for")).toContainText(label);
 
-  // Move it.
+  // The phone's Back button steps back to the tray, and a reload stays there.
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: label })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: label })).toBeVisible();
+
+  // Move it. The scan box is ready for a USB scanner straight away.
   await button(page, "Move").click();
+  await expect(page.getByLabel("Scan the place's label")).toBeFocused();
   await button(page, "Greenhouse 2").click();
   await expect(page.getByRole("status")).toContainText(
     `Moved ${label} to Greenhouse 2`,

@@ -59,12 +59,18 @@ export function possibleParents(id: string, places: Place[]): Place[] {
     .sort((a, b) => a.path.localeCompare(b.path, "en-GB", { numeric: true }));
 }
 
-/** Places a tray can stand in, by their full names. */
+/** Places a tray can stand in, by their full names: the ones in use first, then in number order. */
 export function trayPlaces(places: Place[]): { id: string; label: string }[] {
   return places
     .filter((place) => place.kind !== "Site" && !place.archived)
-    .map((place) => ({ id: place.id, label: place.path }))
-    .sort((a, b) => a.label.localeCompare(b.label, "en-GB", { numeric: true }));
+    .sort(
+      (a, b) =>
+        (b.lastUsedAt ?? "").localeCompare(a.lastUsedAt ?? "") ||
+        (a.path || a.name).localeCompare(b.path || b.name, "en-GB", {
+          numeric: true,
+        }),
+    )
+    .map((place) => ({ id: place.id, label: place.path || place.name }));
 }
 
 /** Production rows gathered by tray, as one tray can hold several batches. */

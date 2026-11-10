@@ -100,8 +100,11 @@ internal static class BenchEndpoints
 
         var needsPin = SignInRules.BenchNeedsPin((await db.GetNurserySettingsAsync(cancellationToken)).SignInLevel);
 
+        // With nothing to type at the bench, the owner isn't offered there at all.
+        var owners = needsPin ? [] : (await users.GetUsersInRoleAsync(AccountServices.OwnerRole)).Select(owner => owner.Id).ToList();
+
         var people = await users.Users
-            .Where(user => user.ArchivedAt == null && !user.IsTeamAccount && (!needsPin || user.PinHash != null))
+            .Where(user => user.ArchivedAt == null && !user.IsTeamAccount && !owners.Contains(user.Id) && (!needsPin || user.PinHash != null))
             .OrderBy(user => user.UserName)
             .Select(user => new Person(user.Id, user.UserName!))
             .ToListAsync(cancellationToken);
@@ -128,11 +131,17 @@ internal static class BenchEndpoints
             return TypedResults.Unauthorized();
         }
 
-        // Some nurseries choose tapping a name at the bench, with no PIN.
-        if (SignInRules.BenchNeedsPin((await db.GetNurserySettingsAsync(cancellationToken)).SignInLevel)
-            && await RefusePinAsync(person, request.Pin, users, hasher) is { } refused)
+        // Some nurseries choose tapping a name at the bench, with no PIN; never for the owner.
+        if (SignInRules.BenchNeedsPin((await db.GetNurserySettingsAsync(cancellationToken)).SignInLevel))
         {
-            return refused;
+            if (await RefusePinAsync(person, request.Pin, users, hasher) is { } refused)
+            {
+                return refused;
+            }
+        }
+        else if (await users.IsInRoleAsync(person, AccountServices.OwnerRole))
+        {
+            return TypedResults.Unauthorized();
         }
 
         // Not persistent, and short: sliding expiry returns the station to the name list when idle.

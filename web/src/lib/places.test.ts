@@ -22,6 +22,7 @@ const place = (
   photoIds: [],
   path: name,
   labelCode: `P000${id}`,
+  lastUsedAt: null,
 });
 
 const farm = place("1", "Farm", null, "Site");
@@ -65,5 +66,12 @@ describe("nesting", () => {
       "Greenhouse 1, Bench 2",
       "Greenhouse 1, Bench 10",
     ]);
+  });
+
+  it("puts places in use first", () => {
+    const used = { ...bench10, lastUsedAt: "2026-11-09T10:00:00Z" };
+    expect(
+      trayPlaces([farm, house, used, bench2]).map((item) => item.label)[0],
+    ).toBe("Greenhouse 1, Bench 10");
   });
 });

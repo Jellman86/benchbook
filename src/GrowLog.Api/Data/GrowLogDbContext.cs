@@ -65,6 +65,12 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<NurserySettings> NurserySettings => Set<NurserySettings>();
 
+    public DbSet<Customer> Customers => Set<Customer>();
+
+    public DbSet<Invoice> Invoices => Set<Invoice>();
+
+    public DbSet<InvoiceLine> InvoiceLines => Set<InvoiceLine>();
+
     /// <summary>The nursery's settings, or the defaults if none have been saved.</summary>
     public async Task<NurserySettings> GetNurserySettingsAsync(CancellationToken cancellationToken) =>
         await NurserySettings.AsNoTracking().FirstOrDefaultAsync(cancellationToken) ?? new NurserySettings();
@@ -88,13 +94,9 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         ConfigureCatalogue(modelBuilder);
         ConfigureSpeciesAndPhotos(modelBuilder);
 
-        modelBuilder.Entity<ExternalSignInSetting>(entity =>
-        {
-            entity.Property(e => e.Id).ValueGeneratedNever();
-            entity.ToTable(table => table.HasCheckConstraint("ck_external_sign_in_settings_single", "id = 1"));
-        });
-
         ConfigureStock(modelBuilder);
+        ConfigureSettings(modelBuilder);
+        ConfigureSelling(modelBuilder);
 
         modelBuilder.Entity<CatalogueChange>(entity =>
         {
@@ -177,6 +179,67 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         });
     }
 
+    private static void ConfigureSettings(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<ExternalSignInSetting>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.ToTable(table => table.HasCheckConstraint("ck_external_sign_in_settings_single", "id = 1"));
+        });
+
+        modelBuilder.Entity<NurserySettings>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.SignInLevel).HasConversion<string>();
+            entity.Property(e => e.LabelStyles).HasColumnType("jsonb");
+            entity.ToTable(table => table.HasCheckConstraint("ck_nursery_settings_single", "id = 1"));
+        });
+    }
+
+    private static void ConfigureSelling(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Customer>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Name).HasColumnType("citext");
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<Invoice>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Kind).HasConversion<string>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.HasIndex(e => e.Number).IsUnique();
+            entity.HasIndex(e => e.CreditsInvoiceId).IsUnique();
+            entity.HasIndex(e => e.CustomerId);
+            entity.HasOne<Customer>().WithMany().HasForeignKey(e => e.CustomerId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Invoice>().WithOne().HasForeignKey<Invoice>(e => e.CreditsInvoiceId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Event>().WithMany().HasForeignKey(e => e.SoldEventId).OnDelete(DeleteBehavior.Restrict);
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint("ck_invoices_number", "number > 0");
+                table.HasCheckConstraint("ck_invoices_credit", "(kind = 'CreditNote') = (credits_invoice_id IS NOT NULL)");
+            });
+        });
+
+        modelBuilder.Entity<InvoiceLine>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.UnitPrice).HasPrecision(12, 2);
+            entity.Property(e => e.VatRate).HasPrecision(5, 2);
+            entity.HasIndex(e => new { e.InvoiceId, e.Position }).IsUnique();
+            entity.HasOne<Invoice>().WithMany(e => e.Lines).HasForeignKey(e => e.InvoiceId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Plant>().WithMany().HasForeignKey(e => e.PlantId).OnDelete(DeleteBehavior.Restrict);
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint("ck_invoice_lines_quantity", "quantity > 0");
+                table.HasCheckConstraint("ck_invoice_lines_price", "unit_price >= 0");
+                table.HasCheckConstraint("ck_invoice_lines_vat", "vat_rate >= 0 AND vat_rate <= 100");
+            });
+        });
+    }
+
     private static void ConfigureStock(ModelBuilder modelBuilder)
     {
         var batchSources = string.Join(", ", Enum.GetNames<BatchSource>().Select(name => $"'{name}'"));
@@ -218,13 +281,6 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.HasOne<Event>().WithMany(e => e.Lines).HasForeignKey(e => e.EventId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Container>().WithMany().HasForeignKey(e => e.ContainerId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Batch>().WithMany().HasForeignKey(e => e.BatchId).OnDelete(DeleteBehavior.Restrict);
-        });
-
-        modelBuilder.Entity<NurserySettings>(entity =>
-        {
-            entity.Property(e => e.Id).ValueGeneratedNever();
-            entity.Property(e => e.SignInLevel).HasConversion<string>();
-            entity.ToTable(table => table.HasCheckConstraint("ck_nursery_settings_single", "id = 1"));
         });
 
         modelBuilder.Entity<CountAdjustment>(entity =>

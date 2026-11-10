@@ -9,7 +9,7 @@
     value: number;
     min?: number;
     max?: number;
-    presets?: number[];
+    presets?: (number | { label: string; value: number })[];
   } = $props();
 
   let typing = $state(false);
@@ -61,9 +61,13 @@
   {/if}
   {#if presets.length > 0}
     <div class="row">
-      {#each presets.filter((preset) => preset <= max) as preset (preset)}
-        <button type="button" class="secondary" onclick={() => (value = preset)}
-          >{preset}</button
+      {#each presets
+        .map( (preset) => (typeof preset === "number" ? { label: String(preset), value: preset } : preset) )
+        .filter((preset) => preset.value <= max) as preset (preset.value)}
+        <button
+          type="button"
+          class="secondary"
+          onclick={() => (value = preset.value)}>{preset.label}</button
         >
       {/each}
     </div>

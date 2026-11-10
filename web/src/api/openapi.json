@@ -1055,6 +1055,29 @@
         }
       }
     },
+    "/api/staff/{id}/restore": {
+      "post": {
+        "tags": [
+          "StaffEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/staff/sign-in-settings": {
       "get": {
         "tags": [
@@ -2858,6 +2881,131 @@
         }
       }
     },
+    "/api/settings/nursery": {
+      "get": {
+        "tags": [
+          "NurserySettingsEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NurseryDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "NurserySettingsEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NurseryDetails"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/settings/nursery/logo": {
+      "get": {
+        "tags": [
+          "NurserySettingsEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "NurserySettingsEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "NurserySettingsEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/settings/labels": {
+      "get": {
+        "tags": [
+          "NurserySettingsEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/LabelStyle"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/labels/{kind}": {
+      "put": {
+        "tags": [
+          "NurserySettingsEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/LabelKind"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabelStyle"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/labels/containers/{label}": {
       "get": {
         "tags": [
@@ -2870,6 +3018,19 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "copies",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 1
             }
           }
         ],
@@ -2902,6 +3063,19 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "copies",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 1
+            }
           }
         ],
         "responses": {
@@ -2924,6 +3098,19 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "copies",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 1
             }
           }
         ],
@@ -2948,8 +3135,61 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "copies",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 1
+            }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/labels/preview/{kind}": {
+      "post": {
+        "tags": [
+          "LabelEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/LabelKind"
+            }
+          },
+          {
+            "name": "picture",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabelStyle"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -3218,6 +3458,25 @@
         }
       }
     },
+    "/api/purchases/read-invoice": {
+      "post": {
+        "tags": [
+          "PurchaseEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDraft"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/money/takings": {
       "get": {
         "tags": [
@@ -3313,6 +3572,312 @@
       "get": {
         "tags": [
           "MoneyEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/customers": {
+      "get": {
+        "tags": [
+          "CustomerEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "CustomerEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerCreated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/customers/{id}": {
+      "put": {
+        "tags": [
+          "CustomerEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/customers/{id}/forget": {
+      "post": {
+        "tags": [
+          "CustomerEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/customers/{id}/archive": {
+      "post": {
+        "tags": [
+          "GrowLog.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/customers/{id}/restore": {
+      "post": {
+        "tags": [
+          "GrowLog.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/invoices": {
+      "get": {
+        "tags": [
+          "InvoiceEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvoiceSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "InvoiceEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceIssued"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueRefused"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/invoices/{id}/paid": {
+      "post": {
+        "tags": [
+          "InvoiceEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaidRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/invoices/{id}/credit": {
+      "post": {
+        "tags": [
+          "InvoiceEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceIssued"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/invoices/{id}/pdf": {
+      "get": {
+        "tags": [
+          "InvoiceEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -3919,6 +4484,105 @@
           }
         }
       },
+      "CustomerCreated": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CustomerRequest": {
+        "required": [
+          "name",
+          "address",
+          "email",
+          "phone",
+          "vatNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "vatNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CustomerResponse": {
+        "required": [
+          "id",
+          "name",
+          "address",
+          "email",
+          "phone",
+          "vatNumber",
+          "archived"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "vatNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "archived": {
+            "type": "boolean"
+          }
+        }
+      },
       "DemoStatus": {
         "required": [
           "available"
@@ -3927,6 +4591,36 @@
         "properties": {
           "available": {
             "type": "boolean"
+          }
+        }
+      },
+      "DraftLine": {
+        "required": [
+          "description",
+          "quantity",
+          "netCost"
+        ],
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "netCost": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
           }
         }
       },
@@ -4231,7 +4925,309 @@
           }
         }
       },
+      "InvoiceDraft": {
+        "required": [
+          "reference",
+          "date",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "reference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "date": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DraftLine"
+            }
+          }
+        }
+      },
+      "InvoiceIssued": {
+        "required": [
+          "id",
+          "number"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "InvoiceKind": {
+        "enum": [
+          "Invoice",
+          "CreditNote"
+        ]
+      },
+      "InvoiceLineRequest": {
+        "required": [
+          "description",
+          "quantity",
+          "unitPrice",
+          "vatRate",
+          "plantId",
+          "containerId",
+          "batchId"
+        ],
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "unitPrice": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "vatRate": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "plantId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "containerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "batchId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "InvoiceRequest": {
+        "required": [
+          "customerId",
+          "issuedOn",
+          "notes",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "issuedOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvoiceLineRequest"
+            }
+          }
+        }
+      },
+      "InvoiceSummary": {
+        "required": [
+          "id",
+          "number",
+          "kind",
+          "customerName",
+          "issuedOn",
+          "dueOn",
+          "paidOn",
+          "total",
+          "credited",
+          "creditsInvoiceId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/InvoiceKind"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "issuedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "dueOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "paidOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "credited": {
+            "type": "boolean"
+          },
+          "creditsInvoiceId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "IssueRefused": {
+        "required": [
+          "problem"
+        ],
+        "type": "object",
+        "properties": {
+          "problem": {
+            "type": "string"
+          }
+        }
+      },
       "JsonElement": { },
+      "LabelKind": {
+        "enum": [
+          "ContainerLabel",
+          "PlantLabel",
+          "BenchCard",
+          "PlaceLabel",
+          "Invoice"
+        ]
+      },
+      "LabelLayout": {
+        "enum": [
+          "Compact",
+          "Standard",
+          "Large"
+        ]
+      },
+      "LabelStyle": {
+        "required": [
+          "layout",
+          "widthMm",
+          "heightMm",
+          "showLogo",
+          "showNurseryName",
+          "showBotanical",
+          "showPrice",
+          "showCare"
+        ],
+        "type": "object",
+        "properties": {
+          "layout": {
+            "$ref": "#/components/schemas/LabelLayout"
+          },
+          "widthMm": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "heightMm": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "showLogo": {
+            "type": "boolean"
+          },
+          "showNurseryName": {
+            "type": "boolean"
+          },
+          "showBotanical": {
+            "type": "boolean"
+          },
+          "showPrice": {
+            "type": "boolean"
+          },
+          "showCare": {
+            "type": "boolean"
+          },
+          "isSensible": {
+            "type": "boolean"
+          }
+        }
+      },
       "LineRequest": {
         "required": [
           "description",
@@ -4268,6 +5264,12 @@
               "string"
             ],
             "format": "double"
+          },
+          "isPlants": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -4278,7 +5280,8 @@
           "quantity",
           "netCost",
           "vat",
-          "batchCount"
+          "batchCount",
+          "isPlants"
         ],
         "type": "object",
         "properties": {
@@ -4321,6 +5324,12 @@
               "string"
             ],
             "format": "int32"
+          },
+          "isPlants": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -4381,7 +5390,8 @@
           "archived",
           "photoIds",
           "path",
-          "labelCode"
+          "labelCode",
+          "lastUsedAt"
         ],
         "type": "object",
         "properties": {
@@ -4417,6 +5427,13 @@
           },
           "labelCode": {
             "type": "string"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -4488,7 +5505,8 @@
       "MoneySummary": {
         "required": [
           "months",
-          "owed"
+          "owed",
+          "owedToUs"
         ],
         "type": "object",
         "properties": {
@@ -4499,6 +5517,14 @@
             }
           },
           "owed": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "owedToUs": {
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
             "type": [
               "number",
@@ -4612,6 +5638,79 @@
           },
           "note": {
             "type": "string"
+          }
+        }
+      },
+      "NurseryDetails": {
+        "required": [
+          "name",
+          "address",
+          "phone",
+          "email",
+          "website",
+          "registrationNumber",
+          "vatNumber",
+          "hasLogo",
+          "vatRegistered",
+          "paymentTermsDays"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "website": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "registrationNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "vatNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasLogo": {
+            "type": "boolean"
+          },
+          "vatRegistered": {
+            "type": "boolean"
+          },
+          "paymentTermsDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -6912,6 +8011,9 @@
       "name": "PlaceEndpoints"
     },
     {
+      "name": "NurserySettingsEndpoints"
+    },
+    {
       "name": "LabelEndpoints"
     },
     {
@@ -6919,6 +8021,12 @@
     },
     {
       "name": "MoneyEndpoints"
+    },
+    {
+      "name": "CustomerEndpoints"
+    },
+    {
+      "name": "InvoiceEndpoints"
     },
     {
       "name": "DemoEndpoints"

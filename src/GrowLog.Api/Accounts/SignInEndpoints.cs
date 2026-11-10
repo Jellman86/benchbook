@@ -20,10 +20,10 @@ internal static class SignInEndpoints
 
         var settings = app.MapGroup("/api/account/settings");
         settings.MapGet("/", GetSettingsAsync).Produces<AccountSettings>();
-        settings.MapPost("/password", SetOwnPasswordAsync);
-        settings.MapPost("/pin", SetOwnPinAsync);
-        settings.MapPost("/passkey-options", GetOwnPasskeyOptionsAsync);
-        settings.MapPost("/passkey", AddOwnPasskeyAsync);
+        settings.MapPost("/password", SetOwnPasswordAsync).AddEndpointFilter<OwnSettingsFilter>();
+        settings.MapPost("/pin", SetOwnPinAsync).AddEndpointFilter<OwnSettingsFilter>();
+        settings.MapPost("/passkey-options", GetOwnPasskeyOptionsAsync).AddEndpointFilter<OwnSettingsFilter>();
+        settings.MapPost("/passkey", AddOwnPasskeyAsync).AddEndpointFilter<OwnSettingsFilter>();
     }
 
     /// <summary>How much signing in the nursery wants, so a device knows what to show first.</summary>

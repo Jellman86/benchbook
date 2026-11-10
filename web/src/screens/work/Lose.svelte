@@ -55,22 +55,26 @@
   }
 </script>
 
-<ActionFrame title="Lost" {problem} {onCancel}>
-  <BatchChoice lines={container.contents} bind:selected={chosen} />
-  <p>How many?</p>
-  <Stepper
-    bind:value={quantity}
-    max={Number(line.quantity)}
-    presets={quantityPresets(Number(line.quantity))}
-  />
-  <p>Why?</p>
-  <div class="stack">
-    {#each lossReasons as option (option.reason)}
-      <button
-        disabled={busy}
-        onclick={() => record(option.reason, option.label)}
-        >{option.label}</button
-      >
-    {/each}
+<ActionFrame title="Lost" {problem} {onCancel} {container}>
+  <div class="action-columns">
+    <div class="stack">
+      <BatchChoice lines={container.contents} bind:selected={chosen} />
+      <p>How many?</p>
+      <Stepper
+        bind:value={quantity}
+        max={Number(line.quantity)}
+        presets={quantityPresets(Number(line.quantity))}
+      />
+    </div>
+    <div class="stack">
+      <p>Why?</p>
+      {#each lossReasons as option (option.reason)}
+        <button
+          disabled={busy}
+          onclick={() => record(option.reason, option.label)}
+          >{option.label}</button
+        >
+      {/each}
+    </div>
   </div>
 </ActionFrame>

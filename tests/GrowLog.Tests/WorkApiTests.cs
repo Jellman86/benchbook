@@ -681,4 +681,65 @@ public sealed class WorkApiTests(PostgresFixture database)
         var staffs = (await RecentAsync(scene.Staff, "?everyone=true")).EnumerateArray().ToList();
         Assert.All(staffs, action => Assert.Equal("Alex Moss", action.GetProperty("recordedBy").GetString()));
     }
+
+    [Fact]
+    public async Task Staff_see_supplier_names_but_not_their_contact_details()
+    {
+        await using var scene = await CreateSceneAsync();
+        await PostForTextAsync(scene.Nursery.Owner, "/api/suppliers", new { name = "Hillside Plants", phone = "01629 000000", email = "orders@example.com" });
+
+        var asStaff = (await scene.Staff.GetFromJsonAsync<JsonElement>(Route("/api/suppliers"), Cancellation)).EnumerateArray().Single();
+        var asOwner = (await scene.Nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/suppliers"), Cancellation)).EnumerateArray().Single();
+
+        Assert.Equal("Hillside Plants", asStaff.GetProperty("name").GetString());
+        Assert.Equal(JsonValueKind.Null, asStaff.GetProperty("phone").ValueKind);
+        Assert.Equal("01629 000000", asOwner.GetProperty("phone").GetString());
+    }
+
+    [Fact]
+    public async Task A_tray_cannot_go_on_the_site_itself_and_long_notes_are_refused()
+    {
+        await using var scene = await CreateSceneAsync();
+        var batch = await StartAsync(scene);
+        var site = (await scene.Staff.GetFromJsonAsync<JsonElement>(Route("/api/locations"), Cancellation)).EnumerateArray()
+            .Single(place => string.Equals(place.GetProperty("kind").GetString(), "Site", StringComparison.Ordinal)).GetProperty("id").GetGuid();
+
+        Assert.Equal(HttpStatusCode.BadRequest, await PostStatusAsync(scene.Staff, $"/api/containers/{batch.ContainerId}/move", new { eventId = Guid.NewGuid(), occurredAt = Now, locationId = site }));
+        Assert.Equal(HttpStatusCode.BadRequest, await PostStatusAsync(scene.Staff, $"/api/containers/{batch.ContainerId}/notes", new { eventId = Guid.NewGuid(), occurredAt = Now, note = new string('x', 1001) }));
+    }
+
+    [Fact]
+    public async Task Correcting_how_many_were_sown_leaves_the_tray_where_it_was_moved()
+    {
+        await using var scene = await CreateSceneAsync();
+        var batch = await StartAsync(scene);
+        await PostStatusAsync(scene.Staff, $"/api/containers/{batch.ContainerId}/move", new { eventId = Guid.NewGuid(), occurredAt = Now, locationId = scene.Bench2 });
+
+        using var corrected = await CorrectAsync(scene, batch.EventId, quantity: 35);
+        Assert.Equal(HttpStatusCode.Created, corrected.StatusCode);
+
+        var scanned = await ScanAsync(scene, batch.LabelCode);
+        Assert.Equal("Greenhouse 2, Bench 2", scanned.GetProperty("locationName").GetString());
+        Assert.Equal(35, scanned.GetProperty("contents")[0].GetProperty("quantity").GetInt32());
+    }
+
+    [Fact]
+    public async Task Work_from_a_device_whose_clock_is_slow_is_put_on_the_servers_clock()
+    {
+        await using var scene = await CreateSceneAsync();
+        var batch = await StartAsync(scene);
+        var hourAgo = DateTimeOffset.UtcNow.AddHours(-1);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, Route($"/api/containers/{batch.ContainerId}/notes"))
+        {
+            Content = JsonContent.Create(new { eventId = Guid.NewGuid(), occurredAt = hourAgo, note = "Watered" }),
+        };
+        request.Headers.Add("X-Device-Time", hourAgo.ToString("O", System.Globalization.CultureInfo.InvariantCulture));
+        using var response = await scene.Staff.SendAsync(request, Cancellation);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        var history = await scene.Staff.GetFromJsonAsync<JsonElement>(Route($"/api/containers/{batch.ContainerId}/history"), Cancellation);
+        var note = history.EnumerateArray().Single(entry => string.Equals(entry.GetProperty("type").GetString(), "Note", StringComparison.Ordinal));
+        Assert.True(note.GetProperty("occurredAt").GetDateTimeOffset() > DateTimeOffset.UtcNow.AddMinutes(-5));
+    }
 }

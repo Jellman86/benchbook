@@ -20,6 +20,7 @@ internal static class PurchaseEndpoints
         purchases.MapPost("/{id:guid}/void", VoidAsync);
         purchases.MapPost("/{id:guid}/receipts", AddReceiptAsync).Produces<PurchaseCreated>(StatusCodes.Status201Created);
         purchases.MapGet("/receipts/{id:guid}", GetReceiptAsync);
+        purchases.MapPost("/read-invoice", ReadInvoiceAsync).Produces<InvoiceDraft>();
     }
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -65,7 +66,7 @@ internal static class PurchaseEndpoints
             purchase.VoidedAt is not null,
             purchase.Lines.Sum(line => line.NetCost),
             purchase.Lines.Sum(line => line.Vat),
-            purchase.Lines.OrderBy(line => line.Id).Select(line => new LineResponse(line.Id, line.Description, line.Quantity, line.NetCost, line.Vat, batchCounts.GetValueOrDefault(line.Id))).ToList(),
+            purchase.Lines.OrderBy(line => line.Id).Select(line => new LineResponse(line.Id, line.Description, line.Quantity, line.NetCost, line.Vat, batchCounts.GetValueOrDefault(line.Id), line.IsPlants)).ToList(),
             receipts[purchase.Id].ToList()));
     }
 
@@ -87,7 +88,7 @@ internal static class PurchaseEndpoints
 
         foreach (var line in request.Lines)
         {
-            purchase.Lines.Add(new PurchaseLine { Description = line.Description.Trim(), Quantity = line.Quantity, NetCost = line.NetCost, Vat = line.Vat });
+            purchase.Lines.Add(new PurchaseLine { Description = line.Description.Trim(), Quantity = line.Quantity, NetCost = line.NetCost, Vat = line.Vat, IsPlants = line.IsPlants });
         }
 
         db.Purchases.Add(purchase);
@@ -148,6 +149,29 @@ internal static class PurchaseEndpoints
         return content.StartsWith("%PDF-"u8) ? "application/pdf" : null;
     }
 
+    /// <summary>Suggests a purchase from a supplier's PDF invoice, for a person to check before saving.</summary>
+    private static async Task<IResult> ReadInvoiceAsync(HttpRequest request, CancellationToken cancellationToken)
+    {
+        using var buffer = new MemoryStream();
+        await request.Body.CopyToAsync(buffer, cancellationToken);
+        var content = buffer.ToArray();
+
+        if (content.Length is 0 or > MaxReceiptBytes || !content.AsSpan().StartsWith("%PDF-"u8))
+        {
+            return TypedResults.BadRequest();
+        }
+
+        try
+        {
+            return TypedResults.Ok(InvoiceReader.Read(content));
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            // A damaged or unusual PDF: the person types the purchase in instead.
+            return TypedResults.UnprocessableEntity();
+        }
+    }
+
     private static async Task<IResult> AddReceiptAsync(Guid id, HttpRequest request, ClaimsPrincipal user, GrowLogDbContext db, CancellationToken cancellationToken)
     {
         if (!await db.Purchases.AnyAsync(purchase => purchase.Id == id && purchase.VoidedAt == null, cancellationToken))
@@ -200,7 +224,7 @@ internal static class PurchaseEndpoints
         return TypedResults.File(receipt.Content, receipt.ContentType);
     }
 
-    internal sealed record LineRequest(string Description, int? Quantity, decimal NetCost, decimal Vat);
+    internal sealed record LineRequest(string Description, int? Quantity, decimal NetCost, decimal Vat, bool? IsPlants = null);
 
     internal sealed record PurchaseRequest(Guid SupplierId, DateOnly PurchasedOn, string? Reference, string? Notes, IReadOnlyList<LineRequest> Lines);
 
@@ -208,7 +232,7 @@ internal static class PurchaseEndpoints
 
     internal sealed record PaidRequest(DateOnly? PaidOn);
 
-    internal sealed record LineResponse(Guid Id, string Description, int? Quantity, decimal NetCost, decimal Vat, int BatchCount);
+    internal sealed record LineResponse(Guid Id, string Description, int? Quantity, decimal NetCost, decimal Vat, int BatchCount, bool? IsPlants);
 
     internal sealed record PurchaseResponse(
         Guid Id,

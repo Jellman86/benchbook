@@ -9,7 +9,7 @@ namespace GrowLog.Api.Data;
 /// effect at a time. A stock count says what was there at its time, so work from before a count that arrives
 /// late, or is undone, is absorbed by that count rather than changing what the count found.
 /// </summary>
-internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock)
+internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, DeviceClock? device = null)
 {
     /// <summary>How far ahead of the server a device's clock may run before its time is not believed.</summary>
     private static readonly TimeSpan ClockAllowance = TimeSpan.FromMinutes(5);
@@ -46,9 +46,10 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock)
             .ToList();
 
         // Ordered by when the work happened, so events arriving late from an offline device fall into place.
+        // A correction stands where the work it replaces stood.
         var events = db.Events
             .Where(e => e.ContainerId == containerId && !db.Events.Any(c => c.CorrectsEventId == e.Id))
-            .OrderByDescending(e => e.OccurredAt)
+            .OrderByDescending(e => e.CorrectsEventId == null ? e.OccurredAt : db.Events.Where(o => o.Id == e.CorrectsEventId).Select(o => o.OccurredAt).First())
             .ThenByDescending(e => e.RecordedAt);
 
         var locationId = await events
@@ -76,7 +77,7 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock)
                 && containerIds.Contains(e.ContainerId.Value)
                 && (e.LocationId != null || e.PotSizeId != null)
                 && !db.Events.Any(c => c.CorrectsEventId == e.Id))
-            .OrderByDescending(e => e.OccurredAt)
+            .OrderByDescending(e => e.CorrectsEventId == null ? e.OccurredAt : db.Events.Where(o => o.Id == e.CorrectsEventId).Select(o => o.OccurredAt).First())
             .ThenByDescending(e => e.RecordedAt)
             .Select(e => new { ContainerId = e.ContainerId!.Value, e.LocationId, e.PotSizeId })
             .ToListAsync(cancellationToken);
@@ -103,14 +104,11 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock)
 
     private async Task<AppendResult> AppendCoreAsync(Event newEvent, CancellationToken cancellationToken)
     {
-        var now = clock.GetUtcNow();
+        PutOnServerClock(newEvent);
 
-        if (newEvent.OccurredAt > now + ClockAllowance)
-        {
-            newEvent.OccurredAt = now;
-        }
-
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        // Joins a transaction already open, as when an invoice and the stock it takes are saved together.
+        var outer = db.Database.CurrentTransaction is not null;
+        await using var transaction = outer ? null : await db.Database.BeginTransactionAsync(cancellationToken);
 
         var reversed = await ReversedKeysAsync(newEvent.CorrectsEventId, cancellationToken);
         var keys = newEvent.Lines.Select(line => new StockKey(line.ContainerId, line.BatchId))
@@ -142,7 +140,12 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock)
         try
         {
             await db.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+
+            if (transaction is not null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
+
             return AppendResult.Stored;
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException
@@ -153,6 +156,22 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock)
         {
             db.ChangeTracker.Clear();
             return await AlreadyStoredAsync(newEvent, cancellationToken) ?? AppendResult.AlreadyStored;
+        }
+    }
+
+    /// <summary>Work timed by a device whose clock is out is put back on the server's clock, and never in the future.</summary>
+    private void PutOnServerClock(Event newEvent)
+    {
+        var now = clock.GetUtcNow();
+
+        if (device?.Skew is { } skew && skew.Duration() > DeviceClock.Tolerance)
+        {
+            newEvent.OccurredAt += skew;
+        }
+
+        if (newEvent.OccurredAt > now + ClockAllowance)
+        {
+            newEvent.OccurredAt = now;
         }
     }
 

@@ -31,7 +31,11 @@ Mainly large greenhouses, possibly a polytunnel later.
 - **Bench station:** a tablet or inexpensive PC in the potting area, with a USB or Bluetooth barcode scanner and the label printer. This is the primary input point, because wet hands, gloves, glare and condensation make touchscreens and phone cameras unreliable.
 - **Walk-round device:** a phone, using an installable web app with camera scanning. A native iPhone app follows once the flows are proven. Offline capture queues events using client-generated identifiers, as a safety net rather than a headline feature. Design and test for iPhone Safari first, assuming queued events send only while the app is open, so the screen must show what is still waiting. Work waits per person, so it is only ever sent under the name of whoever recorded it. A device keeps recent container details so labels can still be opened. New batches and potting on need a connection, because they create new labels.
 
-Labels must survive wet conditions: polypropylene or polyester stock with resin thermal transfer, or laser-printed plastic tags. Direct thermal labels fade and peel. Printer and stock must be chosen before stage 1 ships.
+Labels must survive wet conditions: polypropylene or polyester stock with resin thermal transfer, or laser-printed plastic tags. Direct thermal labels fade and peel. Printer and stock must be chosen before stage 1 ships. Labels are designed for a 300 dpi desktop thermal transfer printer, which prints about 104 mm wide at most, so the sizes offered are no wider than 100 mm: 50 × 25 mm for plant and tray labels and 100 × 150 mm for bench cards and place signs to begin with, so that two rolls cover everything.
+
+The owner sets the nursery's name, address, registration and VAT numbers and logo once, under Manage. Each kind of label (plant label, bench card, tray label, place label) has a fixed, tested layout with a text size, a size in millimetres to match the label stock, and switches for what it shows: logo, nursery name, Latin name, price and care. A sample is drawn as the owner changes these, before saving, and the screen explains how to set the printer up: the label's size in the printer's settings, and printing at actual size. Any label can be printed as several copies at once. A free-form label designer is not planned: fixed layouts can't clip or misprint, and the plant passport must stay separate.
+
+A label never clips or runs onto a second label. Long names are printed smaller, down to a size that still reads; after that the label leaves out, in order, the care notes, the nursery's name and the logo, and a mixed tray lists as many plants as fit and says how many more there are. A price is always printed in pounds including VAT, in bold, and never shrinks below a clearly legible size. Text is solid black and lines and QR squares are whole printer dots, because a thermal printer has no greys. Tray and place labels print their code in words beside the QR code. No design uses the words "Plant Passport" or lettered parts: an issued passport will be its own label, or its own bordered block, so it stays distinct from everything else.
 
 ## Core concepts
 
@@ -126,6 +130,10 @@ Users asked for simple record keeping for buying and selling, so this covers mor
 - **Export:** CSV for an accountant or bookkeeper.
 
 Purchases and daily till totals are not edited once recorded: a mistake is voided and entered again.
+
+Each purchase line is either plants, which can become batches, or sundries such as compost and pots. A supplier's PDF invoice can fill in the purchase: its reference, date and item lines are read from the PDF's text, on the server and sent nowhere, and a person checks and completes them before saving. Photos and scans can't be read this way.
+
+Trade customers are kept by the owner; their address, email and phone can be forgotten on request. Trade invoices are numbered without gaps and never changed once issued: a mistake is cancelled with a credit note. An invoice keeps the customer's name and address as they were. When the nursery is registered for VAT each line carries a rate (20, 5 or 0 per cent) and VAT is shown for each rate; otherwise the invoice says no VAT is charged. A line can take plants from a tray, which records them as sold; a credit note puts them back. Invoices print as PDFs with the nursery's details and logo, count as income when issued, and show as owed until marked paid.
 
 This is single-entry record keeping, not a full accounting package. It does not take payments, and it does not file tax returns or submit anything to HMRC. Square remains the record of card payments.
 

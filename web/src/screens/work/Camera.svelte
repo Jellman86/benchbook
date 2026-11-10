@@ -2,10 +2,20 @@
   import jsQR from "jsqr";
   import { onMount } from "svelte";
 
+  // Either reads one label and stops, or keeps reading one after another inside another screen.
   let {
     onScan,
     onCancel,
-  }: { onScan: (code: string) => void; onCancel: () => void } = $props();
+    continuous = false,
+  }: {
+    onScan: (code: string) => void;
+    onCancel: () => void;
+    continuous?: boolean;
+  } = $props();
+
+  const samePause = 2500;
+  let lastCode = "";
+  let lastAt = 0;
 
   let video = $state<HTMLVideoElement | null>(null);
   let problem = $state("");
@@ -29,10 +39,20 @@
         const image = context.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(image.data, image.width, image.height);
 
-        if (code?.data) {
+        if (code?.data && !continuous) {
           finished = true;
           onScan(code.data);
           return;
+        }
+
+        // The same label held in view is read once, not over and over.
+        if (
+          code?.data &&
+          (code.data !== lastCode || Date.now() - lastAt > samePause)
+        ) {
+          lastCode = code.data;
+          lastAt = Date.now();
+          onScan(code.data);
         }
       }
 
@@ -68,10 +88,18 @@
   });
 </script>
 
-<main>
-  <h1>Scan a label</h1>
-  <!-- playsinline stops iPhones taking the video full screen. -->
-  <video bind:this={video} class="camera" playsinline muted></video>
-  {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
-  <button class="back" onclick={onCancel}>Back</button>
-</main>
+{#if continuous}
+  <div class="stack">
+    <!-- playsinline stops iPhones taking the video full screen. -->
+    <video bind:this={video} class="camera" playsinline muted></video>
+    {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+    <button class="secondary" onclick={onCancel}>Stop the camera</button>
+  </div>
+{:else}
+  <main>
+    <h1>Scan a label</h1>
+    <video bind:this={video} class="camera" playsinline muted></video>
+    {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+    <button class="back" onclick={onCancel}>Back</button>
+  </main>
+{/if}
