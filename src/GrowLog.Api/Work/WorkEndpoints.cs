@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
+using GrowLog.Api.Accounts;
 using GrowLog.Api.Catalogue;
 using GrowLog.Api.Data;
 using GrowLog.Api.Production;
@@ -374,13 +375,16 @@ internal static class WorkEndpoints
     }
 
     /// <summary>The signed-in person's latest actions, with what a screen needs to offer them again in one press.</summary>
-    private static async Task<List<RecentAction>> RecentAsync(ClaimsPrincipal user, GrowLogDbContext db, int limit = 10, CancellationToken cancellationToken = default)
+    /// <param name="everyone">For the owner: everyone's work, not just their own.</param>
+    private static async Task<List<RecentAction>> RecentAsync(ClaimsPrincipal user, GrowLogDbContext db, int limit = 10, bool everyone = false, CancellationToken cancellationToken = default)
     {
-        var userId = UserId(user);
+        Guid? userId = everyone && user.IsInRole(AccountServices.OwnerRole) && user.FindFirst(AccountServices.BenchSessionClaim) is null
+            ? null
+            : UserId(user);
 
         var rows = await db.Events
             .AsNoTracking()
-            .Where(e => e.RecordedBy == userId && e.Type != EventType.Corrected && !db.Events.Any(c => c.CorrectsEventId == e.Id))
+            .Where(e => (userId == null || e.RecordedBy == userId) && e.Type != EventType.Corrected && !db.Events.Any(c => c.CorrectsEventId == e.Id))
             .OrderByDescending(e => e.RecordedAt)
             .ThenByDescending(e => e.Id)
             .Take(Math.Clamp(limit, 1, MaxRecent))
@@ -390,6 +394,7 @@ internal static class WorkEndpoints
                 e.Type,
                 e.OccurredAt,
                 e.ContainerId,
+                RecordedBy = db.Users.Where(person => person.Id == e.RecordedBy).Select(person => person.UserName).FirstOrDefault(),
                 LabelCode = db.Containers.Where(c => c.Id == e.ContainerId).Select(c => c.LabelCode).FirstOrDefault(),
                 ContainerKind = db.Containers.Where(c => c.Id == e.ContainerId).Select(c => (ContainerKind?)c.Kind).FirstOrDefault(),
                 e.LocationId,
@@ -416,7 +421,8 @@ internal static class WorkEndpoints
                 row.PotSizeId,
                 row.PotSizeName,
                 JsonSerializer.Deserialize<JsonElement>(row.Payload),
-                lines[row.Id].ToList()));
+                lines[row.Id].ToList(),
+                row.RecordedBy));
     }
 
     private static async Task<ILookup<Guid, RecentLine>> LoadRecentLinesAsync(List<Guid> eventIds, GrowLogDbContext db, CancellationToken cancellationToken)
@@ -532,5 +538,6 @@ internal static class WorkEndpoints
         Guid? PotSizeId,
         string? PotSizeName,
         JsonElement Details,
-        IReadOnlyList<RecentLine> Lines);
+        IReadOnlyList<RecentLine> Lines,
+        string? RecordedBy);
 }

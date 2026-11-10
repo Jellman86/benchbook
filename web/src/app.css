@@ -15,6 +15,7 @@
   --problem: #a3241c;
   --done: #6f5b37;
   --success: #2f6b3a;
+  --chart: #842f30;
   --success-surface: #e6f2e4;
   --sidebar: #631e20;
   --sidebar-text: #f6debe;
@@ -49,6 +50,7 @@
     --problem: #ffa899;
     --done: #b6a17b;
     --success: #9fd8a8;
+    --chart: #e8776f;
     --success-surface: #1f2e22;
     --sidebar: #2a1416;
     --sidebar-text: #f6debe;
@@ -73,6 +75,7 @@
   --problem: #ffa899;
   --done: #b6a17b;
   --success: #9fd8a8;
+  --chart: #e8776f;
   --success-surface: #1f2e22;
   --sidebar: #2a1416;
   --sidebar-text: #f6debe;
@@ -685,6 +688,177 @@ button.place-row:hover:not(:disabled) {
   height: 1.25rem;
   margin-top: 0.15rem;
   accent-color: var(--primary);
+}
+
+/* Horizontal bars: one series, labelled at the tip, so colour never carries meaning alone. */
+.bar-list {
+  display: grid;
+  grid-template-columns: minmax(6rem, max-content) 1fr;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  margin: 0;
+}
+
+.bar-list dt {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.bar-list dd {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.bar-list .bar {
+  height: 14px;
+  min-width: 2px;
+  border-radius: 0 4px 4px 0;
+  background: var(--chart);
+}
+
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem;
+}
+
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.stat-tile strong {
+  font-family: var(--heading);
+  font-size: 1.8rem;
+  line-height: 1.1;
+}
+
+.stat-tile span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.attention {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attention li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.attention svg {
+  flex: none;
+  color: var(--primary);
+}
+
+.figure-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.figure-grid details summary {
+  min-height: 2.5rem;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Tables, for wide screens. */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table tbody tr:hover {
+  background: color-mix(in srgb, var(--line) 35%, transparent);
+}
+
+.data-table .numeric {
+  text-align: right;
+}
+
+.data-table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+button.sort-button {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+}
+
+button.sort-button:hover:not(:disabled) {
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+}
+
+.sort-mark {
+  font-size: 0.7em;
+}
+
+.data-table td button.link-button {
+  min-height: 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* Values used before, to choose with one press. */
@@ -1358,9 +1532,14 @@ button.place-row:hover:not(:disabled) {
 
   .with-sidebar main {
     width: 100%;
-    max-width: 76rem;
+    max-width: 96rem;
     margin: 0;
     padding: 2rem 2.5rem 3rem;
+  }
+
+  /* One task at a time reads better at a comfortable width than stretched across a big screen. */
+  .with-sidebar main.action-frame {
+    max-width: 40rem;
   }
 
   .with-sidebar .tray-layout {

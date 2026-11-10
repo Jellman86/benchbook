@@ -2709,6 +2709,14 @@
               "format": "int32",
               "default": 10
             }
+          },
+          {
+            "name": "everyone",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "responses": {
@@ -4020,7 +4028,10 @@
       "Figures": {
         "required": [
           "plants",
-          "losses"
+          "losses",
+          "bySupplier",
+          "byPlace",
+          "bySeason"
         ],
         "type": "object",
         "properties": {
@@ -4034,6 +4045,24 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/LossFigures"
+            }
+          },
+          "bySupplier": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupFigures"
+            }
+          },
+          "byPlace": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupFigures"
+            }
+          },
+          "bySeason": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupFigures"
             }
           }
         }
@@ -4052,6 +4081,55 @@
           "occurredAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "GroupFigures": {
+        "required": [
+          "name",
+          "started",
+          "lost",
+          "germinationRate",
+          "survivalRate"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "started": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lost": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "germinationRate": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "survivalRate": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
           }
         }
       },
@@ -5692,7 +5770,8 @@
           "potSizeId",
           "potSizeName",
           "details",
-          "lines"
+          "lines",
+          "recordedBy"
         ],
         "type": "object",
         "properties": {
@@ -5764,6 +5843,12 @@
             "items": {
               "$ref": "#/components/schemas/RecentLine"
             }
+          },
+          "recordedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

@@ -667,4 +667,18 @@ public sealed class WorkApiTests(PostgresFixture database)
         var row = (await scene.Staff.GetFromJsonAsync<JsonElement>(Route("/api/production"), Cancellation)).EnumerateArray().Single(item => item.GetProperty("containerId").GetGuid() == batch.ContainerId);
         Assert.Equal(scene.Bench1, row.GetProperty("locationId").GetGuid());
     }
+
+    [Fact]
+    public async Task The_owner_can_see_everyones_recent_work_but_staff_only_their_own()
+    {
+        await using var scene = await CreateSceneAsync();
+        await StartAsync(scene);
+
+        var owners = (await RecentAsync(scene.Nursery.Owner, "?everyone=true")).EnumerateArray().ToList();
+        Assert.Contains(owners, action => string.Equals(action.GetProperty("recordedBy").GetString(), "Alex Moss", StringComparison.Ordinal));
+        Assert.Empty((await RecentAsync(scene.Nursery.Owner)).EnumerateArray());
+
+        var staffs = (await RecentAsync(scene.Staff, "?everyone=true")).EnumerateArray().ToList();
+        Assert.All(staffs, action => Assert.Equal("Alex Moss", action.GetProperty("recordedBy").GetString()));
+    }
 }

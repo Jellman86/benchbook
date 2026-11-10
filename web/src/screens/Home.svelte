@@ -33,6 +33,7 @@
   import Production from "./Production.svelte";
   import Plants from "./manage/Plants.svelte";
   import More from "./More.svelte";
+  import Overview from "./Overview.svelte";
   import Sidebar from "./Sidebar.svelte";
   import Camera from "./work/Camera.svelte";
   import ContainerView from "./work/ContainerView.svelte";
@@ -529,6 +530,12 @@
             onclick={() => (view = { name: "moveMany" })}
             >Move several trays</button
           >
+
+          {#if me.isOwner && !atBench}
+            <div class="desktop-only">
+              <Overview onOpen={(code) => open(code)} />
+            </div>
+          {/if}
 
           {#if atBench}
             <button onclick={() => (view = { name: "start" })}>New batch</button

@@ -218,4 +218,21 @@ public sealed class FigureTests(PostgresFixture database)
         Assert.Equal(HttpStatusCode.Forbidden, await GetStatusAsync(nursery.Staff, "/api/figures"));
         Assert.Equal(HttpStatusCode.Unauthorized, await GetStatusAsync(stranger, "/api/figures"));
     }
+
+    [Fact]
+    public async Task Survival_is_broken_down_by_supplier_place_and_month_started()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var plant = await AddPlantAsync(nursery.Owner);
+        var batch = await StartAsync(nursery.Staff, plant, 40);
+        await LoseAsync(nursery.Staff, batch, 10, "Pest");
+
+        var figures = await FiguresAsync(nursery.Owner);
+
+        var supplier = figures.GetProperty("bySupplier").EnumerateArray().Single();
+        Assert.Equal("Own seed and cuttings", supplier.GetProperty("name").GetString());
+        Assert.Equal(0.75, Rate(supplier, "survivalRate"), 3);
+        Assert.Equal("No place recorded", figures.GetProperty("byPlace").EnumerateArray().Single().GetProperty("name").GetString());
+        Assert.Equal(Now.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture), figures.GetProperty("bySeason").EnumerateArray().Single().GetProperty("name").GetString());
+    }
 }
