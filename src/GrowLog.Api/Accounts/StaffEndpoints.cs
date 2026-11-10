@@ -86,14 +86,26 @@ internal static class StaffEndpoints
     /// </summary>
     private static async Task EndSessionsWithoutAWayInAsync(SignInLevel level, GrowLogDbContext db, UserManager<AppUser> users, CancellationToken cancellationToken)
     {
-        var affected = await users.Users
-            .Where(user => (level != SignInLevel.Open && user.IsTeamAccount)
-                || (level != SignInLevel.Open && level != SignInLevel.Names
-                    && user.PasswordHash == null
-                    && !db.UserPasskeys.Any(passkey => passkey.UserId == user.Id)
-                    && !db.UserLogins.Any(login => login.UserId == user.Id)
-                    && (level == SignInLevel.Strict || !user.NameOnlySignIn)))
-            .ToListAsync(cancellationToken);
+        if (level == SignInLevel.Open)
+        {
+            return;
+        }
+
+        var affected = await users.Users.Where(user => user.IsTeamAccount).ToListAsync(cancellationToken);
+
+        // Below "tap your name", people with nothing else to sign in with lose their way in,
+        // and at "strict" so do those the owner chose to let tap their name.
+        if (level != SignInLevel.Names)
+        {
+            var withoutCredentials = users.Users.Where(user => !user.IsTeamAccount
+                && user.PasswordHash == null
+                && !db.UserPasskeys.Any(passkey => passkey.UserId == user.Id)
+                && !db.UserLogins.Any(login => login.UserId == user.Id));
+
+            affected.AddRange(level == SignInLevel.Strict
+                ? await withoutCredentials.ToListAsync(cancellationToken)
+                : await withoutCredentials.Where(user => !user.NameOnlySignIn).ToListAsync(cancellationToken));
+        }
 
         foreach (var person in affected)
         {
