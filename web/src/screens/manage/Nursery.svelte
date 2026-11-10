@@ -14,6 +14,7 @@
     type LabelStyle,
   } from "../../lib/labels";
   import { attempt, type Schemas } from "../../lib/types";
+  import ClearRecords from "./ClearRecords.svelte";
 
   let { onBack }: { onBack: () => void } = $props();
 
@@ -35,6 +36,7 @@
   let logoVersion = $state(0);
   let problem = $state("");
   let saved = $state("");
+  let canClear = $state(false);
   let picture = $state("");
   let testLabel = $state("");
   let previewing = $state(false);
@@ -74,6 +76,7 @@
       void attempt(async () => {
         await load();
         await loadStyles();
+        canClear = (await api.GET("/api/demo")).data?.canClear ?? false;
       }, setProblem),
   );
 
@@ -488,6 +491,8 @@
       {/if}
     </section>
   </div>
+
+  {#if canClear}<ClearRecords />{/if}
 
   <button class="back mobile-only" onclick={onBack}>Back</button>
 </main>

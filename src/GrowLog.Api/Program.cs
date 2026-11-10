@@ -99,6 +99,7 @@ app.MapWorkEndpoints();
 app.MapContainerHistoryEndpoints();
 app.MapPlaceEndpoints();
 app.MapNurserySettingsEndpoints();
+app.MapClearRecordsEndpoints();
 app.MapProductionEndpoints();
 app.MapLabelEndpoints();
 app.MapFigureEndpoints();

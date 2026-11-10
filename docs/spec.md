@@ -108,6 +108,10 @@ Trade and distance-sale customer details are personal data under UK GDPR. Lawful
 
 Scheduled `pg_dump` to a second location, with a tested restore procedure, in stage 1. The promise to retain records means nothing without this.
 
+## Starting afresh
+
+While a deployment has example data switched on (`Demo:Enabled`), the owner can clear every record from Nursery and labels to start afresh, after typing "clear everything". It empties plants, batches, trays, places, pot sizes, suppliers, purchases, till takings, plant passports, customers and invoices, restarts the label numbering, and removes the made-up example people. Sign-ins, staff, bench devices, the nursery's details, logo and label designs are kept. Once example data is switched off for real records, records can no longer be cleared, because passport records must be kept for three years.
+
 ## Production view
 
 One screen lists everything growing, for all staff: each tray or pot group with its plant, quantity, place, pot size, current stage and how long it has been there. Tabs filter by stage (sown, cuttings, bought in, germinated, pricked out, potted on, ready) with live plant counts, alongside search and filters for place and supplier. The stage is worked out from recorded events, honouring undos and corrections. "Ready" is a one-press action on the container, recorded like any other event. Estimating when plants will come ready needs growing times per plant, which are not held yet.
