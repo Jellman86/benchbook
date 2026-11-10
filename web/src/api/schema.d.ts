@@ -4448,6 +4448,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/purchases/read-invoice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InvoiceDraft"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/money/takings": {
         parameters: {
             query?: never;
@@ -4588,6 +4623,388 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/customers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    includeArchived?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CustomerResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CustomerRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CustomerCreated"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/customers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CustomerRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/customers/{id}/forget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/customers/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/customers/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InvoiceSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["InvoiceRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InvoiceIssued"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["IssueRefused"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/invoices/{id}/paid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PaidRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/invoices/{id}/credit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InvoiceIssued"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/invoices/{id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -4832,8 +5249,36 @@ export interface components {
             isOwner: boolean;
             isTeam: boolean;
         };
+        CustomerCreated: {
+            /** Format: uuid */
+            id: string;
+        };
+        CustomerRequest: {
+            name: string;
+            address: null | string;
+            email: null | string;
+            phone: null | string;
+            vatNumber: null | string;
+        };
+        CustomerResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            address: null | string;
+            email: null | string;
+            phone: null | string;
+            vatNumber: null | string;
+            archived: boolean;
+        };
         DemoStatus: {
             available: boolean;
+        };
+        DraftLine: {
+            description: string;
+            /** Format: int32 */
+            quantity: null | number | string;
+            /** Format: double */
+            netCost: number | string;
         };
         EntryCreated: {
             /** Format: uuid */
@@ -4904,9 +5349,68 @@ export interface components {
             userId: string;
             token: string;
         };
+        InvoiceDraft: {
+            reference: null | string;
+            /** Format: date */
+            date: null | string;
+            lines: components["schemas"]["DraftLine"][];
+        };
+        InvoiceIssued: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number | string;
+        };
+        /** @enum {unknown} */
+        InvoiceKind: "Invoice" | "CreditNote";
+        InvoiceLineRequest: {
+            description: string;
+            /** Format: int32 */
+            quantity: number | string;
+            /** Format: double */
+            unitPrice: number | string;
+            /** Format: double */
+            vatRate: number | string;
+            /** Format: uuid */
+            plantId: null | string;
+            /** Format: uuid */
+            containerId: null | string;
+            /** Format: uuid */
+            batchId: null | string;
+        };
+        InvoiceRequest: {
+            /** Format: uuid */
+            customerId: string;
+            /** Format: date */
+            issuedOn: null | string;
+            notes: null | string;
+            lines: components["schemas"]["InvoiceLineRequest"][];
+        };
+        InvoiceSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number | string;
+            kind: components["schemas"]["InvoiceKind"];
+            customerName: string;
+            /** Format: date */
+            issuedOn: string;
+            /** Format: date */
+            dueOn: null | string;
+            /** Format: date */
+            paidOn: null | string;
+            /** Format: double */
+            total: number | string;
+            credited: boolean;
+            /** Format: uuid */
+            creditsInvoiceId: null | string;
+        };
+        IssueRefused: {
+            problem: string;
+        };
         JsonElement: unknown;
         /** @enum {unknown} */
-        LabelKind: "ContainerLabel" | "PlantLabel" | "BenchCard" | "PlaceLabel";
+        LabelKind: "ContainerLabel" | "PlantLabel" | "BenchCard" | "PlaceLabel" | "Invoice";
         /** @enum {unknown} */
         LabelLayout: "Compact" | "Standard" | "Large";
         LabelStyle: {
@@ -4930,6 +5434,7 @@ export interface components {
             netCost: number | string;
             /** Format: double */
             vat: number | string;
+            isPlants?: null | boolean;
         };
         LineResponse: {
             /** Format: uuid */
@@ -4943,6 +5448,7 @@ export interface components {
             vat: number | string;
             /** Format: int32 */
             batchCount: number | string;
+            isPlants: null | boolean;
         };
         LinkSpeciesRequest: {
             /** Format: uuid */
@@ -4990,6 +5496,8 @@ export interface components {
             months: components["schemas"]["MonthFigures"][];
             /** Format: double */
             owed: number | string;
+            /** Format: double */
+            owedToUs: number | string;
         };
         MonthFigures: {
             month: string;
@@ -5033,6 +5541,9 @@ export interface components {
             registrationNumber: null | string;
             vatNumber: null | string;
             hasLogo: boolean;
+            vatRegistered: boolean;
+            /** Format: int32 */
+            paymentTermsDays: number | string;
         };
         OwnPlantResult: {
             /** Format: uuid */

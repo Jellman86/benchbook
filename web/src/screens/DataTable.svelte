@@ -1,4 +1,5 @@
 <script lang="ts" generics="T">
+  import type { Snippet } from "svelte";
   import { cellText, sortRows, type Column } from "../lib/table";
 
   // A table for wide screens, sorted by tapping a column's heading.
@@ -8,12 +9,14 @@
     key,
     caption,
     onSelect,
+    actions,
   }: {
     rows: T[];
     columns: Column<T>[];
     key: (row: T) => string;
     caption: string;
     onSelect?: (row: T) => void;
+    actions?: Snippet<[T]>;
   } = $props();
 
   let sortBy = $state<number | null>(null);
@@ -51,6 +54,9 @@
             </button>
           </th>
         {/each}
+        {#if actions}<th scope="col"
+            ><span class="visually-hidden">Actions</span></th
+          >{/if}
       </tr>
     </thead>
     <tbody>
@@ -67,6 +73,7 @@
               {/if}
             </td>
           {/each}
+          {#if actions}<td class="row-actions">{@render actions(row)}</td>{/if}
         </tr>
       {/each}
     </tbody>

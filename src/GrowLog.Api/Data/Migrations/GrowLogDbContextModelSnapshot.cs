@@ -466,6 +466,47 @@ namespace GrowLog.Api.Data.Migrations
                     b.ToTable("count_adjustments", (string)null);
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.Customer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("text")
+                        .HasColumnName("address");
+
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("text")
+                        .HasColumnName("email");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("citext")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("text")
+                        .HasColumnName("phone");
+
+                    b.Property<string>("VatNumber")
+                        .HasColumnType("text")
+                        .HasColumnName("vat_number");
+
+                    b.HasKey("Id")
+                        .HasName("pk_customers");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_customers_name");
+
+                    b.ToTable("customers", (string)null);
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.Event", b =>
                 {
                     b.Property<Guid>("Id")
@@ -613,6 +654,166 @@ namespace GrowLog.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.Invoice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("CreditsInvoiceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("credits_invoice_id");
+
+                    b.Property<string>("CustomerAddress")
+                        .HasColumnType("text")
+                        .HasColumnName("customer_address");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("customer_id");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("customer_name");
+
+                    b.Property<string>("CustomerVatNumber")
+                        .HasColumnType("text")
+                        .HasColumnName("customer_vat_number");
+
+                    b.Property<DateOnly?>("DueOn")
+                        .HasColumnType("date")
+                        .HasColumnName("due_on");
+
+                    b.Property<Guid>("IssuedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("issued_by");
+
+                    b.Property<DateOnly>("IssuedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("issued_on");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
+                    b.Property<DateOnly?>("PaidOn")
+                        .HasColumnType("date")
+                        .HasColumnName("paid_on");
+
+                    b.Property<Guid?>("SoldEventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sold_event_id");
+
+                    b.Property<bool>("VatCharged")
+                        .HasColumnType("boolean")
+                        .HasColumnName("vat_charged");
+
+                    b.HasKey("Id")
+                        .HasName("pk_invoices");
+
+                    b.HasIndex("CreditsInvoiceId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_invoices_credits_invoice_id");
+
+                    b.HasIndex("CustomerId")
+                        .HasDatabaseName("ix_invoices_customer_id");
+
+                    b.HasIndex("Number")
+                        .IsUnique()
+                        .HasDatabaseName("ix_invoices_number");
+
+                    b.HasIndex("SoldEventId")
+                        .HasDatabaseName("ix_invoices_sold_event_id");
+
+                    b.ToTable("invoices", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_invoices_credit", "(kind = 'CreditNote') = (credits_invoice_id IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_invoices_number", "number > 0");
+                        });
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.InvoiceLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("BatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("batch_id");
+
+                    b.Property<Guid?>("ContainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("container_id");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("invoice_id");
+
+                    b.Property<Guid?>("PlantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("plant_id");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("unit_price");
+
+                    b.Property<decimal>("VatRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("vat_rate");
+
+                    b.HasKey("Id")
+                        .HasName("pk_invoice_lines");
+
+                    b.HasIndex("PlantId")
+                        .HasDatabaseName("ix_invoice_lines_plant_id");
+
+                    b.HasIndex("InvoiceId", "Position")
+                        .IsUnique()
+                        .HasDatabaseName("ix_invoice_lines_invoice_id_position");
+
+                    b.ToTable("invoice_lines", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_invoice_lines_price", "unit_price >= 0");
+
+                            t.HasCheckConstraint("ck_invoice_lines_quantity", "quantity > 0");
+
+                            t.HasCheckConstraint("ck_invoice_lines_vat", "vat_rate >= 0 AND vat_rate <= 100");
+                        });
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.Location", b =>
                 {
                     b.Property<Guid>("Id")
@@ -696,6 +897,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("nursery_name");
 
+                    b.Property<int>("PaymentTermsDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("payment_terms_days");
+
                     b.Property<string>("Phone")
                         .HasColumnType("text")
                         .HasColumnName("phone");
@@ -712,6 +917,10 @@ namespace GrowLog.Api.Data.Migrations
                     b.Property<string>("VatNumber")
                         .HasColumnType("text")
                         .HasColumnName("vat_number");
+
+                    b.Property<bool>("VatRegistered")
+                        .HasColumnType("boolean")
+                        .HasColumnName("vat_registered");
 
                     b.Property<string>("Website")
                         .HasColumnType("text")
@@ -969,6 +1178,10 @@ namespace GrowLog.Api.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("description");
+
+                    b.Property<bool?>("IsPlants")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_plants");
 
                     b.Property<decimal>("NetCost")
                         .HasPrecision(10, 2)
@@ -1794,6 +2007,44 @@ namespace GrowLog.Api.Data.Migrations
                         .HasConstraintName("fk_event_lines_events_event_id");
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.Invoice", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Invoice", null)
+                        .WithOne()
+                        .HasForeignKey("GrowLog.Api.Data.Invoice", "CreditsInvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_invoices_invoices_credits_invoice_id");
+
+                    b.HasOne("GrowLog.Api.Data.Customer", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_invoices_customers_customer_id");
+
+                    b.HasOne("GrowLog.Api.Data.Event", null)
+                        .WithMany()
+                        .HasForeignKey("SoldEventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_invoices_events_sold_event_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.InvoiceLine", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Invoice", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_invoice_lines_invoices_invoice_id");
+
+                    b.HasOne("GrowLog.Api.Data.Plant", null)
+                        .WithMany()
+                        .HasForeignKey("PlantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_invoice_lines_plants_plant_id");
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.Location", b =>
                 {
                     b.HasOne("GrowLog.Api.Data.Location", null)
@@ -2068,6 +2319,11 @@ namespace GrowLog.Api.Data.Migrations
                 {
                     b.Navigation("Adjustments");
 
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.Invoice", b =>
+                {
                     b.Navigation("Lines");
                 });
 

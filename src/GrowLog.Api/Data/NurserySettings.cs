@@ -25,6 +25,12 @@ internal sealed class NurserySettings
 
     public string? VatNumber { get; set; }
 
+    /// <summary>Whether the nursery is registered for VAT, so its invoices charge it.</summary>
+    public bool VatRegistered { get; set; }
+
+    /// <summary>Days a customer has to pay an invoice.</summary>
+    public int PaymentTermsDays { get; set; } = 30;
+
     /// <summary>The nursery's logo, for labels and invoices. One colour prints best on a thermal printer.</summary>
     public byte[]? Logo { get; set; }
 

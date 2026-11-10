@@ -110,7 +110,9 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock)
             newEvent.OccurredAt = now;
         }
 
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        // Joins a transaction already open, as when an invoice and the stock it takes are saved together.
+        var outer = db.Database.CurrentTransaction is not null;
+        await using var transaction = outer ? null : await db.Database.BeginTransactionAsync(cancellationToken);
 
         var reversed = await ReversedKeysAsync(newEvent.CorrectsEventId, cancellationToken);
         var keys = newEvent.Lines.Select(line => new StockKey(line.ContainerId, line.BatchId))
@@ -142,7 +144,12 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock)
         try
         {
             await db.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+
+            if (transaction is not null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
+
             return AppendResult.Stored;
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException

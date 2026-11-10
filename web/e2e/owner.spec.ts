@@ -204,10 +204,36 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Save takings").click();
   await expect(page.getByText("Income: £123.45")).toBeVisible();
   await expect(page.getByText("Spending: £54.60")).toBeVisible();
-  await expect(page.getByText("Still owed to suppliers: £0.00")).toBeVisible();
+  await expect(
+    page.locator(".stat-tile", { hasText: "still owed to suppliers" }),
+  ).toContainText("£0.00");
   await page.getByLabel("Amount taken (£)").fill("10");
   await button(page, "Save takings").click();
   await expect(page.getByRole("alert")).toContainText("already entered");
+  await leaveManage(page);
+
+  // Trade sales: a customer, then an invoice that prints as a PDF.
+  await openManage(page, "Customers");
+  await page.getByLabel("Name", { exact: true }).fill("Hilltop Garden Centre");
+  await page.getByLabel("Address").fill("1 High Street\nBakewell");
+  await button(page, "Add").click();
+  await expect(page.getByText("Hilltop Garden Centre")).toBeVisible();
+  await leaveManage(page);
+
+  await openManage(page, "Invoices");
+  await button(page, "New invoice").click();
+  await page.getByLabel("Description").fill("Mixed perennials");
+  await page.getByLabel("Quantity").fill("12");
+  await page.getByLabel("Price each (£)").fill("4.50");
+  await expect(page.getByText("Total £54.00")).toBeVisible();
+  await button(page, "Issue invoice").click();
+  await expect(page.getByRole("status")).toContainText("Invoice 0001 issued");
+  const invoicePdf = await page.request.get(
+    (await page
+      .getByRole("link", { name: "Open the PDF" })
+      .getAttribute("href"))!,
+  );
+  expect((await invoicePdf.body()).subarray(0, 4).toString()).toBe("%PDF");
   await leaveManage(page);
 
   // Figures open, with nothing recorded yet.

@@ -22,6 +22,8 @@
     registrationNumber: null,
     vatNumber: null,
     hasLogo: false,
+    vatRegistered: false,
+    paymentTermsDays: 30,
   });
   let styles = $state<Record<string, LabelStyle>>({});
   let kind = $state<LabelKind>("PlantLabel");
@@ -180,6 +182,18 @@
           >
           <label>VAT number <input bind:value={details.vatNumber} /></label>
         </div>
+        <label class="tick">
+          <input type="checkbox" bind:checked={details.vatRegistered} />
+          Registered for VAT, so invoices charge it
+        </label>
+        <label
+          >Days customers have to pay <input
+            type="number"
+            min="0"
+            max="365"
+            bind:value={details.paymentTermsDays}
+          /></label
+        >
         <button type="submit">Save details</button>
       </form>
 

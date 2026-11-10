@@ -84,7 +84,18 @@ internal static class MoneyEndpoints
         var takings = await db.TillTakings.AsNoTracking().Where(taking => taking.VoidedAt == null).ToListAsync(cancellationToken);
         var purchases = await LivePurchasesAsync(db, cancellationToken);
 
-        var income = takings.GroupBy(taking => Month(taking.TakenOn), StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.Sum(taking => taking.Amount), StringComparer.Ordinal);
+        var invoices = await db.Invoices.AsNoTracking().Include(invoice => invoice.Lines).ToListAsync(cancellationToken);
+        var credited = invoices.Where(invoice => invoice.CreditsInvoiceId is not null).Select(invoice => invoice.CreditsInvoiceId!.Value).ToHashSet();
+
+        // Trade invoices count as income when issued; a credit note takes its invoice back out.
+        var invoiced = invoices.Select(invoice => (Month: Month(invoice.IssuedOn), Amount: (invoice.Kind == InvoiceKind.CreditNote ? -1 : 1) * InvoiceTotals.Of(invoice.Lines).Total));
+        var income = takings.Select(taking => (Month: Month(taking.TakenOn), taking.Amount))
+            .Concat(invoiced)
+            .GroupBy(entry => entry.Month, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Sum(entry => entry.Amount), StringComparer.Ordinal);
+        var owedToUs = invoices
+            .Where(invoice => invoice.Kind == InvoiceKind.Invoice && invoice.PaidOn is null && !credited.Contains(invoice.Id))
+            .Sum(invoice => InvoiceTotals.Of(invoice.Lines).Total);
         var spending = purchases.GroupBy(purchase => Month(purchase.PurchasedOn), StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.Sum(Gross), StringComparer.Ordinal);
 
         var months = income.Keys.Union(spending.Keys, StringComparer.Ordinal)
@@ -92,7 +103,7 @@ internal static class MoneyEndpoints
             .Select(month => new MonthFigures(month, income.GetValueOrDefault(month), spending.GetValueOrDefault(month)))
             .ToList();
 
-        return new MoneySummary(months, purchases.Where(purchase => purchase.PaidOn is null).Sum(Gross));
+        return new MoneySummary(months, purchases.Where(purchase => purchase.PaidOn is null).Sum(Gross), owedToUs);
     }
 
     /// <summary>Quotes a value for CSV, and stops a spreadsheet treating text as a formula.</summary>
@@ -112,17 +123,30 @@ internal static class MoneyEndpoints
 
     private static string Day(DateOnly? date) => date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty;
 
+    /// <summary>One row per invoice, with credit notes as negative income.</summary>
+    private static string InvoiceRow(Invoice invoice)
+    {
+        var totals = InvoiceTotals.Of(invoice.Lines);
+        var sign = invoice.Kind == InvoiceKind.CreditNote ? -1 : 1;
+        var label = invoice.Kind == InvoiceKind.CreditNote ? "Credit note" : "Invoice";
+        var vat = totals.Vat.Sum(rate => rate.Vat);
+
+        return $"{Day(invoice.IssuedOn)},Income,{Cell(invoice.CustomerName)},{Cell($"{label} {invoice.Number:D4}")},{Cell(label)},{Amount(sign * totals.Net)},{Amount(sign * vat)},{Amount(sign * totals.Total)},{Day(invoice.PaidOn)}";
+    }
+
     private static async Task<IResult> ExportAsync(GrowLogDbContext db, CancellationToken cancellationToken)
     {
         var takings = await db.TillTakings.AsNoTracking().Where(taking => taking.VoidedAt == null).ToListAsync(cancellationToken);
         var purchases = await LivePurchasesAsync(db, cancellationToken);
         var suppliers = await db.Suppliers.AsNoTracking().ToDictionaryAsync(supplier => supplier.Id, supplier => supplier.Name, cancellationToken);
+        var invoices = await db.Invoices.AsNoTracking().Include(invoice => invoice.Lines).ToListAsync(cancellationToken);
 
         var rows = takings
             .Select(taking => (Date: taking.TakenOn, Line: $"{Day(taking.TakenOn)},Income,{Cell("Till takings")},,{Cell(taking.Notes)},{Amount(taking.Amount)},0.00,{Amount(taking.Amount)},"))
             .Concat(purchases.SelectMany(purchase => purchase.Lines.Select(line => (
                 Date: purchase.PurchasedOn,
                 Line: $"{Day(purchase.PurchasedOn)},Spending,{Cell(suppliers[purchase.SupplierId])},{Cell(purchase.Reference)},{Cell(line.Description)},{Amount(line.NetCost)},{Amount(line.Vat)},{Amount(line.NetCost + line.Vat)},{Day(purchase.PaidOn)}"))))
+            .Concat(invoices.Select(invoice => (Date: invoice.IssuedOn, Line: InvoiceRow(invoice))))
             .OrderBy(row => row.Date)
             .Select(row => row.Line);
 
@@ -145,5 +169,7 @@ internal static class MoneyEndpoints
 
     internal sealed record MonthFigures(string Month, decimal Income, decimal Spending);
 
-    internal sealed record MoneySummary(IReadOnlyList<MonthFigures> Months, decimal Owed);
+    /// <param name="Owed">Still owed to suppliers.</param>
+    /// <param name="OwedToUs">Still owed by customers on trade invoices.</param>
+    internal sealed record MoneySummary(IReadOnlyList<MonthFigures> Months, decimal Owed, decimal OwedToUs);
 }
