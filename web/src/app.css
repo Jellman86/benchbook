@@ -1801,3 +1801,21 @@ label.tick {
     --target: 3rem;
   }
 }
+
+button.danger {
+  border-color: var(--problem);
+  background: var(--problem);
+  color: var(--surface);
+}
+
+.start-afresh {
+  margin-top: 1.5rem;
+}
+
+.start-afresh summary {
+  cursor: pointer;
+}
+
+.start-afresh summary h2 {
+  display: inline;
+}

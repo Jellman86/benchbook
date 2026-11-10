@@ -326,6 +326,28 @@
         }
       }
     },
+    "/api/settings/clear-records": {
+      "post": {
+        "tags": [
+          "ClearRecordsEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClearRecordsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/production": {
       "get": {
         "tags": [
@@ -4176,6 +4198,20 @@
           "Location"
         ]
       },
+      "ClearRecordsRequest": {
+        "required": [
+          "confirmation"
+        ],
+        "type": "object",
+        "properties": {
+          "confirmation": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "CompleteInviteRequest": {
         "required": [
           "userId",
@@ -4585,11 +4621,15 @@
       },
       "DemoStatus": {
         "required": [
-          "available"
+          "available",
+          "canClear"
         ],
         "type": "object",
         "properties": {
           "available": {
+            "type": "boolean"
+          },
+          "canClear": {
             "type": "boolean"
           }
         }
@@ -7970,6 +8010,9 @@
     },
     {
       "name": "ContainerHistoryEndpoints"
+    },
+    {
+      "name": "ClearRecordsEndpoints"
     },
     {
       "name": "ProductionEndpoints"

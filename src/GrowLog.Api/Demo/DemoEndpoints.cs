@@ -19,7 +19,9 @@ internal static class DemoEndpoints
     private static bool IsEnabled(IConfiguration configuration) => configuration.GetValue<bool>("Demo:Enabled");
 
     private static async Task<DemoStatus> GetStatusAsync(IConfiguration configuration, GrowLogDbContext db, CancellationToken cancellationToken) =>
-        new(IsEnabled(configuration) && !await db.Batches.AnyAsync(cancellationToken) && !await db.Plants.AnyAsync(cancellationToken));
+        new(
+            IsEnabled(configuration) && !await db.Batches.AnyAsync(cancellationToken) && !await db.Plants.AnyAsync(cancellationToken),
+            IsEnabled(configuration));
 
     private static async Task<IResult> LoadAsync(
         ClaimsPrincipal user,
@@ -50,5 +52,6 @@ internal static class DemoEndpoints
         return TypedResults.NoContent();
     }
 
-    internal sealed record DemoStatus(bool Available);
+    /// <summary>Whether example data can be loaded now, and whether the owner may clear the records (only while trying GrowLog out).</summary>
+    internal sealed record DemoStatus(bool Available, bool CanClear);
 }

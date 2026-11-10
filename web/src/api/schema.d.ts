@@ -407,6 +407,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/clear-records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ClearRecordsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/production": {
         parameters: {
             query?: never;
@@ -5204,6 +5241,9 @@ export interface components {
         };
         /** @enum {unknown} */
         CataloguePhotoEntry: "PotSize" | "Location";
+        ClearRecordsRequest: {
+            confirmation: null | string;
+        };
         CompleteInviteRequest: {
             /** Format: uuid */
             userId: string;
@@ -5309,6 +5349,7 @@ export interface components {
         };
         DemoStatus: {
             available: boolean;
+            canClear: boolean;
         };
         DraftLine: {
             description: string;
