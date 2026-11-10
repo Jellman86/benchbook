@@ -3,6 +3,14 @@
   import BatchPhotos from "./BatchPhotos.svelte";
   import PlantCard from "./PlantCard.svelte";
   import { onMount } from "svelte";
+  import { findPlaceByCode, isPlaceCode, type Place } from "../../lib/places";
+  import { rememberedPlaces } from "../../lib/offline";
+  import {
+    focusHeading,
+    onStepChange,
+    pushStep,
+    stepOf,
+  } from "../../lib/steps";
   import { api } from "../../api/client";
   import type { Schemas } from "../../lib/types";
   import { rememberedContainer } from "../../lib/offline";
@@ -50,11 +58,84 @@
   let problem = $state("");
   let busy = $state(false);
   let cardPlant = $state<string | null>(null);
+  let fromDevice = $state(false);
 
   const now = new Date();
   const first = $derived(container ? likelyNext(container) : []);
   const rest = $derived(container ? otherActions(container) : []);
-  const back = () => (action = null);
+  // Each action and the plant card is a step in the browser's history, so Back returns to the tray.
+  const back = () => window.history.back();
+
+  function openCard(plantId: string) {
+    cardPlant = plantId;
+    pushStep("trayCard", plantId);
+  }
+
+  function stepped() {
+    action = stepOf<TrayAction>("trayAction");
+    cardPlant = stepOf<string>("trayCard");
+    void focusHeading();
+  }
+
+  // A USB scanner types a label then Enter. A place's label moves this tray there, without tapping Move.
+  let typed = "";
+  let lastKey = 0;
+
+  async function scannedPlace(code: string) {
+    if (!container) {
+      return;
+    }
+
+    let places: Place[];
+
+    try {
+      places = (await api.GET("/api/locations")).data ?? [];
+    } catch {
+      places = rememberedPlaces() as Place[];
+    }
+
+    const place = findPlaceByCode(code, places);
+
+    if (!place || place.kind === "Site" || place.archived) {
+      problem = place
+        ? `${place.name} is a whole site. Scan a bench or bed in it.`
+        : `No place has the label ${code}.`;
+      return;
+    }
+
+    if (place.id === container.locationId) {
+      problem = `${container.labelCode} is already on ${place.path}.`;
+      return;
+    }
+
+    await record(
+      work.move(container.id, { locationId: place.id }),
+      `moved to ${place.path}`,
+    );
+  }
+
+  function keyed(event: KeyboardEvent) {
+    const target = event.target as HTMLElement | null;
+
+    if (action || cardPlant || target?.closest("input, textarea, select")) {
+      return;
+    }
+
+    const now = Date.now();
+    typed = now - lastKey > 100 ? "" : typed;
+    lastKey = now;
+
+    if (event.key === "Enter") {
+      if (isPlaceCode(typed)) {
+        event.preventDefault();
+        void scannedPlace(typed.trim());
+      }
+
+      typed = "";
+    } else if (event.key.length === 1) {
+      typed += event.key;
+    }
+  }
 
   async function load() {
     try {
@@ -76,6 +157,7 @@
         ).data ?? [];
     } catch {
       container = rememberedContainer(label);
+      fromDevice = true;
 
       if (!container) {
         onNotFound(`No connection, and ${label} isn't saved on this device.`);
@@ -83,7 +165,16 @@
     }
   }
 
-  onMount(load);
+  onMount(() => {
+    void load().then(focusHeading);
+    window.addEventListener("keydown", keyed);
+    const stop = onStepChange(stepped);
+
+    return () => {
+      stop();
+      window.removeEventListener("keydown", keyed);
+    };
+  });
 
   async function record(item: WorkRequest, words: string) {
     busy = true;
@@ -106,6 +197,8 @@
       void record(work.ready(container.id), "marked ready");
     } else {
       action = chosen;
+      pushStep("trayAction", chosen);
+      void focusHeading();
     }
   }
 
@@ -134,7 +227,7 @@
 {#if !container}
   <main><p class="muted">Loading…</p></main>
 {:else if cardPlant}
-  <PlantCard plantId={cardPlant} onBack={() => (cardPlant = null)} />
+  <PlantCard plantId={cardPlant} onBack={back} />
 {:else if action === "lost"}
   <Lose {container} {onDone} onCancel={back} />
 {:else if action === "move"}
@@ -164,7 +257,12 @@
 
     <div class="tray-layout">
       <section class="tray-details">
-        {#if container.stage}
+        {#if fromDevice}
+          <p class="muted">
+            No connection: this is the tray as this device last saw it.
+          </p>
+        {/if}
+        {#if container.stage && container.contents.length > 0}
           <ul class="tags">
             <li class="stage-tag">{stageLabel(container.stage)}</li>
             {#if container.stageSince}<li>
@@ -181,9 +279,7 @@
             </p>
             <span class="muted credit">Batch {line.traceabilityCode}</span>
             <BatchPhotos batchId={line.batchId} />
-            <button
-              class="link-button"
-              onclick={() => (cardPlant = line.plantId)}
+            <button class="link-button" onclick={() => openCard(line.plantId)}
               >About this plant</button
             >
           </div>

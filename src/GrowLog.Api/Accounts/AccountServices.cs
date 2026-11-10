@@ -50,6 +50,23 @@ internal static class AccountServices
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     }
 
+    /// <summary>Leaving, or a stricter sign-in level, ends sessions within a minute rather than half an hour.</summary>
+    private static void CheckSessionsOften(SecurityStampValidatorOptions options)
+    {
+        options.ValidationInterval = TimeSpan.FromMinutes(1);
+
+        // A bench session stays a bench session when its cookie is renewed.
+        options.OnRefreshingPrincipal = context =>
+        {
+            if (context.CurrentPrincipal?.FindFirst(BenchSessionClaim) is { } bench)
+            {
+                context.NewPrincipal?.Identities.First().AddClaim(new System.Security.Claims.Claim(bench.Type, bench.Value));
+            }
+
+            return Task.CompletedTask;
+        };
+    }
+
     public static IServiceCollection AddGrowLogAccounts(this IServiceCollection services)
     {
         // Kept in the database, so a redeploy of the container does not sign everyone out.
@@ -68,6 +85,8 @@ internal static class AccountServices
         });
 
         AddExternalSignIn(authentication, services);
+
+        services.Configure<SecurityStampValidatorOptions>(CheckSessionsOften);
 
         services.ConfigureApplicationCookie(options =>
         {

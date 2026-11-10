@@ -340,7 +340,8 @@
             {#if purchase.paidOn}
               <button
                 class="secondary"
-                onclick={() => setPaid(purchase.id, null)}>Not paid</button
+                onclick={() => setPaid(purchase.id, null)}
+                >Mark as not paid</button
               >
             {:else}
               <button

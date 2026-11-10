@@ -81,7 +81,14 @@ internal static class ProductionEndpoints
         var events = await db.Events
             .AsNoTracking()
             .Where(e => e.ContainerId != null && containerIds.Contains(e.ContainerId.Value))
-            .Select(e => new EventFacts(e.Id, e.Type, e.ContainerId!.Value, e.CorrectsEventId, e.OccurredAt, e.RecordedAt, e.LocationId != null || e.Lines.Any()))
+            .Select(e => new EventFacts(
+                e.Id,
+                e.Type,
+                e.ContainerId!.Value,
+                e.CorrectsEventId,
+                e.CorrectsEventId == null ? e.OccurredAt : db.Events.Where(o => o.Id == e.CorrectsEventId).Select(o => o.OccurredAt).First(),
+                e.RecordedAt,
+                e.LocationId != null || e.Lines.Any()))
             .ToListAsync(cancellationToken);
 
         var byId = events.ToDictionary(e => e.Id);

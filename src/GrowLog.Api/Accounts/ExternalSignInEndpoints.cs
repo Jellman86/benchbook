@@ -23,7 +23,7 @@ internal static class ExternalSignInEndpoints
         var external = app.MapGroup("/api/account/external");
         external.MapGet("/", GetOptions).AllowAnonymous();
         external.MapGet("/login", LoginAsync).AllowAnonymous();
-        external.MapGet("/link", LinkAsync);
+        external.MapGet("/link", LinkAsync).AddEndpointFilter<OwnSettingsFilter>();
         external.MapGet("/complete", CompleteAsync).AllowAnonymous();
     }
 

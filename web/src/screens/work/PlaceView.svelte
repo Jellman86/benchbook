@@ -111,32 +111,58 @@
     }, setProblem);
   };
 
-  /** Moves every tray here, and in the places inside, to one other place. */
+  let lastMove = $state<string[]>([]);
+
+  /** Moves every tray here, and in the places inside, to one other place, saying what didn't move. */
   async function moveEverything() {
     const target = destinations.find((option) => option.id === destination);
 
     if (
       !target ||
       !confirm(
-        `Move all ${trays.length} trays and pot groups to ${target.label}?`,
+        `Move all ${trays.length} trays and pot groups from here to ${target.label}?`,
       )
     ) {
       return;
     }
 
     busy = true;
-    let moved = 0;
+    const done: string[] = [];
+    const failedLabels: string[] = [];
 
     for (const lines of trays) {
       const outcome = await recordWork(
         work.move(lines[0].containerId, { locationId: target.id }),
       );
-      moved += isRecorded(outcome) ? 1 : 0;
+
+      if (isRecorded(outcome)) {
+        done.push(outcome.eventId);
+      } else {
+        failedLabels.push(lines[0].labelCode);
+      }
     }
 
     busy = false;
     task = null;
-    message = `Moved ${moved} of ${trays.length} to ${target.label}.`;
+    lastMove = done;
+    message = `Moved ${done.length} to ${target.label}.`;
+    problem =
+      failedLabels.length > 0
+        ? `These didn't move: ${failedLabels.join(", ")}.`
+        : "";
+    await load();
+  }
+
+  async function undoMove() {
+    busy = true;
+
+    for (const eventId of lastMove) {
+      await recordWork(work.undo(eventId));
+    }
+
+    busy = false;
+    message = `Undone: ${lastMove.length} moved back.`;
+    lastMove = [];
     await load();
   }
 
@@ -172,7 +198,16 @@
     </header>
 
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
-    {#if message}<p class="card done" role="status">{message}</p>{/if}
+    {#if message}
+      <div class="card done" role="status">
+        <strong class="done-heading">{message}</strong>
+        {#if lastMove.length > 0}
+          <button class="secondary" disabled={busy} onclick={undoMove}
+            >Undo this move</button
+          >
+        {/if}
+      </div>
+    {/if}
 
     <div class="plant-layout">
       <aside class="plant-side">
@@ -194,14 +229,16 @@
         </dl>
 
         <div class="stack">
-          <button onclick={() => onMoveTraysHere(place!.id)}
-            >Move trays here</button
-          >
+          {#if place.kind !== "Site"}
+            <button onclick={() => onMoveTraysHere(place!.id)}
+              >Move trays here</button
+            >
+          {/if}
           {#if trays.length > 0}
             <button
               class="secondary"
               onclick={() => (task = task === "moveAll" ? null : "moveAll")}
-              >Move everything here…</button
+              >Move all of this somewhere else…</button
             >
           {/if}
           {#if task === "moveAll"}

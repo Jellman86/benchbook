@@ -922,6 +922,54 @@ button.sort-button:hover:not(:disabled) {
   white-space: nowrap;
 }
 
+.action-for {
+  margin-top: -0.5rem;
+  color: var(--muted);
+}
+
+.action-for strong {
+  margin-right: 0.35rem;
+  color: var(--text);
+  font-family: var(--heading);
+}
+
+/* On a bench tablet, the number on the left and the choices on the right, so nothing is below the fold. */
+.action-columns {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 700px) {
+  .action-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  main.action-frame:has(.action-columns) {
+    max-width: 56rem;
+  }
+}
+
+/* Touch targets: links that act as buttons and ticks are still at least 44px tall. */
+button.link-button {
+  min-height: 2.75rem;
+}
+
+label.tick {
+  min-height: 2.75rem;
+}
+
+.bottom-nav span {
+  font-size: 0.8125rem;
+}
+
+.card.recent .row {
+  flex-wrap: nowrap;
+}
+
 /* Values used before, to choose with one press. */
 .choice-row {
   display: flex;
@@ -1601,6 +1649,10 @@ button.sort-button:hover:not(:disabled) {
   /* One task at a time reads better at a comfortable width than stretched across a big screen. */
   .with-sidebar main.action-frame {
     max-width: 40rem;
+  }
+
+  .with-sidebar main.action-frame:has(.action-columns) {
+    max-width: 56rem;
   }
 
   .with-sidebar .tray-layout {

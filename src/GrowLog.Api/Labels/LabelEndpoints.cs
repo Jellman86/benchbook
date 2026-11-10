@@ -31,8 +31,8 @@ internal static class LabelEndpoints
     private static string Care(params string?[] parts) =>
         string.Join(" · ", parts.Where(part => !string.IsNullOrWhiteSpace(part)));
 
-    private static FileContentHttpResult Pdf(byte[] content, string name) =>
-        TypedResults.File(content, "application/pdf", $"{name}.pdf");
+    /// <summary>Opened in the browser, ready to print, rather than downloaded first.</summary>
+    private static FileContentHttpResult Pdf(byte[] content) => TypedResults.File(content, "application/pdf");
 
     private static async Task<IResult> PrintContainerLabelAsync(
         string label,
@@ -67,7 +67,7 @@ internal static class LabelEndpoints
         };
 
         var context = await LabelSettings.LoadAsync(db, LabelKind.ContainerLabel, cancellationToken);
-        return Pdf(await printer.RenderAsync(LabelKind.ContainerLabel, data, container.LabelCode, context, copies, cancellationToken), container.LabelCode);
+        return Pdf(await printer.RenderAsync(LabelKind.ContainerLabel, data, container.LabelCode, context, copies, cancellationToken));
     }
 
     /// <summary>A label for a bench or bed, so moving a tray can be "scan the tray, scan the bench".</summary>
@@ -82,7 +82,7 @@ internal static class LabelEndpoints
         var data = new { code = place.LabelCode, name = place.Name, path = paths.GetValueOrDefault(place.Id) ?? place.Name };
         var context = await LabelSettings.LoadAsync(db, LabelKind.PlaceLabel, cancellationToken);
 
-        return Pdf(await printer.RenderAsync(LabelKind.PlaceLabel, data, place.LabelCode, context, copies, cancellationToken), place.LabelCode);
+        return Pdf(await printer.RenderAsync(LabelKind.PlaceLabel, data, place.LabelCode, context, copies, cancellationToken));
     }
 
     private static async Task<IResult> PrintPlantLabelAsync(
@@ -109,7 +109,7 @@ internal static class LabelEndpoints
         };
 
         var context = await LabelSettings.LoadAsync(db, LabelKind.PlantLabel, cancellationToken);
-        return Pdf(await printer.RenderAsync(LabelKind.PlantLabel, data, qrText: null, context, copies, cancellationToken), "plant-label");
+        return Pdf(await printer.RenderAsync(LabelKind.PlantLabel, data, qrText: null, context, copies, cancellationToken));
     }
 
     private static async Task<IResult> PrintBenchCardAsync(
@@ -137,7 +137,7 @@ internal static class LabelEndpoints
         };
 
         var context = await LabelSettings.LoadAsync(db, LabelKind.BenchCard, cancellationToken);
-        return Pdf(await printer.RenderAsync(LabelKind.BenchCard, data, qrText: null, context, copies, cancellationToken), "bench-card");
+        return Pdf(await printer.RenderAsync(LabelKind.BenchCard, data, qrText: null, context, copies, cancellationToken));
     }
 
     /// <summary>A sample label in a style not yet saved, so the owner sees a change before keeping it.</summary>
@@ -168,6 +168,6 @@ internal static class LabelEndpoints
         };
 
         var qr = kind is LabelKind.ContainerLabel or LabelKind.PlaceLabel ? "PREVIEW" : null;
-        return Pdf(await printer.RenderAsync(kind, sample, qr, context, copies: 1, cancellationToken), "preview");
+        return Pdf(await printer.RenderAsync(kind, sample, qr, context, copies: 1, cancellationToken));
     }
 }

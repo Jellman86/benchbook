@@ -1055,6 +1055,29 @@
         }
       }
     },
+    "/api/staff/{id}/restore": {
+      "post": {
+        "tags": [
+          "StaffEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/staff/sign-in-settings": {
       "get": {
         "tags": [
@@ -5359,7 +5382,8 @@
           "archived",
           "photoIds",
           "path",
-          "labelCode"
+          "labelCode",
+          "lastUsedAt"
         ],
         "type": "object",
         "properties": {
@@ -5395,6 +5419,13 @@
           },
           "labelCode": {
             "type": "string"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
