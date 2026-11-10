@@ -31,7 +31,8 @@
     submit,
     work,
   } from "../lib/work";
-  import type { ManageSection } from "../lib/sections";
+  import { isManageSection, type ManageSection } from "../lib/sections";
+  import { movedToSettings, type SettingsPage } from "../lib/settings";
   import {
     applyTheme,
     nextTheme,
@@ -44,8 +45,8 @@
   import Manage from "./Manage.svelte";
   import Production from "./Production.svelte";
   import Plants from "./manage/Plants.svelte";
-  import More from "./More.svelte";
   import Overview from "./Overview.svelte";
+  import Settings from "./Settings.svelte";
   import Sidebar from "./Sidebar.svelte";
   import Camera from "./work/Camera.svelte";
   import ContainerView from "./work/ContainerView.svelte";
@@ -69,7 +70,7 @@
     container: "Tray",
     start: "New batch",
     camera: "Scan",
-    more: "Settings",
+    settings: "Settings",
     production: "Production",
     place: "Place",
     moveMany: "Move several",
@@ -84,7 +85,7 @@
     | { name: "container"; label: string; fromProduction?: boolean }
     | { name: "start"; prefill?: BatchPrefill }
     | { name: "camera" }
-    | { name: "more" }
+    | { name: "settings"; page: SettingsPage | null }
     | { name: "production" }
     | { name: "place"; id: string }
     | { name: "moveMany"; destination?: string | null }
@@ -97,8 +98,31 @@
   // svelte-ignore state_referenced_locally
   queue.adopt(me.name);
 
-  // A reload comes back to the screen it was on.
-  const keptView = (history.state as { view?: View } | null)?.view;
+  // A reload comes back to the screen it was on, including one kept before Settings had its own section.
+  function upgrade(kept: unknown): View | undefined {
+    const old = kept as
+      { name?: string; section?: unknown; page?: unknown } | undefined;
+
+    if (old?.name === "more") {
+      return { name: "settings", page: "account" };
+    }
+
+    if (old?.name === "manage" && old.section != null) {
+      const page = movedToSettings(old.section);
+
+      if (page) {
+        return { name: "settings", page };
+      }
+
+      if (!isManageSection(old.section)) {
+        return { name: "manage", section: null };
+      }
+    }
+
+    return kept as View | undefined;
+  }
+
+  const keptView = upgrade((history.state as { view?: unknown } | null)?.view);
   let view = $state<View>(keptView ?? { name: "home" });
   let notice = $state("");
   let lastStockRefresh = 0;
@@ -117,8 +141,6 @@
   // svelte-ignore state_referenced_locally
   const othersWaiting = waitingByOthers(me.id);
   let backupStopped = $state(false);
-  let demoAvailable = $state(false);
-  let loadingDemo = $state(false);
   let collapsed = $state(savedCollapsed());
   let theme = $state<Theme>(savedTheme());
   let sending = false;
@@ -166,8 +188,6 @@
   async function refresh() {
     try {
       recent = (await api.GET("/api/events/recent")).data ?? [];
-      demoAvailable =
-        me.isOwner && ((await api.GET("/api/demo")).data?.available ?? false);
 
       if (me.isOwner) {
         const backups = (await api.GET("/api/backups/status")).data;
@@ -350,19 +370,6 @@
     }
   }
 
-  async function loadExampleData() {
-    loadingDemo = true;
-    const { response } = await api.POST("/api/demo/load");
-    loadingDemo = false;
-
-    if (response.ok) {
-      problem = "";
-      await refresh();
-    } else {
-      problem = "The example data couldn't be loaded.";
-    }
-  }
-
   function dismiss(eventId: string) {
     queue.dismiss(eventId);
     showQueue();
@@ -413,7 +420,7 @@
 
     const stepBack = (event: PopStateEvent) => {
       fromHistory = true;
-      view = (event.state as { view?: View } | null)?.view ?? {
+      view = upgrade((event.state as { view?: unknown } | null)?.view) ?? {
         name: "home",
       };
     };
@@ -458,7 +465,6 @@
       section={view.section}
       onSection={(section) => (view = { name: "manage", section })}
       onBack={goHome}
-      onBecameStation={onSignedOut}
       onStartBatch={(prefill) => (view = { name: "start", prefill })}
       onOpenTray={(code) => open(code)}
       onMoveTraysHere={(id) => (view = { name: "moveMany", destination: id })}
@@ -484,8 +490,17 @@
     <Plants canManage={false} onBack={goHome} />
   {:else if view.name === "production"}
     <Production onOpen={(code) => open(code, true)} onBack={goHome} />
-  {:else if view.name === "more"}
-    <More {me} {theme} onTheme={setTheme} onFinished={signOut} />
+  {:else if view.name === "settings"}
+    <Settings
+      {me}
+      page={view.page}
+      {theme}
+      onPage={(page) => (view = { name: "settings", page })}
+      onTheme={setTheme}
+      onBack={goHome}
+      onSignOut={signOut}
+      onBecameStation={onSignedOut}
+    />
   {:else if view.name === "container"}
     {#key view.label}
       <ContainerView
@@ -511,10 +526,17 @@
       {/if}
 
       {#if backupStopped}
-        <p class="card problem" role="alert">
-          Backups may have stopped. Records aren't being protected until this is
-          fixed.
-        </p>
+        <div class="card problem" role="alert">
+          <span
+            >Backups may have stopped. Records aren't being protected until this
+            is fixed.</span
+          >
+          <button
+            class="secondary"
+            onclick={() => (view = { name: "settings", page: "data" })}
+            >See backups</button
+          >
+        </div>
       {/if}
 
       {#if waiting > 0}
@@ -618,19 +640,6 @@
         </section>
 
         <section>
-          {#if demoAvailable}
-            <div class="card">
-              <strong>See GrowLog with example data</strong>
-              <span class="muted"
-                >Adds made-up plants, batches, suppliers and purchases, so you
-                can see the screens filled in.</span
-              >
-              <button disabled={loadingDemo} onclick={loadExampleData}
-                >Load example data</button
-              >
-            </div>
-          {/if}
-
           {#if recent.length > 0}
             <h2>Recent</h2>
             {#each recent as action (action.id)}
@@ -679,7 +688,7 @@
             : "home"
           : view.name === "home" ||
               view.name === "start" ||
-              view.name === "more" ||
+              view.name === "settings" ||
               view.name === "plants" ||
               view.name === "production"
             ? view.name
@@ -689,7 +698,7 @@
       onSection={(section) => (view = { name: "manage", section })}
       onToggleCollapsed={toggleCollapsed}
       onCycleTheme={() => setTheme(nextTheme(theme))}
-      onSettings={() => (view = { name: "more" })}
+      onSettings={() => (view = { name: "settings", page: null })}
       onProduction={() => (view = { name: "production" })}
       onPlants={() => (view = { name: "plants" })}
       onFinished={signOut}
@@ -706,7 +715,7 @@
       current={view.name === "home" ||
       view.name === "start" ||
       view.name === "manage" ||
-      view.name === "more" ||
+      view.name === "settings" ||
       view.name === "plants" ||
       view.name === "production"
         ? view.name
@@ -716,7 +725,7 @@
       onManage={() => (view = { name: "manage", section: null })}
       onProduction={() => (view = { name: "production" })}
       onPlants={() => (view = { name: "plants" })}
-      onMore={() => (view = { name: "more" })}
+      onSettings={() => (view = { name: "settings", page: null })}
     />
   </div>
 {/if}

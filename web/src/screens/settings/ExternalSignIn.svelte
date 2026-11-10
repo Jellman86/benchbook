@@ -3,8 +3,7 @@
   import { api } from "../../api/client";
   import { attempt, optional, type Schemas } from "../../lib/types";
 
-  let { onBack }: { onBack: () => void } = $props();
-
+  // Single sign-on through the nursery's OpenID Connect provider, such as Authentik.
   const problems: Record<string, string> = {
     incomplete: "Enter an https address, a client ID and a client secret.",
     unreachable: "GrowLog couldn't reach that provider. Check the address.",
@@ -92,15 +91,16 @@
   };
 </script>
 
-<main>
-  <h1>Staff login</h1>
+<section class="form-card stack">
+  <h2 class="form-heading">Staff login</h2>
   <p class="muted">
-    Lets staff sign in with one shared login from an OpenID Connect provider.
-    GrowLog's own passkeys, passwords and bench PINs keep working alongside it.
+    Lets staff sign in with one shared login from an OpenID Connect provider,
+    such as Authentik. GrowLog's own passkeys, passwords and bench PINs keep
+    working alongside it.
   </p>
 
   {#if settings}
-    <form class="stack narrow" onsubmit={save}>
+    <form class="stack" onsubmit={save}>
       <label class="tick">
         <input type="checkbox" bind:checked={enabled} /> Offer this on the sign-in
         page
@@ -157,6 +157,4 @@
   {:else if problem}
     <p class="problem" role="alert">{problem}</p>
   {/if}
-
-  <button class="back mobile-only" onclick={onBack}>Back</button>
-</main>
+</section>

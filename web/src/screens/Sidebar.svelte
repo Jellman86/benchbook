@@ -7,11 +7,11 @@
   import PanelLeftOpen from "@lucide/svelte/icons/panel-left-open";
   import Plus from "@lucide/svelte/icons/plus";
   import ScanLine from "@lucide/svelte/icons/scan-line";
+  import Settings from "@lucide/svelte/icons/settings";
   import Sprout from "@lucide/svelte/icons/sprout";
   import Sun from "@lucide/svelte/icons/sun";
-  import UserRound from "@lucide/svelte/icons/user-round";
   import type { Me } from "../lib/boot";
-  import { manageSections, type ManageSection } from "../lib/sections";
+  import { manageGroups, type ManageSection } from "../lib/sections";
   import { themes, type Theme } from "../lib/theme";
 
   // Only shown on wide screens: phones get the bottom bar instead.
@@ -34,7 +34,7 @@
     current:
       | "home"
       | "start"
-      | "more"
+      | "settings"
       | "production"
       | "plants"
       | ManageSection
@@ -112,31 +112,34 @@
     {/if}
 
     {#if me.isOwner}
-      <p class="nav-heading nav-text">Manage</p>
-      <hr class="nav-rule" />
-      {#each manageSections as item (item.section)}
-        <button
-          aria-current={here(item.section)}
-          aria-label={item.label}
-          title={item.label}
-          onclick={() => onSection(item.section)}
-        >
-          <item.icon size={20} />
-          <span class="nav-text">{item.label}</span>
-        </button>
+      {#each manageGroups as group (group.heading)}
+        <p class="nav-heading nav-text">{group.heading}</p>
+        <hr class="nav-rule" />
+        {#each group.items as item (item.section)}
+          <button
+            aria-current={here(item.section)}
+            aria-label={item.label}
+            title={item.label}
+            onclick={() => onSection(item.section)}
+          >
+            <item.icon size={20} />
+            <span class="nav-text">{item.label}</span>
+          </button>
+        {/each}
       {/each}
     {/if}
   </nav>
 
   <div class="sidebar-foot">
+    <p class="signed-in nav-text">Signed in as {me.name}</p>
     <button
-      aria-current={here("more")}
-      aria-label="My settings"
-      title="My settings"
+      aria-current={here("settings")}
+      aria-label="Settings"
+      title="Settings"
       onclick={onSettings}
     >
-      <UserRound size={20} />
-      <span class="nav-text">{me.name}</span>
+      <Settings size={20} />
+      <span class="nav-text">Settings</span>
     </button>
     <button
       aria-label="Theme: {themeLabel}"

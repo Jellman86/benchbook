@@ -1,6 +1,6 @@
 <script lang="ts">
-  import Ellipsis from "@lucide/svelte/icons/ellipsis";
   import Flower2 from "@lucide/svelte/icons/flower-2";
+  import LayoutGrid from "@lucide/svelte/icons/layout-grid";
   import Plus from "@lucide/svelte/icons/plus";
   import ScanLine from "@lucide/svelte/icons/scan-line";
   import Settings from "@lucide/svelte/icons/settings";
@@ -16,17 +16,17 @@
     onProduction,
     onPlants,
     onManage,
-    onMore,
+    onSettings,
   }: {
     me: Me;
     current:
-      "home" | "start" | "production" | "plants" | "manage" | "more" | null;
+      "home" | "start" | "production" | "plants" | "manage" | "settings" | null;
     onHome: () => void;
     onNewBatch: () => void;
     onProduction: () => void;
     onPlants: () => void;
     onManage: () => void;
-    onMore: () => void;
+    onSettings: () => void;
   } = $props();
 
   const here = (item: typeof current) =>
@@ -48,7 +48,7 @@
   </button>
   {#if me.isOwner}
     <button aria-current={here("manage")} onclick={onManage}>
-      <Settings size={24} />
+      <LayoutGrid size={24} />
       <span>Manage</span>
     </button>
   {:else}
@@ -57,8 +57,8 @@
       <span>Plants</span>
     </button>
   {/if}
-  <button aria-current={here("more")} onclick={onMore}>
-    <Ellipsis size={24} />
-    <span>More</span>
+  <button aria-current={here("settings")} onclick={onSettings}>
+    <Settings size={24} />
+    <span>Settings</span>
   </button>
 </nav>

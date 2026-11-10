@@ -438,6 +438,25 @@
         }
       }
     },
+    "/api/about": {
+      "get": {
+        "tags": [
+          "AboutEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/About"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/setup/status": {
       "get": {
         "tags": [
@@ -3942,6 +3961,44 @@
   },
   "components": {
     "schemas": {
+      "About": {
+        "required": [
+          "version",
+          "commit",
+          "builtAt",
+          "sourceUrl",
+          "runtime",
+          "database"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "commit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "builtAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "sourceUrl": {
+            "type": "string"
+          },
+          "runtime": {
+            "type": "string"
+          },
+          "database": {
+            "type": "string"
+          }
+        }
+      },
       "AccountSettings": {
         "required": [
           "hasPassword",
@@ -8025,6 +8082,9 @@
     },
     {
       "name": "BackupStatusEndpoints"
+    },
+    {
+      "name": "AboutEndpoints"
     },
     {
       "name": "AccountEndpoints"

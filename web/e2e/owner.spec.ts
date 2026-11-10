@@ -38,6 +38,20 @@ async function openManage(page: Page, section: string) {
   }
 }
 
+async function openSettings(page: Page, item: string, heading = item) {
+  await button(page, "Settings").click();
+  await button(page, item).click();
+  await expect(
+    page.getByRole("heading", { name: heading, exact: true }),
+  ).toBeVisible();
+
+  const showForm = page.locator(".panel-toggle");
+  if (await showForm.isVisible()) {
+    await showForm.click();
+  }
+}
+
+// Back from a page to its list, then Back from the list to Record work.
 async function leaveManage(page: Page) {
   await button(page, "Back").click();
   await button(page, "Back").click();
@@ -70,7 +84,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   ).toBeVisible();
 
   // Signing out and back in uses the passkey just made.
-  await button(page, "More").click();
+  await button(page, "Settings").click();
   await button(page, "Sign out").click();
   await button(page, "Sign in with passkey").click();
   await expect(
@@ -84,7 +98,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   ).toBeVisible();
 
   // Catalogue.
-  await openManage(page, "Pot sizes");
+  await openSettings(page, "Pot sizes");
   await page.getByLabel("New pot size").fill("9cm");
   await button(page, "Add").click();
   await expect(page.getByText("9cm", { exact: true })).toBeVisible();
@@ -242,7 +256,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await leaveManage(page);
 
   // Staff, with a refused PIN first.
-  await openManage(page, "Staff");
+  await openSettings(page, "Staff");
   await page.getByLabel("Name", { exact: true }).fill("Alex Moss");
   await page.getByLabel("PIN for the bench").fill("12");
   await button(page, "Add").click();
@@ -288,6 +302,20 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(button(page, "Back")).toHaveCount(0);
   await sidebar.getByRole("button", { name: "Figures" }).click();
   await expect(page.getByRole("heading", { name: "Figures" })).toBeVisible();
+
+  // Settings keep their own list beside the page, and say which GrowLog this is.
+  await button(page, "Settings").click();
+  const settings = page.getByRole("navigation", { name: "Settings" });
+  await expect(page.getByRole("heading", { name: "My account" })).toBeVisible();
+  await settings.getByRole("button", { name: "About GrowLog" }).click();
+  await expect(page.getByText("development", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Source code" })).toHaveAttribute(
+    "href",
+    "https://github.com/Jellman86/growlog",
+  );
+  await settings.getByRole("button", { name: "Signing in" }).click();
+  await expect(page.getByTestId("redirect-uri")).toBeVisible();
+  await expect(button(page, "Back")).toHaveCount(0);
   await sidebar.getByRole("button", { name: "Record work" }).click();
   await expect(page.getByLabel("Scan a label")).toBeFocused();
 
@@ -325,7 +353,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(page.getByText("Lavender 'Munstead'")).toBeVisible();
   await expect(page.getByLabel("Find or add a plant")).toBeVisible();
   await button(page, "Back").click();
-  await button(page, "More").click();
+  await openSettings(page, "My account");
   await expect(page.getByRole("heading", { name: "Appearance" })).toBeVisible();
   await button(page, "Match device").click();
   await expect(root).not.toHaveAttribute("data-theme");
@@ -333,20 +361,22 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(page.getByLabel("Scan a label")).toBeVisible();
 
   // The owner adds a password in settings, alongside the passkey.
-  await button(page, "More").click();
+  await openSettings(page, "My account");
   await page.getByLabel("New password").fill("correct horse battery");
   await button(page, "Set a password").click();
   await expect(page.getByRole("status")).toHaveText("Password saved.");
 
   // The owner chooses how much signing in the nursery wants, and can set someone to just tap their name.
-  await openManage(page, "Staff");
+  await openSettings(page, "Signing in");
   await expect(page.getByLabel(/Each person's own way/)).toBeChecked();
+  await leaveManage(page);
+  await openSettings(page, "Staff");
   await page.getByLabel("Name", { exact: true }).fill("Jo Reed");
   await chooser(page, "How they sign in").selectOption("name");
   await button(page, "Add").click();
   await expect(page.getByText("Signs in by tapping their name")).toBeVisible();
   await leaveManage(page);
-  await button(page, "More").click();
+  await button(page, "Settings").click();
   await button(page, "Sign out").click();
   await button(page, "Jo Reed").click();
   await expect(
@@ -355,7 +385,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(button(page, "Manage")).toHaveCount(0);
 
   // The owner has a password, so tapping their name asks for it.
-  await button(page, "More").click();
+  await button(page, "Settings").click();
   await button(page, "Sign out").click();
   await button(page, "Sam Fielding").click();
   await page.getByLabel("Password", { exact: true }).fill("not the one");
@@ -372,7 +402,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   ).toBeVisible();
 
   // The owner can set up a shared staff login, and bad settings are refused.
-  await openManage(page, "Staff login");
+  await openSettings(page, "Signing in");
   await expect(page.getByTestId("redirect-uri")).toContainText("/signin-oidc");
   await page.getByLabel("Offer this on the sign-in page").check();
   await page.getByLabel("Provider address").fill("http://not-secure.test");
@@ -382,7 +412,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await leaveManage(page);
 
   // This device becomes a bench station, which signs the owner out of it.
-  await openManage(page, "Bench stations");
+  await openSettings(page, "Bench stations");
   await page.getByLabel("Name for this device").fill("Potting shed");
   await button(page, "Make this device a bench station").click();
   await expect(

@@ -1819,3 +1819,135 @@ button.danger {
 .start-afresh summary h2 {
   display: inline;
 }
+
+/* Settings: grouped, one page at a time on a phone, the list beside the page on a desk. */
+.settings-heading {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.settings-sign-out {
+  margin-top: 1rem;
+}
+
+.settings-nav {
+  display: none;
+}
+
+.signed-in {
+  margin: 0 0 0.35rem;
+  padding: 0 0.7rem;
+  overflow: hidden;
+  font-size: 0.8rem;
+  opacity: 80%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.about-intro {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.about-intro img {
+  flex: none;
+}
+
+.about-intro p {
+  margin: 0;
+}
+
+.credits {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.credits li {
+  display: flex;
+  flex-direction: column;
+}
+
+.backup-ok {
+  margin: 0;
+  color: var(--success);
+  font-weight: 700;
+}
+
+@media (min-width: 900px) {
+  .with-sidebar .settings-layout {
+    display: grid;
+    grid-template-columns: 14rem minmax(0, 1fr);
+    align-items: start;
+    min-height: 100vh;
+  }
+
+  .with-sidebar .settings-nav {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    max-height: 100vh;
+    padding: 2rem 0.75rem 2rem 1.25rem;
+    overflow-y: auto;
+    border-right: 1px solid var(--line);
+  }
+
+  .settings-title {
+    margin: 0 0 0.25rem;
+    padding: 0 0.7rem;
+    font-family: var(--heading);
+    font-size: 1.35rem;
+    font-weight: 700;
+  }
+
+  .settings-nav-heading {
+    margin: 0.9rem 0 0.15rem;
+    padding: 0 0.7rem;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .settings-nav button {
+    justify-content: flex-start;
+    gap: 0.65rem;
+    min-height: 2.3rem;
+    padding: 0.35rem 0.7rem;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    font-weight: 500;
+    text-align: left;
+  }
+
+  .settings-nav button:hover:not(:disabled) {
+    border: 0;
+    background: var(--line);
+    color: var(--text);
+  }
+
+  .settings-nav button[aria-current="page"],
+  .settings-nav button[aria-current="page"]:hover:not(:disabled) {
+    background: var(--surface);
+    box-shadow: inset 3px 0 0 var(--primary);
+    color: var(--primary);
+    font-weight: 700;
+  }
+
+  .settings-nav svg {
+    flex: none;
+  }
+}

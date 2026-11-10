@@ -26,7 +26,17 @@ jobs:
         with:
           persist-credentials: false
       - name: Build the container image
-        run: docker build --tag "$IMAGE:$GITHUB_SHA" --tag "$IMAGE:$GITHUB_REF_NAME" --label "org.opencontainers.image.source=https://github.com/Jellman86/growlog" .
+        run: |
+          version=dev
+          if [ "$GITHUB_REF_TYPE" = tag ]; then version="${GITHUB_REF_NAME#v}"; fi
+          docker build --tag "$IMAGE:$GITHUB_SHA" --tag "$IMAGE:$GITHUB_REF_NAME" \
+            --label "org.opencontainers.image.source=https://github.com/Jellman86/growlog" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "org.opencontainers.image.version=$version" \
+            --build-arg "GROWLOG_VERSION=$version" \
+            --build-arg "GROWLOG_COMMIT=$GITHUB_SHA" \
+            --build-arg "GROWLOG_BUILT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            .
       - name: Sign in to the registry
         run: echo "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
         env:

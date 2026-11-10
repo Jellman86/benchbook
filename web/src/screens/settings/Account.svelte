@@ -1,21 +1,21 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { api } from "../api/client";
-  import type { Me } from "../lib/boot";
-  import { createPasskey, passkeyProblem } from "../lib/passkey";
-  import { themes, type Theme } from "../lib/theme";
-  import { attempt, type Schemas } from "../lib/types";
+  import { api } from "../../api/client";
+  import type { Me } from "../../lib/boot";
+  import { createPasskey, passkeyProblem } from "../../lib/passkey";
+  import { themes, type Theme } from "../../lib/theme";
+  import { attempt, type Schemas } from "../../lib/types";
 
   let {
     me,
     theme,
     onTheme,
-    onFinished,
+    onBack,
   }: {
     me: Me;
     theme: Theme;
     onTheme: (theme: Theme) => void;
-    onFinished: () => void;
+    onBack: () => void;
   } = $props();
 
   let settings = $state<Schemas["AccountSettings"] | null>(null);
@@ -110,7 +110,8 @@
 </script>
 
 <main>
-  <h1>{me.name}</h1>
+  <h1>My account</h1>
+  <p class="muted">Signed in as {me.name}.</p>
 
   <div class="stack narrow">
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
@@ -198,9 +199,7 @@
         <button type="submit" class="secondary">Save PIN</button>
       </form>
     {/if}
-
-    <button class="secondary mobile-only" onclick={onFinished}
-      >{me.isTeam ? "Sign in as yourself" : "Sign out"}</button
-    >
   </div>
+
+  <button class="back mobile-only" onclick={onBack}>Back</button>
 </main>
