@@ -17,6 +17,43 @@
   let pin = $state("");
   let problem = $state("");
   let link = $state("");
+  let inviteQr = $state("");
+  let copied = $state(false);
+  const canShare = typeof navigator.share === "function";
+
+  // Drawn whenever there's a new invitation link.
+  $effect(() => {
+    const current = link;
+    inviteQr = "";
+    copied = false;
+
+    if (current) {
+      void api
+        .POST("/api/staff/qr", { body: { text: current } })
+        .then(({ data }) => {
+          if (link === current) {
+            inviteQr = data?.svg ?? "";
+          }
+        });
+    }
+  });
+
+  async function shareLink() {
+    try {
+      await navigator.share({ title: "Your GrowLog invitation", url: link });
+    } catch {
+      // They closed the share sheet.
+    }
+  }
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(link);
+      copied = true;
+    } catch {
+      copied = false;
+    }
+  }
   let changingPinFor = $state<string | null>(null);
   let newPin = $state("");
   let settingPasswordFor = $state<string | null>(null);
@@ -228,9 +265,29 @@
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
       {#if link}
-        <div class="card">
-          <p>Send this link to them. It works once, for 7 days:</p>
+        <div class="card invite-card">
+          <p>
+            Let them scan this with their phone, or send them the link. It works
+            once, for 7 days.
+          </p>
+          {#if inviteQr}
+            <img
+              class="invite-qr"
+              src="data:image/svg+xml;charset=utf-8,{encodeURIComponent(
+                inviteQr,
+              )}"
+              alt="QR code of the invitation link"
+            />
+          {/if}
           <p class="link" data-testid="invite-link">{link}</p>
+          <div class="row">
+            {#if canShare}
+              <button onclick={shareLink}>Share</button>
+            {/if}
+            <button class="secondary" onclick={copyLink}
+              >{copied ? "Copied" : "Copy link"}</button
+            >
+          </div>
         </div>
       {/if}
 

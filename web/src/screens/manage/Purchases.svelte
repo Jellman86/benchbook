@@ -1,7 +1,9 @@
 <script lang="ts">
   import FormPanel from "../FormPanel.svelte";
   import { onMount } from "svelte";
+  import Paperclip from "@lucide/svelte/icons/paperclip";
   import { api } from "../../api/client";
+  import { dayLabel } from "../../lib/dates";
   import { attempt, optional, type Schemas } from "../../lib/types";
   import { money, type BatchPrefill } from "../../lib/work";
 
@@ -197,11 +199,14 @@
             )}</strong
           >
           <span
-            >{purchase.purchasedOn}{purchase.reference
+            >{dayLabel(purchase.purchasedOn)}{purchase.reference
               ? `, ${purchase.reference}`
               : ""}</span
           >
-          <span>{purchase.paidOn ? `Paid ${purchase.paidOn}` : "Not paid"}</span
+          <span
+            >{purchase.paidOn
+              ? `Paid ${dayLabel(purchase.paidOn)}`
+              : "Not paid"}</span
           >
           {#each purchase.lines as line (line.id)}
             <div class="line">
@@ -233,13 +238,15 @@
               rel="noopener">Receipt {index + 1}</a
             >
           {/each}
-          <label
-            >Add a receipt <input
+          <label class="photo-choice">
+            <Paperclip size={20} />
+            <span>Add a receipt (photo or PDF)</span>
+            <input
               type="file"
               accept="image/jpeg,image/png,application/pdf"
               onchange={(event) => addReceipt(purchase.id, event)}
-            /></label
-          >
+            />
+          </label>
           <div class="row">
             {#if purchase.paidOn}
               <button
@@ -252,7 +259,7 @@
                 onclick={() => setPaid(purchase.id, today())}>Mark paid</button
               >
             {/if}
-            <button class="secondary" onclick={() => voidPurchase(purchase)}
+            <button class="link-button" onclick={() => voidPurchase(purchase)}
               >Void</button
             >
           </div>

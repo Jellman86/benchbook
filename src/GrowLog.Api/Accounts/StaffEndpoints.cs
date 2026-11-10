@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using GrowLog.Api.Data;
+using GrowLog.Api.Labels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,8 @@ namespace GrowLog.Api.Accounts;
 
 internal static class StaffEndpoints
 {
+    private const int MaxQrText = 2000;
+
     private const string InvitePurpose = "passkey-invite";
 
     public static void MapStaffEndpoints(this IEndpointRouteBuilder app)
@@ -21,6 +24,9 @@ internal static class StaffEndpoints
         staff.MapPost("/{id:guid}/invite", InviteAsync).Produces<InviteCreated>();
         staff.MapPost("/{id:guid}/archive", ArchiveAsync);
         staff.MapGet("/sign-in-settings", GetSignInSettingsAsync);
+        staff.MapPost("/qr", (QrRequest request) => request.Text.Length is > 0 and <= MaxQrText
+            ? Results.Ok(new QrCode(LabelPrinter.QrSvg(request.Text)))
+            : Results.BadRequest()).Produces<QrCode>();
         staff.MapPut("/sign-in-settings", SaveSignInSettingsAsync);
 
         var invites = app.MapGroup("/api/invites").AllowAnonymous();
@@ -308,6 +314,11 @@ internal static class StaffEndpoints
     internal sealed record StaffCreated(Guid Id);
 
     internal sealed record SignInSettings(bool AllowNameOnly);
+
+    /// <summary>Sent in the body, not the address, because an invitation link holds its token.</summary>
+    internal sealed record QrRequest(string Text);
+
+    internal sealed record QrCode(string Svg);
 
     internal sealed record SetPinRequest(string Pin);
 

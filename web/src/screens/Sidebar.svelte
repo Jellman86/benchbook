@@ -164,9 +164,9 @@
       {/if}
       <span class="nav-text">Collapse</span>
     </button>
-    <button aria-label="Finished" title="Finished" onclick={onFinished}>
+    <button aria-label="Sign out" title="Sign out" onclick={onFinished}>
       <LogOut size={20} />
-      <span class="nav-text">Finished</span>
+      <span class="nav-text">Sign out</span>
     </button>
   </div>
 </aside>

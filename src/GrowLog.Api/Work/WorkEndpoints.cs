@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using System.Text.Json;
+using GrowLog.Api.Catalogue;
 using GrowLog.Api.Data;
+using GrowLog.Api.Production;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -167,17 +169,28 @@ internal static class WorkEndpoints
 
         var batches = await db.Batches
             .Where(batch => batchIds.Contains(batch.Id))
-            .Join(db.Plants, batch => batch.PlantId, plant => plant.Id, (batch, plant) => new { batch.Id, batch.TraceabilityCode, PlantId = plant.Id, plant.CommonName, plant.Variety })
+            .Join(db.Plants, batch => batch.PlantId, plant => plant.Id, (batch, plant) => new { batch.Id, batch.TraceabilityCode, PlantId = plant.Id, plant.CommonName, plant.Variety, batch.Source })
             .ToListAsync(cancellationToken);
 
         var contents = state.Contents
-            .Join(batches, count => count.BatchId, batch => batch.Id, (count, batch) => new ContainerLine(batch.Id, batch.TraceabilityCode, batch.PlantId, batch.CommonName, batch.Variety, count.Quantity))
+            .Join(batches, count => count.BatchId, batch => batch.Id, (count, batch) => new ContainerLine(batch.Id, batch.TraceabilityCode, batch.PlantId, batch.CommonName, batch.Variety, count.Quantity, batch.Source))
             .ToList();
 
-        var locationName = await db.Locations.Where(location => location.Id == state.LocationId).Select(location => location.Name).FirstOrDefaultAsync(cancellationToken);
+        var paths = await PlacePaths.LoadAsync(db, cancellationToken);
         var potSizeName = await db.PotSizes.Where(size => size.Id == state.PotSizeId).Select(size => size.Name).FirstOrDefaultAsync(cancellationToken);
+        var stage = (await ProductionEndpoints.FindStagesAsync([container.Id], db, cancellationToken)).GetValueOrDefault(container.Id);
 
-        return TypedResults.Ok(new ContainerResponse(container.Id, container.LabelCode, container.Kind, contents, state.LocationId, locationName, state.PotSizeId, potSizeName));
+        return TypedResults.Ok(new ContainerResponse(
+            container.Id,
+            container.LabelCode,
+            container.Kind,
+            contents,
+            state.LocationId,
+            state.LocationId is { } locationId ? paths.GetValueOrDefault(locationId) : null,
+            state.PotSizeId,
+            potSizeName,
+            stage?.Stage,
+            stage?.Since));
     }
 
     /// <summary>Every container with plants in it, so a device can still open a label with no signal.</summary>
@@ -189,10 +202,11 @@ internal static class WorkEndpoints
         var containers = await db.Containers.Where(container => containerIds.Contains(container.Id)).ToListAsync(cancellationToken);
         var batches = await db.Batches
             .Where(batch => db.EventLines.Any(line => line.BatchId == batch.Id && containerIds.Contains(line.ContainerId)))
-            .Join(db.Plants, batch => batch.PlantId, plant => plant.Id, (batch, plant) => new { batch.Id, batch.TraceabilityCode, PlantId = plant.Id, plant.CommonName, plant.Variety })
+            .Join(db.Plants, batch => batch.PlantId, plant => plant.Id, (batch, plant) => new { batch.Id, batch.TraceabilityCode, PlantId = plant.Id, plant.CommonName, plant.Variety, batch.Source })
             .ToDictionaryAsync(batch => batch.Id, cancellationToken);
         var places = await store.GetPlacementsAsync(containerIds, cancellationToken);
-        var locationNames = await db.Locations.ToDictionaryAsync(location => location.Id, location => location.Name, cancellationToken);
+        var locationNames = await PlacePaths.LoadAsync(db, cancellationToken);
+        var stages = await ProductionEndpoints.FindStagesAsync(containerIds, db, cancellationToken);
         var potSizeNames = await db.PotSizes.ToDictionaryAsync(size => size.Id, size => size.Name, cancellationToken);
 
         return containers.ConvertAll(container =>
@@ -201,8 +215,9 @@ internal static class WorkEndpoints
 
             var contents = stock
                 .Where(row => row.ContainerId == container.Id)
-                .Select(row => new ContainerLine(row.BatchId, batches[row.BatchId].TraceabilityCode, batches[row.BatchId].PlantId, batches[row.BatchId].CommonName, batches[row.BatchId].Variety, row.Quantity))
+                .Select(row => new ContainerLine(row.BatchId, batches[row.BatchId].TraceabilityCode, batches[row.BatchId].PlantId, batches[row.BatchId].CommonName, batches[row.BatchId].Variety, row.Quantity, batches[row.BatchId].Source))
                 .ToList();
+            var stage = stages.GetValueOrDefault(container.Id);
 
             return new ContainerResponse(
                 container.Id,
@@ -212,7 +227,9 @@ internal static class WorkEndpoints
                 placement?.LocationId,
                 placement?.LocationId is { } locationId ? locationNames[locationId] : null,
                 placement?.PotSizeId,
-                placement?.PotSizeId is { } potSizeId ? potSizeNames[potSizeId] : null);
+                placement?.PotSizeId is { } potSizeId ? potSizeNames[potSizeId] : null,
+                stage?.Stage,
+                stage?.Since);
         });
     }
 
@@ -384,6 +401,7 @@ internal static class WorkEndpoints
             .ToListAsync(cancellationToken);
 
         var lines = await LoadRecentLinesAsync(rows.ConvertAll(row => row.Id), db, cancellationToken);
+        var paths = await PlacePaths.LoadAsync(db, cancellationToken);
 
         return rows
             .ConvertAll(row => new RecentAction(
@@ -394,7 +412,7 @@ internal static class WorkEndpoints
                 row.LabelCode,
                 row.ContainerKind,
                 row.LocationId,
-                row.LocationName,
+                row.LocationId is { } locationId ? paths.GetValueOrDefault(locationId) : row.LocationName,
                 row.PotSizeId,
                 row.PotSizeName,
                 JsonSerializer.Deserialize<JsonElement>(row.Payload),
@@ -476,7 +494,7 @@ internal static class WorkEndpoints
 
     internal sealed record ReadyRequest(Guid EventId, DateTimeOffset OccurredAt);
 
-    internal sealed record ContainerLine(Guid BatchId, string TraceabilityCode, Guid PlantId, string CommonName, string? Variety, int Quantity);
+    internal sealed record ContainerLine(Guid BatchId, string TraceabilityCode, Guid PlantId, string CommonName, string? Variety, int Quantity, BatchSource Source);
 
     internal sealed record ContainerResponse(
         Guid Id,
@@ -486,7 +504,9 @@ internal static class WorkEndpoints
         Guid? LocationId,
         string? LocationName,
         Guid? PotSizeId,
-        string? PotSizeName);
+        string? PotSizeName,
+        ProductionStage? Stage,
+        DateTimeOffset? StageSince);
 
     internal sealed record RecentLine(
         Guid ContainerId,

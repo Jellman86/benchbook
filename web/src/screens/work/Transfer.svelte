@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api } from "../../api/client";
+  import { nextPotSize, quantityPresets } from "../../lib/tray";
   import type { Schemas } from "../../lib/types";
   import { outcomeProblem, plantName, submit, work } from "../../lib/work";
   import ActionFrame from "./ActionFrame.svelte";
@@ -20,7 +21,6 @@
   } = $props();
 
   let chosen = $state<string | null>(null);
-  let quantity = $state(1);
   let potSizes = $state<Schemas["PotSizeResponse"][]>([]);
   let potSizeId = $state("");
   let kind = $state<Schemas["ContainerKind"]>("PotGroup");
@@ -33,9 +33,12 @@
       container.contents[0],
   );
 
+  // Usually the whole lot moves on, into the next size up.
+  let quantity = $derived(Number(line.quantity));
+
   onMount(async () => {
     potSizes = (await api.GET("/api/pot-sizes")).data ?? [];
-    potSizeId = potSizes[0]?.id ?? "";
+    potSizeId = nextPotSize(potSizes, container.potSizeId);
   });
 
   async function record() {
@@ -74,7 +77,7 @@
   <Stepper
     bind:value={quantity}
     max={Number(line.quantity)}
-    presets={[Number(line.quantity)]}
+    presets={quantityPresets(Number(line.quantity))}
   />
   <label>
     New pot size

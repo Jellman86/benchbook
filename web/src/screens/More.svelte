@@ -194,6 +194,6 @@
       </form>
     {/if}
 
-    <button class="secondary mobile-only" onclick={onFinished}>Finished</button>
+    <button class="secondary mobile-only" onclick={onFinished}>Sign out</button>
   </div>
 </main>

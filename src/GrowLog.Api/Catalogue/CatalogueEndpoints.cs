@@ -311,8 +311,11 @@ internal static class CatalogueEndpoints
         return await SaveAsync(db, TypedResults.NoContent(), cancellationToken);
     }
 
-    private static async Task<List<LocationResponse>> ListLocationsAsync(GrowLogDbContext db, bool includeArchived = false, CancellationToken cancellationToken = default) =>
-        await db.Locations
+    private static async Task<List<LocationResponse>> ListLocationsAsync(GrowLogDbContext db, bool includeArchived = false, CancellationToken cancellationToken = default)
+    {
+        var paths = await PlacePaths.LoadAsync(db, cancellationToken);
+
+        var places = await db.Locations
             .Where(location => includeArchived || location.ArchivedAt == null)
             .Select(location => new { Location = location, LastUsed = db.Events.Where(e => e.LocationId == location.Id).Max(e => (DateTimeOffset?)e.OccurredAt) })
             .OrderByDescending(row => row.LastUsed != null)
@@ -324,8 +327,12 @@ internal static class CatalogueEndpoints
                 row.Location.Kind,
                 row.Location.ParentId,
                 row.Location.ArchivedAt != null,
-                db.CatalogueEntryPhotos.Where(photo => photo.Entry == CataloguePhotoEntry.Location && photo.EntryId == row.Location.Id).OrderBy(photo => photo.Id).Select(photo => photo.Id).ToList()))
+                db.CatalogueEntryPhotos.Where(photo => photo.Entry == CataloguePhotoEntry.Location && photo.EntryId == row.Location.Id).OrderBy(photo => photo.Id).Select(photo => photo.Id).ToList(),
+                row.Location.Name))
             .ToListAsync(cancellationToken);
+
+        return places.ConvertAll(place => place with { Path = paths.GetValueOrDefault(place.Id) ?? place.Name });
+    }
 
     private static bool IsAllowedParent(LocationKind kind, LocationKind? parent) => kind switch
     {
@@ -457,5 +464,6 @@ internal static class CatalogueEndpoints
 
     internal sealed record LocationRequest(string Name, LocationKind Kind, Guid? ParentId);
 
-    internal sealed record LocationResponse(Guid Id, string Name, LocationKind Kind, Guid? ParentId, bool Archived, IReadOnlyList<Guid> PhotoIds);
+    /// <param name="Path">The name with the places it sits in, such as "Greenhouse 2, Bench A".</param>
+    internal sealed record LocationResponse(Guid Id, string Name, LocationKind Kind, Guid? ParentId, bool Archived, IReadOnlyList<Guid> PhotoIds, string Path);
 }

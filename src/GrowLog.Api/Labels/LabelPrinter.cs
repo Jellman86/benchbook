@@ -39,7 +39,7 @@ internal sealed class LabelPrinter(IConfiguration configuration)
         }
     }
 
-    private static string QrSvg(string text)
+    internal static string QrSvg(string text)
     {
         using var generator = new QRCodeGenerator();
         using var code = generator.CreateQrCode(text, QRCodeGenerator.ECCLevel.Q);

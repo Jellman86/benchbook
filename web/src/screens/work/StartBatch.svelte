@@ -375,7 +375,7 @@
     >
   {:else if stage === 2}
     <p class="muted">{chosenName}</p>
-    <Stepper bind:value={quantity} presets={[10, 24, 40, 84]} />
+    <Stepper bind:value={quantity} presets={[10, 24, 40, 42, 84]} />
     <label>
       Going into
       <select bind:value={containerKind}>
