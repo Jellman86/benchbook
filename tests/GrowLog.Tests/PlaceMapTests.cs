@@ -42,7 +42,7 @@ public sealed class PlaceMapTests(PostgresFixture database)
         Assert.Equal(53.0823411, outline.GetProperty("points")[0][0].GetDouble());
         Assert.Equal(4, outline.GetProperty("points").GetArrayLength());
 
-        Assert.Equal(HttpStatusCode.NoContent, await PutStatusAsync(nursery.Owner, $"/api/locations/{site}/outline", new { points = (double[][]?)null }));
+        Assert.Equal(HttpStatusCode.NoContent, await PutStatusAsync(nursery.Owner, $"/api/locations/{site}/outline", new Dictionary<string, object?>(StringComparer.Ordinal) { ["points"] = null }));
         Assert.Equal(0, (await MapAsync(nursery.Owner)).GetProperty("outlines").GetArrayLength());
     }
 

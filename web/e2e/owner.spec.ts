@@ -192,8 +192,11 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Back").click();
 
   // The greenhouse is drawn on the map by tapping its corners. Map pictures aren't fetched in tests.
-  await page.route(/tile\.openstreetmap\.org|api\.postcodes\.io/, (route) =>
-    route.abort(),
+  await page.route(
+    (url) =>
+      url.hostname === "tile.openstreetmap.org" ||
+      url.hostname === "api.postcodes.io",
+    (route) => route.abort(),
   );
   await button(page, "Map").click();
   await page.locator(".place-row", { hasText: "Greenhouse 2" }).click();
