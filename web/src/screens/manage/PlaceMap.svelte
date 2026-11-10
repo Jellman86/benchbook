@@ -427,7 +427,7 @@
       {#if !satellite}
         <p class="muted">
           This is a street map. For satellite pictures, add an Esri key under
-          Settings, Nursery details.
+          Settings, Map.
         </p>
       {/if}
     {/if}
