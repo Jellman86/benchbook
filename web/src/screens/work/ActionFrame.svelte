@@ -14,7 +14,7 @@
   } = $props();
 </script>
 
-<main>
+<main class="action-frame">
   <h1>{title}</h1>
   {@render children()}
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}

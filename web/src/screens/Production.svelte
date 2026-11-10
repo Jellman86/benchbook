@@ -14,6 +14,8 @@
     type Stage,
   } from "../lib/production";
   import { plantName } from "../lib/work";
+  import type { Column } from "../lib/table";
+  import DataTable from "./DataTable.svelte";
   import PlantThumb from "./work/PlantThumb.svelte";
 
   let {
@@ -33,6 +35,25 @@
   let supplier = $state("");
 
   const now = new Date();
+  const daysAt = (since: string | null | undefined) =>
+    since
+      ? Math.floor((now.getTime() - new Date(since).getTime()) / 86_400_000)
+      : null;
+
+  const columns: Column<ProductionRow>[] = [
+    { label: "Label", value: (row) => row.labelCode },
+    { label: "Plant", value: (row) => plantName(row.commonName, row.variety) },
+    { label: "Plants", value: (row) => Number(row.quantity), numeric: true },
+    { label: "Stage", value: (row) => stageLabel(row.stage) },
+    {
+      label: "Days at stage",
+      value: (row) => daysAt(row.stageSince),
+      numeric: true,
+    },
+    { label: "Place", value: (row) => row.locationName },
+    { label: "Pot", value: (row) => row.potSizeName },
+    { label: "Supplier", value: (row) => row.supplierName },
+  ];
 
   // The stage tabs count what the other filters leave, so the numbers match the list.
   const matching = $derived(filterRows(rows, { text, place, supplier }));
@@ -113,31 +134,45 @@
     </p>
   {/if}
 
-  <div class="card-grid">
-    {#each shown as row (`${row.containerId}/${row.batchId}`)}
-      <button
-        class="plant-card production-row"
-        onclick={() => onOpen(row.labelCode)}
-      >
-        <PlantThumb
-          url={row.hasPhoto ? `/api/plants/${row.plantId}/photo` : null}
-        />
-        <span class="plant-names">
-          <strong
-            >{row.quantity} {plantName(row.commonName, row.variety)}</strong
-          >
-          <span class="muted">
-            {[row.labelCode, row.locationName, row.potSizeName]
-              .filter(Boolean)
-              .join(" · ")}
+  {#if shown.length > 0}
+    <div class="desktop-only">
+      <DataTable
+        rows={shown}
+        {columns}
+        key={(row) => `${row.containerId}/${row.batchId}`}
+        caption="Everything growing"
+        onSelect={(row) => onOpen(row.labelCode)}
+      />
+    </div>
+  {/if}
+
+  <div class="mobile-only">
+    <div class="card-grid">
+      {#each shown as row (`${row.containerId}/${row.batchId}`)}
+        <button
+          class="plant-card production-row"
+          onclick={() => onOpen(row.labelCode)}
+        >
+          <PlantThumb
+            url={row.hasPhoto ? `/api/plants/${row.plantId}/photo` : null}
+          />
+          <span class="plant-names">
+            <strong
+              >{row.quantity} {plantName(row.commonName, row.variety)}</strong
+            >
+            <span class="muted">
+              {[row.labelCode, row.locationName, row.potSizeName]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+            <span class="muted">
+              <span class="pill">{stageLabel(row.stage)}</span>
+              {timeAtStage(row.stageSince, now)}
+            </span>
           </span>
-          <span class="muted">
-            <span class="pill">{stageLabel(row.stage)}</span>
-            {timeAtStage(row.stageSince, now)}
-          </span>
-        </span>
-      </button>
-    {/each}
+        </button>
+      {/each}
+    </div>
   </div>
 
   <button class="back mobile-only" onclick={onBack}>Back</button>

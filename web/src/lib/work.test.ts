@@ -41,6 +41,7 @@ const action = (
   potSizeName: "9cm",
   details: {},
   lines: [line],
+  recordedBy: "Jo Reed",
   ...overrides,
 });
 

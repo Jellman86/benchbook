@@ -3592,6 +3592,7 @@ export interface paths {
             parameters: {
                 query?: {
                     limit?: number | string;
+                    everyone?: boolean;
                 };
                 header?: never;
                 path?: never;
@@ -4612,12 +4613,26 @@ export interface components {
         Figures: {
             plants: components["schemas"]["PlantFigures"][];
             losses: components["schemas"]["LossFigures"][];
+            bySupplier: components["schemas"]["GroupFigures"][];
+            byPlace: components["schemas"]["GroupFigures"][];
+            bySeason: components["schemas"]["GroupFigures"][];
         };
         GerminatedRequest: {
             /** Format: uuid */
             eventId: string;
             /** Format: date-time */
             occurredAt: string;
+        };
+        GroupFigures: {
+            name: string;
+            /** Format: int32 */
+            started: number | string;
+            /** Format: int32 */
+            lost: number | string;
+            /** Format: double */
+            germinationRate: null | number | string;
+            /** Format: double */
+            survivalRate: null | number | string;
         };
         HealthResponse: {
             status: string;
@@ -5026,6 +5041,7 @@ export interface components {
             potSizeName: null | string;
             details: components["schemas"]["JsonElement"];
             lines: components["schemas"]["RecentLine"][];
+            recordedBy: null | string;
         };
         RecentLine: {
             /** Format: uuid */
