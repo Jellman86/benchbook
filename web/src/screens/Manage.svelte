@@ -18,12 +18,16 @@
     onBack,
     onBecameStation,
     onStartBatch,
+    onOpenTray,
+    onMoveTraysHere,
   }: {
     section: ManageSection | null;
     onSection: (section: ManageSection | null) => void;
     onBack: () => void;
     onBecameStation: () => void;
     onStartBatch: (prefill: BatchPrefill) => void;
+    onOpenTray: (label: string) => void;
+    onMoveTraysHere: (id: string) => void;
   } = $props();
 
   const back = () => onSection(null);
@@ -44,7 +48,7 @@
 {:else if section === "suppliers"}
   <Suppliers onBack={back} />
 {:else if section === "places"}
-  <Locations onBack={back} />
+  <Locations onBack={back} {onOpenTray} {onMoveTraysHere} />
 {:else if section === "signIn"}
   <ExternalSignIn onBack={back} />
 {:else if section === "stations"}

@@ -32,6 +32,10 @@
   import Sidebar from "./Sidebar.svelte";
   import Camera from "./work/Camera.svelte";
   import ContainerView from "./work/ContainerView.svelte";
+  import MoveMany from "./work/MoveMany.svelte";
+  import PlaceView from "./work/PlaceView.svelte";
+  import { findPlaceByCode, isPlaceCode, type Place } from "../lib/places";
+  import { rememberedPlaces } from "../lib/offline";
   import StartBatch from "./work/StartBatch.svelte";
 
   let {
@@ -51,6 +55,8 @@
     | { name: "camera" }
     | { name: "more" }
     | { name: "production" }
+    | { name: "place"; id: string }
+    | { name: "moveMany"; destination?: string | null }
     | { name: "plants" }
     | { name: "manage"; section: ManageSection | null };
 
@@ -196,10 +202,32 @@
     void goHome();
   }
 
+  async function openPlace(code: string) {
+    let places: Place[];
+
+    try {
+      places = (await api.GET("/api/locations")).data ?? [];
+    } catch {
+      places = rememberedPlaces() as Place[];
+    }
+
+    const place = findPlaceByCode(code, places);
+
+    if (place) {
+      done = null;
+      problem = "";
+      view = { name: "place", id: place.id };
+    } else {
+      problem = `No place has the label ${code.trim()}.`;
+    }
+  }
+
   function open(code: string, fromProduction = false) {
     const scanned = code.trim();
 
-    if (scanned) {
+    if (isPlaceCode(scanned)) {
+      void openPlace(scanned);
+    } else if (scanned) {
       done = null;
       problem = "";
       view = { name: "container", label: scanned, fromProduction };
@@ -362,11 +390,26 @@
       onBack={goHome}
       onBecameStation={onSignedOut}
       onStartBatch={(prefill) => (view = { name: "start", prefill })}
+      onOpenTray={(code) => open(code)}
+      onMoveTraysHere={(id) => (view = { name: "moveMany", destination: id })}
     />
   {:else if view.name === "start"}
     <StartBatch prefill={view.prefill} onDone={finishWork} onCancel={goHome} />
   {:else if view.name === "camera"}
     <Camera onScan={open} onCancel={goHome} />
+  {:else if view.name === "place"}
+    {#key view.id}
+      <PlaceView
+        placeId={view.id}
+        canManage={me.isOwner}
+        onBack={goHome}
+        onOpenTray={(code) => open(code)}
+        onOpenPlace={(id) => (view = { name: "place", id })}
+        onMoveTraysHere={(id) => (view = { name: "moveMany", destination: id })}
+      />
+    {/key}
+  {:else if view.name === "moveMany"}
+    <MoveMany destination={view.destination} onFinished={goHome} />
   {:else if view.name === "plants"}
     <Plants canManage={false} onBack={goHome} />
   {:else if view.name === "production"}
@@ -468,6 +511,11 @@
               onclick={() => (view = { name: "camera" })}>Use camera</button
             >
           {/if}
+          <button
+            class="secondary"
+            onclick={() => (view = { name: "moveMany" })}
+            >Move several trays</button
+          >
 
           {#if atBench}
             <button onclick={() => (view = { name: "start" })}>New batch</button

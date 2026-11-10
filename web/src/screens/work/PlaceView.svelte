@@ -1,0 +1,352 @@
+<script lang="ts">
+  import { onMount } from "svelte";
+  import { api } from "../../api/client";
+  import { stopUsing } from "../../lib/archive";
+  import { stageLabel } from "../../lib/production";
+  import {
+    kindLabel,
+    possibleParents,
+    byContainer,
+    trayPlaces,
+    withEverythingInside,
+    type Place,
+  } from "../../lib/places";
+  import { recordWork } from "../../lib/queue";
+  import { attempt, type Schemas } from "../../lib/types";
+  import { isRecorded, plantName, work } from "../../lib/work";
+  import AddPlaces from "../manage/AddPlaces.svelte";
+  import EntryPhotos from "../manage/EntryPhotos.svelte";
+  import Loading from "./Loading.svelte";
+
+  let {
+    placeId,
+    canManage = false,
+    onBack,
+    onOpenTray,
+    onOpenPlace,
+    onMoveTraysHere,
+  }: {
+    placeId: string;
+    canManage?: boolean;
+    onBack: () => void;
+    onOpenTray: (label: string) => void;
+    onOpenPlace: (id: string) => void;
+    onMoveTraysHere: (id: string) => void;
+  } = $props();
+
+  type Row = Schemas["ProductionRow"];
+
+  let places = $state<Place[]>([]);
+  let rows = $state<Row[]>([]);
+  let loaded = $state(false);
+  let problem = $state("");
+  let message = $state("");
+  let busy = $state(false);
+  let task = $state<"move" | "moveAll" | "rename" | "add" | null>(null);
+  let newName = $state("");
+  let newParent = $state("");
+  let destination = $state("");
+
+  const place = $derived(places.find((item) => item.id === placeId));
+  const inside = $derived(
+    places
+      .filter((item) => item.parentId === placeId && !item.archived)
+      .sort((a, b) => a.name.localeCompare(b.name, "en-GB", { numeric: true })),
+  );
+  const here = $derived(withEverythingInside(placeId, places));
+  const trays = $derived(
+    byContainer(
+      rows.filter((row) => row.locationId && here.has(row.locationId)),
+    ),
+  );
+  const plantCount = $derived(
+    trays.flat().reduce((total, row) => total + Number(row.quantity), 0),
+  );
+  const destinations = $derived(
+    trayPlaces(places).filter((option) => !here.has(option.id)),
+  );
+
+  const setProblem = (text: string) => (problem = text);
+
+  async function load() {
+    places = (await api.GET("/api/locations")).data ?? [];
+    rows = (await api.GET("/api/production")).data ?? [];
+    loaded = true;
+  }
+
+  onMount(() => void attempt(load, setProblem));
+
+  const rename = (event: SubmitEvent) => {
+    event.preventDefault();
+
+    return attempt(async () => {
+      const { response } = await api.PUT("/api/locations/{id}", {
+        params: { path: { id: placeId } },
+        body: { name: newName },
+      });
+      problem = response.ok
+        ? ""
+        : "There's already a place with that name there.";
+      task = response.ok ? null : task;
+      await load();
+    }, setProblem);
+  };
+
+  const moveInto = (event: SubmitEvent) => {
+    event.preventDefault();
+
+    return attempt(async () => {
+      const { response } = await api.PUT("/api/locations/{id}/parent", {
+        params: { path: { id: placeId } },
+        body: { parentId: newParent },
+      });
+      problem = response.ok
+        ? ""
+        : response.status === 409
+          ? "There's already a place with that name there."
+          : "It can't go there.";
+      task = response.ok ? null : task;
+      await load();
+    }, setProblem);
+  };
+
+  /** Moves every tray here, and in the places inside, to one other place. */
+  async function moveEverything() {
+    const target = destinations.find((option) => option.id === destination);
+
+    if (
+      !target ||
+      !confirm(
+        `Move all ${trays.length} trays and pot groups to ${target.label}?`,
+      )
+    ) {
+      return;
+    }
+
+    busy = true;
+    let moved = 0;
+
+    for (const lines of trays) {
+      const outcome = await recordWork(
+        work.move(lines[0].containerId, { locationId: target.id }),
+      );
+      moved += isRecorded(outcome) ? 1 : 0;
+    }
+
+    busy = false;
+    task = null;
+    message = `Moved ${moved} of ${trays.length} to ${target.label}.`;
+    await load();
+  }
+
+  const retire = () =>
+    attempt(async () => {
+      if (!place) {
+        return;
+      }
+
+      const refused = await stopUsing("locations", place.id, place.name);
+
+      if (refused) {
+        problem = refused;
+      } else {
+        onBack();
+      }
+    }, setProblem);
+</script>
+
+<main>
+  {#if !loaded}
+    <Loading text="Opening this place…" />
+  {:else if !place}
+    <p class="problem" role="alert">That place couldn't be found.</p>
+  {:else}
+    <header class="plant-title">
+      <h1>{place.name}</h1>
+      <p class="muted">
+        {kindLabel(place.kind)}{place.path !== place.name
+          ? ` in ${place.path.slice(0, place.path.lastIndexOf(","))}`
+          : ""} · {place.labelCode}
+      </p>
+    </header>
+
+    {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+    {#if message}<p class="card done" role="status">{message}</p>{/if}
+
+    <div class="plant-layout">
+      <aside class="plant-side">
+        <EntryPhotos
+          entry="Location"
+          id={place.id}
+          photoIds={place.photoIds as string[]}
+          onChanged={load}
+          onProblem={setProblem}
+        />
+
+        <dl class="facts card">
+          <dt>Trays and pots</dt>
+          <dd>{trays.length}</dd>
+          <dt>Plants</dt>
+          <dd>{plantCount}</dd>
+          <dt>Places inside</dt>
+          <dd>{inside.length}</dd>
+        </dl>
+
+        <div class="stack">
+          <button onclick={() => onMoveTraysHere(place!.id)}
+            >Move trays here</button
+          >
+          {#if trays.length > 0}
+            <button
+              class="secondary"
+              onclick={() => (task = task === "moveAll" ? null : "moveAll")}
+              >Move everything here…</button
+            >
+          {/if}
+          {#if task === "moveAll"}
+            <div class="card stack">
+              <label>
+                Move all {trays.length} to
+                <select bind:value={destination}>
+                  <option value="">Choose…</option>
+                  {#each destinations as option (option.id)}
+                    <option value={option.id}>{option.label}</option>
+                  {/each}
+                </select>
+              </label>
+              <button disabled={busy || !destination} onclick={moveEverything}
+                >Move them</button
+              >
+            </div>
+          {/if}
+          <a
+            class="button secondary"
+            href="/api/labels/places/{place.id}"
+            target="_blank"
+            rel="noopener">Print place label</a
+          >
+        </div>
+
+        {#if canManage}
+          <div class="row plant-actions">
+            <button
+              class="secondary"
+              onclick={() => {
+                task = "rename";
+                newName = place!.name;
+              }}>Rename</button
+            >
+            {#if place.kind !== "Site"}
+              <button
+                class="secondary"
+                onclick={() => {
+                  task = "move";
+                  newParent = place!.parentId ?? "";
+                }}>Move into…</button
+              >
+            {/if}
+            <button class="secondary" onclick={() => (task = "add")}
+              >Add inside</button
+            >
+            <button class="secondary" onclick={retire}>No longer used</button>
+          </div>
+          {#if task === "rename"}
+            <form class="card stack" onsubmit={rename}>
+              <label>Name <input bind:value={newName} required /></label>
+              <div class="row">
+                <button type="submit">Save</button>
+                <button
+                  type="button"
+                  class="secondary"
+                  onclick={() => (task = null)}>Cancel</button
+                >
+              </div>
+            </form>
+          {:else if task === "move"}
+            <form class="card stack" onsubmit={moveInto}>
+              <label>
+                Put it inside
+                <select bind:value={newParent} required>
+                  {#each possibleParents(place.id, places) as option (option.id)}
+                    <option value={option.id}>{option.path}</option>
+                  {/each}
+                </select>
+              </label>
+              <div class="row">
+                <button type="submit">Move it</button>
+                <button
+                  type="button"
+                  class="secondary"
+                  onclick={() => (task = null)}>Cancel</button
+                >
+              </div>
+            </form>
+          {:else if task === "add"}
+            <div class="card">
+              <AddPlaces
+                {places}
+                inside={place.id}
+                onAdded={async () => {
+                  task = null;
+                  await load();
+                }}
+              />
+            </div>
+          {/if}
+        {/if}
+      </aside>
+
+      <div class="plant-main">
+        {#if inside.length > 0}
+          <section class="stack">
+            <h2>Inside</h2>
+            <div class="card-grid">
+              {#each inside as child (child.id)}
+                <button
+                  class="plant-card"
+                  onclick={() => onOpenPlace(child.id)}
+                >
+                  <span class="plant-names">
+                    <strong>{child.name}</strong>
+                    <em>{kindLabel(child.kind)}</em>
+                  </span>
+                </button>
+              {/each}
+            </div>
+          </section>
+        {/if}
+
+        <section class="stack">
+          <h2>What's here</h2>
+          {#each trays as lines (lines[0].containerId)}
+            <button
+              class="plant-card"
+              onclick={() => onOpenTray(lines[0].labelCode)}
+            >
+              <span class="plant-names">
+                <strong>{lines[0].labelCode}</strong>
+                {#each lines as line (line.batchId)}
+                  <span
+                    >{line.quantity}
+                    {plantName(line.commonName, line.variety)} · {stageLabel(
+                      line.stage,
+                    )}</span
+                  >
+                {/each}
+                {#if lines[0].locationId !== place.id}
+                  <em>{lines[0].locationName}</em>
+                {/if}
+              </span>
+            </button>
+          {:else}
+            <p class="note-empty muted">
+              Nothing is growing here at the moment.
+            </p>
+          {/each}
+        </section>
+      </div>
+    </div>
+  {/if}
+
+  <button class="back" onclick={onBack}>Back</button>
+</main>

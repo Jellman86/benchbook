@@ -27,6 +27,8 @@ namespace GrowLog.Api.Data.Migrations
 
             modelBuilder.HasSequence("container_numbers");
 
+            modelBuilder.HasSequence("place_numbers");
+
             modelBuilder.Entity("GrowLog.Api.Accounts.AppUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -622,6 +624,13 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("kind");
 
+                    b.Property<string>("LabelCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasColumnName("label_code")
+                        .HasDefaultValueSql("'P' || lpad(nextval('place_numbers')::text, 4, '0')");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("citext")
@@ -634,6 +643,10 @@ namespace GrowLog.Api.Data.Migrations
                     b.HasKey("Id")
                         .HasName("pk_locations");
 
+                    b.HasIndex("LabelCode")
+                        .IsUnique()
+                        .HasDatabaseName("ix_locations_label_code");
+
                     b.HasIndex("ParentId", "Name")
                         .IsUnique()
                         .HasDatabaseName("ix_locations_parent_id_name");
@@ -642,7 +655,7 @@ namespace GrowLog.Api.Data.Migrations
 
                     b.ToTable("locations", null, t =>
                         {
-                            t.HasCheckConstraint("ck_locations_kind", "kind IN ('Site', 'Greenhouse', 'Polytunnel', 'Bench', 'Bay')");
+                            t.HasCheckConstraint("ck_locations_kind", "kind IN ('Site', 'Greenhouse', 'Polytunnel', 'Bench', 'Bay', 'StandingBed', 'ColdFrame', 'SalesArea', 'Area')");
 
                             t.HasCheckConstraint("ck_locations_parent", "(kind = 'Site') = (parent_id IS NULL)");
                         });

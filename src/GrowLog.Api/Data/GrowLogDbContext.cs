@@ -82,6 +82,7 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         // Short numbers for traceability codes and labels, so they stay easy to read and scan.
         modelBuilder.HasSequence<long>("batch_numbers");
         modelBuilder.HasSequence<long>("container_numbers");
+        modelBuilder.HasSequence<long>("place_numbers");
 
         ConfigureEvents(modelBuilder);
         ConfigureCatalogue(modelBuilder);
@@ -343,6 +344,10 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.Name).HasColumnType("citext");
             entity.Property(e => e.Kind).HasConversion<string>();
+            entity.Property(e => e.LabelCode)
+                .HasDefaultValueSql("'P' || lpad(nextval('place_numbers')::text, 4, '0')")
+                .ValueGeneratedOnAdd();
+            entity.HasIndex(e => e.LabelCode).IsUnique();
             entity.HasIndex(e => new { e.ParentId, e.Name }).IsUnique().AreNullsDistinct(false);
             entity.HasOne<Location>().WithMany().HasForeignKey(e => e.ParentId).OnDelete(DeleteBehavior.Restrict);
         });

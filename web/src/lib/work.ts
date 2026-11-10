@@ -293,8 +293,12 @@ export function placeLabel(
 /** Places a container can actually stand in. */
 export function workPlaces(all: Schemas["LocationResponse"][]) {
   return all
-    .filter((place) => place.kind !== "Site")
-    .map((place) => ({ id: place.id, label: placeLabel(place, all) }));
+    .filter((place) => place.kind !== "Site" && !place.archived)
+    .map((place) => ({
+      id: place.id,
+      label: place.path || placeLabel(place, all),
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, "en-GB", { numeric: true }));
 }
 
 /** iNaturalist names the photographer twice when they uploaded it too; once reads better. */

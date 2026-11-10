@@ -5,4 +5,5 @@ internal enum LabelKind
     ContainerLabel,
     PlantLabel,
     BenchCard,
+    PlaceLabel,
 }

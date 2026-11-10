@@ -13,6 +13,7 @@ internal static class LabelEndpoints
         labels.MapGet("/containers/{label}", PrintContainerLabelAsync).ProducesPdf();
         labels.MapGet("/plants/{id:guid}", PrintPlantLabelAsync).ProducesPdf();
         labels.MapGet("/bench-cards/{id:guid}", PrintBenchCardAsync).ProducesPdf();
+        labels.MapGet("/places/{id:guid}", PrintPlaceLabelAsync).ProducesPdf();
     }
 
     private static RouteHandlerBuilder ProducesPdf(this RouteHandlerBuilder builder) =>
@@ -59,6 +60,20 @@ internal static class LabelEndpoints
         };
 
         return Pdf(await printer.RenderAsync(LabelKind.ContainerLabel, data, container.LabelCode, cancellationToken), container.LabelCode);
+    }
+
+    /// <summary>A label for a bench or bed, so moving a tray can be "scan the tray, scan the bench".</summary>
+    private static async Task<IResult> PrintPlaceLabelAsync(Guid id, GrowLogDbContext db, LabelPrinter printer, CancellationToken cancellationToken)
+    {
+        if (await db.Locations.AsNoTracking().FirstOrDefaultAsync(place => place.Id == id, cancellationToken) is not { } place)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var paths = await Catalogue.PlacePaths.LoadAsync(db, cancellationToken);
+        var data = new { code = place.LabelCode, name = place.Name, path = paths.GetValueOrDefault(place.Id) ?? place.Name };
+
+        return Pdf(await printer.RenderAsync(LabelKind.PlaceLabel, data, place.LabelCode, cancellationToken), place.LabelCode);
     }
 
     private static async Task<IResult> PrintPlantLabelAsync(

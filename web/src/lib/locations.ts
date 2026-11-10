@@ -21,7 +21,7 @@ export function nestLocations<T extends Place>(
 
   const visit = (parent: string | null, depth: number) => {
     const children = [...(childrenOf.get(parent) ?? [])].sort((a, b) =>
-      a.name.localeCompare(b.name),
+      a.name.localeCompare(b.name, "en-GB", { numeric: true }),
     );
 
     for (const place of children) {

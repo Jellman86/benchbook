@@ -4,7 +4,13 @@
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import type { Schemas } from "../../lib/types";
-  import { isRecorded, outcomeProblem, work, workPlaces } from "../../lib/work";
+  import {
+    findPlaceByCode,
+    isPlaceCode,
+    trayPlaces,
+    type Place,
+  } from "../../lib/places";
+  import { isRecorded, outcomeProblem, work } from "../../lib/work";
   import ActionFrame from "./ActionFrame.svelte";
 
   let {
@@ -17,20 +23,20 @@
     onCancel: () => void;
   } = $props();
 
+  let all = $state<Place[]>([]);
   let places = $state<{ id: string; label: string }[]>([]);
+  let code = $state("");
   let problem = $state("");
   let busy = $state(false);
 
   onMount(async () => {
-    let all;
-
     try {
       all = (await api.GET("/api/locations")).data ?? [];
     } catch {
-      all = rememberedPlaces();
+      all = rememberedPlaces() as Place[];
     }
 
-    places = workPlaces(all).filter(
+    places = trayPlaces(all).filter(
       (place) => place.id !== container.locationId,
     );
   });
@@ -48,9 +54,29 @@
       problem = outcomeProblem(outcome);
     }
   }
+
+  function scanned(event: SubmitEvent) {
+    event.preventDefault();
+    const place = isPlaceCode(code) ? findPlaceByCode(code, all) : undefined;
+    const option = places.find((item) => item.id === place?.id);
+    code = "";
+
+    if (option) {
+      void move(option);
+    } else {
+      problem = "That isn't the label of a place this can go.";
+    }
+  }
 </script>
 
 <ActionFrame title="Move to" {problem} {onCancel}>
+  <form class="stack" onsubmit={scanned}>
+    <label>
+      Scan the place's label
+      <input bind:value={code} autocomplete="off" autocapitalize="characters" />
+    </label>
+  </form>
+  <p class="muted">Or choose:</p>
   <div class="stack">
     {#each places as place (place.id)}
       <button class="secondary" disabled={busy} onclick={() => move(place)}

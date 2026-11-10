@@ -3609,6 +3609,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/locations/{id}/parent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MovePlaceRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/locations/several": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AddPlacesRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlacesCreated"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/labels/containers/{label}": {
         parameters: {
             query?: never;
@@ -3682,6 +3760,41 @@ export interface paths {
         trace?: never;
     };
     "/api/labels/bench-cards/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/labels/places/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -4265,6 +4378,16 @@ export interface components {
         AddOwnPasskeyRequest: {
             credential: components["schemas"]["JsonElement"];
         };
+        AddPlacesRequest: {
+            kind: components["schemas"]["LocationKind"];
+            /** Format: uuid */
+            parentId: string;
+            prefix: string;
+            /** Format: int32 */
+            from: number | string;
+            /** Format: int32 */
+            to: number | string;
+        };
         AddPlantNoteRequest: {
             text: string;
         };
@@ -4480,7 +4603,7 @@ export interface components {
             speciesId: string;
         };
         /** @enum {unknown} */
-        LocationKind: "Site" | "Greenhouse" | "Polytunnel" | "Bench" | "Bay";
+        LocationKind: "Site" | "Greenhouse" | "Polytunnel" | "Bench" | "Bay" | "StandingBed" | "ColdFrame" | "SalesArea" | "Area";
         LocationRequest: {
             name: string;
             kind: components["schemas"]["LocationKind"];
@@ -4497,6 +4620,7 @@ export interface components {
             archived: boolean;
             photoIds: string[];
             path: string;
+            labelCode: string;
         };
         LossFigures: {
             reason: string;
@@ -4527,6 +4651,10 @@ export interface components {
             income: number | string;
             /** Format: double */
             spending: number | string;
+        };
+        MovePlaceRequest: {
+            /** Format: uuid */
+            parentId: string;
         };
         MoveRequest: {
             /** Format: uuid */
@@ -4617,6 +4745,9 @@ export interface components {
         PhotoAdded: {
             /** Format: uuid */
             id: string;
+        };
+        PlacesCreated: {
+            ids: string[];
         };
         PlantCardResponse: {
             /** Format: uuid */
@@ -4756,6 +4887,8 @@ export interface components {
             potSizeName: null | string;
             supplierName: null | string;
             hasPhoto: boolean;
+            /** Format: uuid */
+            locationId: null | string;
         };
         /** @enum {unknown} */
         ProductionStage: "Sown" | "Cuttings" | "BoughtIn" | "Germinated" | "PrickedOut" | "PottedOn" | "Ready" | null;

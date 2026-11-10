@@ -1,5 +1,6 @@
 namespace GrowLog.Api.Data;
 
+/// <summary>What sort of place it is. Only a site stands on its own; anything else can sit inside any other place.</summary>
 internal enum LocationKind
 {
     Site,
@@ -7,4 +8,8 @@ internal enum LocationKind
     Polytunnel,
     Bench,
     Bay,
+    StandingBed,
+    ColdFrame,
+    SalesArea,
+    Area,
 }

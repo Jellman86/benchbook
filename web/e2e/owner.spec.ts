@@ -140,26 +140,42 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(page.getByText("Hillside Plants")).toBeVisible();
   await leaveManage(page);
 
+  // Places: a site, a greenhouse in it, then numbered benches in one go.
   await openManage(page, "Places");
+  await page.getByLabel("Type").selectOption("Site");
   await page.getByLabel("Name", { exact: true }).fill("Croft");
   await button(page, "Add").click();
   await expect(
-    page.locator(".card strong", { hasText: "Croft" }),
+    page.locator(".place-row strong", { hasText: "Croft" }),
   ).toBeVisible();
   await page.getByLabel("Type").selectOption("Greenhouse");
   await page.getByLabel("Inside").selectOption({ label: "Croft" });
   await page.getByLabel("Name", { exact: true }).fill("Greenhouse 2");
   await button(page, "Add").click();
   await expect(
-    page.locator(".card strong", { hasText: "Greenhouse 2" }),
+    page.locator(".place-row strong", { hasText: "Greenhouse 2" }),
   ).toBeVisible();
   await page.getByLabel("Type").selectOption("Bench");
   await page.getByLabel("Inside").selectOption({ label: "Greenhouse 2" });
-  await page.getByLabel("Name", { exact: true }).fill("Bench 1");
-  await button(page, "Add").click();
+  await page.getByLabel("Add several, numbered").check();
+  await page.getByLabel("Name before the number").fill("Bench");
+  await page.getByLabel("From").fill("1");
+  await page.getByLabel("To").fill("3");
+  await button(page, "Add them").click();
   await expect(
-    page.locator(".card strong", { hasText: "Bench 1" }),
+    page.locator(".place-row strong", { hasText: "Bench 3" }),
   ).toBeVisible();
+
+  // Each place has its own page, with what's inside it and a label to print.
+  await page.locator(".place-row", { hasText: "Greenhouse 2" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Greenhouse 2" }),
+  ).toBeVisible();
+  await expect(page.getByText("Bench 2", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Print place label" }),
+  ).toBeVisible();
+  await button(page, "Back").click();
   await leaveManage(page);
 
   // Money out: a purchase with its VAT, then paying it.
