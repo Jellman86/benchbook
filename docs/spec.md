@@ -33,6 +33,8 @@ Mainly large greenhouses, possibly a polytunnel later.
 
 Labels must survive wet conditions: polypropylene or polyester stock with resin thermal transfer, or laser-printed plastic tags. Direct thermal labels fade and peel. Printer and stock must be chosen before stage 1 ships.
 
+The owner sets the nursery's name, address, registration and VAT numbers and logo once, under Manage. Each kind of label (plant label, bench card, tray label, place label) has a fixed, tested layout with a text size, a size in millimetres to match the label stock, and switches for what it shows: logo, nursery name, Latin name, price and care. A sample is drawn as the owner changes these, before saving. Any label can be printed as several copies at once. A free-form label designer is not planned: fixed layouts can't clip or misprint, and the plant passport must stay separate.
+
 ## Core concepts
 
 - **Operator:** the nursery itself. Registration number for passport Part B, site addresses, authorisation renewal date, and VAT status.

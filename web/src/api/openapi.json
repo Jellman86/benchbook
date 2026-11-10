@@ -2858,6 +2858,131 @@
         }
       }
     },
+    "/api/settings/nursery": {
+      "get": {
+        "tags": [
+          "NurserySettingsEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NurseryDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "NurserySettingsEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NurseryDetails"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/settings/nursery/logo": {
+      "get": {
+        "tags": [
+          "NurserySettingsEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "NurserySettingsEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "NurserySettingsEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/settings/labels": {
+      "get": {
+        "tags": [
+          "NurserySettingsEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/LabelStyle"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/labels/{kind}": {
+      "put": {
+        "tags": [
+          "NurserySettingsEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/LabelKind"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabelStyle"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/labels/containers/{label}": {
       "get": {
         "tags": [
@@ -2870,6 +2995,19 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "copies",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 1
             }
           }
         ],
@@ -2902,6 +3040,19 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "copies",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 1
+            }
           }
         ],
         "responses": {
@@ -2924,6 +3075,19 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "copies",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 1
             }
           }
         ],
@@ -2948,8 +3112,53 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "copies",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 1
+            }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/labels/preview/{kind}": {
+      "post": {
+        "tags": [
+          "LabelEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/LabelKind"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabelStyle"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -4232,6 +4441,73 @@
         }
       },
       "JsonElement": { },
+      "LabelKind": {
+        "enum": [
+          "ContainerLabel",
+          "PlantLabel",
+          "BenchCard",
+          "PlaceLabel"
+        ]
+      },
+      "LabelLayout": {
+        "enum": [
+          "Compact",
+          "Standard",
+          "Large"
+        ]
+      },
+      "LabelStyle": {
+        "required": [
+          "layout",
+          "widthMm",
+          "heightMm",
+          "showLogo",
+          "showNurseryName",
+          "showBotanical",
+          "showPrice",
+          "showCare"
+        ],
+        "type": "object",
+        "properties": {
+          "layout": {
+            "$ref": "#/components/schemas/LabelLayout"
+          },
+          "widthMm": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "heightMm": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "showLogo": {
+            "type": "boolean"
+          },
+          "showNurseryName": {
+            "type": "boolean"
+          },
+          "showBotanical": {
+            "type": "boolean"
+          },
+          "showPrice": {
+            "type": "boolean"
+          },
+          "showCare": {
+            "type": "boolean"
+          },
+          "isSensible": {
+            "type": "boolean"
+          }
+        }
+      },
       "LineRequest": {
         "required": [
           "description",
@@ -4612,6 +4888,66 @@
           },
           "note": {
             "type": "string"
+          }
+        }
+      },
+      "NurseryDetails": {
+        "required": [
+          "name",
+          "address",
+          "phone",
+          "email",
+          "website",
+          "registrationNumber",
+          "vatNumber",
+          "hasLogo"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "website": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "registrationNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "vatNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasLogo": {
+            "type": "boolean"
           }
         }
       },
@@ -6910,6 +7246,9 @@
     },
     {
       "name": "PlaceEndpoints"
+    },
+    {
+      "name": "NurserySettingsEndpoints"
     },
     {
       "name": "LabelEndpoints"

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PrintButton from "../PrintButton.svelte";
   import BatchPhotos from "./BatchPhotos.svelte";
   import PlantCard from "./PlantCard.svelte";
   import { onMount } from "svelte";
@@ -209,14 +210,12 @@
             >
           {/each}
         </div>
-        <a
-          class="button secondary"
+        <PrintButton
           href="/api/labels/containers/{encodeURIComponent(
             container.labelCode,
           )}"
-          target="_blank"
-          rel="noopener">Print label</a
-        >
+          label="Print label"
+        />
       </section>
 
       {#if history.length > 0}

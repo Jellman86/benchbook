@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using Xunit;
 using static GrowLog.Tests.AccountHarness;
 
@@ -125,5 +126,79 @@ public sealed class LabelTests(PostgresFixture database)
         using var stranger = Client(nursery.App);
 
         Assert.Equal(HttpStatusCode.Unauthorized, await GetStatusAsync(stranger, "/api/labels/containers/C000001"));
+    }
+
+    private static readonly byte[] Png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
+
+    private static async Task<HttpStatusCode> PutBytesAsync(HttpClient client, string path, byte[] content)
+    {
+        using var body = new ByteArrayContent(content);
+        using var response = await client.PutAsync(Route(path), body, Cancellation);
+        return response.StatusCode;
+    }
+
+    private static int Pages(byte[] pdf) =>
+        System.Text.RegularExpressions.Regex.Count(
+            System.Text.Encoding.Latin1.GetString(pdf),
+            "/Type\\s*/Page(?![s])",
+            System.Text.RegularExpressions.RegexOptions.None,
+            TimeSpan.FromSeconds(1));
+
+    [Fact]
+    public async Task The_owner_sets_the_nurserys_details_and_logo_and_staff_can_read_them()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var details = new { name = "Croft View Nursery", address = "Croft Lane", phone = (string?)null, email = (string?)null, website = (string?)null, registrationNumber = "GB-12345", vatNumber = (string?)null, hasLogo = false };
+
+        using var refused = await nursery.Staff.PutAsJsonAsync(Route("/api/settings/nursery"), details, Cancellation);
+        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+        using var saved = await nursery.Owner.PutAsJsonAsync(Route("/api/settings/nursery"), details, Cancellation);
+        Assert.Equal(HttpStatusCode.NoContent, saved.StatusCode);
+
+        Assert.Equal(HttpStatusCode.BadRequest, await PutBytesAsync(nursery.Owner, "/api/settings/nursery/logo", "<svg/>"u8.ToArray()));
+        Assert.Equal(HttpStatusCode.NoContent, await PutBytesAsync(nursery.Owner, "/api/settings/nursery/logo", Png));
+
+        var read = await nursery.Staff.GetFromJsonAsync<JsonElement>(Route("/api/settings/nursery"), Cancellation);
+        Assert.Equal("Croft View Nursery", read.GetProperty("name").GetString());
+        Assert.Equal("GB-12345", read.GetProperty("registrationNumber").GetString());
+        Assert.True(read.GetProperty("hasLogo").GetBoolean());
+    }
+
+    [Fact]
+    public async Task A_chosen_style_with_the_logo_prints_and_copies_come_as_pages()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var plant = await AddPlantAsync(nursery.Owner, "Lavender");
+        Assert.Equal(HttpStatusCode.NoContent, await PutBytesAsync(nursery.Owner, "/api/settings/nursery/logo", Png));
+        var style = new { layout = "Large", widthMm = 50, heightMm = 30, showLogo = true, showNurseryName = true, showBotanical = true, showPrice = true, showCare = true };
+
+        using var saved = await nursery.Owner.PutAsJsonAsync(Route("/api/settings/labels/PlantLabel"), style, Cancellation);
+        Assert.Equal(HttpStatusCode.NoContent, saved.StatusCode);
+        var styles = await nursery.Staff.GetFromJsonAsync<JsonElement>(Route("/api/settings/labels"), Cancellation);
+        Assert.Equal(50, styles.GetProperty("PlantLabel").GetProperty("widthMm").GetInt32());
+
+        using var three = await nursery.Staff.GetAsync(Route($"/api/labels/plants/{plant}?copies=3"), Cancellation);
+        Assert.Equal(HttpStatusCode.OK, three.StatusCode);
+        Assert.Equal(3, Pages(await three.Content.ReadAsByteArrayAsync(Cancellation)));
+        await AssertIsPdfAsync(nursery.Staff, $"/api/labels/bench-cards/{plant}?copies=2");
+    }
+
+    [Fact]
+    public async Task The_owner_can_preview_a_style_before_saving_it_but_not_a_silly_size()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var style = new { layout = "Compact", widthMm = 40, heightMm = 20, showLogo = false, showNurseryName = false, showBotanical = true, showPrice = true, showCare = false };
+
+        foreach (var kind in new[] { "PlantLabel", "BenchCard", "ContainerLabel", "PlaceLabel" })
+        {
+            using var preview = await nursery.Owner.PostAsJsonAsync(Route($"/api/labels/preview/{kind}"), style, Cancellation);
+            Assert.Equal(HttpStatusCode.OK, preview.StatusCode);
+            Assert.Equal("application/pdf", preview.Content.Headers.ContentType?.MediaType);
+        }
+
+        using var huge = await nursery.Owner.PutAsJsonAsync(Route("/api/settings/labels/PlantLabel"), new { layout = "Compact", widthMm = 5, heightMm = 20, showLogo = false, showNurseryName = false, showBotanical = true, showPrice = true, showCare = false }, Cancellation);
+        Assert.Equal(HttpStatusCode.BadRequest, huge.StatusCode);
+        using var staff = await nursery.Staff.PostAsJsonAsync(Route("/api/labels/preview/PlantLabel"), style, Cancellation);
+        Assert.Equal(HttpStatusCode.Forbidden, staff.StatusCode);
     }
 }

@@ -13,7 +13,10 @@ internal sealed class LabelPrinter(IConfiguration configuration)
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 
-    public async Task<byte[]> RenderAsync(LabelKind kind, object data, string? qrText, CancellationToken cancellationToken)
+    public const int MostCopies = 100;
+
+    /// <summary>Renders one label, or several copies of it as pages of one PDF, in the style chosen for its kind.</summary>
+    public async Task<byte[]> RenderAsync(LabelKind kind, object data, string? qrText, LabelContext context, int copies, CancellationToken cancellationToken)
     {
         var directory = Directory.CreateTempSubdirectory("growlog-label-");
 
@@ -21,16 +24,35 @@ internal sealed class LabelPrinter(IConfiguration configuration)
         {
             var template = Path.Join(directory.FullName, "label.typ");
             var output = Path.Join(directory.FullName, "label.pdf");
+            var logo = await WriteLogoAsync(directory.FullName, context, cancellationToken);
+            var style = context.Style;
+
+            var everything = new
+            {
+                item = data,
+                copies = Math.Clamp(copies, 1, MostCopies),
+                nursery = context.NurseryName ?? string.Empty,
+                logo,
+                style = new
+                {
+                    layout = style.Layout.ToString(),
+                    showLogo = style.ShowLogo && logo.Length > 0,
+                    showNurseryName = style.ShowNurseryName && !string.IsNullOrWhiteSpace(context.NurseryName),
+                    showBotanical = style.ShowBotanical,
+                    showPrice = style.ShowPrice,
+                    showCare = style.ShowCare,
+                },
+            };
 
             await File.WriteAllTextAsync(template, await ReadTemplateAsync(kind, cancellationToken), cancellationToken);
-            await File.WriteAllTextAsync(Path.Join(directory.FullName, "data.json"), JsonSerializer.Serialize(data), cancellationToken);
+            await File.WriteAllTextAsync(Path.Join(directory.FullName, "data.json"), JsonSerializer.Serialize(everything), cancellationToken);
 
             if (qrText is not null)
             {
                 await File.WriteAllTextAsync(Path.Join(directory.FullName, "qr.svg"), QrSvg(qrText), cancellationToken);
             }
 
-            await RunTypstAsync(kind, directory.FullName, template, output, cancellationToken);
+            await RunTypstAsync(style, directory.FullName, template, output, cancellationToken);
             return await File.ReadAllBytesAsync(output, cancellationToken);
         }
         finally
@@ -55,17 +77,29 @@ internal sealed class LabelPrinter(IConfiguration configuration)
         return await reader.ReadToEndAsync(cancellationToken);
     }
 
-    private string Size(LabelKind kind, string dimension, int fallback) =>
-        (configuration.GetValue<int?>($"Labels:{kind}:{dimension}Mm") ?? fallback).ToString(CultureInfo.InvariantCulture);
-
-    private async Task RunTypstAsync(LabelKind kind, string root, string template, string output, CancellationToken cancellationToken)
+    /// <summary>Puts the logo beside the template under a fixed name, so its file name can't come from anyone.</summary>
+    private static async Task<string> WriteLogoAsync(string directory, LabelContext context, CancellationToken cancellationToken)
     {
-        var (width, height) = kind switch
+        var name = context.LogoContentType switch
         {
-            LabelKind.ContainerLabel or LabelKind.PlaceLabel => (70, 40),
-            LabelKind.PlantLabel => (70, 25),
-            _ => (105, 148),
+            "image/png" => "logo.png",
+            "image/jpeg" => "logo.jpg",
+            _ => null,
         };
+
+        if (name is null || context.Logo is not { Length: > 0 } logo)
+        {
+            return string.Empty;
+        }
+
+        await File.WriteAllBytesAsync(Path.Join(directory, name), logo, cancellationToken);
+        return name;
+    }
+
+    private async Task RunTypstAsync(LabelStyle style, string root, string template, string output, CancellationToken cancellationToken)
+    {
+        var width = style.WidthMm.ToString(CultureInfo.InvariantCulture);
+        var height = style.HeightMm.ToString(CultureInfo.InvariantCulture);
 
         var start = new ProcessStartInfo(configuration["Typst:Path"] ?? "typst")
         {
@@ -79,8 +113,8 @@ internal sealed class LabelPrinter(IConfiguration configuration)
             "compile",
             "--root", root,
             "--ignore-system-fonts",
-            "--input", $"width={Size(kind, "Width", width)}",
-            "--input", $"height={Size(kind, "Height", height)}",
+            "--input", $"width={width}",
+            "--input", $"height={height}",
             template,
             output,
         })
@@ -108,7 +142,7 @@ internal sealed class LabelPrinter(IConfiguration configuration)
 
         if (process.ExitCode != 0)
         {
-            throw new InvalidOperationException($"Typst could not make the {kind}: {await errors}");
+            throw new InvalidOperationException($"Typst could not make the label: {await errors}");
         }
     }
 }
