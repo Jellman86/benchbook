@@ -440,6 +440,25 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(page.getByRole("alert")).toContainText("https address");
   await leaveManage(page);
 
+  // A network label printer; a test print to the server's own address is refused.
+  await openSettings(page, "Printers");
+  await page.getByLabel("Name", { exact: true }).fill("Potting shed");
+  await page.getByLabel("IP address or network name").fill("127.0.0.1");
+  await page.getByLabel("Place labels").check();
+  await button(page, "Add printer").click();
+  await expect(page.getByText("Potting shed saved.")).toBeVisible();
+  await button(page, "Test print").click();
+  await expect(page.getByText("belongs to the server itself")).toBeVisible();
+  await leaveManage(page);
+
+  // A place label now prints on that printer, with a PDF still offered.
+  await openManage(page, "Places");
+  await page.locator(".place-row", { hasText: "Greenhouse 2" }).click();
+  await expect(button(page, "Print place label")).toBeVisible();
+  await expect(page.getByRole("link", { name: "PDF instead" })).toBeVisible();
+  await button(page, "Back").click();
+  await leaveManage(page);
+
   // This device becomes a bench station, which signs the owner out of it.
   await openSettings(page, "Bench stations");
   await page.getByLabel("Name for this device").fill("Potting shed");
@@ -490,10 +509,12 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(started).toContainText("Started 40 Lavender 'Munstead'");
   const label = /Label: (C\d+)/.exec((await started.innerText()) ?? "")![1];
 
-  // A new batch offers its label, and it really is a PDF.
+  // A new batch's label goes to the shed's printer, which can't be reached here, and is always a PDF too.
+  await button(page, "Print label").click();
+  await expect(page.getByText("belongs to the server itself")).toBeVisible();
   const pdf = await page.request.get(
     (await page
-      .getByRole("link", { name: "Print label" })
+      .getByRole("link", { name: "PDF instead" })
       .getAttribute("href"))!,
   );
   expect(pdf.status()).toBe(200);

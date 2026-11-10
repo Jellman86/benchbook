@@ -37,17 +37,26 @@ internal static class LabelEndpoints
     /// <summary>Opened in the browser, ready to print, rather than downloaded first.</summary>
     private static FileContentHttpResult Pdf(byte[] content) => TypedResults.File(content, "application/pdf");
 
+    private static async Task<IResult> PdfOfAsync(LabelJob? job, LabelPrinter printer, int copies, CancellationToken cancellationToken) =>
+        job is null
+            ? TypedResults.NotFound()
+            : Pdf(await printer.RenderAsync(job.Kind, job.Data, job.QrText, job.Context, copies, cancellationToken));
+
     private static async Task<IResult> PrintContainerLabelAsync(
         string label,
         GrowLogDbContext db,
         EventStore store,
         LabelPrinter printer,
         CancellationToken cancellationToken,
-        int copies = 1)
+        int copies = 1) =>
+        await PdfOfAsync(await ContainerLabelAsync(label, db, store, cancellationToken), printer, copies, cancellationToken);
+
+    /// <summary>What goes on a tray's label, or null if there's no such tray.</summary>
+    internal static async Task<LabelJob?> ContainerLabelAsync(string label, GrowLogDbContext db, EventStore store, CancellationToken cancellationToken)
     {
         if (await db.Containers.AsNoTracking().FirstOrDefaultAsync(container => container.LabelCode == label, cancellationToken) is not { } container)
         {
-            return TypedResults.NotFound();
+            return null;
         }
 
         var state = await store.GetContainerStateAsync(container.Id, cancellationToken);
@@ -70,22 +79,25 @@ internal static class LabelEndpoints
         };
 
         var context = await LabelSettings.LoadAsync(db, LabelKind.ContainerLabel, cancellationToken);
-        return Pdf(await printer.RenderAsync(LabelKind.ContainerLabel, data, container.LabelCode, context, copies, cancellationToken));
+        return new LabelJob(LabelKind.ContainerLabel, data, container.LabelCode, context);
     }
 
     /// <summary>A label for a bench or bed, so moving a tray can be "scan the tray, scan the bench".</summary>
-    private static async Task<IResult> PrintPlaceLabelAsync(Guid id, GrowLogDbContext db, LabelPrinter printer, CancellationToken cancellationToken, int copies = 1)
+    private static async Task<IResult> PrintPlaceLabelAsync(Guid id, GrowLogDbContext db, LabelPrinter printer, CancellationToken cancellationToken, int copies = 1) =>
+        await PdfOfAsync(await PlaceLabelAsync(id, db, cancellationToken), printer, copies, cancellationToken);
+
+    internal static async Task<LabelJob?> PlaceLabelAsync(Guid id, GrowLogDbContext db, CancellationToken cancellationToken)
     {
         if (await db.Locations.AsNoTracking().FirstOrDefaultAsync(place => place.Id == id, cancellationToken) is not { } place)
         {
-            return TypedResults.NotFound();
+            return null;
         }
 
         var paths = await PlacePaths.LoadAsync(db, cancellationToken);
         var data = new { code = place.LabelCode, name = place.Name, path = paths.GetValueOrDefault(place.Id) ?? place.Name };
         var context = await LabelSettings.LoadAsync(db, LabelKind.PlaceLabel, cancellationToken);
 
-        return Pdf(await printer.RenderAsync(LabelKind.PlaceLabel, data, place.LabelCode, context, copies, cancellationToken));
+        return new LabelJob(LabelKind.PlaceLabel, data, place.LabelCode, context);
     }
 
     private static async Task<IResult> PrintPlantLabelAsync(
@@ -94,11 +106,14 @@ internal static class LabelEndpoints
         GrowLogDbContext db,
         LabelPrinter printer,
         CancellationToken cancellationToken,
-        int copies = 1)
+        int copies = 1) =>
+        await PdfOfAsync(await PlantLabelAsync(id, potSizeId, db, cancellationToken), printer, copies, cancellationToken);
+
+    internal static async Task<LabelJob?> PlantLabelAsync(Guid id, Guid? potSizeId, GrowLogDbContext db, CancellationToken cancellationToken)
     {
         if (await db.Plants.AsNoTracking().Include(plant => plant.Prices).FirstOrDefaultAsync(plant => plant.Id == id, cancellationToken) is not { } plant)
         {
-            return TypedResults.NotFound();
+            return null;
         }
 
         var price = plant.Prices.FirstOrDefault(entry => entry.PotSizeId == potSizeId);
@@ -112,7 +127,7 @@ internal static class LabelEndpoints
         };
 
         var context = await LabelSettings.LoadAsync(db, LabelKind.PlantLabel, cancellationToken);
-        return Pdf(await printer.RenderAsync(LabelKind.PlantLabel, data, qrText: null, context, copies, cancellationToken));
+        return new LabelJob(LabelKind.PlantLabel, data, null, context);
     }
 
     private static async Task<IResult> PrintBenchCardAsync(
@@ -120,11 +135,14 @@ internal static class LabelEndpoints
         GrowLogDbContext db,
         LabelPrinter printer,
         CancellationToken cancellationToken,
-        int copies = 1)
+        int copies = 1) =>
+        await PdfOfAsync(await BenchCardAsync(id, db, cancellationToken), printer, copies, cancellationToken);
+
+    internal static async Task<LabelJob?> BenchCardAsync(Guid id, GrowLogDbContext db, CancellationToken cancellationToken)
     {
         if (await db.Plants.AsNoTracking().Include(plant => plant.Prices).FirstOrDefaultAsync(plant => plant.Id == id, cancellationToken) is not { } plant)
         {
-            return TypedResults.NotFound();
+            return null;
         }
 
         var potSizeNames = await db.PotSizes.AsNoTracking().ToDictionaryAsync(size => size.Id, size => size.Name, cancellationToken);
@@ -140,7 +158,7 @@ internal static class LabelEndpoints
         };
 
         var context = await LabelSettings.LoadAsync(db, LabelKind.BenchCard, cancellationToken);
-        return Pdf(await printer.RenderAsync(LabelKind.BenchCard, data, qrText: null, context, copies, cancellationToken));
+        return new LabelJob(LabelKind.BenchCard, data, null, context);
     }
 
     /// <summary>
@@ -161,8 +179,14 @@ internal static class LabelEndpoints
         }
 
         var saved = await LabelSettings.LoadAsync(db, kind, cancellationToken);
-        var context = saved with { Style = style };
+        var job = Sample(kind, saved with { Style = style });
+        var content = await printer.RenderAsync(kind, job.Data, job.QrText, job.Context, copies: 1, cancellationToken, asPicture: picture);
+        return picture ? TypedResults.File(content, "image/png") : Pdf(content);
+    }
 
+    /// <summary>A made-up label of the given kind, for previews and a printer's test print.</summary>
+    internal static LabelJob Sample(LabelKind kind, LabelContext context)
+    {
         object sample = kind switch
         {
             LabelKind.PlantLabel => new { plant = "Lavender 'Hidcote'", botanical = "Lavandula angustifolia", price = Money(4.5m), care = "Full sun · Well-drained soil · RHS H5" },
@@ -180,7 +204,6 @@ internal static class LabelEndpoints
         };
 
         var qr = kind is LabelKind.ContainerLabel or LabelKind.PlaceLabel ? "PREVIEW" : null;
-        var content = await printer.RenderAsync(kind, sample, qr, context, copies: 1, cancellationToken, asPicture: picture);
-        return picture ? TypedResults.File(content, "image/png") : Pdf(content);
+        return new LabelJob(kind, sample, qr, context);
     }
 }

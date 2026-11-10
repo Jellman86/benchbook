@@ -2996,6 +2996,179 @@
         }
       }
     },
+    "/api/printers": {
+      "get": {
+        "tags": [
+          "PrinterEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PrinterDetails"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "PrinterEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrinterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrinterAdded"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/printers/{id}": {
+      "put": {
+        "tags": [
+          "PrinterEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrinterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "PrinterEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/printers/{id}/test": {
+      "post": {
+        "tags": [
+          "PrinterEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/printers/{id}/print": {
+      "post": {
+        "tags": [
+          "PrinterEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrintRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/settings/nursery": {
       "get": {
         "tags": [
@@ -6812,6 +6985,160 @@
           }
         }
       },
+      "PrinterAdded": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "PrinterDetails": {
+        "required": [
+          "id",
+          "name",
+          "address",
+          "port",
+          "language",
+          "dotsPerInch",
+          "labels"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "port": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "language": {
+            "$ref": "#/components/schemas/PrinterLanguage"
+          },
+          "dotsPerInch": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LabelKind"
+            }
+          }
+        }
+      },
+      "PrinterLanguage": {
+        "enum": [
+          "Zpl",
+          "Tspl"
+        ]
+      },
+      "PrinterRequest": {
+        "required": [
+          "name",
+          "address",
+          "port",
+          "language",
+          "dotsPerInch",
+          "labels"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "port": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "language": {
+            "$ref": "#/components/schemas/PrinterLanguage"
+          },
+          "dotsPerInch": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LabelKind"
+            }
+          }
+        }
+      },
+      "PrintProblem": {
+        "required": [
+          "problem"
+        ],
+        "type": "object",
+        "properties": {
+          "problem": {
+            "type": "string"
+          }
+        }
+      },
+      "PrintRequest": {
+        "required": [
+          "kind",
+          "target",
+          "potSizeId"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/LabelKind"
+          },
+          "target": {
+            "type": "string"
+          },
+          "potSizeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "copies": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32",
+            "default": 1
+          }
+        }
+      },
       "ProductionRow": {
         "required": [
           "containerId",
@@ -8276,6 +8603,9 @@
     },
     {
       "name": "PlaceEndpoints"
+    },
+    {
+      "name": "PrinterEndpoints"
     },
     {
       "name": "NurserySettingsEndpoints"
