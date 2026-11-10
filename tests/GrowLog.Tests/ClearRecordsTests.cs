@@ -26,7 +26,7 @@ public sealed class ClearRecordsTests(PostgresFixture database)
     private static async Task FillAsync(TwoPersonNursery nursery)
     {
         Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(nursery.Owner, "/api/demo/load"));
-        using var details = await nursery.Owner.PutAsJsonAsync(Route("/api/settings/nursery"), new { name = "Croft View", address = "Croft Lane", phone = "", email = "", website = "", registrationNumber = "", vatNumber = (string?)null, hasLogo = false, vatRegistered = false, paymentTermsDays = 14 }, Cancellation);
+        using var details = await nursery.Owner.PutAsJsonAsync(Route("/api/settings/nursery"), new { name = "Croft View", address = "Croft Lane", phone = "", email = "", website = "", registrationNumber = "", vatNumber = "", hasLogo = false, vatRegistered = false, paymentTermsDays = 14 }, Cancellation);
         details.EnsureSuccessStatusCode();
         var customer = Json(await PostForTextAsync(nursery.Owner, "/api/customers", new { name = "Hilltop", address = "", email = "", phone = "", vatNumber = "" })).GetProperty("id").GetGuid();
         await PostForTextAsync(nursery.Owner, "/api/invoices", new { customerId = customer, notes = "", lines = new[] { new { description = "Compost", quantity = 1, unitPrice = 5m, vatRate = 0m } } });
