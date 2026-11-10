@@ -353,7 +353,6 @@ a {
 /* Saved: clear at a glance, even in sunlight, and not the green of things to press. */
 .card.done {
   border: 2px solid var(--accent);
-  border-left-width: 6px;
   background: var(--accent-surface);
 }
 
@@ -365,8 +364,8 @@ a {
 }
 
 .card.problem {
-  border-color: var(--problem);
-  border-left-width: 6px;
+  border: 2px solid var(--problem);
+  background: color-mix(in srgb, var(--problem) 8%, var(--surface));
 }
 
 .row {
@@ -941,8 +940,8 @@ button.place-row:hover:not(:disabled) {
 
 .caution {
   padding: 0.6rem 0.75rem;
-  border-left: 4px solid var(--border);
-  border-radius: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   background: color-mix(in srgb, var(--line) 50%, transparent);
   font-weight: 600;
 }
@@ -1388,7 +1387,8 @@ label.tick {
 }
 
 .form-card input.suggested {
-  border-left: 4px solid var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-surface);
 }
 
 .form-hint {
@@ -1429,7 +1429,7 @@ label.tick {
 }
 
 .plant-note-card {
-  border-left: 3px solid var(--primary);
+  background: color-mix(in srgb, var(--primary) 5%, var(--surface));
 }
 
 .note-empty {
@@ -2040,8 +2040,9 @@ button.danger:hover:not(:disabled) {
 
   .settings-nav button[aria-current="page"],
   .settings-nav button[aria-current="page"]:hover:not(:disabled) {
+    border-radius: 999px;
     background: var(--accent-surface);
-    box-shadow: inset 3px 0 0 var(--accent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
     color: var(--accent-text);
     font-weight: 700;
   }
