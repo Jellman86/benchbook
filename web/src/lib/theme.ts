@@ -25,9 +25,10 @@ function write(key: string, value: string) {
   }
 }
 
+/** Light unless someone has chosen otherwise on this device; index.html applies the same rule before drawing. */
 export function savedTheme(): Theme {
   const value = read(themeKey);
-  return value === "light" || value === "dark" ? value : "system";
+  return value === "dark" || value === "system" ? value : "light";
 }
 
 export function applyTheme(theme: Theme) {
@@ -41,7 +42,7 @@ export function applyTheme(theme: Theme) {
 }
 
 export function nextTheme(theme: Theme): Theme {
-  return theme === "system" ? "light" : theme === "light" ? "dark" : "system";
+  return theme === "light" ? "dark" : theme === "dark" ? "system" : "light";
 }
 
 export const savedCollapsed = () => read(sidebarKey) === "collapsed";

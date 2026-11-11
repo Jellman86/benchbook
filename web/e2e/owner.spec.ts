@@ -359,9 +359,8 @@ test("the owner sets up the nursery and staff can sign in", async ({
     page.getByRole("button", { name: "Expand sidebar" }),
   ).toBeVisible();
 
-  // The theme can be forced either way, or left to the device.
+  // GrowLog is light until someone chooses dark, or to follow the device.
   const root = page.locator("html");
-  await page.getByRole("button", { name: "Theme: Match device" }).click();
   await expect(root).toHaveAttribute("data-theme", "light");
   await page.getByRole("button", { name: "Theme: Light" }).click();
   await expect(root).toHaveAttribute("data-theme", "dark");
