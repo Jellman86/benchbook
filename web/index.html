@@ -18,14 +18,21 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>GrowLog</title>
     <script>
-      // Before anything is drawn, so a dark theme doesn't flash light first.
+      // Before anything is drawn, so the page never flashes the wrong theme. Light unless chosen otherwise.
+      let theme = "light";
       try {
-        const theme = localStorage.getItem("growlog.theme");
-        if (theme === "light" || theme === "dark") {
-          document.documentElement.dataset.theme = theme;
-        }
+        theme = localStorage.getItem("growlog.theme") || "light";
       } catch {
-        // Storage can be refused. The device's own setting still applies.
+        // Storage can be refused. GrowLog is then light.
+      }
+      if (theme === "light" || theme === "dark") {
+        document.documentElement.dataset.theme = theme;
+        // The browser's bar follows the chosen theme, not the device's.
+        for (const meta of document.querySelectorAll(
+          'meta[name="theme-color"]',
+        )) {
+          meta.content = theme === "dark" ? "#1b2e1c" : "#26391f";
+        }
       }
     </script>
   </head>
