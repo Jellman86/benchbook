@@ -91,7 +91,11 @@
     | { name: "place"; id: string }
     | { name: "moveMany"; destination?: string | null }
     | { name: "plants" }
-    | { name: "manage"; section: ManageSection | null };
+    | {
+        name: "manage";
+        section: ManageSection | null;
+        batchId?: string | null;
+      };
 
   // svelte-ignore state_referenced_locally
   const queue = useQueue(me.id, me.name);
@@ -243,6 +247,9 @@
       sending = false;
     }
   }
+
+  const trace = (batchId: string | null) =>
+    (view = { name: "manage", section: "trace", batchId });
 
   // A USB scanner types into the focused box, so it must always be ready.
   async function goHome() {
@@ -464,7 +471,9 @@
   {#if view.name === "manage"}
     <Manage
       section={view.section}
+      batchId={view.batchId}
       onSection={(section) => (view = { name: "manage", section })}
+      onTrace={trace}
       onBack={goHome}
       onStartBatch={(prefill) => (view = { name: "start", prefill })}
       onOpenTray={(code) => open(code)}
@@ -506,6 +515,7 @@
     {#key view.label}
       <ContainerView
         label={view.label}
+        onTrace={me.isOwner && !atBench ? trace : undefined}
         onDone={finishWork}
         onCancel={view.fromProduction
           ? () => (view = { name: "production" })

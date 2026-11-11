@@ -42,11 +42,14 @@
 
   let {
     label,
+    onTrace,
     onDone,
     onCancel,
     onNotFound,
   }: {
     label: string;
+    /** Only for the owner: opens the batch's trace report. */
+    onTrace?: (batchId: string) => void;
     onDone: (message: string, eventId: string, newLabel?: string) => void;
     onCancel: () => void;
     onNotFound: (message: string) => void;
@@ -279,9 +282,17 @@
             </p>
             <span class="muted credit">Batch {line.traceabilityCode}</span>
             <BatchPhotos batchId={line.batchId} />
-            <button class="link-button" onclick={() => openCard(line.plantId)}
-              >About this plant</button
-            >
+            <div class="row">
+              <button class="link-button" onclick={() => openCard(line.plantId)}
+                >About this plant</button
+              >
+              {#if onTrace}
+                <button
+                  class="link-button"
+                  onclick={() => onTrace(line.batchId)}>Trace this batch</button
+                >
+              {/if}
+            </div>
           </div>
         {:else}
           <p class="note-empty muted">This container is empty.</p>

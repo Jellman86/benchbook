@@ -97,6 +97,8 @@ Source: GOV.UK, "Issuing plant passports to trade plants in Great Britain", upda
 
 The system validates botanical names before issue; retains records for at least 3 years and blocks earlier deletion; flags Xylella hosts, treating a plant nobody has checked as not checked rather than as not a host; warns when taking cuttings from a protected variety; records suspected quarantine pests and prompts a call to APHA; and produces inspection, trace-back and trace-forward reports.
 
+A batch's trace report is under Manage, Trace a batch, and from "Trace this batch" on a tray; only the owner sees it, because it names customers. A batch is found by its code, by any tray or pot it has been in, or by the plant's name. The report gives where the batch came from (how it started, seed lot or reference, mother plant, country of origin, supplier with their registration number, the purchase, and the batch it was grown from), every passport received with it and its status, whether the plant is a Xylella host, how many are still growing and where, how many were lost and sold, who bought them, by invoice, with any cancelled by a credit note, the batches split from it, and everything done to it oldest first: sowing, moves into new containers, losses with their reason, treatments with product, dose and area, moves between places, counts and notes, each with who recorded it and when. Work done to a whole container counts for a batch while the batch was in it. Undone work is left out, and corrected work is shown as corrected. The report prints from the browser.
+
 ## Other legal records
 
 - **Treatments:** product, date, dose, area or crop treated, operator. Kept for at least 3 years, subject to confirmation against current HSE guidance.
