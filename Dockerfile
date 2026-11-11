@@ -5,7 +5,7 @@ RUN npm ci
 COPY web/ ./
 RUN npm run build
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:212fe4cb74627d5adf9817a4088906ae3edff1bd853bb27565d4b46731efe61e AS api
+FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:fe0fd4e93bd2fbb47c883b7a6369e5c8d3db8bf01cdc5981f6ee35fbdf3ff4fb AS api
 WORKDIR /src
 COPY global.json Directory.Build.props Directory.Packages.props .editorconfig ./
 COPY src/ src/
@@ -17,7 +17,7 @@ ADD --checksum=sha256:a6d077d0a95eed5a2eba715b2dae06be954f624ccbf85758a03f389ded
 RUN tar -xJf /tmp/typst.tar.xz -C /tmp --strip-components=1
 
 # Chiseled: no shell or package manager. "extra" keeps ICU and time zones for UK dates.
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra@sha256:a9298ccc39c6258ae71228479e2f3f8d2ceb6639a9927262a4b0ff7d319a0e7e
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra@sha256:cae5b962bfb786606def03d250c6a645cc98839095c89e806e4bd8978a68115b
 WORKDIR /app
 COPY --from=api /app ./
 COPY --from=web /src/web/dist ./wwwroot
