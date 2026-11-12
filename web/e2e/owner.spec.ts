@@ -520,7 +520,27 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(button(page, "Next")).toBeVisible();
   await button(page, "Next").click();
   await chooser(page, "Place").selectOption({ label: "Greenhouse 2, Bench 1" });
-  await expect(page.getByText("Sown yesterday")).toBeVisible();
+  await button(page, "Next").click();
+
+  // Everything is shown to check before it's recorded, and can be changed.
+  const check = page.locator(".batch-check");
+  await expect(check).toContainText("Lavender 'Munstead'");
+  await expect(check).toContainText("Hillside Plants");
+  await expect(check).toContainText("yesterday");
+  await page.getByRole("button", { name: "Change how many" }).click();
+  await button(page, "+10").click();
+  await button(page, "Next").click();
+  await button(page, "Next").click();
+  await button(page, "Next").click();
+  await button(page, "Next").click();
+  await expect(check).toContainText("50, in a tray");
+  await page.getByRole("button", { name: "Change how many" }).click();
+  await button(page, "40").click();
+  await button(page, "Next").click();
+  await button(page, "Next").click();
+  await button(page, "Next").click();
+  await button(page, "Next").click();
+  await expect(check).toContainText("40, in a tray, 9cm");
   await button(page, "Start batch").click();
   const started = page.getByRole("status");
   await expect(started).toContainText("Started 40 Lavender 'Munstead'");
@@ -544,6 +564,18 @@ test("the owner sets up the nursery and staff can sign in", async ({
     await page.getByLabel("Scan a label").fill(code);
     await page.getByLabel("Scan a label").press("Enter");
   }
+
+  // A batch's details can be corrected; the change is shown to check first.
+  await scan(label);
+  await button(page, "Edit batch").click();
+  await page.getByLabel("Lot or reference").fill("Packet 12");
+  await button(page, "Check the changes").click();
+  await expect(page.locator(".batch-check")).toContainText(
+    "Not set → Packet 12",
+  );
+  await button(page, "Save changes").click();
+  await expect(page.getByRole("status")).toContainText("corrected");
+  await button(page, "Back").click();
 
   // Scan, Lost, how many, why. Then undo it.
   await scan(label);
@@ -703,6 +735,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Next").click();
   await button(page, "Next").click();
   await button(page, "Skip photos").click();
+  await button(page, "Next").click();
   await button(page, "Start batch").click();
   await expect(page.getByRole("status")).toContainText("Started 1 Cosmos");
 

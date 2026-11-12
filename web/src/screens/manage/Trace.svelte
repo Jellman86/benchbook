@@ -5,6 +5,7 @@
   import { dayLabel, momentLabel } from "../../lib/dates";
   import {
     containerOf,
+    correctionValue,
     describeStep,
     passportStatusLabels,
     sourceLabels,
@@ -221,6 +222,28 @@
                   >{child.traceabilityCode}</button
                 >{/each}.
             </p>
+          {/if}
+
+          {#if trace.corrections.length > 0}
+            <h2>Corrections to its details</h2>
+            <ol class="timeline">
+              {#each trace.corrections as correction, index (index)}
+                <li>
+                  <span class="timeline-what"
+                    >{correction.field}: {correctionValue(correction, "before")} →
+                    {correctionValue(correction, "after")}</span
+                  >
+                  <span class="muted credit"
+                    >{momentLabel(
+                      correction.changedAt,
+                      now,
+                    )}{correction.changedBy
+                      ? `, ${correction.changedBy}`
+                      : ""}</span
+                  >
+                </li>
+              {/each}
+            </ol>
           {/if}
 
           <h2>What was done to it</h2>

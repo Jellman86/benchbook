@@ -274,6 +274,74 @@
         }
       }
     },
+    "/api/batches/{id}": {
+      "get": {
+        "tags": [
+          "BatchEditEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "BatchEditEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditRefused"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/containers/{id}/history": {
       "get": {
         "tags": [
@@ -4481,6 +4549,79 @@
           }
         }
       },
+      "BatchDetails": {
+        "required": [
+          "id",
+          "traceabilityCode",
+          "plantId",
+          "source",
+          "sourceReference",
+          "supplierId",
+          "motherPlant",
+          "originCountry",
+          "startedAt",
+          "quantity",
+          "startCanChange"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "traceabilityCode": {
+            "type": "string"
+          },
+          "plantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source": {
+            "$ref": "#/components/schemas/BatchSource"
+          },
+          "sourceReference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "supplierId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "motherPlant": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "originCountry": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "startCanChange": {
+            "type": "boolean"
+          }
+        }
+      },
       "BatchPhotoKind": {
         "enum": [
           "Packet",
@@ -4556,6 +4697,7 @@
           "parent",
           "children",
           "receivedPassports",
+          "corrections",
           "containers",
           "steps",
           "sales",
@@ -4635,6 +4777,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TracePassport"
+            }
+          },
+          "corrections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceCorrection"
             }
           },
           "containers": {
@@ -5145,6 +5293,77 @@
               "string"
             ],
             "format": "double"
+          }
+        }
+      },
+      "EditBatchRequest": {
+        "required": [
+          "plantId",
+          "source",
+          "sourceReference",
+          "supplierId",
+          "motherPlant",
+          "originCountry",
+          "startedAt",
+          "quantity"
+        ],
+        "type": "object",
+        "properties": {
+          "plantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source": {
+            "$ref": "#/components/schemas/BatchSource"
+          },
+          "sourceReference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "supplierId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "motherPlant": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "originCountry": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "EditRefused": {
+        "required": [
+          "problem"
+        ],
+        "type": "object",
+        "properties": {
+          "problem": {
+            "type": "string"
           }
         }
       },
@@ -8638,6 +8857,43 @@
           }
         }
       },
+      "TraceCorrection": {
+        "required": [
+          "changedAt",
+          "changedBy",
+          "field",
+          "before",
+          "after"
+        ],
+        "type": "object",
+        "properties": {
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "changedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "before": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "after": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "TraceMatch": {
         "required": [
           "batchId",
@@ -9100,6 +9356,9 @@
     },
     {
       "name": "WorkEndpoints"
+    },
+    {
+      "name": "BatchEditEndpoints"
     },
     {
       "name": "ContainerHistoryEndpoints"

@@ -60,7 +60,7 @@ Partial potting-on creates a new container from the same batch, and no new batch
 
 ## Main flows
 
-1. **Start a batch.** Choose or add a plant, enter quantity, source, the day it was sown, arrived or had cuttings taken (today unless changed; a batch started from a purchase takes the purchase date), and greenhouse, then print a label.
+1. **Start a batch.** Choose or add a plant, enter quantity, source, the day it was sown, arrived or had cuttings taken (today unless changed; a batch started from a purchase takes the purchase date), and greenhouse, then check everything on one page, where each answer can be changed, before the batch is started and its label printed.
 2. **Record what happened.** Scan, choose an action, confirm, with an undo for the last action. Recent actions appear as one-press shortcuts, such as "another tray of Lavender 'Hidcote', Greenhouse 2".
 3. **Record losses.** Scan, Lost, how many, why: failed to germinate, damping off, pest, disease, frost, other.
 4. **Pot on.** Scan, how many, new pot size. Prints new container labels.
@@ -75,7 +75,7 @@ A **corrected** event references the event it reverses and carries the replaceme
 
 Days are chosen with one tap for today or yesterday, or from a calendar that starts weeks on Monday and offers no day after today; work dated an earlier day is recorded at the same time of day on that day. The time a device gives for work is believed unless it is more than a few minutes ahead of the server, when the server's time is used. Work is sent with an identifier made on the device, so a resend is recognised; an identifier already used for different work is refused. Work that can't reach the server, including while it restarts, waits on the device and is sent later; work the server refuses is kept on the device so it can be tried again.
 
-Work can be undone from Recent or from a container's history, which shows who did what and when; undone work stays in the history, marked as undone. Places are shown with the places they sit in, such as "Greenhouse 2, Bench A".
+A batch's details can be corrected from its tray with Edit batch: the plant, how it started, the supplier, lot or reference, mother plant and country of origin. The day it was sown, arrived or had cuttings taken, and how many it started with, can be corrected only while nothing else has been recorded on the plants; the start is then undone and recorded again, never altered. After that a stock count corrects the number. Every correction is checked on a page showing each value before and after, is kept with who made it and when, and shows on the batch's trace report. Work can be undone from Recent or from a container's history, which shows who did what and when; undone work stays in the history, marked as undone. Places are shown with the places they sit in, such as "Greenhouse 2, Bench A".
 
 A container's location, pot size and contents are derived from its events. Location and pot size follow the order the work happened, so events arriving late from an offline device fall into place.
 

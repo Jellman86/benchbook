@@ -25,6 +25,7 @@
   import Stepper from "./Stepper.svelte";
   import DayPicker from "../DayPicker.svelte";
   import { isoDay, momentOn, onDay } from "../../lib/days";
+  import { originCountries } from "../../lib/countries";
 
   type PhotoKind = Schemas["BatchPhotoKind"] | "Plant";
 
@@ -44,7 +45,14 @@
     "Where from?",
     "Photos",
     "Where is it going?",
+    "Check and start",
   ];
+
+  const containerKinds: Record<Schemas["ContainerKind"], string> = {
+    Tray: "Tray",
+    PotGroup: "Group of pots",
+    BenchLot: "Bench lot",
+  };
 
   const photoChoices: { kind: PhotoKind; label: string }[] = [
     { kind: "Packet", label: "Seed packet" },
@@ -93,20 +101,6 @@
     BoughtIn: "Arrived",
     Cuttings: "Cuttings taken",
   };
-
-  const originCountries = [
-    { code: "GB", name: "Great Britain" },
-    { code: "IE", name: "Ireland" },
-    { code: "NL", name: "Netherlands" },
-    { code: "BE", name: "Belgium" },
-    { code: "DE", name: "Germany" },
-    { code: "DK", name: "Denmark" },
-    { code: "FR", name: "France" },
-    { code: "IT", name: "Italy" },
-    { code: "ES", name: "Spain" },
-    { code: "PT", name: "Portugal" },
-    { code: "PL", name: "Poland" },
-  ];
 
   function chooseSource(chosen: Schemas["BatchSource"]) {
     source = chosen;
@@ -231,6 +225,67 @@
     problem = "";
     goTo(stage + 1);
   }
+
+  // Back through the browser's history, so Back after changing something still behaves.
+  function change(target: number) {
+    problem = "";
+    history.go(target - stage);
+  }
+
+  /** Everything about to be recorded, each with the step that changes it. */
+  const summary = $derived.by(() => {
+    const supplier = suppliers.find((item) => item.id === supplierId)?.name;
+    const country =
+      originCountries.find((item) => item.code === originCountry)?.name ??
+      originCountry;
+    const potSize = potSizes.find((item) => item.id === potSizeId)?.name;
+    const photoCount = Object.keys(photos).length;
+    const rows: { name: string; value: string; stage: number }[] = [
+      { name: "Plant", value: chosenName, stage: 1 },
+      {
+        name: "How many",
+        value: `${quantity}, in a ${containerKinds[containerKind].toLowerCase()}${potSize ? `, ${potSize}` : ""}`,
+        stage: 2,
+      },
+      {
+        name: started[source],
+        value: onDay(startedOn).replace(/^on /, ""),
+        stage: 3,
+      },
+    ];
+
+    if (source !== "Cuttings") {
+      rows.push({
+        name: "Supplier",
+        value: supplier ?? "Not listed",
+        stage: 3,
+      });
+      if (sourceReference.trim()) {
+        rows.push({
+          name: "Lot or reference",
+          value: sourceReference.trim(),
+          stage: 3,
+        });
+      }
+    }
+
+    rows.push(
+      { name: "Country of origin", value: country, stage: 3 },
+      {
+        name: "Photos",
+        value: photoCount === 0 ? "None" : String(photoCount),
+        stage: 4,
+      },
+      {
+        name: "Place",
+        value:
+          places.find((item) => item.id === locationId)?.label ?? "Not set",
+        stage: 5,
+      },
+    );
+
+    return rows;
+  });
 
   const addSupplier = () =>
     attempt(async () => {
@@ -564,11 +619,7 @@
     <button onclick={next}
       >{Object.keys(photos).length > 0 ? "Next" : "Skip photos"}</button
     >
-  {:else}
-    <div class="card">
-      <strong>{quantity} {chosenName}</strong>
-      <span class="muted">{started[source]} {onDay(startedOn)}</span>
-    </div>
+  {:else if stage === 5}
     <label>
       Place
       <select bind:value={locationId}>
@@ -578,6 +629,25 @@
         {/each}
       </select>
     </label>
+    <button onclick={next}>Next</button>
+  {:else}
+    <p class="muted">
+      Check these before starting: the label prints with them, and the passport
+      record relies on them.
+    </p>
+    <dl class="facts card batch-check">
+      {#each summary as row (row.name)}
+        <dt>{row.name}</dt>
+        <dd>
+          <span>{row.value}</span>
+          <button class="link-button" onclick={() => change(row.stage)}
+            >Change<span class="visually-hidden">
+              {row.name.toLowerCase()}</span
+            ></button
+          >
+        </dd>
+      {/each}
+    </dl>
     <button disabled={busy} onclick={start}>Start batch</button>
   {/if}
 </ActionFrame>
