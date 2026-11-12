@@ -196,14 +196,15 @@ internal static class BatchEditEndpoints
     {
         var (batch, start, request, wanted, userId) = restart;
         var type = StartOf(wanted.Source);
-        var startedAt = request.StartedAt?.ToUniversalTime() ?? start?.Event.OccurredAt;
-        var quantity = request.Quantity ?? start?.Quantity;
 
         if (start is null)
         {
             var asked = request.StartedAt is not null || request.Quantity is not null || wanted.Source != batch.Source;
             return asked ? TypedResults.Conflict(new EditRefused("StartLocked")) : null;
         }
+
+        var startedAt = request.StartedAt?.ToUniversalTime() ?? start.Event.OccurredAt;
+        var quantity = request.Quantity ?? start.Quantity;
 
         if (startedAt == start.Event.OccurredAt && quantity == start.Quantity && type == start.Event.Type)
         {
@@ -223,14 +224,14 @@ internal static class BatchEditEndpoints
         {
             Id = Guid.CreateVersion7(),
             Type = type,
-            OccurredAt = startedAt!.Value,
+            OccurredAt = startedAt,
             RecordedBy = original.RecordedBy,
             ContainerId = original.ContainerId,
             LocationId = original.LocationId,
             PotSizeId = original.PotSizeId,
             Payload = original.Payload,
         };
-        again.Lines.Add(new EventLine { ContainerId = start.ContainerId, BatchId = batch.Id, QuantityChange = quantity!.Value });
+        again.Lines.Add(new EventLine { ContainerId = start.ContainerId, BatchId = batch.Id, QuantityChange = quantity });
 
         if (await store.AppendAsync(undo, cancellationToken) != AppendResult.Stored || await store.AppendAsync(again, cancellationToken) != AppendResult.Stored)
         {
@@ -239,12 +240,12 @@ internal static class BatchEditEndpoints
 
         if (startedAt != original.OccurredAt)
         {
-            changes["Started"] = new Change(original.OccurredAt.ToString("O", CultureInfo.InvariantCulture), startedAt.Value.ToString("O", CultureInfo.InvariantCulture));
+            changes["Started"] = new Change(original.OccurredAt.ToString("O", CultureInfo.InvariantCulture), startedAt.ToString("O", CultureInfo.InvariantCulture));
         }
 
         if (quantity != start.Quantity)
         {
-            changes["How many"] = new Change(start.Quantity.ToString(CultureInfo.InvariantCulture), quantity.Value.ToString(CultureInfo.InvariantCulture));
+            changes["How many"] = new Change(start.Quantity.ToString(CultureInfo.InvariantCulture), quantity.ToString(CultureInfo.InvariantCulture));
         }
 
         return null;

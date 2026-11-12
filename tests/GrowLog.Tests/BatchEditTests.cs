@@ -37,7 +37,7 @@ public sealed class BatchEditTests(PostgresFixture database)
         string country = "GB",
         DateTimeOffset? startedAt = null,
         int? quantity = null) =>
-        new { plantId = plant, source, sourceReference = reference, supplierId = supplier, motherPlant = (string?)null, originCountry = country, startedAt, quantity };
+        new { plantId = plant, source, sourceReference = reference, supplierId = supplier, originCountry = country, startedAt, quantity };
 
     private static async Task<int> QuantityAsync(HttpClient client, string label) =>
         (await client.GetFromJsonAsync<JsonElement>(Route($"/api/containers/by-label/{label}"), Cancellation)).GetProperty("contents")[0].GetProperty("quantity").GetInt32();
