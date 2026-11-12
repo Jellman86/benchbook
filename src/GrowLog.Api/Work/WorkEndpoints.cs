@@ -124,28 +124,23 @@ internal static class WorkEndpoints
         // Bought-in plants must say who supplied them, for the passport record.
         if ((counted && !IsValidQuantity(request.Quantity))
             || (request.Source == BatchSource.BoughtIn && request.SupplierId is null)
-            || !IsSensibleSowing(request))
+            || !IsSensibleSowing(request)
+            || (request.MotherPlantId is not null && request.Source != BatchSource.Cuttings))
         {
             return TypedResults.BadRequest();
         }
 
-        var batch = new Batch
+        // Cuttings from a mother plant take its next number. The mother is locked while it's chosen, so two people
+        // taking cuttings at once can't both have the same number.
+        await using var transaction = request.MotherPlantId is null ? null : await db.Database.BeginTransactionAsync(cancellationToken);
+        var mother = await MotherForAsync(request, db, cancellationToken);
+
+        if (request.MotherPlantId is not null && mother is null)
         {
-            PlantId = request.PlantId,
-            TraceabilityCode = await LabelCodes.NextBatchAsync(db, cancellationToken),
-            Source = request.Source,
-            SourceReference = Clean(request.SourceReference),
-            SupplierId = request.SupplierId,
-            PurchaseLineId = request.PurchaseLineId,
-            ParentBatchId = request.ParentBatchId,
-            MotherPlant = Clean(request.MotherPlant),
-            OriginCountry = request.OriginCountry.Trim().ToUpperInvariant(),
-            SowBy = request.Source == BatchSource.SeedLot ? request.SowBy : null,
-            SownAs = sownAs,
-            SownAmount = sownAs is SownMeasure.About or SownMeasure.Grams ? request.SownAmount : null,
-            PacketShare = sownAs == SownMeasure.Packet ? request.PacketShare : null,
-            PacketSays = sownAs == SownMeasure.Packet ? Clean(request.PacketSays) : null,
-        };
+            return TypedResults.BadRequest();
+        }
+
+        var batch = await NewBatchAsync(request, sownAs, mother, db, cancellationToken);
         var container = new Container { LabelCode = await LabelCodes.NextContainerAsync(db, cancellationToken), Kind = request.ContainerKind };
 
         var type = request.Source switch
@@ -160,10 +155,53 @@ internal static class WorkEndpoints
         // Tracked now and saved with the event, so a refused or repeated request leaves nothing behind.
         db.AddRange(batch, container);
 
-        return await StoreAsync(
+        var result = await StoreAsync(
             () => store.AppendAsync(work, cancellationToken),
             async () => await DescribeStartedBatchAsync(request.EventId, db, cancellationToken));
+
+        if (transaction is not null && result is IStatusCodeHttpResult { StatusCode: StatusCodes.Status200OK or StatusCodes.Status201Created })
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
+
+        return result;
     }
+
+    /// <summary>The mother plant cuttings are taken from, locked until the batch is saved; null if there's none or it won't do.</summary>
+    private static async Task<MotherPlant?> MotherForAsync(StartBatchRequest request, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        if (request.MotherPlantId is not { } motherId)
+        {
+            return null;
+        }
+
+        await db.Database.ExecuteSqlRawAsync("SELECT 1 FROM mother_plants WHERE id = {0} FOR UPDATE", [motherId], cancellationToken);
+        return await db.MotherPlants.FirstOrDefaultAsync(
+            mother => mother.Id == motherId && mother.ArchivedAt == null && mother.PlantId == request.PlantId,
+            cancellationToken);
+    }
+
+    private static async Task<Batch> NewBatchAsync(StartBatchRequest request, SownMeasure? sownAs, MotherPlant? mother, GrowLogDbContext db, CancellationToken cancellationToken) => new()
+    {
+        PlantId = request.PlantId,
+        TraceabilityCode = await LabelCodes.NextBatchAsync(db, cancellationToken),
+        Source = request.Source,
+        SourceReference = Clean(request.SourceReference),
+        SupplierId = request.SupplierId,
+        PurchaseLineId = request.PurchaseLineId,
+        ParentBatchId = request.ParentBatchId,
+        MotherPlant = mother?.Name ?? Clean(request.MotherPlant),
+        MotherPlantId = mother?.Id,
+        CuttingsRound = mother is null
+            ? null
+            : (await db.Batches.Where(batch => batch.MotherPlantId == mother.Id).MaxAsync(batch => batch.CuttingsRound, cancellationToken) ?? 0) + 1,
+        OriginCountry = request.OriginCountry.Trim().ToUpperInvariant(),
+        SowBy = request.Source == BatchSource.SeedLot ? request.SowBy : null,
+        SownAs = sownAs,
+        SownAmount = sownAs is SownMeasure.About or SownMeasure.Grams ? request.SownAmount : null,
+        PacketShare = sownAs == SownMeasure.Packet ? request.PacketShare : null,
+        PacketSays = sownAs == SownMeasure.Packet ? Clean(request.PacketSays) : null,
+    };
 
     private static bool IsSensibleSowing(StartBatchRequest request) =>
         IsSensibleSowing(request.SownAs, request.SownAmount, request.PacketShare, request.PacketSays);
@@ -577,7 +615,8 @@ internal static class WorkEndpoints
         SownMeasure? SownAs = null,
         decimal? SownAmount = null,
         PacketShare? PacketShare = null,
-        string? PacketSays = null);
+        string? PacketSays = null,
+        Guid? MotherPlantId = null);
 
     internal sealed record GerminatedRequest(Guid EventId, DateTimeOffset OccurredAt);
 

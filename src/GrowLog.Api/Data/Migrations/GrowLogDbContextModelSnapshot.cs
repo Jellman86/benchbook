@@ -186,9 +186,17 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<int?>("CuttingsRound")
+                        .HasColumnType("integer")
+                        .HasColumnName("cuttings_round");
+
                     b.Property<string>("MotherPlant")
                         .HasColumnType("text")
                         .HasColumnName("mother_plant");
+
+                    b.Property<Guid?>("MotherPlantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mother_plant_id");
 
                     b.Property<string>("OriginCountry")
                         .IsRequired()
@@ -264,6 +272,10 @@ namespace GrowLog.Api.Data.Migrations
                     b.HasIndex("TraceabilityCode")
                         .IsUnique()
                         .HasDatabaseName("ix_batches_traceability_code");
+
+                    b.HasIndex("MotherPlantId", "CuttingsRound")
+                        .IsUnique()
+                        .HasDatabaseName("ix_batches_mother_plant_id_cuttings_round");
 
                     b.ToTable("batches", null, t =>
                         {
@@ -986,6 +998,52 @@ namespace GrowLog.Api.Data.Migrations
 
                             t.HasCheckConstraint("ck_locations_parent", "(kind = 'Site') = (parent_id IS NULL)");
                         });
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.MotherPlant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("citext")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<Guid>("PlantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("plant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_mother_plants");
+
+                    b.HasIndex("LocationId")
+                        .HasDatabaseName("ix_mother_plants_location_id");
+
+                    b.HasIndex("PlantId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_mother_plants_plant_id_name");
+
+                    b.ToTable("mother_plants", (string)null);
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.NurseryJob", b =>
@@ -2119,6 +2177,12 @@ namespace GrowLog.Api.Data.Migrations
 
             modelBuilder.Entity("GrowLog.Api.Data.Batch", b =>
                 {
+                    b.HasOne("GrowLog.Api.Data.MotherPlant", null)
+                        .WithMany()
+                        .HasForeignKey("MotherPlantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_batches_mother_plants_mother_plant_id");
+
                     b.HasOne("GrowLog.Api.Data.Batch", null)
                         .WithMany()
                         .HasForeignKey("ParentBatchId")
@@ -2353,6 +2417,22 @@ namespace GrowLog.Api.Data.Migrations
                         .HasForeignKey("ParentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_locations_locations_parent_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.MotherPlant", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Location", null)
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_mother_plants_locations_location_id");
+
+                    b.HasOne("GrowLog.Api.Data.Plant", null)
+                        .WithMany()
+                        .HasForeignKey("PlantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_mother_plants_plants_plant_id");
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.NurseryJob", b =>

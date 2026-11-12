@@ -5254,6 +5254,162 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mother-plants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    plantId?: string;
+                    includeArchived?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MotherSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MotherRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MotherAdded"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mother-plants/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MotherDetails"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MotherRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mother-plants/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/purchases": {
         parameters: {
             query?: never;
@@ -6187,6 +6343,8 @@ export interface components {
             sownAmount: null | number | string;
             packetShare: null | components["schemas"]["PacketShare"];
             packetSays: null | string;
+            /** Format: uuid */
+            motherPlantId: null | string;
             /** Format: date-time */
             startedAt: null | string;
             /** Format: int32 */
@@ -6227,6 +6385,7 @@ export interface components {
             originCountry: string;
             /** Format: date */
             sowBy: null | string;
+            mother: null | components["schemas"]["TraceMother"];
             sownAs: null | components["schemas"]["SownMeasure"];
             /** Format: double */
             sownAmount: null | number | string;
@@ -6693,6 +6852,54 @@ export interface components {
             income: number | string;
             /** Format: double */
             spending: number | string;
+        };
+        MotherAdded: {
+            /** Format: uuid */
+            id: string;
+        };
+        MotherBatch: {
+            /** Format: uuid */
+            batchId: string;
+            traceabilityCode: string;
+            /** Format: int32 */
+            round: number | string;
+            /** Format: date-time */
+            startedAt: string;
+        };
+        MotherDetails: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            plantId: string;
+            plantName: string;
+            name: string;
+            notes: null | string;
+            batches: components["schemas"]["MotherBatch"][];
+        };
+        MotherRequest: {
+            /** Format: uuid */
+            plantId: string;
+            name: string;
+            /** Format: uuid */
+            locationId: null | string;
+            notes: null | string;
+        };
+        MotherSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            plantId: string;
+            plantName: string;
+            name: string;
+            /** Format: uuid */
+            locationId: null | string;
+            locationName: null | string;
+            notes: null | string;
+            /** Format: int32 */
+            cuttingsTaken: number | string;
+            /** Format: date-time */
+            lastTakenAt: null | string;
+            archived: boolean;
         };
         MovePlaceRequest: {
             /** Format: uuid */
@@ -7283,6 +7490,8 @@ export interface components {
             sownAmount?: null | number | string;
             packetShare?: null | components["schemas"]["PacketShare"];
             packetSays?: null | string;
+            /** Format: uuid */
+            motherPlantId?: null | string;
         };
         StationSummary: {
             /** Format: uuid */
@@ -7396,6 +7605,13 @@ export interface components {
             source: components["schemas"]["BatchSource"];
             /** Format: date-time */
             startedAt: string;
+        };
+        TraceMother: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: int32 */
+            round: number | string;
         };
         TracePassport: {
             /** Format: date */

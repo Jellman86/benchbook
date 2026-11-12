@@ -67,6 +67,8 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<NurseryJob> Jobs => Set<NurseryJob>();
 
+    public DbSet<MotherPlant> MotherPlants => Set<MotherPlant>();
+
     public DbSet<NurseryJobDone> JobsDone => Set<NurseryJobDone>();
 
     public DbSet<NurserySettings> NurserySettings => Set<NurserySettings>();
@@ -130,7 +132,7 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         });
 
         ConfigureIssuedPassports(modelBuilder);
-        ConfigureJobs(modelBuilder);
+        ConfigureJobsAndMothers(modelBuilder);
         ConfigurePurchases(modelBuilder);
 
         modelBuilder.Entity<BackupStatus>(entity =>
@@ -146,7 +148,7 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         });
     }
 
-    private static void ConfigureJobs(ModelBuilder modelBuilder)
+    private static void ConfigureJobsAndMothers(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<NurseryJob>(entity =>
         {
@@ -154,6 +156,24 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
             entity.HasOne<Location>().WithMany().HasForeignKey(e => e.LocationId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<MotherPlant>(entity =>
+        {
+            entity.ToTable("mother_plants");
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Name).HasColumnType("citext");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.HasIndex(e => new { e.PlantId, e.Name }).IsUnique();
+            entity.HasOne<Plant>().WithMany().HasForeignKey(e => e.PlantId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Location>().WithMany().HasForeignKey(e => e.LocationId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Each batch of cuttings from a mother has its own number.
+        modelBuilder.Entity<Batch>(entity =>
+        {
+            entity.HasOne<MotherPlant>().WithMany().HasForeignKey(e => e.MotherPlantId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.MotherPlantId, e.CuttingsRound }).IsUnique();
         });
 
         modelBuilder.Entity<NurseryJobDone>(entity =>

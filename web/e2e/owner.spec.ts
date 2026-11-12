@@ -334,7 +334,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await page.setViewportSize({ width: 1280, height: 800 });
   const sidebar = page.getByRole("navigation", { name: "Main" });
   await expect(sidebar).toBeVisible();
-  await sidebar.getByRole("button", { name: "Plants" }).click();
+  await sidebar.getByRole("button", { name: "Plants", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Plants", exact: true }),
   ).toBeVisible();
@@ -374,7 +374,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(root).toHaveAttribute("data-theme", "light");
   await page.getByRole("button", { name: "Theme: Light" }).click();
   await expect(root).toHaveAttribute("data-theme", "dark");
-  await sidebar.getByRole("button", { name: "Plants" }).click();
+  await sidebar.getByRole("button", { name: "Plants", exact: true }).click();
   await expect(page.getByText("Lavender 'Munstead'")).toBeVisible();
   await page.getByRole("button", { name: "Expand sidebar" }).click();
   await expect

@@ -75,6 +75,11 @@
   const xylella = (host: boolean | null) =>
     host === true ? "Yes" : host === false ? "No" : "Not checked";
 
+  const ordinal = (n: number) =>
+    n % 100 >= 11 && n % 100 <= 13
+      ? `${n}th`
+      : `${n}${["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
+
   const origin = $derived.by(() => {
     if (!trace) {
       return [];
@@ -85,6 +90,13 @@
       ["Started", dayLabel(isoDay(new Date(trace.startedAt)), now)],
       ["Country of origin", trace.originCountry],
     ];
+
+    if (trace.mother) {
+      rows.push([
+        "Cuttings from",
+        `${trace.mother.name}, the ${ordinal(Number(trace.mother.round))} batch taken from it`,
+      ]);
+    }
 
     if (sowingWords(trace)) {
       rows.push(["Seed sown", sowingWords(trace)]);
@@ -101,7 +113,7 @@
       rows.push(["Seed lot or reference", trace.sourceReference]);
     }
 
-    if (trace.motherPlant) {
+    if (trace.motherPlant && !trace.mother) {
       rows.push(["Mother plant", trace.motherPlant]);
     }
 

@@ -113,6 +113,7 @@ app.MapReceivedPassportEndpoints();
 app.MapTraceEndpoints();
 app.MapPassportEndpoints();
 app.MapJobEndpoints();
+app.MapMotherPlantEndpoints();
 app.MapAlertEndpoints();
 app.MapPurchaseEndpoints();
 app.MapMoneyEndpoints();

@@ -11,6 +11,7 @@
   import Suppliers from "./manage/Suppliers.svelte";
   import Trace from "./manage/Trace.svelte";
   import Jobs from "./manage/Jobs.svelte";
+  import MotherPlants from "./manage/MotherPlants.svelte";
 
   let {
     section,
@@ -47,6 +48,8 @@
   <Suppliers onBack={back} />
 {:else if section === "places"}
   <Locations onBack={back} {onOpenTray} {onMoveTraysHere} />
+{:else if section === "mothers"}
+  <MotherPlants onBack={back} {onTrace} />
 {:else if section === "jobs"}
   <Jobs onBack={back} />
 {:else if section === "trace"}

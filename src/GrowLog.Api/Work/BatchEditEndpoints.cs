@@ -51,6 +51,7 @@ internal static class BatchEditEndpoints
             batch.SownAmount,
             batch.PacketShare,
             batch.PacketSays,
+            batch.MotherPlantId,
             start?.Event.OccurredAt,
             start?.Quantity,
             start is not null && await StartCanChangeAsync(db, id, start, cancellationToken),
@@ -77,7 +78,10 @@ internal static class BatchEditEndpoints
             return TypedResults.BadRequest();
         }
 
-        var wanted = Wanted.From(request);
+        if (WantedFor(batch, request) is not { } wanted)
+        {
+            return TypedResults.Conflict(new EditRefused("MotherPlant"));
+        }
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
 
         // Nothing else may be recorded in the tray between checking the start can change and changing it.
@@ -124,6 +128,15 @@ internal static class BatchEditEndpoints
         await transaction.CommitAsync(cancellationToken);
         return TypedResults.NoContent();
     }
+
+    /// <summary>
+    /// The batch as the edit wants it, or null if it can't be: cuttings taken from a mother plant record stay hers,
+    /// so their source and her name come from the record.
+    /// </summary>
+    private static Wanted? WantedFor(Batch batch, EditBatchRequest request) =>
+        batch.MotherPlantId is null ? Wanted.From(request)
+        : request.Source == BatchSource.Cuttings ? Wanted.From(request) with { MotherPlant = batch.MotherPlant }
+        : null;
 
     private static void Apply(Batch batch, Wanted wanted)
     {
@@ -400,6 +413,7 @@ internal static class BatchEditEndpoints
         decimal? SownAmount,
         PacketShare? PacketShare,
         string? PacketSays,
+        Guid? MotherPlantId,
         DateTimeOffset? StartedAt,
         int? Quantity,
         bool StartCanChange,
