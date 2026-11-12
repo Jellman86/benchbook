@@ -69,7 +69,7 @@ public sealed class SeedCountingTests(PostgresFixture database)
         await using var nursery = await TwoPersonNursery.CreateAsync(database);
         var (_, batch, tray, label) = await SowAsync(nursery, "Grams", 0.5m);
 
-        object Body(int? left) => new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow, type = "PrickedOut", batchId = batch, quantity = 60, containerKind = "Tray", leftInTray = left, countEventId = (Guid?)Guid.NewGuid() };
+        object Body(int? left) => new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow, type = "PrickedOut", batchId = batch, quantity = 60, containerKind = "Tray", leftInTray = left, countEventId = Guid.NewGuid() };
 
         using var unanswered = await PostAsync(nursery.Staff, $"/api/containers/{tray}/transfer", Body(null));
         Assert.Equal(HttpStatusCode.Conflict, unanswered.StatusCode);
