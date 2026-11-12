@@ -245,14 +245,14 @@ internal static class TraceEndpoints
     /// <summary>Standing events with a line for the batch, and work done to the containers it has been in.</summary>
     private static async Task<List<StandingEvent>> LoadEventsAsync(GrowLogDbContext db, List<Guid> lineEventIds, List<Guid> containerIds, CancellationToken cancellationToken)
     {
-        var rows = await db.Events
-            .AsNoTracking()
-            .Where(e => !db.Events.Any(correction => correction.CorrectsEventId == e.Id)
-                && (lineEventIds.Contains(e.Id)
-                    || (e.ContainerId != null
-                        && containerIds.Contains(e.ContainerId.Value)
-                        && !e.Lines.Any()
-                        && (ContainerWork.Contains(e.Type) || (e.Type == EventType.Corrected && e.LocationId != null)))))
+        var standing = db.Events.AsNoTracking().Where(e => !db.Events.Any(correction => correction.CorrectsEventId == e.Id));
+        var ofBatch = standing.Where(e => lineEventIds.Contains(e.Id));
+        var onItsContainers = standing
+            .Where(e => e.ContainerId != null && containerIds.Contains(e.ContainerId.Value) && !e.Lines.Any())
+            .Where(e => ContainerWork.Contains(e.Type) || (e.Type == EventType.Corrected && e.LocationId != null));
+
+        var rows = await ofBatch
+            .Union(onItsContainers)
             .Select(e => new
             {
                 e.Id,
