@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import DayPicker from "../DayPicker.svelte";
   import { api } from "../../api/client";
   import { dayLabel } from "../../lib/dates";
   import { attempt, type Schemas } from "../../lib/types";
@@ -72,7 +73,7 @@
   <div class="split">
     <section>
       <form class="stack" onsubmit={save}>
-        <label>Date <input type="date" bind:value={takenOn} required /></label>
+        <DayPicker bind:value={takenOn} label="Date" />
         <label
           >Amount taken (£) <input
             bind:value={amount}

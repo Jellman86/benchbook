@@ -18,12 +18,17 @@ export type Outcome =
 
 type Details<T> = Omit<T, "eventId" | "occurredAt">;
 
-function request<T extends object>(url: string, details: T): WorkRequest {
+/** Work is recorded as done now, unless someone said when it was done. */
+function request<T extends object>(
+  url: string,
+  details: T,
+  occurredAt = new Date().toISOString(),
+): WorkRequest {
   return {
     url,
     body: {
       eventId: crypto.randomUUID(),
-      occurredAt: new Date().toISOString(),
+      occurredAt,
       ...details,
     },
   };
@@ -33,8 +38,10 @@ const onContainer = (id: string, action: string) =>
   `/api/containers/${id}/${action}`;
 
 export const work = {
-  startBatch: (details: Details<Schemas["StartBatchRequest"]>) =>
-    request("/api/batches", details),
+  startBatch: (
+    details: Details<Schemas["StartBatchRequest"]>,
+    occurredAt?: string,
+  ) => request("/api/batches", details, occurredAt),
   germinated: (id: string) => request(onContainer(id, "germinated"), {}),
   ready: (id: string) => request(onContainer(id, "ready"), {}),
   lose: (id: string, details: Details<Schemas["LossRequest"]>) =>
@@ -187,6 +194,8 @@ export interface BatchPrefill {
   quantity: number;
   purchaseLineId: string;
   description: string;
+  /** When the purchase was made, as the day the plants most likely arrived. */
+  receivedOn?: string;
 }
 
 export function money(value: number): string {

@@ -491,6 +491,15 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await chooser(page, "Pot size").selectOption({ label: "9cm" });
   await button(page, "Next").click();
   await chooser(page, "Supplier").selectOption({ label: "Hillside Plants" });
+  // Sown yesterday, written up today: the calendar goes no further than today.
+  await expect(button(page, "Today")).toHaveAttribute("aria-pressed", "true");
+  await button(page, "Another day").click();
+  await expect(page.getByRole("button", { name: "Next month" })).toBeDisabled();
+  await button(page, "Yesterday").click();
+  await expect(button(page, "Yesterday")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   await button(page, "Next").click();
   await page.getByLabel("Seed packet").setInputFiles({
     name: "packet.png",
@@ -503,6 +512,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(button(page, "Next")).toBeVisible();
   await button(page, "Next").click();
   await chooser(page, "Place").selectOption({ label: "Greenhouse 2, Bench 1" });
+  await expect(page.getByText("Sown yesterday")).toBeVisible();
   await button(page, "Start batch").click();
   const started = page.getByRole("status");
   await expect(started).toContainText("Started 40 Lavender 'Munstead'");
