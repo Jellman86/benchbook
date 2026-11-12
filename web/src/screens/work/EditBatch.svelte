@@ -284,7 +284,7 @@
       >
     {/if}
   {:else}
-    <BatchPhotos {batchId} canAdd />
+    <BatchPhotos {batchId} kinds={["Packet", "Label", "Packaging"]} />
     <p class="muted">Photos are saved as soon as they're taken.</p>
 
     <label>

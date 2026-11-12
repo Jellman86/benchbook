@@ -458,8 +458,10 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         {
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.Kind).HasConversion<string>();
+            entity.Property(e => e.Stage).HasConversion<string>();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
             entity.HasIndex(e => e.BatchId);
+            entity.HasOne<Container>().WithMany().HasForeignKey(e => e.ContainerId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Batch>().WithMany().HasForeignKey(e => e.BatchId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.UploadedBy).OnDelete(DeleteBehavior.Restrict);
         });

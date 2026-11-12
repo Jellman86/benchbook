@@ -689,6 +689,25 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Done").click();
   await expect(page.getByRole("status")).toContainText("Note added");
 
+  // A photo of the plants joins the batch's strip with the day and stage, and a wrong one can be removed.
+  await scan(label);
+  await expect(page.getByText("Day 2 · Seed packet")).toBeVisible();
+  await page.getByLabel("The plants").setInputFiles({
+    name: "plants.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "base64",
+    ),
+  });
+  await page.getByRole("button", { name: "Day 2 · Sown" }).click();
+  await page.screenshot({ path: "build/peek/photo-viewer.png" });
+  await button(page, "Remove this photo").click();
+  await expect(page.getByRole("button", { name: "Day 2 · Sown" })).toHaveCount(
+    0,
+  );
+  await button(page, "Back").click();
+
   // Issuing a passport shows it as it would print, and says what's missing first.
   await scan(label);
   await button(page, "Plant passports").click();

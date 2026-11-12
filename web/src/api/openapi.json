@@ -81,6 +81,14 @@
             "schema": {
               "$ref": "#/components/schemas/BatchPhotoKind"
             }
+          },
+          {
+            "name": "containerId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -130,6 +138,27 @@
     },
     "/api/batch-photos/{id}": {
       "get": {
+        "tags": [
+          "PhotoEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
         "tags": [
           "PhotoEndpoints"
         ],
@@ -5383,13 +5412,18 @@
         "enum": [
           "Packet",
           "Label",
-          "Packaging"
+          "Packaging",
+          "Growing"
         ]
       },
       "BatchPhotoSummary": {
         "required": [
           "id",
-          "kind"
+          "kind",
+          "takenAt",
+          "day",
+          "stage",
+          "canRemove"
         ],
         "type": "object",
         "properties": {
@@ -5399,6 +5433,32 @@
           },
           "kind": {
             "$ref": "#/components/schemas/BatchPhotoKind"
+          },
+          "takenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "day": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "stage": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProductionStage"
+              }
+            ]
+          },
+          "canRemove": {
+            "type": "boolean"
           }
         }
       },

@@ -322,7 +322,11 @@
               {plantName(line.commonName, line.variety)}
             </p>
             <span class="muted credit">Batch {line.traceabilityCode}</span>
-            <BatchPhotos batchId={line.batchId} />
+            <BatchPhotos
+              batchId={line.batchId}
+              containerId={container.id}
+              kinds={fromDevice ? [] : ["Growing"]}
+            />
             <div class="row">
               <button class="link-button" onclick={() => openCard(line.plantId)}
                 >About this plant</button

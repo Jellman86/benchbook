@@ -55,6 +55,46 @@ public sealed class PhotoTests(PostgresFixture database)
     }
 
     [Fact]
+    public async Task Photos_of_the_plants_show_the_day_and_stage_and_a_wrong_one_can_be_removed()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var started = Json(await PostForTextAsync(nursery.Staff, "/api/batches", new
+        {
+            eventId = Guid.CreateVersion7(),
+            occurredAt = DateTimeOffset.UtcNow.AddDays(-9),
+            plantId = await AddPlantAsync(nursery.Owner),
+            quantity = 10,
+            source = "SeedLot",
+            originCountry = "GB",
+            containerKind = "Tray",
+        }));
+        var batchId = started.GetProperty("batchId").GetGuid();
+        var tray = started.GetProperty("containerId").GetGuid();
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Staff, $"/api/containers/{tray}/germinated", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow.AddDays(-2) }));
+
+        using var staffPhoto = await UploadAsync(nursery.Staff, $"/api/batches/{batchId}/photos?kind=Growing&containerId={tray}", Jpeg);
+        using var ownerPhoto = await UploadAsync(nursery.Owner, $"/api/batches/{batchId}/photos?kind=Packet", Jpeg);
+        Assert.Equal(HttpStatusCode.Created, staffPhoto.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await UploadAsync(nursery.Staff, $"/api/batches/{batchId}/photos?kind=Growing&containerId={Guid.NewGuid()}", Jpeg)).StatusCode);
+
+        var seen = (await nursery.Staff.GetFromJsonAsync<JsonElement>(Route($"/api/batches/{batchId}/photos"), Cancellation)).EnumerateArray().ToList();
+        Assert.Equal(2, seen.Count);
+        Assert.Equal("Growing", seen[0].GetProperty("kind").GetString());
+        Assert.Equal(10, seen[0].GetProperty("day").GetInt32());
+        Assert.Equal("Germinated", seen[0].GetProperty("stage").GetString());
+        Assert.True(seen[0].GetProperty("canRemove").GetBoolean());
+        Assert.False(seen[1].GetProperty("canRemove").GetBoolean());
+
+        using var refused = await nursery.Staff.DeleteAsync(Route($"/api/batch-photos/{seen[1].GetProperty("id").GetGuid()}"), Cancellation);
+        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+        using var removed = await nursery.Staff.DeleteAsync(Route($"/api/batch-photos/{seen[0].GetProperty("id").GetGuid()}"), Cancellation);
+        Assert.Equal(HttpStatusCode.NoContent, removed.StatusCode);
+        using var byOwner = await nursery.Owner.DeleteAsync(Route($"/api/batch-photos/{seen[1].GetProperty("id").GetGuid()}"), Cancellation);
+        Assert.Equal(HttpStatusCode.NoContent, byOwner.StatusCode);
+        Assert.Empty((await nursery.Owner.GetFromJsonAsync<JsonElement>(Route($"/api/batches/{batchId}/photos"), Cancellation)).EnumerateArray());
+    }
+
+    [Fact]
     public async Task Something_that_is_not_a_picture_is_refused()
     {
         await using var app = await CreateAppAsync(database);

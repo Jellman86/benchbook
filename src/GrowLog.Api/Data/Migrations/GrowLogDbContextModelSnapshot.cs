@@ -295,6 +295,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("batch_id");
 
+                    b.Property<Guid?>("ContainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("container_id");
+
                     b.Property<byte[]>("Content")
                         .IsRequired()
                         .HasColumnType("bytea")
@@ -316,6 +320,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("kind");
 
+                    b.Property<string>("Stage")
+                        .HasColumnType("text")
+                        .HasColumnName("stage");
+
                     b.Property<Guid>("UploadedBy")
                         .HasColumnType("uuid")
                         .HasColumnName("uploaded_by");
@@ -325,6 +333,9 @@ namespace GrowLog.Api.Data.Migrations
 
                     b.HasIndex("BatchId")
                         .HasDatabaseName("ix_batch_photos_batch_id");
+
+                    b.HasIndex("ContainerId")
+                        .HasDatabaseName("ix_batch_photos_container_id");
 
                     b.HasIndex("UploadedBy")
                         .HasDatabaseName("ix_batch_photos_uploaded_by");
@@ -2349,6 +2360,12 @@ namespace GrowLog.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_batch_photos_batches_batch_id");
+
+                    b.HasOne("GrowLog.Api.Data.Container", null)
+                        .WithMany()
+                        .HasForeignKey("ContainerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_batch_photos_containers_container_id");
 
                     b.HasOne("GrowLog.Api.Accounts.AppUser", null)
                         .WithMany()
