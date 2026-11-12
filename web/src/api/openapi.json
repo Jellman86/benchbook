@@ -8894,6 +8894,10 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "picture": {
+            "type": "boolean",
+            "default": false
           }
         }
       },

@@ -6937,6 +6937,8 @@ export interface components {
             outlines: boolean;
             /** Format: uuid */
             potSizeId?: null | string;
+            /** @default false */
+            picture: boolean;
         };
         /** @enum {unknown} */
         SignInLevel: "Open" | "Names" | "Personal" | "Strict";
