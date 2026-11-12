@@ -142,6 +142,10 @@ internal static class TraceEndpoints
             origin.Batch.MotherPlant,
             origin.Batch.OriginCountry,
             origin.Batch.SowBy,
+            origin.Batch.SownAs,
+            origin.Batch.SownAmount,
+            origin.Batch.PacketShare,
+            origin.Batch.PacketSays,
             origin.Batch.CreatedAt,
             origin.Supplier,
             origin.Purchase,
@@ -264,7 +268,9 @@ internal static class TraceEndpoints
             .AsNoTracking()
             .Where(container => named.Contains(container.Id))
             .ToDictionaryAsync(container => container.Id, cancellationToken);
-        var stock = (await store.GetStockAsync(cancellationToken)).Where(row => row.BatchId == id).ToDictionary(row => row.ContainerId, row => row.Quantity);
+        var rows = (await store.GetStockAsync(cancellationToken)).Where(row => row.BatchId == id).ToList();
+        var stock = rows.ToDictionary(row => row.ContainerId, row => row.Quantity);
+        var notCounted = rows.Where(row => row.NotCounted).Select(row => row.ContainerId).ToHashSet();
         var placements = await store.GetPlacementsAsync(containerIds, cancellationToken);
 
         var times = events.ToDictionary(e => e.Id, e => e.At);
@@ -284,7 +290,8 @@ internal static class TraceEndpoints
                 labels[containerId].LabelCode,
                 labels[containerId].Kind,
                 stock.GetValueOrDefault(containerId),
-                placements.GetValueOrDefault(containerId)?.LocationId is { } place ? paths.GetValueOrDefault(place) : null))
+                placements.GetValueOrDefault(containerId)?.LocationId is { } place ? paths.GetValueOrDefault(place) : null,
+                notCounted.Contains(containerId)))
             .OrderBy(container => container.LabelCode, StringComparer.Ordinal)
             .ToList();
 
@@ -385,7 +392,8 @@ internal static class TraceEndpoints
 
     internal sealed record TracePassport(DateOnly ReceivedOn, string SupplierName, string PartA, string PartB, string? PartC, string PartD, string? PartE, ReceivedPassportStatus Status);
 
-    internal sealed record TraceContainer(string LabelCode, ContainerKind Kind, int Now, string? Place);
+    /// <param name="NotCounted">Seed sown here that nobody has counted yet: Now is 0 because the number isn't known.</param>
+    internal sealed record TraceContainer(string LabelCode, ContainerKind Kind, int Now, string? Place, bool NotCounted = false);
 
     /// <param name="LabelCode">The container the work happened in, or the plants went into.</param>
     /// <param name="FromLabelCode">For plants moved into a new container, the one they came from.</param>
@@ -422,6 +430,10 @@ internal static class TraceEndpoints
         string? MotherPlant,
         string OriginCountry,
         DateOnly? SowBy,
+        SownMeasure? SownAs,
+        decimal? SownAmount,
+        PacketShare? PacketShare,
+        string? PacketSays,
         DateTimeOffset StartedAt,
         TraceSupplier? Supplier,
         TracePurchase? Purchase,

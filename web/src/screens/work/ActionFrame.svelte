@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import type { Schemas } from "../../lib/types";
+  import { lineAmount } from "../../lib/sowing";
   import { plantName } from "../../lib/work";
 
   let {
@@ -27,7 +28,7 @@
       {container.contents
         .map(
           (line) =>
-            `${line.quantity} ${plantName(line.commonName, line.variety)}`,
+            `${lineAmount(line)} ${plantName(line.commonName, line.variety)}`,
         )
         .join(", ")}{container.locationName
         ? ` · ${container.locationName}`

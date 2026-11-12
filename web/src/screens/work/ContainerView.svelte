@@ -2,6 +2,7 @@
   import PrintButton from "../PrintButton.svelte";
   import BatchPhotos from "./BatchPhotos.svelte";
   import EditBatch from "./EditBatch.svelte";
+  import Germinate from "./Germinate.svelte";
   import PlantCard from "./PlantCard.svelte";
   import { onMount } from "svelte";
   import { findPlaceByCode, isPlaceCode, type Place } from "../../lib/places";
@@ -215,7 +216,10 @@
   function choose(chosen: TrayAction) {
     problem = "";
 
-    if (chosen === "germinated" && container) {
+    // On a tray nobody has counted, Germinated also offers a rough count.
+    const uncounted = !!container?.contents.some((line) => line.notCounted);
+
+    if (chosen === "germinated" && container && !uncounted) {
       void record(work.germinated(container.id), "germinated");
     } else if (chosen === "ready" && container) {
       void record(work.ready(container.id), "marked ready");
@@ -262,6 +266,8 @@
   <Transfer {container} type="PottedOn" {onDone} onCancel={back} />
 {:else if action === "prickOut"}
   <Transfer {container} type="PrickedOut" {onDone} onCancel={back} />
+{:else if action === "germinated"}
+  <Germinate {container} {onDone} onCancel={back} />
 {:else if action === "count"}
   <Count {container} {onDone} onCancel={back} />
 {:else if action === "treat"}
@@ -300,7 +306,11 @@
         {#each container.contents as line (line.batchId)}
           <div class="card tray-line">
             <p>
-              <strong class="tray-quantity">{line.quantity}</strong>
+              {#if line.notCounted}
+                <strong>Not counted yet:</strong>
+              {:else}
+                <strong class="tray-quantity">{line.quantity}</strong>
+              {/if}
               {plantName(line.commonName, line.variety)}
             </p>
             <span class="muted credit">Batch {line.traceabilityCode}</span>

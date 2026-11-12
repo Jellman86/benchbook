@@ -5898,6 +5898,11 @@ export interface components {
             originCountry: string;
             /** Format: date */
             sowBy: null | string;
+            sownAs: null | components["schemas"]["SownMeasure"];
+            /** Format: double */
+            sownAmount: null | number | string;
+            packetShare: null | components["schemas"]["PacketShare"];
+            packetSays: null | string;
             /** Format: date-time */
             startedAt: null | string;
             /** Format: int32 */
@@ -5938,6 +5943,11 @@ export interface components {
             originCountry: string;
             /** Format: date */
             sowBy: null | string;
+            sownAs: null | components["schemas"]["SownMeasure"];
+            /** Format: double */
+            sownAmount: null | number | string;
+            packetShare: null | components["schemas"]["PacketShare"];
+            packetSays: null | string;
             /** Format: date-time */
             startedAt: string;
             supplier: null | components["schemas"]["TraceSupplier"];
@@ -5994,6 +6004,8 @@ export interface components {
             /** Format: int32 */
             quantity: number | string;
             source: components["schemas"]["BatchSource"];
+            /** @default false */
+            notCounted: boolean;
         };
         ContainerResponse: {
             /** Format: uuid */
@@ -6091,6 +6103,11 @@ export interface components {
             quantity: null | number | string;
             /** Format: date */
             sowBy?: null | string;
+            sownAs?: null | components["schemas"]["SownMeasure"];
+            /** Format: double */
+            sownAmount?: null | number | string;
+            packetShare?: null | components["schemas"]["PacketShare"];
+            packetSays?: null | string;
         };
         EditRefused: {
             problem: string;
@@ -6138,6 +6155,8 @@ export interface components {
             germinationRate: null | number | string;
             /** Format: double */
             survivalRate: null | number | string;
+            /** @default false */
+            germinationApproximate: boolean;
         };
         HealthResponse: {
             status: string;
@@ -6335,6 +6354,7 @@ export interface components {
             /** Format: int32 */
             quantity: number | string;
             reason: components["schemas"]["LossReason"];
+            all?: null | boolean;
         };
         MapSettingsRequest: {
             imageryKey: null | string;
@@ -6403,6 +6423,8 @@ export interface components {
             botanicalName: null | string;
             hasPhoto: boolean;
         };
+        /** @enum {unknown} */
+        PacketShare: "Whole" | "Half" | "Part" | null;
         PaidRequest: {
             /** Format: date */
             paidOn: null | string;
@@ -6540,6 +6562,8 @@ export interface components {
             germinationRate: null | number | string;
             /** Format: double */
             survivalRate: null | number | string;
+            /** @default false */
+            germinationApproximate: boolean;
         };
         PlantFromSpecies: {
             /** Format: uuid */
@@ -6682,6 +6706,7 @@ export interface components {
             hasPhoto: boolean;
             /** Format: uuid */
             locationId: null | string;
+            notCounted: boolean;
         };
         /** @enum {unknown} */
         ProductionStage: "Sown" | "Cuttings" | "BoughtIn" | "Germinated" | "PrickedOut" | "PottedOn" | "Ready" | null;
@@ -6831,6 +6856,8 @@ export interface components {
         SignInSettings: {
             level: components["schemas"]["SignInLevel"];
         };
+        /** @enum {unknown} */
+        SownMeasure: "Counted" | "About" | "Grams" | "Packet" | "Unknown" | null;
         SpeciesDetailsResponse: {
             family: null | string;
             nativeToUk: null | boolean;
@@ -6897,6 +6924,11 @@ export interface components {
             purchaseLineId: null | string;
             /** Format: date */
             sowBy?: null | string;
+            sownAs?: null | components["schemas"]["SownMeasure"];
+            /** Format: double */
+            sownAmount?: null | number | string;
+            packetShare?: null | components["schemas"]["PacketShare"];
+            packetSays?: null | string;
         };
         StationSummary: {
             /** Format: uuid */
@@ -6975,6 +7007,8 @@ export interface components {
             /** Format: int32 */
             now: number | string;
             place: null | string;
+            /** @default false */
+            notCounted: boolean;
         };
         TraceCorrection: {
             /** Format: date-time */
@@ -7091,6 +7125,10 @@ export interface components {
             potSizeId: null | string;
             /** Format: uuid */
             locationId: null | string;
+            /** Format: int32 */
+            leftInTray?: null | number | string;
+            /** Format: uuid */
+            countEventId?: null | string;
         };
         TreatmentChoices: {
             products: string[];

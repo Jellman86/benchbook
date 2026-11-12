@@ -54,7 +54,8 @@ internal static class PassportEndpoints
         }
 
         var settings = await db.GetNurserySettingsAsync(cancellationToken);
-        var available = (await store.GetContainerStateAsync(containerId, cancellationToken)).Contents.FirstOrDefault(line => line.BatchId == id)?.Quantity ?? 0;
+        var here = (await store.GetContainerStateAsync(containerId, cancellationToken)).Contents.FirstOrDefault(line => line.BatchId == id);
+        var available = here?.Quantity ?? 0;
         var origin = PassportOrigin.Decide(await FactsAsync(found.Batch, found.BotanicalName, found.XylellaHost, containerId, db, clock, cancellationToken));
         var partA = found.BotanicalName?.Trim();
         var partB = PartB(settings.RegistrationNumber);
@@ -71,7 +72,11 @@ internal static class PassportEndpoints
             problems.Add("The nursery's plant health registration number, for part B, isn't set. The owner adds it under Settings, Nursery details.");
         }
 
-        if (available <= 0)
+        if (here?.NotCounted == true)
+        {
+            problems.Add("Count these plants first: a passport says how many it covers.");
+        }
+        else if (available <= 0)
         {
             problems.Add("None of these plants are in this tray.");
         }

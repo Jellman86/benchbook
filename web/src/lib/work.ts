@@ -231,13 +231,18 @@ export function describeRecent(action: Schemas["RecentAction"]): string {
 
   switch (action.type) {
     case "Sown":
-      return `Sowed ${quantity} ${plant}${where}`;
+      return quantity === 0
+        ? `Sowed ${plant}, not counted yet${where}`
+        : `Sowed ${quantity} ${plant}${where}`;
     case "Received":
       return `Received ${quantity} ${plant}${where}`;
     case "CuttingsTaken":
       return `Took ${quantity} cuttings of ${plant}${where}`;
-    case "Lost":
-      return `Lost ${quantity} ${plant} (${lossLabel(details?.reason)})`;
+    case "Lost": {
+      const all = (action.details as { all?: boolean } | null)?.all;
+      const how = all === true ? "all the" : all === false ? "some" : quantity;
+      return `Lost ${how} ${plant} (${lossLabel(details?.reason)})`;
+    }
     case "Moved":
       return `Moved ${action.labelCode}${where}`;
     case "PottedOn":
@@ -268,9 +273,11 @@ export function repeatOf(action: Schemas["RecentAction"]): WorkRequest | null {
   const line = action.lines[0];
   const details = action.details as Record<string, string> | null;
 
+  // A sowing nobody counted can't be repeated as a number: New batch asks how much seed went in.
   if (
     startTypes.includes(action.type as string) &&
     line &&
+    Number(line.quantityChange) > 0 &&
     action.containerKind
   ) {
     return work.startBatch({

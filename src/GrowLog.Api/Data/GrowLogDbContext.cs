@@ -285,6 +285,9 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.TraceabilityCode).HasColumnType("citext");
             entity.Property(e => e.Source).HasConversion<string>();
+            entity.Property(e => e.SownAs).HasConversion<string>();
+            entity.Property(e => e.PacketShare).HasConversion<string>();
+            entity.Property(e => e.SownAmount).HasPrecision(10, 3);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
             entity.HasIndex(e => e.TraceabilityCode).IsUnique();
             entity.HasOne<Plant>().WithMany().HasForeignKey(e => e.PlantId).OnDelete(DeleteBehavior.Restrict);

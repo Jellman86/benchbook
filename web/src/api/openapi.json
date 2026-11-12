@@ -4738,6 +4738,10 @@
           "motherPlant",
           "originCountry",
           "sowBy",
+          "sownAs",
+          "sownAmount",
+          "packetShare",
+          "packetSays",
           "startedAt",
           "quantity",
           "startCanChange",
@@ -4788,6 +4792,41 @@
               "string"
             ],
             "format": "date"
+          },
+          "sownAs": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SownMeasure"
+              }
+            ]
+          },
+          "sownAmount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "packetShare": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PacketShare"
+              }
+            ]
+          },
+          "packetSays": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "startedAt": {
             "type": [
@@ -4896,6 +4935,10 @@
           "motherPlant",
           "originCountry",
           "sowBy",
+          "sownAs",
+          "sownAmount",
+          "packetShare",
+          "packetSays",
           "startedAt",
           "supplier",
           "purchase",
@@ -4945,6 +4988,41 @@
               "string"
             ],
             "format": "date"
+          },
+          "sownAs": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SownMeasure"
+              }
+            ]
+          },
+          "sownAmount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "packetShare": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PacketShare"
+              }
+            ]
+          },
+          "packetSays": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "startedAt": {
             "type": "string",
@@ -5173,6 +5251,10 @@
           },
           "source": {
             "$ref": "#/components/schemas/BatchSource"
+          },
+          "notCounted": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -5579,6 +5661,41 @@
               "string"
             ],
             "format": "date"
+          },
+          "sownAs": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SownMeasure"
+              }
+            ]
+          },
+          "sownAmount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "packetShare": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PacketShare"
+              }
+            ]
+          },
+          "packetSays": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -5793,6 +5910,10 @@
               "string"
             ],
             "format": "double"
+          },
+          "germinationApproximate": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -6588,6 +6709,12 @@
           },
           "reason": {
             "$ref": "#/components/schemas/LossReason"
+          },
+          "all": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -6875,6 +7002,14 @@
             "type": "boolean"
           }
         }
+      },
+      "PacketShare": {
+        "enum": [
+          "Whole",
+          "Half",
+          "Part",
+          null
+        ]
       },
       "PaidRequest": {
         "required": [
@@ -7459,6 +7594,10 @@
               "string"
             ],
             "format": "double"
+          },
+          "germinationApproximate": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -7993,7 +8132,8 @@
           "potSizeName",
           "supplierName",
           "hasPhoto",
-          "locationId"
+          "locationId",
+          "notCounted"
         ],
         "type": "object",
         "properties": {
@@ -8082,6 +8222,9 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "notCounted": {
+            "type": "boolean"
           }
         }
       },
@@ -8686,6 +8829,16 @@
           }
         }
       },
+      "SownMeasure": {
+        "enum": [
+          "Counted",
+          "About",
+          "Grams",
+          "Packet",
+          "Unknown",
+          null
+        ]
+      },
       "SpeciesDetailsResponse": {
         "required": [
           "family",
@@ -8974,6 +9127,41 @@
               "string"
             ],
             "format": "date"
+          },
+          "sownAs": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SownMeasure"
+              }
+            ]
+          },
+          "sownAmount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "packetShare": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PacketShare"
+              }
+            ]
+          },
+          "packetSays": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -9333,6 +9521,10 @@
               "null",
               "string"
             ]
+          },
+          "notCounted": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -9784,6 +9976,22 @@
             "format": "uuid"
           },
           "locationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "leftInTray": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "countEventId": {
             "type": [
               "null",
               "string"

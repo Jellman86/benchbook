@@ -195,6 +195,14 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("origin_country");
 
+                    b.Property<string>("PacketSays")
+                        .HasColumnType("text")
+                        .HasColumnName("packet_says");
+
+                    b.Property<string>("PacketShare")
+                        .HasColumnType("text")
+                        .HasColumnName("packet_share");
+
                     b.Property<Guid?>("ParentBatchId")
                         .HasColumnType("uuid")
                         .HasColumnName("parent_batch_id");
@@ -219,6 +227,15 @@ namespace GrowLog.Api.Data.Migrations
                     b.Property<DateOnly?>("SowBy")
                         .HasColumnType("date")
                         .HasColumnName("sow_by");
+
+                    b.Property<decimal?>("SownAmount")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)")
+                        .HasColumnName("sown_amount");
+
+                    b.Property<string>("SownAs")
+                        .HasColumnType("text")
+                        .HasColumnName("sown_as");
 
                     b.Property<Guid?>("SupplierId")
                         .HasColumnType("uuid")

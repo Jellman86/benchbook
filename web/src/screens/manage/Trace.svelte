@@ -14,6 +14,7 @@
     type BatchTrace,
   } from "../../lib/trace";
   import { sowByPassed, sowByWords } from "../../lib/sowBy";
+  import { sowingWords } from "../../lib/sowing";
   import { attempt, type Schemas } from "../../lib/types";
   import PrintButton from "../PrintButton.svelte";
   import PassportCard from "../work/PassportCard.svelte";
@@ -84,6 +85,10 @@
       ["Started", dayLabel(isoDay(new Date(trace.startedAt)), now)],
       ["Country of origin", trace.originCountry],
     ];
+
+    if (sowingWords(trace)) {
+      rows.push(["Seed sown", sowingWords(trace)]);
+    }
 
     if (trace.sowBy) {
       rows.push([
@@ -237,7 +242,11 @@
               onclick={() => onOpenTray(container.labelCode)}
             >
               <span class="plant-names">
-                <strong>{container.now} in {container.labelCode}</strong>
+                <strong
+                  >{container.notCounted
+                    ? `Not counted yet in ${container.labelCode}`
+                    : `${container.now} in ${container.labelCode}`}</strong
+                >
                 <em>{container.place ?? "No place recorded"}</em>
               </span>
             </button>

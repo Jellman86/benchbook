@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { lineAmount } from "../lib/sowing";
   import { onMount } from "svelte";
   import { api } from "../api/client";
   import {
@@ -43,7 +44,13 @@
   const columns: Column<ProductionRow>[] = [
     { label: "Label", value: (row) => row.labelCode },
     { label: "Plant", value: (row) => plantName(row.commonName, row.variety) },
-    { label: "Plants", value: (row) => Number(row.quantity), numeric: true },
+    {
+      label: "Plants",
+      value: (row) => Number(row.quantity),
+      text: (row) =>
+        row.notCounted ? "Not counted yet" : String(row.quantity),
+      numeric: true,
+    },
     { label: "Stage", value: (row) => stageLabel(row.stage) },
     {
       label: "Days at stage",
@@ -158,7 +165,8 @@
           />
           <span class="plant-names">
             <strong
-              >{row.quantity} {plantName(row.commonName, row.variety)}</strong
+              >{lineAmount(row)}
+              {plantName(row.commonName, row.variety)}</strong
             >
             <span class="muted">
               {[row.labelCode, row.locationName, row.potSizeName]

@@ -42,7 +42,7 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
     public async Task<ContainerState> GetContainerStateAsync(Guid containerId, CancellationToken cancellationToken)
     {
         var contents = (await SumStockAsync(containerId, cancellationToken))
-            .Select(row => new BatchCount(row.BatchId, row.Quantity))
+            .Select(row => new BatchCount(row.BatchId, row.Quantity, row.NotCounted))
             .ToList();
 
         // Ordered by when the work happened, so events arriving late from an offline device fall into place.
@@ -65,7 +65,42 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
         return new ContainerState(contents, locationId, potSizeId);
     }
 
-    /// <summary>Every batch in every container that still has plants.</summary>
+    /// <summary>Whether a batch in a container was sown without a count and hasn't been counted since.</summary>
+    public async Task<bool> IsNotCountedAsync(Guid containerId, Guid batchId, CancellationToken cancellationToken) =>
+        (await NotCountedAsync(containerId, cancellationToken)).Contains(new StockKey(containerId, batchId));
+
+    /// <summary>
+    /// Records a count of a batch in a container just before other work on it, as when seedlings are counted while
+    /// they are pricked out of a tray nobody had counted. The count is placed strictly before the work, on the same
+    /// clock, so it never absorbs the work it was made for. Both are kept or neither.
+    /// </summary>
+    public async Task<AppendResult> AppendCountThenAsync(Event stockCount, Guid batchId, int counted, Event then, CancellationToken cancellationToken)
+    {
+        PutOnServerClock(then);
+        stockCount.OccurredAt = then.OccurredAt.AddSeconds(-1);
+        stockCount.Payload = JsonSerializer.Serialize(new { batchId, counted });
+
+        var outer = db.Database.CurrentTransaction is not null;
+        await using var transaction = outer ? null : await db.Database.BeginTransactionAsync(cancellationToken);
+
+        var first = await AppendCoreAsync(stockCount, cancellationToken, alreadyOnServerClock: true);
+
+        if (first is not (AppendResult.Stored or AppendResult.AlreadyStored))
+        {
+            return first;
+        }
+
+        var second = await AppendCoreAsync(then, cancellationToken, alreadyOnServerClock: true);
+
+        if (transaction is not null && second is AppendResult.Stored or AppendResult.AlreadyStored)
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
+
+        return second;
+    }
+
+    /// <summary>Every batch in every container that still has plants, or was sown and hasn't been counted yet.</summary>
     public Task<List<ContainerStock>> GetStockAsync(CancellationToken cancellationToken) =>
         SumStockAsync(containerId: null, cancellationToken);
 
@@ -102,9 +137,12 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
             : null;
     }
 
-    private async Task<AppendResult> AppendCoreAsync(Event newEvent, CancellationToken cancellationToken)
+    private async Task<AppendResult> AppendCoreAsync(Event newEvent, CancellationToken cancellationToken, bool alreadyOnServerClock = false)
     {
-        PutOnServerClock(newEvent);
+        if (!alreadyOnServerClock)
+        {
+            PutOnServerClock(newEvent);
+        }
 
         // Joins a transaction already open, as when an invoice and the stock it takes are saved together.
         var outer = db.Database.CurrentTransaction is not null;
@@ -318,11 +356,79 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
             .Select(group => new ContainerStock(group.Key.ContainerId, group.Key.BatchId, group.Sum(adjustment => adjustment.QuantityChange)))
             .ToListAsync(cancellationToken);
 
-        return lines.Concat(adjustments)
+        var counted = lines.Concat(adjustments)
             .GroupBy(row => new StockKey(row.ContainerId, row.BatchId))
             .Select(group => new ContainerStock(group.Key.ContainerId, group.Key.BatchId, group.Sum(row => row.Quantity)))
             .Where(row => row.Quantity > 0)
             .ToList();
+
+        // Sown without a count: there, but how many nobody knows yet.
+        var notCounted = (await NotCountedAsync(containerId, cancellationToken))
+            .Where(key => !counted.Any(row => row.ContainerId == key.ContainerId && row.BatchId == key.BatchId))
+            .Select(key => new ContainerStock(key.ContainerId, key.BatchId, 0, NotCounted: true));
+
+        return [.. counted, .. notCounted];
+    }
+
+    /// <summary>
+    /// Batches sown into a container without a count (a sowing line of nought) that nobody has counted there since,
+    /// and that weren't all lost. Worked out each time, so undoing the first count makes them uncounted again.
+    /// </summary>
+    private async Task<HashSet<StockKey>> NotCountedAsync(Guid? containerId, CancellationToken cancellationToken)
+    {
+        var sown = await ActiveLines(ignoring: null)
+            .Where(line => line.QuantityChange == 0 && (containerId == null || line.ContainerId == containerId))
+            .Join(db.Events.Where(e => e.Type == EventType.Sown || e.Type == EventType.Corrected), line => line.EventId, e => e.Id, (line, e) => new { line.ContainerId, line.BatchId, e.Type, e.CorrectsEventId })
+            .ToListAsync(cancellationToken);
+
+        if (sown.Count == 0)
+        {
+            return [];
+        }
+
+        var correctedSowings = await db.Events
+            .Where(e => e.Type == EventType.Sown && sown.Select(row => row.CorrectsEventId).Contains(e.Id))
+            .Select(e => e.Id)
+            .ToListAsync(cancellationToken);
+
+        var keys = sown
+            .Where(row => row.Type == EventType.Sown || (row.CorrectsEventId is { } original && correctedSowings.Contains(original)))
+            .Select(row => new StockKey(row.ContainerId, row.BatchId))
+            .ToHashSet();
+
+        var containers = keys.Select(key => key.ContainerId).Distinct().ToList();
+        var settled = await db.Events
+            .AsNoTracking()
+            .Where(e => (e.Type == EventType.StockCounted || e.Type == EventType.Lost)
+                && e.ContainerId != null
+                && containers.Contains(e.ContainerId.Value)
+                && !db.Events.Any(c => c.CorrectsEventId == e.Id))
+            .Select(e => new { e.Type, ContainerId = e.ContainerId!.Value, e.Payload, Batches = e.Lines.Select(line => line.BatchId).ToList() })
+            .ToListAsync(cancellationToken);
+
+        foreach (var work in settled)
+        {
+            if (work.Type == EventType.StockCounted && CountOf(work.Payload) is { } count)
+            {
+                keys.Remove(new StockKey(work.ContainerId, count.BatchId));
+            }
+            else if (work.Type == EventType.Lost && LostAll(work.Payload))
+            {
+                foreach (var batchId in work.Batches)
+                {
+                    keys.Remove(new StockKey(work.ContainerId, batchId));
+                }
+            }
+        }
+
+        return keys;
+    }
+
+    /// <summary>Whether a loss from an uncounted tray was all of them, which ends it.</summary>
+    internal static bool LostAll(string payload)
+    {
+        using var details = JsonDocument.Parse(payload);
+        return details.RootElement.TryGetProperty("all", out var all) && all.ValueKind == JsonValueKind.True;
     }
 
     /// <summary>Lines still in effect: those of events that have not been reversed.</summary>
