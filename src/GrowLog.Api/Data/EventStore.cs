@@ -18,7 +18,7 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
         AppendCoreAsync(newEvent, cancellationToken);
 
     /// <summary>Stores a stock count of one batch in one container, as it was when the count was made.</summary>
-    public async Task<AppendResult> AppendStockCountAsync(Event stockCount, Guid batchId, int counted, CancellationToken cancellationToken)
+    public async Task<AppendResult> AppendStockCountAsync(Event stockCount, Guid batchId, int counted, CancellationToken cancellationToken, bool rough = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(counted);
 
@@ -35,8 +35,39 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
                 : AppendResult.NotInContainer;
         }
 
-        stockCount.Payload = JsonSerializer.Serialize(new { batchId, counted });
+        stockCount.Payload = rough
+            ? JsonSerializer.Serialize(new { batchId, counted, rough })
+            : JsonSerializer.Serialize(new { batchId, counted });
         return await AppendCoreAsync(stockCount, cancellationToken);
+    }
+
+    /// <summary>
+    /// Batches in containers whose latest count was only a rough guess, as when seedlings are estimated as they
+    /// come up. Pricking out from them still asks how many were taken and how many are left.
+    /// </summary>
+    public async Task<HashSet<(Guid ContainerId, Guid BatchId)>> RoughlyCountedAsync(IReadOnlyCollection<Guid> containerIds, CancellationToken cancellationToken)
+    {
+        var counts = await db.Events
+            .AsNoTracking()
+            .Where(e => e.Type == EventType.StockCounted
+                && e.ContainerId != null
+                && containerIds.Contains(e.ContainerId.Value)
+                && !db.Events.Any(c => c.CorrectsEventId == e.Id))
+            .Select(e => new { ContainerId = e.ContainerId!.Value, e.OccurredAt, e.RecordedAt, e.Payload })
+            .ToListAsync(cancellationToken);
+
+        return [.. counts
+            .Select(e => (e.ContainerId, e.OccurredAt, e.RecordedAt, Count: CountOf(e.Payload), Rough: IsRough(e.Payload)))
+            .Where(e => e.Count is not null)
+            .GroupBy(e => (e.ContainerId, e.Count!.BatchId))
+            .Where(group => group.OrderBy(e => e.OccurredAt).ThenBy(e => e.RecordedAt).Last().Rough)
+            .Select(group => group.Key)];
+    }
+
+    internal static bool IsRough(string payload)
+    {
+        using var details = JsonDocument.Parse(payload);
+        return details.RootElement.TryGetProperty("rough", out var rough) && rough.ValueKind == JsonValueKind.True;
     }
 
     public async Task<ContainerState> GetContainerStateAsync(Guid containerId, CancellationToken cancellationToken)
@@ -373,11 +404,25 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
             .Select(e => new { e.Id, e.OccurredAt, e.Payload })
             .ToListAsync(cancellationToken);
 
-        return counts
+        // "All of them lost" says the tray held none afterwards, as a count of nought would. So a count timed before it,
+        // arriving late from a device that was offline, can't bring the plants back.
+        var lostAll = (await db.Events
+            .AsNoTracking()
+            .Where(e => e.Type == EventType.Lost
+                && e.ContainerId == key.ContainerId
+                && e.Id != ignoring
+                && e.Lines.Any(line => line.BatchId == key.BatchId)
+                && !db.Events.Any(c => c.CorrectsEventId == e.Id))
+            .Select(e => new { e.Id, e.OccurredAt, e.Payload })
+            .ToListAsync(cancellationToken))
+            .Where(e => LostAll(e.Payload))
+            .Select(e => new TimedCount(e.Id, e.OccurredAt, 0));
+
+        return [.. counts
             .Select(e => (e.Id, e.OccurredAt, Count: CountOf(e.Payload)))
             .Where(e => e.Count is { } count && count.BatchId == key.BatchId)
             .Select(e => new TimedCount(e.Id, e.OccurredAt, e.Count!.Counted))
-            .ToList();
+            .Concat(lostAll)];
     }
 
     private async Task<List<ContainerStock>> SumStockAsync(Guid? containerId, CancellationToken cancellationToken)

@@ -75,7 +75,8 @@
       supplies: optional(form.supplies),
       typicalLeadTimeDays: leadTime === null ? null : Number(leadTime),
       passportRegistrationNumber: optional(form.passportRegistrationNumber),
-      otherRegistrations: optional(form.otherRegistrations),
+      // Sent even when empty, so clearing them clears them; an older app that sends nothing leaves them alone.
+      otherRegistrations: form.otherRegistrations.trim(),
       notes: optional(form.notes),
     };
 

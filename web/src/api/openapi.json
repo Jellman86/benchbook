@@ -371,6 +371,36 @@
         }
       }
     },
+    "/api/batches/{id}/seedling-guess": {
+      "get": {
+        "tags": [
+          "SeedlingGuessEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeedlingGuess"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/containers/{id}/history": {
       "get": {
         "tags": [
@@ -6491,6 +6521,10 @@
           "notCounted": {
             "type": "boolean",
             "default": false
+          },
+          "rough": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -6633,6 +6667,10 @@
               "string"
             ],
             "format": "int32"
+          },
+          "rough": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -8204,7 +8242,8 @@
       "LossFigures": {
         "required": [
           "reason",
-          "quantity"
+          "quantity",
+          "uncountedTrays"
         ],
         "type": "object",
         "properties": {
@@ -8212,6 +8251,14 @@
             "type": "string"
           },
           "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "uncountedTrays": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "integer",
@@ -10595,6 +10642,42 @@
           }
         }
       },
+      "SeedlingGuess": {
+        "required": [
+          "perGram",
+          "forThisBatch",
+          "from"
+        ],
+        "type": "object",
+        "properties": {
+          "perGram": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "forThisBatch": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "from": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "SensorKey": {
         "required": [
           "id",
@@ -12271,6 +12354,9 @@
     },
     {
       "name": "BatchEditEndpoints"
+    },
+    {
+      "name": "SeedlingGuessEndpoints"
     },
     {
       "name": "ContainerHistoryEndpoints"

@@ -71,6 +71,33 @@ export function totalPlants(rows: ProductionRow[]): number {
   return rows.reduce((total, row) => total + Number(row.quantity), 0);
 }
 
+/** Trays nobody has counted yet, in all and at each stage: their plants aren't in the totals, so they're counted apart. */
+export function uncountedTrays(rows: ProductionRow[]): {
+  all: number;
+  byStage: Map<Stage, number>;
+} {
+  const byStage = new Map<Stage, number>();
+  const uncounted = rows.filter((row) => row.notCounted);
+
+  for (const row of uncounted) {
+    if (row.stage) {
+      byStage.set(row.stage, (byStage.get(row.stage) ?? 0) + 1);
+    }
+  }
+
+  return { all: uncounted.length, byStage };
+}
+
+/** A stage's total for its chip: the plants counted, and any trays not counted yet. */
+export function chipTotal(plants: number, uncounted: number): string {
+  if (uncounted === 0) {
+    return String(plants);
+  }
+
+  const trays = `${uncounted} uncounted`;
+  return plants > 0 ? `${plants} + ${trays}` : trays;
+}
+
 /** Longest at their stage first, since those are likely to need doing next. */
 export function oldestFirst(rows: ProductionRow[]): ProductionRow[] {
   return [...rows].sort((a, b) =>

@@ -102,6 +102,7 @@ app.Use(async (context, next) =>
 
 app.MapWorkEndpoints();
 app.MapBatchEditEndpoints();
+app.MapSeedlingGuessEndpoints();
 app.MapContainerHistoryEndpoints();
 app.MapPlaceEndpoints();
 app.MapPlaceMapEndpoints();

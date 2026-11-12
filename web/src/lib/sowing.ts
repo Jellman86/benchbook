@@ -52,8 +52,14 @@ export function sowingWords(sowing: {
   }
 }
 
-/** How many of a batch are in a tray, or that nobody has counted them yet. */
+/** How many of a batch are in a tray, roughly if only guessed, or that nobody has counted them yet. */
 export const lineAmount = (line: {
   quantity: number | string;
   notCounted?: boolean;
-}) => (line.notCounted ? "Not counted yet:" : String(line.quantity));
+  rough?: boolean;
+}) =>
+  line.notCounted
+    ? "Not counted yet:"
+    : line.rough
+      ? `About ${line.quantity}`
+      : String(line.quantity);

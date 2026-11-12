@@ -34,7 +34,11 @@
   async function record() {
     busy = true;
     const outcome = await recordWork(
-      work.count(container.id, { batchId: line.batchId, counted }, when),
+      work.count(
+        container.id,
+        { batchId: line.batchId, counted, rough: false },
+        when,
+      ),
     );
     busy = false;
 
