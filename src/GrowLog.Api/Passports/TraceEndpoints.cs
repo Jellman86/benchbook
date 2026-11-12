@@ -63,7 +63,10 @@ internal static class TraceEndpoints
                 plant.CommonName,
                 plant.Variety,
                 batch.Source,
-                db.Events.Where(e => e.Lines.Any(line => line.BatchId == batch.Id)).Min(e => (DateTimeOffset?)e.OccurredAt) ?? batch.CreatedAt))
+                db.Events
+                    .Where(e => e.Lines.Any(line => line.BatchId == batch.Id) && !db.Events.Any(correction => correction.CorrectsEventId == e.Id))
+                    .Min(e => (DateTimeOffset?)(e.CorrectsEventId == null ? e.OccurredAt : db.Events.Where(original => original.Id == e.CorrectsEventId).Select(original => original.OccurredAt).First()))
+                    ?? batch.CreatedAt))
             .ToListAsync(cancellationToken);
     }
 
@@ -88,6 +91,7 @@ internal static class TraceEndpoints
             // When the plants were sown or arrived, which can be before the batch reached the server.
             StartedAt = steps.Count > 0 ? steps.Min(step => step.OccurredAt) : origin.StartedAt,
             ReceivedPassports = await LoadPassportsAsync(id, db, cancellationToken),
+            Corrections = await LoadCorrectionsAsync(id, db, cancellationToken),
             Containers = containers,
             Steps = steps,
             Sales = sales,
@@ -145,7 +149,30 @@ internal static class TraceEndpoints
             [],
             [],
             [],
+            [],
             new TraceTotals(0, 0, 0));
+    }
+
+    /// <summary>Corrections to the batch's details, oldest first, each with what it was before and after.</summary>
+    private static async Task<List<TraceCorrection>> LoadCorrectionsAsync(Guid id, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        var key = id.ToString();
+        var rows = await db.CatalogueChanges
+            .AsNoTracking()
+            .Where(change => change.Entity == nameof(Batch) && change.EntityKey == key)
+            .OrderBy(change => change.ChangedAt)
+            .Select(change => new
+            {
+                change.ChangedAt,
+                ChangedBy = db.Users.Where(user => user.Id == change.ChangedBy).Select(user => user.UserName).FirstOrDefault(),
+                change.Changes,
+            })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .SelectMany(row => JsonSerializer.Deserialize<Dictionary<string, CorrectedValue>>(row.Changes)!
+                .Select(field => new TraceCorrection(row.ChangedAt, row.ChangedBy, field.Key, field.Value.Before, field.Value.After)))
+            .ToList();
     }
 
     private static Task<List<TracePassport>> LoadPassportsAsync(Guid id, GrowLogDbContext db, CancellationToken cancellationToken) =>
@@ -357,6 +384,11 @@ internal static class TraceEndpoints
 
     internal sealed record TraceTotals(int Lost, int Sold, int Now);
 
+    private sealed record CorrectedValue(string? Before, string? After);
+
+    /// <param name="Field">What was corrected, such as "Country of origin". "Started" values are moments in ISO 8601.</param>
+    internal sealed record TraceCorrection(DateTimeOffset ChangedAt, string? ChangedBy, string Field, string? Before, string? After);
+
     internal sealed record BatchTrace(
         Guid Id,
         string TraceabilityCode,
@@ -371,6 +403,7 @@ internal static class TraceEndpoints
         TraceBatchLink? Parent,
         IReadOnlyList<TraceBatchLink> Children,
         IReadOnlyList<TracePassport> ReceivedPassports,
+        IReadOnlyList<TraceCorrection> Corrections,
         IReadOnlyList<TraceContainer> Containers,
         IReadOnlyList<TraceStep> Steps,
         IReadOnlyList<TraceSale> Sales,

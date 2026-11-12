@@ -1,0 +1,341 @@
+using System.Globalization;
+using System.Security.Claims;
+using System.Text.Json;
+using GrowLog.Api.Data;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
+
+namespace GrowLog.Api.Work;
+
+/// <summary>
+/// Correcting a batch's details after it was started. Each correction is kept, with who made it, when, and the
+/// values before and after, so the trace report shows it. The day it was sown and how many are changed by
+/// undoing the start and recording it again, never by altering it, and only while nothing else has been
+/// recorded on the plants; after that a stock count corrects the number.
+/// </summary>
+internal static class BatchEditEndpoints
+{
+    private const int LongestText = 200;
+
+    private static readonly EventType[] Starts = [EventType.Sown, EventType.Received, EventType.CuttingsTaken];
+
+    public static void MapBatchEditEndpoints(this IEndpointRouteBuilder app)
+    {
+        app.MapGet("/api/batches/{id:guid}", GetAsync).Produces<BatchDetails>();
+        app.MapPut("/api/batches/{id:guid}", EditAsync).Produces<EditRefused>(StatusCodes.Status409Conflict);
+    }
+
+    private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static async Task<IResult> GetAsync(Guid id, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        if (await db.Batches.AsNoTracking().FirstOrDefaultAsync(batch => batch.Id == id, cancellationToken) is not { } batch)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var start = await FindStartAsync(db, id, cancellationToken);
+
+        return TypedResults.Ok(new BatchDetails(
+            batch.Id,
+            batch.TraceabilityCode,
+            batch.PlantId,
+            batch.Source,
+            batch.SourceReference,
+            batch.SupplierId,
+            batch.MotherPlant,
+            batch.OriginCountry,
+            start?.Event.OccurredAt,
+            start?.Quantity,
+            start is not null && await StartCanChangeAsync(db, id, start, cancellationToken),
+            await db.Set<ReceivedPassport>().CountAsync(passport => passport.BatchId == id, cancellationToken),
+            await db.Batches.CountAsync(other => other.ParentBatchId == id, cancellationToken)));
+    }
+
+    private static async Task<IResult> EditAsync(
+        Guid id,
+        EditBatchRequest request,
+        ClaimsPrincipal user,
+        GrowLogDbContext db,
+        EventStore store,
+        TimeProvider clock,
+        CancellationToken cancellationToken)
+    {
+        if (await db.Batches.FirstOrDefaultAsync(batch => batch.Id == id, cancellationToken) is not { } batch)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (!await IsValidAsync(request, db, clock, cancellationToken))
+        {
+            return TypedResults.BadRequest();
+        }
+
+        var wanted = Wanted.From(request);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+
+        // Nothing else may be recorded in the tray between checking the start can change and changing it.
+        var start = await FindStartAsync(db, id, cancellationToken);
+
+        if (start is not null)
+        {
+            await db.Database.ExecuteSqlRawAsync("SELECT 1 FROM containers WHERE id = {0} FOR UPDATE", [start.ContainerId], cancellationToken);
+            start = await FindStartAsync(db, id, cancellationToken);
+        }
+
+        var changes = await DescribeAsync(batch, wanted, db, cancellationToken);
+        var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        try
+        {
+            if (await RestartAsync(new Restart(batch, start, request, wanted, userId), db, store, clock, changes, cancellationToken) is { } refused)
+            {
+                return refused;
+            }
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            // Someone else corrected the start at the same moment.
+            return TypedResults.Conflict(new EditRefused("StartLocked"));
+        }
+
+        if (changes.Count == 0)
+        {
+            return TypedResults.NoContent();
+        }
+
+        Apply(batch, wanted);
+        db.CatalogueChanges.Add(new CatalogueChange
+        {
+            Entity = nameof(Batch),
+            EntityKey = id.ToString(),
+            Action = "Modified",
+            ChangedBy = userId,
+            Changes = JsonSerializer.Serialize(changes),
+        });
+
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return TypedResults.NoContent();
+    }
+
+    private static void Apply(Batch batch, Wanted wanted)
+    {
+        batch.PlantId = wanted.PlantId;
+        batch.Source = wanted.Source;
+        batch.SourceReference = wanted.SourceReference;
+        batch.SupplierId = wanted.SupplierId;
+        batch.MotherPlant = wanted.MotherPlant;
+        batch.OriginCountry = wanted.OriginCountry;
+    }
+
+    private static async Task<bool> IsValidAsync(EditBatchRequest request, GrowLogDbContext db, TimeProvider clock, CancellationToken cancellationToken)
+    {
+        var country = request.OriginCountry?.Trim() ?? "";
+        var textFits = (request.SourceReference?.Length ?? 0) <= LongestText && (request.MotherPlant?.Length ?? 0) <= LongestText;
+        var startFits = request.Quantity is null or (> 0 and <= 1_000_000)
+            && (request.StartedAt is null || request.StartedAt <= clock.GetUtcNow() + DeviceClock.Tolerance);
+
+        if (country.Length != 2 || !country.All(char.IsAsciiLetter) || !textFits || !startFits || !Enum.IsDefined(request.Source))
+        {
+            return false;
+        }
+
+        // Bought-in plants must say who supplied them, for the passport record.
+        if (request.Source == BatchSource.BoughtIn && request.SupplierId is null)
+        {
+            return false;
+        }
+
+        var supplierKnown = request.SupplierId is not { } supplierId || request.Source == BatchSource.Cuttings
+            || await db.Suppliers.AnyAsync(supplier => supplier.Id == supplierId, cancellationToken);
+
+        return supplierKnown && await db.Plants.AnyAsync(plant => plant.Id == request.PlantId, cancellationToken);
+    }
+
+    /// <summary>What the edit changes, as values people can read, with before and after.</summary>
+    private static async Task<Dictionary<string, Change>> DescribeAsync(Batch batch, Wanted wanted, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        var changes = new Dictionary<string, Change>(StringComparer.Ordinal);
+
+        void Compare(string field, string? before, string? after)
+        {
+            if (!string.Equals(before, after, StringComparison.Ordinal))
+            {
+                changes[field] = new Change(before, after);
+            }
+        }
+
+        var supplierId = wanted.SupplierId;
+        var plants = await db.Plants.Where(plant => plant.Id == batch.PlantId || plant.Id == wanted.PlantId).ToDictionaryAsync(plant => plant.Id, cancellationToken);
+        var suppliers = await db.Suppliers.Where(supplier => supplier.Id == batch.SupplierId || supplier.Id == supplierId).ToDictionaryAsync(supplier => supplier.Id, supplier => supplier.Name, cancellationToken);
+
+        static string PlantName(Plant plant) => plant.Variety is null ? plant.CommonName : $"{plant.CommonName} '{plant.Variety}'";
+
+        Compare("Plant", PlantName(plants[batch.PlantId]), PlantName(plants[wanted.PlantId]));
+        Compare("Source", batch.Source.ToString(), wanted.Source.ToString());
+        Compare("Supplier", batch.SupplierId is { } before ? suppliers[before] : null, supplierId is { } after ? suppliers[after] : null);
+        Compare("Lot or reference", batch.SourceReference, wanted.SourceReference);
+        Compare("Mother plant", batch.MotherPlant, wanted.MotherPlant);
+        Compare("Country of origin", batch.OriginCountry, wanted.OriginCountry);
+        return changes;
+    }
+
+    /// <summary>
+    /// Undoes the start and records it again with the right day, number and kind of work, when any changed.
+    /// A batch whose start can't be found, or has work recorded since, keeps its start, and asking to change it is refused.
+    /// </summary>
+    private static async Task<IResult?> RestartAsync(
+        Restart restart,
+        GrowLogDbContext db,
+        EventStore store,
+        TimeProvider clock,
+        Dictionary<string, Change> changes,
+        CancellationToken cancellationToken)
+    {
+        var (batch, start, request, wanted, userId) = restart;
+        var type = StartOf(wanted.Source);
+
+        if (start is null)
+        {
+            var asked = request.StartedAt is not null || request.Quantity is not null || wanted.Source != batch.Source;
+            return asked ? TypedResults.Conflict(new EditRefused("StartLocked")) : null;
+        }
+
+        var startedAt = request.StartedAt?.ToUniversalTime() ?? start.Event.OccurredAt;
+        var quantity = request.Quantity ?? start.Quantity;
+
+        if (startedAt == start.Event.OccurredAt && quantity == start.Quantity && type == start.Event.Type)
+        {
+            return null;
+        }
+
+        if (!await StartCanChangeAsync(db, batch.Id, start, cancellationToken))
+        {
+            return TypedResults.Conflict(new EditRefused("StartLocked"));
+        }
+
+        var original = start.Event;
+        var undo = new Event { Id = Guid.CreateVersion7(), Type = EventType.Corrected, OccurredAt = clock.GetUtcNow(), RecordedBy = userId, ContainerId = original.ContainerId, CorrectsEventId = original.Id };
+
+        // Recorded again under the person who did the work; the undo shows who corrected it.
+        var again = new Event
+        {
+            Id = Guid.CreateVersion7(),
+            Type = type,
+            OccurredAt = startedAt,
+            RecordedBy = original.RecordedBy,
+            ContainerId = original.ContainerId,
+            LocationId = original.LocationId,
+            PotSizeId = original.PotSizeId,
+            Payload = original.Payload,
+        };
+        again.Lines.Add(new EventLine { ContainerId = start.ContainerId, BatchId = batch.Id, QuantityChange = quantity });
+
+        if (await store.AppendAsync(undo, cancellationToken) != AppendResult.Stored || await store.AppendAsync(again, cancellationToken) != AppendResult.Stored)
+        {
+            return TypedResults.Conflict(new EditRefused("StartLocked"));
+        }
+
+        if (startedAt != original.OccurredAt)
+        {
+            changes["Started"] = new Change(original.OccurredAt.ToString("O", CultureInfo.InvariantCulture), startedAt.ToString("O", CultureInfo.InvariantCulture));
+        }
+
+        if (quantity != start.Quantity)
+        {
+            changes["How many"] = new Change(start.Quantity.ToString(CultureInfo.InvariantCulture), quantity.ToString(CultureInfo.InvariantCulture));
+        }
+
+        return null;
+    }
+
+    private static EventType StartOf(BatchSource source) => source switch
+    {
+        BatchSource.BoughtIn => EventType.Received,
+        BatchSource.Cuttings => EventType.CuttingsTaken,
+        _ => EventType.Sown,
+    };
+
+    /// <summary>The work that started the batch: its first sowing, arrival or cuttings, still standing.</summary>
+    private static async Task<Start?> FindStartAsync(GrowLogDbContext db, Guid id, CancellationToken cancellationToken)
+    {
+        var start = await db.Events
+            .AsNoTracking()
+            .Where(e => Starts.Contains(e.Type) && !db.Events.Any(correction => correction.CorrectsEventId == e.Id))
+            .Where(e => e.Lines.Any(line => line.BatchId == id && line.QuantityChange > 0))
+            .OrderBy(e => e.OccurredAt)
+            .Select(e => new { Event = e, Line = e.Lines.First(line => line.BatchId == id) })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return start is null ? null : new Start(start.Event, start.Line.ContainerId, start.Line.QuantityChange);
+    }
+
+    /// <summary>Only while nothing else has been recorded on the batch or its first container.</summary>
+    private static async Task<bool> StartCanChangeAsync(GrowLogDbContext db, Guid id, Start start, CancellationToken cancellationToken)
+    {
+        // An undo is not work; a correction that replaced work is.
+        var standing = db.Events
+            .Where(e => e.Id != start.Event.Id && !db.Events.Any(correction => correction.CorrectsEventId == e.Id))
+            .Where(e => e.Type != EventType.Corrected || e.Lines.Any() || e.LocationId != null);
+        var onBatch = standing.Where(e => e.Lines.Any(line => line.BatchId == id));
+        var onContainer = standing.Where(e => e.ContainerId == start.ContainerId || e.Lines.Any(line => line.ContainerId == start.ContainerId));
+
+        return !await onBatch.AnyAsync(cancellationToken) && !await onContainer.AnyAsync(cancellationToken);
+    }
+
+    private sealed record Start(Event Event, Guid ContainerId, int Quantity);
+
+    private sealed record Restart(Batch Batch, Start? Start, EditBatchRequest Request, Wanted Wanted, Guid UserId);
+
+    /// <summary>The batch as the edit wants it. Details that don't apply to how it started are cleared.</summary>
+    private sealed record Wanted(Guid PlantId, BatchSource Source, string? SourceReference, Guid? SupplierId, string? MotherPlant, string OriginCountry)
+    {
+        public static Wanted From(EditBatchRequest request)
+        {
+            var cuttings = request.Source == BatchSource.Cuttings;
+
+            return new Wanted(
+                request.PlantId,
+                request.Source,
+                cuttings ? null : Clean(request.SourceReference),
+                cuttings ? null : request.SupplierId,
+                cuttings ? Clean(request.MotherPlant) : null,
+                request.OriginCountry.Trim().ToUpperInvariant());
+        }
+    }
+
+    internal sealed record Change(string? Before, string? After);
+
+    internal sealed record EditBatchRequest(
+        Guid PlantId,
+        BatchSource Source,
+        string? SourceReference,
+        Guid? SupplierId,
+        string? MotherPlant,
+        string OriginCountry,
+        DateTimeOffset? StartedAt,
+        int? Quantity);
+
+    internal sealed record EditRefused(string Problem);
+
+    /// <param name="StartedAt">When it was sown, arrived or had cuttings taken, if its start is still recorded.</param>
+    /// <param name="StartCanChange">Whether the day, number and source can still be corrected: nothing else is recorded yet.</param>
+    /// <param name="ReceivedPassports">Passports received with the batch, which keep what was printed on them whatever is corrected.</param>
+    /// <param name="SplitInto">Batches split from this one, which keep their own details.</param>
+    internal sealed record BatchDetails(
+        Guid Id,
+        string TraceabilityCode,
+        Guid PlantId,
+        BatchSource Source,
+        string? SourceReference,
+        Guid? SupplierId,
+        string? MotherPlant,
+        string OriginCountry,
+        DateTimeOffset? StartedAt,
+        int? Quantity,
+        bool StartCanChange,
+        int ReceivedPassports,
+        int SplitInto);
+}

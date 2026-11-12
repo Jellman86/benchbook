@@ -1,6 +1,7 @@
 <script lang="ts">
   import PrintButton from "../PrintButton.svelte";
   import BatchPhotos from "./BatchPhotos.svelte";
+  import EditBatch from "./EditBatch.svelte";
   import PlantCard from "./PlantCard.svelte";
   import { onMount } from "svelte";
   import { findPlaceByCode, isPlaceCode, type Place } from "../../lib/places";
@@ -61,6 +62,8 @@
   let problem = $state("");
   let busy = $state(false);
   let cardPlant = $state<string | null>(null);
+  let editing = $state<string | null>(null);
+  let saved = $state("");
   let fromDevice = $state(false);
 
   const now = new Date();
@@ -74,9 +77,22 @@
     pushStep("trayCard", plantId);
   }
 
+  function openEdit(batchId: string) {
+    saved = "";
+    editing = batchId;
+    pushStep("trayEdit", batchId);
+  }
+
+  function editSaved(message: string) {
+    saved = message;
+    back();
+    void load();
+  }
+
   function stepped() {
     action = stepOf<TrayAction>("trayAction");
     cardPlant = stepOf<string>("trayCard");
+    editing = stepOf<string>("trayEdit");
     void focusHeading();
   }
 
@@ -120,7 +136,12 @@
   function keyed(event: KeyboardEvent) {
     const target = event.target as HTMLElement | null;
 
-    if (action || cardPlant || target?.closest("input, textarea, select")) {
+    if (
+      action ||
+      cardPlant ||
+      editing ||
+      target?.closest("input, textarea, select")
+    ) {
       return;
     }
 
@@ -231,6 +252,8 @@
   <main><p class="muted">Loading…</p></main>
 {:else if cardPlant}
   <PlantCard plantId={cardPlant} onBack={back} />
+{:else if editing}
+  <EditBatch batchId={editing} onSaved={editSaved} onCancel={back} />
 {:else if action === "lost"}
   <Lose {container} {onDone} onCancel={back} />
 {:else if action === "move"}
@@ -286,6 +309,12 @@
               <button class="link-button" onclick={() => openCard(line.plantId)}
                 >About this plant</button
               >
+              {#if !fromDevice}
+                <button
+                  class="link-button"
+                  onclick={() => openEdit(line.batchId)}>Edit batch</button
+                >
+              {/if}
               {#if onTrace}
                 <button
                   class="link-button"
@@ -301,6 +330,7 @@
 
       <section class="tray-actions">
         {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+        {#if saved}<p class="card done" role="status">{saved}</p>{/if}
         <div class="next-actions">
           {#each first as item (item)}
             <button disabled={busy} onclick={() => choose(item)}
@@ -337,7 +367,7 @@
                     ? `, ${entry.recordedBy}`
                     : ""}{entry.undone ? " · undone" : ""}
                 </span>
-                {#if !entry.undone}
+                {#if !entry.undone && entry.type !== "Sold"}
                   <button
                     class="link-button"
                     disabled={busy}

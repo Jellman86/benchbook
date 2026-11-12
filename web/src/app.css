@@ -2315,3 +2315,16 @@ button.danger:hover:not(:disabled) {
     margin-top: 1.5rem;
   }
 }
+
+/* Checking a new batch: each answer with a way back to change it. */
+.batch-check dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+}
+
+.batch-check dd .link-button {
+  font-weight: 400;
+}

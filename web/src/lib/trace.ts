@@ -1,4 +1,5 @@
 import type { Schemas } from "./types";
+import { momentLabel } from "./dates";
 import { lossReasons } from "./work";
 
 export type BatchTrace = Schemas["BatchTrace"];
@@ -84,6 +85,30 @@ export function containerOf(step: TraceStep): string | null {
   return step.labelCode && !describeStep(step).includes(step.labelCode)
     ? step.labelCode
     : null;
+}
+
+const sourceNames: Record<string, string> = {
+  SeedLot: "Seed",
+  BoughtIn: "Bought in",
+  Cuttings: "Cuttings",
+};
+
+/** A corrected value in words: moments as days, sources as people say them, and blanks as "not set". */
+export function correctionValue(
+  correction: Schemas["TraceCorrection"],
+  side: "before" | "after",
+): string {
+  const value = correction[side];
+
+  if (!value) {
+    return "not set";
+  }
+
+  if (correction.field === "Started") {
+    return momentLabel(value);
+  }
+
+  return correction.field === "Source" ? (sourceNames[value] ?? value) : value;
 }
 
 /** Plants still growing, in the containers that hold them. */

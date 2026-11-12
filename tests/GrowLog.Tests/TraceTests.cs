@@ -98,6 +98,19 @@ public sealed class TraceTests(PostgresFixture database)
     }
 
     [Fact]
+    public async Task A_sale_is_reversed_only_by_a_credit_note()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (batch, tray, _, _) = await SowAsync(nursery);
+        await SellAsync(nursery, tray, batch, 15);
+        var sold = (await TraceAsync(nursery.Owner, batch)).GetProperty("steps").EnumerateArray().Single(step => string.Equals(step.GetProperty("type").GetString(), "Sold", StringComparison.Ordinal));
+
+        using var undo = await PostAsync(nursery.Staff, $"/api/events/{sold.GetProperty("eventId").GetGuid()}/correct", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow });
+        Assert.Equal(HttpStatusCode.Conflict, undo.StatusCode);
+        Assert.Equal("SoldByInvoice", Json(await undo.Content.ReadAsStringAsync(Cancellation)).GetProperty("problem").GetString());
+    }
+
+    [Fact]
     public async Task A_credit_note_shows_the_sale_as_cancelled_and_the_plants_as_back()
     {
         await using var nursery = await TwoPersonNursery.CreateAsync(database);

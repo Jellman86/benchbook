@@ -25,6 +25,7 @@
   import Stepper from "./Stepper.svelte";
   import DayPicker from "../DayPicker.svelte";
   import { isoDay, momentOn, onDay } from "../../lib/days";
+  import { originCountries } from "../../lib/countries";
 
   type PhotoKind = Schemas["BatchPhotoKind"] | "Plant";
 
@@ -44,7 +45,14 @@
     "Where from?",
     "Photos",
     "Where is it going?",
+    "Check and start",
   ];
+
+  const containerKinds: Record<Schemas["ContainerKind"], string> = {
+    Tray: "Tray",
+    PotGroup: "Group of pots",
+    BenchLot: "Bench lot",
+  };
 
   const photoChoices: { kind: PhotoKind; label: string }[] = [
     { kind: "Packet", label: "Seed packet" },
@@ -69,6 +77,10 @@
   let details = $state<Schemas["SpeciesDetailsResponse"] | null>(null);
   let variety = $state("");
   let plantId = $state("");
+  // The species pick and variety a plant was made for, so a changed variety makes a new plant.
+  let plantMadeFor = "";
+  // Set while the browser moves back to a step, so a second tap can't move it twice.
+  let moving = false;
   let quantity = $state(1);
   let source = $state<Schemas["BatchSource"]>("SeedLot");
   let sourceReference = $state("");
@@ -93,20 +105,6 @@
     BoughtIn: "Arrived",
     Cuttings: "Cuttings taken",
   };
-
-  const originCountries = [
-    { code: "GB", name: "Great Britain" },
-    { code: "IE", name: "Ireland" },
-    { code: "NL", name: "Netherlands" },
-    { code: "BE", name: "Belgium" },
-    { code: "DE", name: "Germany" },
-    { code: "DK", name: "Denmark" },
-    { code: "FR", name: "France" },
-    { code: "IT", name: "Italy" },
-    { code: "ES", name: "Spain" },
-    { code: "PT", name: "Portugal" },
-    { code: "PL", name: "Poland" },
-  ];
 
   function chooseSource(chosen: Schemas["BatchSource"]) {
     source = chosen;
@@ -200,6 +198,7 @@
   }
 
   function stepped() {
+    moving = false;
     const kept = stepOf<number>("batchStage") ?? 1;
 
     if (kept < stage) {
@@ -231,6 +230,80 @@
     problem = "";
     goTo(stage + 1);
   }
+
+  // Back through the browser's history, so Back after changing something still behaves.
+  function change(target: number) {
+    if (moving) {
+      return;
+    }
+
+    moving = true;
+    problem = "";
+    history.go(target - stage);
+    // In case the browser never says it moved.
+    setTimeout(() => (moving = false), 1000);
+  }
+
+  // The answers on "Where from?" must be complete, even if the browser's Forward skipped past it.
+  const whereFromDone = $derived(
+    originCountry.trim().length === 2 &&
+      (source !== "BoughtIn" || !!supplierId),
+  );
+
+  /** Everything about to be recorded, each with the step that changes it. */
+  const summary = $derived.by(() => {
+    const supplier = suppliers.find((item) => item.id === supplierId)?.name;
+    const country =
+      originCountries.find((item) => item.code === originCountry)?.name ??
+      originCountry;
+    const potSize = potSizes.find((item) => item.id === potSizeId)?.name;
+    const photoCount = Object.keys(photos).length;
+    const rows: { name: string; value: string; stage: number }[] = [
+      { name: "Plant", value: chosenName, stage: 1 },
+      {
+        name: "How many",
+        value: `${quantity}, in a ${containerKinds[containerKind].toLowerCase()}${potSize ? `, ${potSize}` : ""}`,
+        stage: 2,
+      },
+      {
+        name: started[source],
+        value: onDay(startedOn).replace(/^on /, ""),
+        stage: 3,
+      },
+    ];
+
+    if (source !== "Cuttings") {
+      rows.push({
+        name: "Supplier",
+        value: supplier ?? "Not listed",
+        stage: 3,
+      });
+      if (sourceReference.trim()) {
+        rows.push({
+          name: "Lot or reference",
+          value: sourceReference.trim(),
+          stage: 3,
+        });
+      }
+    }
+
+    rows.push(
+      { name: "Country of origin", value: country, stage: 3 },
+      {
+        name: "Photos",
+        value: photoCount === 0 ? "None" : String(photoCount),
+        stage: 4,
+      },
+      {
+        name: "Place",
+        value:
+          places.find((item) => item.id === locationId)?.label ?? "Not set",
+        stage: 5,
+      },
+    );
+
+    return rows;
+  });
 
   const addSupplier = () =>
     attempt(async () => {
@@ -284,7 +357,14 @@
 
   /** Adds the plant only now, so abandoning the steps leaves nothing behind. */
   async function resolvePlant(): Promise<string | null> {
-    if (plantId || !picked || picked.kind === "plant") {
+    const madeFor =
+      picked?.kind === "species" ? `${picked.id}|${variety.trim()}` : "";
+
+    if (
+      !picked ||
+      picked.kind === "plant" ||
+      (plantId && plantMadeFor === madeFor)
+    ) {
       return plantId;
     }
 
@@ -373,13 +453,16 @@
         }
 
         plantId = savedPlantId;
+        plantMadeFor =
+          picked?.kind === "species" ? `${picked.id}|${variety.trim()}` : "";
         const outcome = await submit(
           work.startBatch(
             {
               plantId: savedPlantId,
               quantity,
               source,
-              sourceReference: optional(sourceReference),
+              sourceReference:
+                source === "Cuttings" ? null : optional(sourceReference),
               supplierId: source === "Cuttings" ? null : supplierId || null,
               parentBatchId: null,
               motherPlant: null,
@@ -537,11 +620,7 @@
         Bought-in plants need their supplier, for the passport record.
       </p>
     {/if}
-    <button
-      onclick={next}
-      disabled={originCountry.trim().length !== 2 ||
-        (source === "BoughtIn" && !supplierId)}>Next</button
-    >
+    <button onclick={next} disabled={!whereFromDone}>Next</button>
   {:else if stage === 4}
     <p class="muted">Take a photo of anything worth keeping. All optional.</p>
     <div class="card-grid">
@@ -564,11 +643,7 @@
     <button onclick={next}
       >{Object.keys(photos).length > 0 ? "Next" : "Skip photos"}</button
     >
-  {:else}
-    <div class="card">
-      <strong>{quantity} {chosenName}</strong>
-      <span class="muted">{started[source]} {onDay(startedOn)}</span>
-    </div>
+  {:else if stage === 5}
     <label>
       Place
       <select bind:value={locationId}>
@@ -578,6 +653,33 @@
         {/each}
       </select>
     </label>
-    <button disabled={busy} onclick={start}>Start batch</button>
+    <button onclick={next}>Next</button>
+  {:else}
+    <p class="muted">
+      Check these before starting: the label prints with them, and the passport
+      record relies on them.
+    </p>
+    <dl class="facts card batch-check">
+      {#each summary as row (row.name)}
+        <dt>{row.name}</dt>
+        <dd>
+          <span>{row.value}</span>
+          <button class="link-button" onclick={() => change(row.stage)}
+            >Change<span class="visually-hidden">
+              {row.name.toLowerCase()}</span
+            ></button
+          >
+        </dd>
+      {/each}
+    </dl>
+    {#if !whereFromDone}
+      <p class="problem" role="alert">
+        "Where from?" isn't finished: bought-in plants need their supplier, and
+        every batch its country of origin.
+      </p>
+    {/if}
+    <button disabled={busy || !whereFromDone || !picked} onclick={start}
+      >Start batch</button
+    >
   {/if}
 </ActionFrame>

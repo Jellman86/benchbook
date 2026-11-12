@@ -98,6 +98,7 @@ app.Use(async (context, next) =>
 });
 
 app.MapWorkEndpoints();
+app.MapBatchEditEndpoints();
 app.MapContainerHistoryEndpoints();
 app.MapPlaceEndpoints();
 app.MapPlaceMapEndpoints();

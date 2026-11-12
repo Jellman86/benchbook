@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   containerOf,
+  correctionValue,
   describeStep,
   stillGrowing,
   type BatchTrace,
@@ -87,5 +88,20 @@ describe("stillGrowing", () => {
     expect(stillGrowing(trace).map((container) => container.labelCode)).toEqual(
       ["C2"],
     );
+  });
+});
+
+describe("correctionValue", () => {
+  it("puts sources and blanks into words", () => {
+    const correction = {
+      changedAt: "2026-11-12T10:00:00Z",
+      changedBy: "Sam",
+      field: "Source",
+      before: "SeedLot",
+      after: null,
+    };
+
+    expect(correctionValue(correction, "before")).toBe("Seed");
+    expect(correctionValue(correction, "after")).toBe("not set");
   });
 });

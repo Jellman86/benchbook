@@ -116,7 +116,8 @@ internal static class WorkEndpoints
         EventStore store,
         CancellationToken cancellationToken)
     {
-        if (!IsValidQuantity(request.Quantity))
+        // Bought-in plants must say who supplied them, for the passport record.
+        if (!IsValidQuantity(request.Quantity) || (request.Source == BatchSource.BoughtIn && request.SupplierId is null))
         {
             return TypedResults.BadRequest();
         }
@@ -356,6 +357,12 @@ internal static class WorkEndpoints
         if (original.Type == EventType.Corrected || !quantityIsValid || (request.LocationId is not null && original.LocationId is null))
         {
             return TypedResults.BadRequest();
+        }
+
+        // A sale belongs to its invoice, and is reversed only by a credit note, so the two always agree.
+        if (original.Type == EventType.Sold)
+        {
+            return Refused("SoldByInvoice");
         }
 
         var replacing = request.Quantity is not null || request.LocationId is not null;

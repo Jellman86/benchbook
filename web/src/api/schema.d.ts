@@ -335,6 +335,68 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/batches/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BatchDetails"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["EditBatchRequest"];
+                };
+            };
+            responses: {
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EditRefused"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/containers/{id}/history": {
         parameters: {
             query?: never;
@@ -5638,6 +5700,28 @@ export interface components {
             /** Format: date-time */
             lastTransferAt: null | string;
         };
+        BatchDetails: {
+            /** Format: uuid */
+            id: string;
+            traceabilityCode: string;
+            /** Format: uuid */
+            plantId: string;
+            source: components["schemas"]["BatchSource"];
+            sourceReference: null | string;
+            /** Format: uuid */
+            supplierId: null | string;
+            motherPlant: null | string;
+            originCountry: string;
+            /** Format: date-time */
+            startedAt: null | string;
+            /** Format: int32 */
+            quantity: null | number | string;
+            startCanChange: boolean;
+            /** Format: int32 */
+            receivedPassports: number | string;
+            /** Format: int32 */
+            splitInto: number | string;
+        };
         /** @enum {unknown} */
         BatchPhotoKind: "Packet" | "Label" | "Packaging";
         BatchPhotoSummary: {
@@ -5673,6 +5757,7 @@ export interface components {
             parent: null | components["schemas"]["TraceBatchLink"];
             children: components["schemas"]["TraceBatchLink"][];
             receivedPassports: components["schemas"]["TracePassport"][];
+            corrections: components["schemas"]["TraceCorrection"][];
             containers: components["schemas"]["TraceContainer"][];
             steps: components["schemas"]["TraceStep"][];
             sales: components["schemas"]["TraceSale"][];
@@ -5801,6 +5886,23 @@ export interface components {
             quantity: null | number | string;
             /** Format: double */
             netCost: number | string;
+        };
+        EditBatchRequest: {
+            /** Format: uuid */
+            plantId: string;
+            source: components["schemas"]["BatchSource"];
+            sourceReference: null | string;
+            /** Format: uuid */
+            supplierId: null | string;
+            motherPlant: null | string;
+            originCountry: string;
+            /** Format: date-time */
+            startedAt: null | string;
+            /** Format: int32 */
+            quantity: null | number | string;
+        };
+        EditRefused: {
+            problem: string;
         };
         EntryCreated: {
             /** Format: uuid */
@@ -6622,6 +6724,14 @@ export interface components {
             /** Format: int32 */
             now: number | string;
             place: null | string;
+        };
+        TraceCorrection: {
+            /** Format: date-time */
+            changedAt: string;
+            changedBy: null | string;
+            field: string;
+            before: null | string;
+            after: null | string;
         };
         TraceMatch: {
             /** Format: uuid */

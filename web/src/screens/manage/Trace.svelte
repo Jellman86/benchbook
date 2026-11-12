@@ -3,8 +3,10 @@
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { dayLabel, momentLabel } from "../../lib/dates";
+  import { isoDay } from "../../lib/days";
   import {
     containerOf,
+    correctionValue,
     describeStep,
     passportStatusLabels,
     sourceLabels,
@@ -76,7 +78,7 @@
 
     const rows: [string, string][] = [
       ["How it started", sourceLabels[trace.source]],
-      ["Started", dayLabel(trace.startedAt.slice(0, 10), now)],
+      ["Started", dayLabel(isoDay(new Date(trace.startedAt)), now)],
       ["Country of origin", trace.originCountry],
     ];
 
@@ -223,6 +225,28 @@
             </p>
           {/if}
 
+          {#if trace.corrections.length > 0}
+            <h2>Corrections to its details</h2>
+            <ol class="timeline">
+              {#each trace.corrections as correction, index (index)}
+                <li>
+                  <span class="timeline-what"
+                    >{correction.field}: {correctionValue(correction, "before")} →
+                    {correctionValue(correction, "after")}</span
+                  >
+                  <span class="muted credit"
+                    >{momentLabel(
+                      correction.changedAt,
+                      now,
+                    )}{correction.changedBy
+                      ? `, ${correction.changedBy}`
+                      : ""}</span
+                  >
+                </li>
+              {/each}
+            </ol>
+          {/if}
+
           <h2>What was done to it</h2>
           <ol class="timeline">
             {#each trace.steps as step (step.eventId)}
@@ -286,7 +310,7 @@
               >
               <em
                 >{sourceLabels[match.source]}, {dayLabel(
-                  match.startedAt.slice(0, 10),
+                  isoDay(new Date(match.startedAt)),
                   now,
                 )}</em
               >
