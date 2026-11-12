@@ -26,6 +26,14 @@
   import SowByPicker from "./SowByPicker.svelte";
   import SupplierRegistrations from "./SupplierRegistrations.svelte";
   import { sowByWords } from "../../lib/sowBy";
+  import {
+    packetShares,
+    sowingChoices,
+    sowingWords,
+    startsCounted,
+    type PacketShare,
+    type SownMeasure,
+  } from "../../lib/sowing";
   import DayPicker from "../DayPicker.svelte";
   import { isoDay, momentOn, onDay } from "../../lib/days";
   import { originCountries } from "../../lib/countries";
@@ -92,6 +100,32 @@
   let newPassport = $state("");
   let newOther = $state("");
   let sowBy = $state("");
+  // How the seed was measured; only "I counted them" starts the tray with a number.
+  let sownAs = $state<SownMeasure>("Counted");
+  let aboutSeeds = $state(200);
+  let grams = $state("");
+  let packetShare = $state<PacketShare>("Whole");
+  let packetSays = $state("");
+
+  const seed = $derived(source === "SeedLot");
+  const counting = $derived(!seed || startsCounted(sownAs));
+  const sowingReady = $derived(
+    counting
+      ? quantity >= 1
+      : sownAs === "Grams"
+        ? Number(grams) > 0
+        : sownAs === "About"
+          ? aboutSeeds >= 1
+          : true,
+  );
+  const sowing = $derived(
+    sowingWords({
+      sownAs: seed ? sownAs : null,
+      sownAmount: sownAs === "About" ? aboutSeeds : Number(grams),
+      packetShare,
+      packetSays: packetSays.trim() || null,
+    }),
+  );
   let locationId = $state("");
   let potSizeId = $state("");
   let containerKind = $state<Schemas["ContainerKind"]>("Tray");
@@ -114,6 +148,12 @@
 
   function chooseSource(chosen: Schemas["BatchSource"]) {
     source = chosen;
+
+    // Only seed can go in uncounted: plants and cuttings are always a number.
+    if (chosen !== "SeedLot" && !startsCounted(sownAs)) {
+      sownAs = "Counted";
+      quantity = Math.max(1, quantity);
+    }
 
     if (chosen === "BoughtIn") {
       originCountry = "";
@@ -275,8 +315,8 @@
     const rows: { name: string; value: string; stage: number }[] = [
       { name: "Plant", value: chosenName, stage: 1 },
       {
-        name: "How many",
-        value: `${quantity}, in a ${containerKinds[containerKind].toLowerCase()}${potSize ? `, ${potSize}` : ""}`,
+        name: counting ? "How many" : "Seed sown",
+        value: `${counting ? quantity : `${sowing}, not counted yet`}, in a ${containerKinds[containerKind].toLowerCase()}${potSize ? `, ${potSize}` : ""}`,
         stage: 2,
       },
       {
@@ -480,7 +520,18 @@
           work.startBatch(
             {
               plantId: savedPlantId,
-              quantity,
+              quantity: counting ? quantity : 0,
+              sownAs: seed ? sownAs : null,
+              sownAmount: !seed
+                ? null
+                : sownAs === "About"
+                  ? aboutSeeds
+                  : sownAs === "Grams"
+                    ? Number(grams)
+                    : null,
+              packetShare: seed && sownAs === "Packet" ? packetShare : null,
+              packetSays:
+                seed && sownAs === "Packet" ? packetSays.trim() || null : null,
               source,
               sourceReference:
                 source === "Cuttings" ? null : optional(sourceReference),
@@ -508,7 +559,7 @@
           : Object.keys(photos).length;
 
         onDone(
-          `Started ${quantity} ${chosenName}. Label: ${outcome.labelCode}${failed > 0 ? `. ${failed} photo${failed === 1 ? "" : "s"} didn't save.` : ""}`,
+          `Started ${counting ? `${quantity} ` : ""}${chosenName}${counting ? "" : ", not counted yet"}. Label: ${outcome.labelCode}${failed > 0 ? `. ${failed} photo${failed === 1 ? "" : "s"} didn't save.` : ""}`,
           outcome.eventId,
           outcome.labelCode,
         );
@@ -559,7 +610,57 @@
     >
   {:else if stage === 2}
     <p class="muted">{chosenName}</p>
-    <Stepper bind:value={quantity} presets={[10, 24, 40, 42, 84]} />
+    {#if seed}
+      <fieldset class="day-picker">
+        <legend class="field-label">How much seed went in?</legend>
+        <div class="segmented sowing-choices">
+          {#each sowingChoices as choice (choice.measure)}
+            <button
+              aria-pressed={sownAs === choice.measure}
+              onclick={() => (sownAs = choice.measure)}>{choice.label}</button
+            >
+          {/each}
+        </div>
+      </fieldset>
+    {/if}
+    {#if counting}
+      <Stepper bind:value={quantity} presets={[10, 24, 40, 42, 84]} />
+    {:else if sownAs === "About"}
+      <p class="muted">
+        About how many seeds? A guess, or what the packet says.
+      </p>
+      <Stepper bind:value={aboutSeeds} presets={[50, 100, 250, 500]} />
+    {:else if sownAs === "Grams"}
+      <label
+        >Grams of seed <input
+          bind:value={grams}
+          inputmode="decimal"
+          placeholder="0.5"
+        /></label
+      >
+    {:else if sownAs === "Packet"}
+      <div class="segmented">
+        {#each packetShares as item (item.share)}
+          <button
+            aria-pressed={packetShare === item.share}
+            onclick={() => (packetShare = item.share)}>{item.label}</button
+          >
+        {/each}
+      </div>
+      <label
+        >What does the packet say? (optional) <input
+          bind:value={packetSays}
+          maxlength="200"
+          placeholder="approx. 250 seeds, or 1 g"
+        /></label
+      >
+    {/if}
+    {#if !counting}
+      <p class="muted">
+        The tray shows "not counted yet" until someone counts what's come up:
+        when it germinates, or when it's pricked out.
+      </p>
+    {/if}
     <label>
       Going into
       <select bind:value={containerKind}>
@@ -577,7 +678,7 @@
         {/each}
       </select>
     </label>
-    <button onclick={next}>Next</button>
+    <button onclick={next} disabled={!sowingReady}>Next</button>
   {:else if stage === 3}
     <div class="segmented">
       {#each sources as item (item.source)}
@@ -721,8 +822,9 @@
         every batch its country of origin.
       </p>
     {/if}
-    <button disabled={busy || !whereFromDone || !picked} onclick={start}
-      >Start batch</button
+    <button
+      disabled={busy || !whereFromDone || !picked || !sowingReady}
+      onclick={start}>Start batch</button
     >
   {/if}
 </ActionFrame>

@@ -22,7 +22,9 @@
         aria-pressed={selected === line.batchId}
         onclick={() => (selected = line.batchId)}
       >
-        {plantName(line.commonName, line.variety)} ({line.quantity})
+        {plantName(line.commonName, line.variety)} ({line.notCounted
+          ? "not counted yet"
+          : line.quantity})
       </button>
     {/each}
   </div>

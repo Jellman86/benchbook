@@ -47,6 +47,10 @@ internal static class BatchEditEndpoints
             batch.MotherPlant,
             batch.OriginCountry,
             batch.SowBy,
+            batch.SownAs,
+            batch.SownAmount,
+            batch.PacketShare,
+            batch.PacketSays,
             start?.Event.OccurredAt,
             start?.Quantity,
             start is not null && await StartCanChangeAsync(db, id, start, cancellationToken),
@@ -130,6 +134,10 @@ internal static class BatchEditEndpoints
         batch.MotherPlant = wanted.MotherPlant;
         batch.OriginCountry = wanted.OriginCountry;
         batch.SowBy = wanted.SowBy;
+        batch.SownAs = wanted.SownAs;
+        batch.SownAmount = wanted.SownAmount;
+        batch.PacketShare = wanted.PacketShare;
+        batch.PacketSays = wanted.PacketSays;
     }
 
     private static async Task<bool> IsValidAsync(EditBatchRequest request, GrowLogDbContext db, TimeProvider clock, CancellationToken cancellationToken)
@@ -139,7 +147,9 @@ internal static class BatchEditEndpoints
         var startFits = request.Quantity is null or (> 0 and <= 1_000_000)
             && (request.StartedAt is null || request.StartedAt <= clock.GetUtcNow() + DeviceClock.Tolerance);
 
-        if (country.Length != 2 || !country.All(char.IsAsciiLetter) || !textFits || !startFits || !Enum.IsDefined(request.Source))
+        var sowingFits = request.Source != BatchSource.SeedLot || WorkEndpoints.IsSensibleSowing(request.SownAs, request.SownAmount, request.PacketShare, request.PacketSays);
+
+        if (country.Length != 2 || !country.All(char.IsAsciiLetter) || !textFits || !startFits || !sowingFits || !Enum.IsDefined(request.Source))
         {
             return false;
         }
@@ -181,6 +191,7 @@ internal static class BatchEditEndpoints
         Compare("Lot or reference", batch.SourceReference, wanted.SourceReference);
         Compare("Mother plant", batch.MotherPlant, wanted.MotherPlant);
         Compare("Country of origin", batch.OriginCountry, wanted.OriginCountry);
+        Compare("Sown", SowingWords(batch.SownAs, batch.SownAmount, batch.PacketShare, batch.PacketSays), SowingWords(wanted.SownAs, wanted.SownAmount, wanted.PacketShare, wanted.PacketSays));
         Compare("Sow by", batch.SowBy?.ToString("yyyy-MM", CultureInfo.InvariantCulture), wanted.SowBy?.ToString("yyyy-MM", CultureInfo.InvariantCulture));
         return changes;
     }
@@ -204,6 +215,14 @@ internal static class BatchEditEndpoints
         {
             var asked = request.StartedAt is not null || request.Quantity is not null || wanted.Source != batch.Source;
             return asked ? TypedResults.Conflict(new EditRefused("StartLocked")) : null;
+        }
+
+        // Seed sown without a count stays seed without a count: only a count gives it a number.
+        var uncounted = start.Quantity == 0;
+
+        if (uncounted != (wanted.SownAs is not (null or SownMeasure.Counted)) || (uncounted && request.Quantity is not null))
+        {
+            return TypedResults.Conflict(new EditRefused("CountInstead"));
         }
 
         var startedAt = request.StartedAt?.ToUniversalTime() ?? start.Event.OccurredAt;
@@ -245,18 +264,33 @@ internal static class BatchEditEndpoints
             return TypedResults.Conflict(new EditRefused("StartLocked"));
         }
 
-        if (startedAt != original.OccurredAt)
-        {
-            changes["Started"] = new Change(original.OccurredAt.ToString("O", CultureInfo.InvariantCulture), startedAt.ToString("O", CultureInfo.InvariantCulture));
-        }
-
-        if (quantity != start.Quantity)
-        {
-            changes["How many"] = new Change(start.Quantity.ToString(CultureInfo.InvariantCulture), quantity.ToString(CultureInfo.InvariantCulture));
-        }
-
+        NoteStartChanges(changes, original.OccurredAt, startedAt, start.Quantity, quantity);
         return null;
     }
+
+    private static void NoteStartChanges(Dictionary<string, Change> changes, DateTimeOffset wasAt, DateTimeOffset isAt, int was, int now)
+    {
+        if (isAt != wasAt)
+        {
+            changes["Started"] = new Change(wasAt.ToString("O", CultureInfo.InvariantCulture), isAt.ToString("O", CultureInfo.InvariantCulture));
+        }
+
+        if (now != was)
+        {
+            changes["How many"] = new Change(was.ToString(CultureInfo.InvariantCulture), now.ToString(CultureInfo.InvariantCulture));
+        }
+    }
+
+    /// <summary>How seed was sown, as kept in the record of corrections.</summary>
+    private static string? SowingWords(SownMeasure? sownAs, decimal? amount, PacketShare? share, string? says) => sownAs switch
+    {
+        null => null,
+        SownMeasure.About => string.Create(CultureInfo.InvariantCulture, $"About {amount:0} seeds"),
+        SownMeasure.Grams => string.Create(CultureInfo.InvariantCulture, $"{amount:0.###} g"),
+        SownMeasure.Packet => $"{share?.ToString() ?? "Part"} packet{(says is null ? string.Empty : $" ({says})")}",
+        SownMeasure.Unknown => "Not known",
+        _ => "Counted",
+    };
 
     private static EventType StartOf(BatchSource source) => source switch
     {
@@ -271,7 +305,7 @@ internal static class BatchEditEndpoints
         var start = await db.Events
             .AsNoTracking()
             .Where(e => Starts.Contains(e.Type) && !db.Events.Any(correction => correction.CorrectsEventId == e.Id))
-            .Where(e => e.Lines.Any(line => line.BatchId == id && line.QuantityChange > 0))
+            .Where(e => e.Lines.Any(line => line.BatchId == id && (line.QuantityChange > 0 || (e.Type == EventType.Sown && line.QuantityChange == 0))))
             .OrderBy(e => e.OccurredAt)
             .Select(e => new { Event = e, Line = e.Lines.First(line => line.BatchId == id) })
             .FirstOrDefaultAsync(cancellationToken);
@@ -297,7 +331,18 @@ internal static class BatchEditEndpoints
     private sealed record Restart(Batch Batch, Start? Start, EditBatchRequest Request, Wanted Wanted, Guid UserId);
 
     /// <summary>The batch as the edit wants it. Details that don't apply to how it started are cleared.</summary>
-    private sealed record Wanted(Guid PlantId, BatchSource Source, string? SourceReference, Guid? SupplierId, string? MotherPlant, string OriginCountry, DateOnly? SowBy)
+    private sealed record Wanted(
+        Guid PlantId,
+        BatchSource Source,
+        string? SourceReference,
+        Guid? SupplierId,
+        string? MotherPlant,
+        string OriginCountry,
+        DateOnly? SowBy,
+        SownMeasure? SownAs = null,
+        decimal? SownAmount = null,
+        PacketShare? PacketShare = null,
+        string? PacketSays = null)
     {
         public static Wanted From(EditBatchRequest request)
         {
@@ -310,7 +355,11 @@ internal static class BatchEditEndpoints
                 cuttings ? null : request.SupplierId,
                 cuttings ? Clean(request.MotherPlant) : null,
                 request.OriginCountry.Trim().ToUpperInvariant(),
-                request.Source == BatchSource.SeedLot ? request.SowBy : null);
+                request.Source == BatchSource.SeedLot ? request.SowBy : null,
+                request.Source == BatchSource.SeedLot ? request.SownAs : null,
+                request.Source == BatchSource.SeedLot && request.SownAs is SownMeasure.About or SownMeasure.Grams ? request.SownAmount : null,
+                request.Source == BatchSource.SeedLot && request.SownAs == SownMeasure.Packet ? request.PacketShare : null,
+                request.Source == BatchSource.SeedLot && request.SownAs == SownMeasure.Packet ? Clean(request.PacketSays) : null);
         }
     }
 
@@ -325,7 +374,11 @@ internal static class BatchEditEndpoints
         string OriginCountry,
         DateTimeOffset? StartedAt,
         int? Quantity,
-        DateOnly? SowBy = null);
+        DateOnly? SowBy = null,
+        SownMeasure? SownAs = null,
+        decimal? SownAmount = null,
+        PacketShare? PacketShare = null,
+        string? PacketSays = null);
 
     internal sealed record EditRefused(string Problem);
 
@@ -343,6 +396,10 @@ internal static class BatchEditEndpoints
         string? MotherPlant,
         string OriginCountry,
         DateOnly? SowBy,
+        SownMeasure? SownAs,
+        decimal? SownAmount,
+        PacketShare? PacketShare,
+        string? PacketSays,
         DateTimeOffset? StartedAt,
         int? Quantity,
         bool StartCanChange,

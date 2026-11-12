@@ -57,7 +57,8 @@ internal static class ProductionEndpoints
                 place?.PotSizeId is { } potSizeId ? potSizeNames[potSizeId] : null,
                 batch.SupplierName,
                 batch.HasPhoto,
-                place?.LocationId);
+                place?.LocationId,
+                row.NotCounted);
         })];
     }
 
@@ -148,5 +149,6 @@ internal static class ProductionEndpoints
         string? PotSizeName,
         string? SupplierName,
         bool HasPhoto,
-        Guid? LocationId);
+        Guid? LocationId,
+        bool NotCounted);
 }

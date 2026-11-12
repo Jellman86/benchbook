@@ -2415,3 +2415,22 @@ button.danger:hover:not(:disabled) {
 .supplier-registrations .link-button {
   align-self: flex-start;
 }
+
+/* Five ways to say how much seed went in: two to a row on a phone, the last full width. */
+.segmented.sowing-choices {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.segmented.sowing-choices button:last-child {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 640px) {
+  .segmented.sowing-choices {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .segmented.sowing-choices button:last-child {
+    grid-column: auto;
+  }
+}

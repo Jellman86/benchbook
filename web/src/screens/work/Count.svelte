@@ -25,7 +25,8 @@
       container.contents[0],
   );
 
-  let counted = $derived(Number(line.quantity));
+  // Nobody has counted an uncounted tray, so there's no number to start from.
+  let counted = $derived(line.notCounted ? 0 : Number(line.quantity));
 
   async function record() {
     busy = true;
@@ -47,7 +48,18 @@
 
 <ActionFrame title="Count" {problem} {onCancel} {container}>
   <BatchChoice lines={container.contents} bind:selected={chosen} />
-  <p>How many are there?</p>
+  {#if line.notCounted}
+    <p>Nobody has counted these yet. How many are there?</p>
+  {:else}
+    <p>How many are there?</p>
+  {/if}
   <Stepper bind:value={counted} min={0} />
-  <button disabled={busy} onclick={record}>Done</button>
+  {#if line.notCounted && counted < 1}
+    <p class="muted">
+      Enter how many. If none came up, use Lost and "All of them" instead.
+    </p>
+  {/if}
+  <button disabled={busy || (line.notCounted && counted < 1)} onclick={record}
+    >Done</button
+  >
 </ActionFrame>

@@ -26,6 +26,8 @@
 
   let chosen = $state<string | null>(null);
   let quantity = $state(1);
+  // For a tray nobody has counted: all of them, or some.
+  let all = $state<boolean | null>(null);
   let problem = $state("");
   let busy = $state(false);
 
@@ -38,15 +40,16 @@
     busy = true;
     const item: WorkRequest = work.lose(container.id, {
       batchId: line.batchId,
-      quantity,
+      quantity: line.notCounted ? 0 : quantity,
       reason,
+      all: line.notCounted ? all : null,
     });
     const outcome = await recordWork(item);
     busy = false;
 
     if (isRecorded(outcome)) {
       onDone(
-        `Lost ${quantity} ${plantName(line.commonName, line.variety)} (${label})`,
+        `Lost ${line.notCounted ? (all ? "all the" : "some") : quantity} ${plantName(line.commonName, line.variety)} (${label})`,
         outcome.eventId,
       );
     } else {
@@ -59,18 +62,33 @@
   <div class="action-columns">
     <div class="stack">
       <BatchChoice lines={container.contents} bind:selected={chosen} />
-      <p>How many?</p>
-      <Stepper
-        bind:value={quantity}
-        max={Number(line.quantity)}
-        presets={quantityPresets(Number(line.quantity))}
-      />
+      {#if line.notCounted}
+        <p>Nobody has counted these yet. Were they all lost, or some?</p>
+        <div class="segmented two">
+          <button aria-pressed={all === true} onclick={() => (all = true)}
+            >All of them</button
+          >
+          <button aria-pressed={all === false} onclick={() => (all = false)}
+            >Some of them</button
+          >
+        </div>
+        {#if all === null}
+          <p class="muted">Choose all or some, then why.</p>
+        {/if}
+      {:else}
+        <p>How many?</p>
+        <Stepper
+          bind:value={quantity}
+          max={Number(line.quantity)}
+          presets={quantityPresets(Number(line.quantity))}
+        />
+      {/if}
     </div>
     <div class="stack">
       <p>Why?</p>
       {#each lossReasons as option (option.reason)}
         <button
-          disabled={busy}
+          disabled={busy || (line.notCounted && all === null)}
           onclick={() => record(option.reason, option.label)}
           >{option.label}</button
         >

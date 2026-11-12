@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { lineAmount } from "../../lib/sowing";
   import { onMount, tick } from "svelte";
   import { api } from "../../api/client";
   import { rememberedContainer, rememberedPlaces } from "../../lib/offline";
@@ -60,7 +61,7 @@
     return tray.contents
       .map(
         (line) =>
-          `${line.quantity} ${plantName(line.commonName, line.variety)}`,
+          `${lineAmount(line)} ${plantName(line.commonName, line.variety)}`,
       )
       .join(", ");
   }

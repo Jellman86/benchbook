@@ -17,6 +17,10 @@ const before: BatchForm = {
   startedOn: "2026-11-03",
   quantity: 40,
   sowBy: "",
+  sownAs: null,
+  sownAmount: "",
+  packetShare: null,
+  packetSays: "",
 };
 
 describe("batchChanges", () => {

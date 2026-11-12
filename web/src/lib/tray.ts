@@ -119,7 +119,7 @@ export function describeHistory(entry: HistoryEntry): string {
 
   switch (entry.type) {
     case "Sown":
-      return `Sown: ${quantity}`;
+      return quantity === 0 ? "Sown, not counted yet" : `Sown: ${quantity}`;
     case "Received":
       return `Arrived: ${quantity}`;
     case "CuttingsTaken":
@@ -140,7 +140,10 @@ export function describeHistory(entry: HistoryEntry): string {
       const reason = lossReasons.find(
         (item) => item.reason === details?.reason,
       )?.label;
-      return reason ? `Lost ${quantity} (${reason})` : `Lost ${quantity}`;
+      const all = (entry.details as { all?: boolean } | null)?.all;
+      const how =
+        all === true ? "all of them" : all === false ? "some" : `${quantity}`;
+      return reason ? `Lost ${how} (${reason})` : `Lost ${how}`;
     }
     case "Treated":
       return `Treated with ${details?.product ?? "a product"}`;

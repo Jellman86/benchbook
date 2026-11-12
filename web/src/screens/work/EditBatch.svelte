@@ -4,6 +4,7 @@
   import { originCountries } from "../../lib/countries";
   import { isoDay, momentOn } from "../../lib/days";
   import { batchChanges, type BatchForm } from "../../lib/batchEdit";
+  import { packetShares, sowingChoices } from "../../lib/sowing";
   import { attempt, optional, type Schemas } from "../../lib/types";
   import DayPicker from "../DayPicker.svelte";
   import ActionFrame from "./ActionFrame.svelte";
@@ -75,6 +76,11 @@
         startedOn: details.startedAt ? isoDay(new Date(details.startedAt)) : "",
         quantity: Number(details.quantity ?? 0),
         sowBy: details.sowBy ?? "",
+        sownAs: details.sownAs ?? null,
+        sownAmount:
+          details.sownAmount == null ? "" : String(details.sownAmount),
+        packetShare: details.packetShare ?? null,
+        packetSays: details.packetSays ?? "",
       };
       form = { ...before };
     }, setProblem),
@@ -87,6 +93,15 @@
   async function reloadSuppliers() {
     suppliers = (await api.GET("/api/suppliers")).data ?? [];
   }
+
+  // Seed sown without a count stays that way: only a count gives it a number.
+  const uncounted = $derived(
+    !!details &&
+      !!details.startedAt &&
+      Number(details.quantity) === 0 &&
+      !!details.sownAs &&
+      details.sownAs !== "Counted",
+  );
 
   const changes = $derived(
     form && before ? batchChanges(before, form, plants, suppliers) : [],
@@ -122,10 +137,23 @@
       .join(" ");
   });
 
+  // Like the server: about so many is a whole number of seeds, grams are more than nothing.
+  const sowingValid = $derived(
+    !form ||
+      !uncounted ||
+      (form.sownAs === "About"
+        ? Number.isInteger(Number(form.sownAmount)) &&
+          Number(form.sownAmount) >= 1
+        : form.sownAs === "Grams"
+          ? Number(form.sownAmount) > 0 && Number(form.sownAmount) <= 10_000
+          : true),
+  );
+
   const ready = $derived(
     !!form &&
       form.originCountry.trim().length === 2 &&
-      (form.source !== "BoughtIn" || !!form.supplierId),
+      (form.source !== "BoughtIn" || !!form.supplierId) &&
+      sowingValid,
   );
 
   /** The new start keeps its time of day, but never lands in the future. */
@@ -157,6 +185,20 @@
             supplierId: cuttings ? null : form.supplierId || null,
             motherPlant: cuttings ? optional(form.motherPlant) : null,
             sowBy: form.source === "SeedLot" && form.sowBy ? form.sowBy : null,
+            sownAs: form.source === "SeedLot" ? form.sownAs : null,
+            sownAmount:
+              form.source === "SeedLot" &&
+              (form.sownAs === "About" || form.sownAs === "Grams")
+                ? Number(form.sownAmount)
+                : null,
+            packetShare:
+              form.source === "SeedLot" && form.sownAs === "Packet"
+                ? (form.packetShare ?? "Part")
+                : null,
+            packetSays:
+              form.source === "SeedLot" && form.sownAs === "Packet"
+                ? form.packetSays.trim() || null
+                : null,
             originCountry: form.originCountry.trim().toUpperCase(),
             startedAt:
               startChanged && form.startedOn !== before.startedOn
@@ -171,6 +213,13 @@
 
         if (response.ok) {
           onSaved(`Batch ${details.traceabilityCode} corrected`);
+        } else if (
+          (error as { problem?: string } | undefined)?.problem ===
+          "CountInstead"
+        ) {
+          checking = false;
+          problem =
+            "Seed sown without a count keeps it that way: use Count on the tray to give it a number.";
         } else if (
           (error as { problem?: string } | undefined)?.problem === "StartLocked"
         ) {
@@ -255,16 +304,60 @@
       {#each sources as item (item.source)}
         <button
           aria-pressed={form.source === item.source}
-          disabled={!details.startCanChange && form.source !== item.source}
+          disabled={(uncounted || !details.startCanChange) &&
+            form.source !== item.source}
           onclick={() => (form!.source = item.source)}>{item.label}</button
         >
       {/each}
     </div>
 
+    {#if uncounted}
+      <fieldset class="day-picker">
+        <legend class="field-label">How much seed went in?</legend>
+        <div class="segmented two">
+          {#each sowingChoices.filter((choice) => choice.measure !== "Counted") as choice (choice.measure)}
+            <button
+              aria-pressed={form.sownAs === choice.measure}
+              onclick={() => (form!.sownAs = choice.measure)}
+              >{choice.label}</button
+            >
+          {/each}
+        </div>
+      </fieldset>
+      {#if form.sownAs === "About" || form.sownAs === "Grams"}
+        <label
+          >{form.sownAs === "About" ? "About how many seeds" : "Grams of seed"}
+          <input bind:value={form.sownAmount} inputmode="decimal" /></label
+        >
+      {:else if form.sownAs === "Packet"}
+        <div class="segmented">
+          {#each packetShares as item (item.share)}
+            <button
+              aria-pressed={form.packetShare === item.share}
+              onclick={() => (form!.packetShare = item.share)}
+              >{item.label}</button
+            >
+          {/each}
+        </div>
+        <label
+          >What does the packet say? (optional) <input
+            bind:value={form.packetSays}
+            maxlength="200"
+          /></label
+        >
+      {/if}
+      <p class="muted">
+        Sown without a count: the number comes from counting them, when they
+        germinate or are pricked out.
+      </p>
+    {/if}
+
     {#if details.startCanChange && form.startedOn}
       <DayPicker bind:value={form.startedOn} label={whenAsked[form.source]} />
-      <p class="field-label">How many to start with</p>
-      <Stepper bind:value={form.quantity} />
+      {#if !uncounted}
+        <p class="field-label">How many to start with</p>
+        <Stepper bind:value={form.quantity} />
+      {/if}
     {:else if details.startedAt && form.startedOn}
       <!-- Work recorded since stays after the start, so it can only move earlier. -->
       <DayPicker

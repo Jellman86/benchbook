@@ -3,6 +3,7 @@
   import { findTrays } from "../../lib/findTray";
   import { rememberContainers, rememberedContainers } from "../../lib/offline";
   import { stageLabel } from "../../lib/production";
+  import { lineAmount } from "../../lib/sowing";
   import type { Schemas } from "../../lib/types";
   import { plantName } from "../../lib/work";
 
@@ -46,7 +47,7 @@
     container.contents
       .map(
         (line) =>
-          `${line.quantity} ${plantName(line.commonName, line.variety)}`,
+          `${lineAmount(line)} ${plantName(line.commonName, line.variety)}`,
       )
       .join(", ") || "Empty";
 </script>

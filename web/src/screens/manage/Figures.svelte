@@ -34,13 +34,21 @@
       : name;
   };
 
+  // Seed sown "about so many" gives a rate that is only approximate, and says so.
+  const germination = (
+    value: number | string | null | undefined,
+    approximate: boolean | undefined,
+  ) =>
+    approximate && value != null ? `about ${percent(value)}` : percent(value);
+
   const plantColumns: Column<PlantFigures>[] = [
     { label: "Plant", value: (row) => plantName(row.commonName, row.variety) },
     { label: "Started", value: (row) => Number(row.started), numeric: true },
     {
       label: "Germination",
       value: (row) => rate(row.germinationRate),
-      text: (row) => percent(row.germinationRate),
+      text: (row) =>
+        germination(row.germinationRate, row.germinationApproximate),
       numeric: true,
     },
     {
@@ -68,7 +76,8 @@
       {
         label: "Germination",
         value: (row) => rate(row.germinationRate),
-        text: (row) => percent(row.germinationRate),
+        text: (row) =>
+          germination(row.germinationRate, row.germinationApproximate),
         numeric: true,
       },
       {
@@ -147,7 +156,12 @@
             <div class="card">
               <strong>{plantName(plant.commonName, plant.variety)}</strong>
               <span>Started: {plant.started}</span>
-              <span>Germination: {percent(plant.germinationRate)}</span>
+              <span
+                >Germination: {germination(
+                  plant.germinationRate,
+                  plant.germinationApproximate,
+                )}</span
+              >
               <span>Survival: {percent(plant.survivalRate)}</span>
               <span>Lost: {plant.lost}</span>
               {#if Number(plant.adjusted) !== 0}

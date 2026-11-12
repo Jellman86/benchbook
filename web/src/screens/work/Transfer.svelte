@@ -33,8 +33,15 @@
       container.contents[0],
   );
 
-  // Usually the whole lot moves on, into the next size up.
-  let quantity = $derived(Number(line.quantity));
+  // Usually the whole lot moves on, into the next size up. From a tray nobody counted, the count starts here.
+  let quantity = $derived(line.notCounted ? 1 : Number(line.quantity));
+  // For a tray nobody counted: how many are left in it, which with those taken makes its first count.
+  let answer = $state<"none" | "some" | null>(null);
+  let leftCount = $state(10);
+  const left = $derived(
+    answer === "none" ? 0 : answer === "some" ? leftCount : null,
+  );
+  const countEventId = crypto.randomUUID();
 
   let potSizesUnavailable = $state(false);
 
@@ -61,6 +68,8 @@
         containerKind: kind,
         potSizeId: potSizeId || null,
         locationId: null,
+        leftInTray: line.notCounted ? left : null,
+        countEventId: line.notCounted ? countEventId : null,
       }),
     );
     busy = false;
@@ -86,12 +95,35 @@
   <div class="action-columns">
     <div class="stack">
       <BatchChoice lines={container.contents} bind:selected={chosen} />
-      <p>How many?</p>
-      <Stepper
-        bind:value={quantity}
-        max={Number(line.quantity)}
-        presets={quantityPresets(Number(line.quantity))}
-      />
+      {#if line.notCounted}
+        <p>
+          How many did you {type === "PottedOn" ? "pot on" : "prick out"}? Count
+          as you go: this is the first count of these.
+        </p>
+        <Stepper bind:value={quantity} presets={[24, 40, 60, 84]} />
+        <p>Any left in the tray?</p>
+        <div class="segmented two">
+          <button
+            aria-pressed={answer === "none"}
+            onclick={() => (answer = "none")}>None</button
+          >
+          <button
+            aria-pressed={answer === "some"}
+            onclick={() => (answer = "some")}>Some left</button
+          >
+        </div>
+        {#if answer === "some"}
+          <p class="muted">Roughly how many are left?</p>
+          <Stepper bind:value={leftCount} min={1} presets={[5, 10, 20]} />
+        {/if}
+      {:else}
+        <p>How many?</p>
+        <Stepper
+          bind:value={quantity}
+          max={Number(line.quantity)}
+          presets={quantityPresets(Number(line.quantity))}
+        />
+      {/if}
     </div>
     <div class="stack">
       {#if potSizesUnavailable}
@@ -116,8 +148,14 @@
           <option value="BenchLot">Bench lot</option>
         </select>
       </label>
-      <button disabled={busy || potSizesUnavailable} onclick={record}
-        >Done</button
+      {#if line.notCounted && left === null}
+        <p class="muted">Say whether any are left in the tray.</p>
+      {/if}
+      <button
+        disabled={busy ||
+          potSizesUnavailable ||
+          (line.notCounted && left === null)}
+        onclick={record}>Done</button
       >
     </div>
   </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { lineAmount } from "../../lib/sowing";
   import PrintButton from "../PrintButton.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
@@ -363,7 +364,7 @@
                 <strong>{lines[0].labelCode}</strong>
                 {#each lines as line (line.batchId)}
                   <span
-                    >{line.quantity}
+                    >{lineAmount(line)}
                     {plantName(line.commonName, line.variety)} · {stageLabel(
                       line.stage,
                     )}</span

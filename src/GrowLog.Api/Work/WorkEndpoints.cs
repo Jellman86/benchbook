@@ -116,8 +116,14 @@ internal static class WorkEndpoints
         EventStore store,
         CancellationToken cancellationToken)
     {
+        // Seed sown without a count starts the tray at nought, "not counted yet", until the first count.
+        var sownAs = request.Source == BatchSource.SeedLot ? request.SownAs : null;
+        var counted = sownAs is null or SownMeasure.Counted;
+
         // Bought-in plants must say who supplied them, for the passport record.
-        if (!IsValidQuantity(request.Quantity) || (request.Source == BatchSource.BoughtIn && request.SupplierId is null))
+        if ((counted && !IsValidQuantity(request.Quantity))
+            || (request.Source == BatchSource.BoughtIn && request.SupplierId is null)
+            || !IsSensibleSowing(request))
         {
             return TypedResults.BadRequest();
         }
@@ -134,6 +140,10 @@ internal static class WorkEndpoints
             MotherPlant = Clean(request.MotherPlant),
             OriginCountry = request.OriginCountry.Trim().ToUpperInvariant(),
             SowBy = request.Source == BatchSource.SeedLot ? request.SowBy : null,
+            SownAs = sownAs,
+            SownAmount = sownAs is SownMeasure.About or SownMeasure.Grams ? request.SownAmount : null,
+            PacketShare = sownAs == SownMeasure.Packet ? request.PacketShare : null,
+            PacketSays = sownAs == SownMeasure.Packet ? Clean(request.PacketSays) : null,
         };
         var container = new Container { LabelCode = await LabelCodes.NextContainerAsync(db, cancellationToken), Kind = request.ContainerKind };
 
@@ -144,7 +154,7 @@ internal static class WorkEndpoints
             _ => EventType.CuttingsTaken,
         };
         var work = NewEvent(request.EventId, type, request.OccurredAt, user, container.Id, request.LocationId, request.PotSizeId);
-        AddLine(work, container.Id, batch.Id, request.Quantity);
+        AddLine(work, container.Id, batch.Id, counted ? request.Quantity : 0);
 
         // Tracked now and saved with the event, so a refused or repeated request leaves nothing behind.
         db.AddRange(batch, container);
@@ -153,6 +163,18 @@ internal static class WorkEndpoints
             () => store.AppendAsync(work, cancellationToken),
             async () => await DescribeStartedBatchAsync(request.EventId, db, cancellationToken));
     }
+
+    private static bool IsSensibleSowing(StartBatchRequest request) =>
+        IsSensibleSowing(request.SownAs, request.SownAmount, request.PacketShare, request.PacketSays);
+
+    /// <summary>A sowing's measure makes sense: about so many seeds is a whole number, grams are positive, a packet says how much.</summary>
+    internal static bool IsSensibleSowing(SownMeasure? sownAs, decimal? amount, PacketShare? share, string? says) => sownAs switch
+    {
+        SownMeasure.About => amount is >= 1 and <= MaxQuantity && decimal.Truncate(amount.Value) == amount,
+        SownMeasure.Grams => amount is > 0 and <= 10_000,
+        SownMeasure.Packet => share is not null && (says?.Length ?? 0) <= LongestShortText,
+        _ => true,
+    };
 
     private static async Task<object> DescribeStartedBatchAsync(Guid eventId, GrowLogDbContext db, CancellationToken cancellationToken) =>
         await db.EventLines
@@ -178,7 +200,7 @@ internal static class WorkEndpoints
             .ToListAsync(cancellationToken);
 
         var contents = state.Contents
-            .Join(batches, count => count.BatchId, batch => batch.Id, (count, batch) => new ContainerLine(batch.Id, batch.TraceabilityCode, batch.PlantId, batch.CommonName, batch.Variety, count.Quantity, batch.Source))
+            .Join(batches, count => count.BatchId, batch => batch.Id, (count, batch) => new ContainerLine(batch.Id, batch.TraceabilityCode, batch.PlantId, batch.CommonName, batch.Variety, count.Quantity, batch.Source, count.NotCounted))
             .ToList();
 
         var paths = await PlacePaths.LoadAsync(db, cancellationToken);
@@ -198,7 +220,7 @@ internal static class WorkEndpoints
             stage?.Since));
     }
 
-    /// <summary>Every container with plants in it, so a device can still open a label with no signal.</summary>
+    /// <summary>Every container with plants in it, or seed not counted yet, so a device can still open a label with no signal.</summary>
     private static async Task<List<ContainerResponse>> ListActiveAsync(GrowLogDbContext db, EventStore store, CancellationToken cancellationToken)
     {
         var stock = await store.GetStockAsync(cancellationToken);
@@ -220,7 +242,7 @@ internal static class WorkEndpoints
 
             var contents = stock
                 .Where(row => row.ContainerId == container.Id)
-                .Select(row => new ContainerLine(row.BatchId, batches[row.BatchId].TraceabilityCode, batches[row.BatchId].PlantId, batches[row.BatchId].CommonName, batches[row.BatchId].Variety, row.Quantity, batches[row.BatchId].Source))
+                .Select(row => new ContainerLine(row.BatchId, batches[row.BatchId].TraceabilityCode, batches[row.BatchId].PlantId, batches[row.BatchId].CommonName, batches[row.BatchId].Variety, row.Quantity, batches[row.BatchId].Source, row.NotCounted))
                 .ToList();
             var stage = stages.GetValueOrDefault(container.Id);
 
@@ -244,8 +266,44 @@ internal static class WorkEndpoints
     private static Task<IResult> RecordReadyAsync(Guid id, ReadyRequest request, ClaimsPrincipal user, EventStore store, CancellationToken cancellationToken) =>
         StoreSimpleAsync(store, NewEvent(request.EventId, EventType.Ready, request.OccurredAt, user, id), cancellationToken);
 
+    /// <summary>
+    /// A loss of a number of plants, or from a tray nobody has counted, all of them or some: neither changes a count
+    /// nobody has made, and "all of them" ends the tray.
+    /// </summary>
     private static async Task<IResult> RecordLossAsync(Guid id, LossRequest request, ClaimsPrincipal user, EventStore store, CancellationToken cancellationToken)
     {
+        // Sent as "all" or "some" from a tray that someone has counted since, as when work queued offline arrives late.
+        if (request.All is { } said && !await store.IsNotCountedAsync(id, request.BatchId, cancellationToken))
+        {
+            if (!said)
+            {
+                return Refused("NowCounted");
+            }
+
+            var here = (await store.GetContainerStateAsync(id, cancellationToken)).Contents.FirstOrDefault(line => line.BatchId == request.BatchId)?.Quantity ?? 0;
+
+            if (here <= 0)
+            {
+                return Refused("BelowZero");
+            }
+
+            var everyOne = NewEvent(request.EventId, EventType.Lost, request.OccurredAt, user, id, details: new { reason = request.Reason.ToString(), all = true });
+            AddLine(everyOne, id, request.BatchId, -here);
+            return await StoreSimpleAsync(store, everyOne, cancellationToken);
+        }
+
+        if (await store.IsNotCountedAsync(id, request.BatchId, cancellationToken))
+        {
+            if (request.All is not { } all)
+            {
+                return TypedResults.BadRequest();
+            }
+
+            var unknown = NewEvent(request.EventId, EventType.Lost, request.OccurredAt, user, id, details: new { reason = request.Reason.ToString(), all });
+            AddLine(unknown, id, request.BatchId, 0);
+            return await StoreSimpleAsync(store, unknown, cancellationToken);
+        }
+
         if (!IsValidQuantity(request.Quantity))
         {
             return TypedResults.BadRequest();
@@ -288,10 +346,22 @@ internal static class WorkEndpoints
         AddLine(work, id, request.BatchId, -request.Quantity);
         AddLine(work, target.Id, request.BatchId, request.Quantity);
 
+        // From a tray nobody had counted: what's taken and what's left are the first count, just before the move.
+        // Taken and left, when given, are a real count made as the plants were moved, so they stand even if someone
+        // counted the tray in the meantime.
+        var counting = request.LeftInTray is not null || await store.IsNotCountedAsync(id, request.BatchId, cancellationToken);
+
+        if (counting && (request.LeftInTray is not ({ } left and >= 0 and <= MaxQuantity) || request.CountEventId is not { } countId))
+        {
+            return TypedResults.Conflict(new WorkRefused("NotCounted"));
+        }
+
         db.Add(target);
 
         return await StoreAsync(
-            () => store.AppendAsync(work, cancellationToken),
+            () => counting
+                ? store.AppendCountThenAsync(NewEvent(request.CountEventId!.Value, EventType.StockCounted, request.OccurredAt, user, id), request.BatchId, request.Quantity + request.LeftInTray!.Value, work, cancellationToken)
+                : store.AppendAsync(work, cancellationToken),
             async () => await db.Events
                 .AsNoTracking()
                 .Where(e => e.Id == request.EventId)
@@ -355,7 +425,10 @@ internal static class WorkEndpoints
                 && original.Lines.Count > 0
                 && original.Lines.Select(line => Math.Abs(line.QuantityChange)).Distinct().Count() == 1);
 
-        if (original.Type == EventType.Corrected || !quantityIsValid || (request.LocationId is not null && original.LocationId is null))
+        // A sowing nobody counted has no number to correct: a count gives it one.
+        var notCounted = request.Quantity is not null && original.Lines.Count > 0 && original.Lines.All(line => line.QuantityChange == 0);
+
+        if (original.Type == EventType.Corrected || !quantityIsValid || notCounted || (request.LocationId is not null && original.LocationId is null))
         {
             return TypedResults.BadRequest();
         }
@@ -499,11 +572,16 @@ internal static class WorkEndpoints
         Guid? LocationId,
         Guid? PotSizeId,
         Guid? PurchaseLineId,
-        DateOnly? SowBy = null);
+        DateOnly? SowBy = null,
+        SownMeasure? SownAs = null,
+        decimal? SownAmount = null,
+        PacketShare? PacketShare = null,
+        string? PacketSays = null);
 
     internal sealed record GerminatedRequest(Guid EventId, DateTimeOffset OccurredAt);
 
-    internal sealed record LossRequest(Guid EventId, DateTimeOffset OccurredAt, Guid BatchId, int Quantity, LossReason Reason);
+    /// <param name="All">For a tray nobody has counted: whether all of them were lost, or some.</param>
+    internal sealed record LossRequest(Guid EventId, DateTimeOffset OccurredAt, Guid BatchId, int Quantity, LossReason Reason, bool? All = null);
 
     internal sealed record MoveRequest(Guid EventId, DateTimeOffset OccurredAt, Guid LocationId);
 
@@ -515,7 +593,12 @@ internal static class WorkEndpoints
         int Quantity,
         ContainerKind ContainerKind,
         Guid? PotSizeId,
-        Guid? LocationId);
+        Guid? LocationId,
+        int? LeftInTray = null,
+        Guid? CountEventId = null);
+
+    // LeftInTray and CountEventId are needed only from a tray nobody has counted: what's taken plus what's left
+    // becomes its first count, recorded under CountEventId just before the move.
 
     internal sealed record CountRequest(Guid EventId, DateTimeOffset OccurredAt, Guid BatchId, int Counted);
 
@@ -527,7 +610,8 @@ internal static class WorkEndpoints
 
     internal sealed record ReadyRequest(Guid EventId, DateTimeOffset OccurredAt);
 
-    internal sealed record ContainerLine(Guid BatchId, string TraceabilityCode, Guid PlantId, string CommonName, string? Variety, int Quantity, BatchSource Source);
+    /// <param name="NotCounted">Sown without a count and not counted since: Quantity is 0 because nobody knows it yet.</param>
+    internal sealed record ContainerLine(Guid BatchId, string TraceabilityCode, Guid PlantId, string CommonName, string? Variety, int Quantity, BatchSource Source, bool NotCounted = false);
 
     internal sealed record ContainerResponse(
         Guid Id,

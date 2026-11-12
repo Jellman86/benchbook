@@ -26,6 +26,17 @@ internal sealed class Batch
 
     public string? MotherPlant { get; set; }
 
+    /// <summary>How the seed was measured when sown. Null for plants not sown, and for batches from before this was kept.</summary>
+    public SownMeasure? SownAs { get; set; }
+
+    /// <summary>About how many seeds, or how many grams, depending on <see cref="SownAs"/>.</summary>
+    public decimal? SownAmount { get; set; }
+
+    public PacketShare? PacketShare { get; set; }
+
+    /// <summary>What the packet says it holds, as printed, such as "approx. 250 seeds" or "1 g".</summary>
+    public string? PacketSays { get; set; }
+
     /// <summary>The sow-by or use-by date printed on a seed packet: the last day of the month it gives.</summary>
     public DateOnly? SowBy { get; set; }
 

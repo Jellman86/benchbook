@@ -31,7 +31,9 @@ export function describeStep(step: TraceStep): string {
 
   switch (step.type) {
     case "Sown":
-      return `${quantity} sown${into}`;
+      return quantity === 0
+        ? `Sown${into}, not counted yet`
+        : `${quantity} sown${into}`;
     case "Received":
       return `${quantity} arrived${into}`;
     case "CuttingsTaken":
@@ -50,7 +52,10 @@ export function describeStep(step: TraceStep): string {
       const reason = lossReasons.find(
         (item) => item.reason === details?.reason,
       )?.label;
-      return reason ? `${quantity} lost (${reason})` : `${quantity} lost`;
+      const all = details?.all;
+      const how =
+        all === true ? "All of them" : all === false ? "Some" : `${quantity}`;
+      return reason ? `${how} lost (${reason})` : `${how} lost`;
     }
     case "Sold":
       return `${quantity} sold`;
@@ -115,4 +120,6 @@ export function correctionValue(
 
 /** Plants still growing, in the containers that hold them. */
 export const stillGrowing = (trace: BatchTrace) =>
-  trace.containers.filter((container) => Number(container.now) > 0);
+  trace.containers.filter(
+    (container) => Number(container.now) > 0 || container.notCounted,
+  );

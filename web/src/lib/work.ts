@@ -137,6 +137,10 @@ export function outcomeProblem(outcome: Outcome): string {
           return "That clashed with other work. Please record it again.";
         case "SoldByInvoice":
           return "A sale is cancelled with a credit note, under Invoices.";
+        case "NotCounted":
+          return "Nobody has counted this tray yet. Open it again and say how many you took and how many are left.";
+        case "NowCounted":
+          return "Someone has counted this tray since. Open it again and say how many were lost.";
         case "ExaminedForPassport":
           return "That examination belongs to a plant passport, so it stays.";
         default:
@@ -231,13 +235,18 @@ export function describeRecent(action: Schemas["RecentAction"]): string {
 
   switch (action.type) {
     case "Sown":
-      return `Sowed ${quantity} ${plant}${where}`;
+      return quantity === 0
+        ? `Sowed ${plant}, not counted yet${where}`
+        : `Sowed ${quantity} ${plant}${where}`;
     case "Received":
       return `Received ${quantity} ${plant}${where}`;
     case "CuttingsTaken":
       return `Took ${quantity} cuttings of ${plant}${where}`;
-    case "Lost":
-      return `Lost ${quantity} ${plant} (${lossLabel(details?.reason)})`;
+    case "Lost": {
+      const all = (action.details as { all?: boolean } | null)?.all;
+      const how = all === true ? "all the" : all === false ? "some" : quantity;
+      return `Lost ${how} ${plant} (${lossLabel(details?.reason)})`;
+    }
     case "Moved":
       return `Moved ${action.labelCode}${where}`;
     case "PottedOn":
@@ -268,9 +277,11 @@ export function repeatOf(action: Schemas["RecentAction"]): WorkRequest | null {
   const line = action.lines[0];
   const details = action.details as Record<string, string> | null;
 
+  // A sowing nobody counted can't be repeated as a number: New batch asks how much seed went in.
   if (
     startTypes.includes(action.type as string) &&
     line &&
+    Number(line.quantityChange) > 0 &&
     action.containerKind
   ) {
     return work.startBatch({
@@ -289,7 +300,14 @@ export function repeatOf(action: Schemas["RecentAction"]): WorkRequest | null {
     });
   }
 
-  if (action.type === "Lost" && line && action.containerId && details) {
+  // A loss from a tray nobody had counted has no number to repeat.
+  if (
+    action.type === "Lost" &&
+    line &&
+    Number(line.quantityChange) !== 0 &&
+    action.containerId &&
+    details
+  ) {
     return work.lose(action.containerId, {
       batchId: line.batchId,
       quantity: Math.abs(Number(line.quantityChange)),
