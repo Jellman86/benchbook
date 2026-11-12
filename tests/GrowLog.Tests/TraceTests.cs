@@ -44,7 +44,7 @@ public sealed class TraceTests(PostgresFixture database)
     private static async Task<Guid> SellAsync(TwoPersonNursery nursery, Guid container, Guid batch, int quantity)
     {
         var customer = await AddAsync(nursery.Owner, "/api/customers", new { name = "Hilltop Garden Centre", address = "1 High Street", email = "", phone = "", vatNumber = "" });
-        var lines = new[] { new { description = "Lavender", quantity, unitPrice = 3m, vatRate = 0m, containerId = (Guid?)container, batchId = (Guid?)batch } };
+        var lines = new[] { new { description = "Lavender", quantity, unitPrice = 3m, vatRate = 0m, containerId = container, batchId = batch } };
         return Json(await PostForTextAsync(nursery.Owner, "/api/invoices", new { customerId = customer, notes = "", lines })).GetProperty("id").GetGuid();
     }
 

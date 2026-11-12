@@ -272,8 +272,8 @@ internal static class TraceEndpoints
         return rows
             .Select(row => new StandingEvent(
                 row.Id,
-                row.OriginalType ?? row.Type,
-                row.OriginalAt ?? row.OccurredAt,
+                row.OriginalType is { } originalType ? originalType : row.Type,
+                row.OriginalAt is { } originalAt ? originalAt : row.OccurredAt,
                 row.ContainerId,
                 row.LocationId,
                 row.Payload,
