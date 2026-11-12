@@ -18,14 +18,57 @@
   import type { Column } from "../lib/table";
   import DataTable from "./DataTable.svelte";
   import PlantThumb from "./work/PlantThumb.svelte";
+  import ManyTrays from "./work/ManyTrays.svelte";
 
   let {
     onOpen,
     onBack,
+    onLabels,
   }: {
     onOpen: (label: string) => void;
     onBack: () => void;
+    onLabels: (labelCodes: string[]) => void;
   } = $props();
+
+  // Choosing several trays to work on at once, instead of opening one.
+  let choosing = $state(false);
+  let chosen = $state<Record<string, string>>({});
+  let notice = $state("");
+
+  const chosenTrays = $derived(
+    Object.entries(chosen).map(([id, labelCode]) => ({ id, labelCode })),
+  );
+
+  function tap(row: ProductionRow) {
+    if (!choosing) {
+      onOpen(row.labelCode);
+      return;
+    }
+
+    const next = { ...chosen };
+
+    if (next[row.containerId]) {
+      delete next[row.containerId];
+    } else {
+      next[row.containerId] = row.labelCode;
+    }
+
+    chosen = next;
+  }
+
+  function chooseShown() {
+    chosen = Object.fromEntries([
+      ...Object.entries(chosen),
+      ...shown.map((row) => [row.containerId, row.labelCode]),
+    ]);
+  }
+
+  async function finished(message: string) {
+    notice = message;
+    chosen = {};
+    choosing = false;
+    await load();
+  }
 
   let rows = $state<ProductionRow[]>([]);
   let loaded = $state(false);
@@ -41,7 +84,15 @@
       ? Math.floor((now.getTime() - new Date(since).getTime()) / 86_400_000)
       : null;
 
-  const columns: Column<ProductionRow>[] = [
+  const columns: Column<ProductionRow>[] = $derived([
+    ...(choosing
+      ? [
+          {
+            label: "Chosen",
+            value: (row: ProductionRow) => (chosen[row.containerId] ? "✓" : ""),
+          },
+        ]
+      : []),
     { label: "Label", value: (row) => row.labelCode },
     { label: "Plant", value: (row) => plantName(row.commonName, row.variety) },
     {
@@ -60,7 +111,7 @@
     { label: "Place", value: (row) => row.locationName },
     { label: "Pot", value: (row) => row.potSizeName },
     { label: "Supplier", value: (row) => row.supplierName },
-  ];
+  ]);
 
   // The stage tabs count what the other filters leave, so the numbers match the list.
   const matching = $derived(filterRows(rows, { text, place, supplier }));
@@ -76,7 +127,7 @@
   const places = $derived(choicesOf(rows.map((row) => row.locationName)));
   const suppliers = $derived(choicesOf(rows.map((row) => row.supplierName)));
 
-  onMount(async () => {
+  async function load() {
     try {
       rows = (await api.GET("/api/production")).data ?? [];
     } catch {
@@ -84,12 +135,37 @@
     } finally {
       loaded = true;
     }
-  });
+  }
+
+  onMount(load);
 </script>
 
 <main>
   <h1>Production</h1>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+  {#if notice}<p class="card done" role="status">{notice}</p>{/if}
+
+  <div class="row">
+    <button
+      class="secondary"
+      aria-pressed={choosing}
+      onclick={() => {
+        choosing = !choosing;
+        chosen = {};
+        notice = "";
+      }}>{choosing ? "Stop choosing" : "Choose several"}</button
+    >
+    {#if choosing}
+      <button class="secondary" onclick={chooseShown}
+        >Choose all {shown.length} shown</button
+      >
+    {/if}
+  </div>
+  {#if choosing}
+    <p class="muted">
+      Tap trays to choose them, then pick what to do with them all below.
+    </p>
+  {/if}
 
   <div class="chips" role="group" aria-label="Stage">
     <button aria-pressed={stage === null} onclick={() => (stage = null)}>
@@ -148,7 +224,7 @@
         {columns}
         key={(row) => `${row.containerId}/${row.batchId}`}
         caption="Everything growing"
-        onSelect={(row) => onOpen(row.labelCode)}
+        onSelect={tap}
       />
     </div>
   {/if}
@@ -158,7 +234,9 @@
       {#each shown as row (`${row.containerId}/${row.batchId}`)}
         <button
           class="plant-card production-row"
-          onclick={() => onOpen(row.labelCode)}
+          class:chosen={!!chosen[row.containerId]}
+          aria-pressed={choosing ? !!chosen[row.containerId] : undefined}
+          onclick={() => tap(row)}
         >
           <PlantThumb
             url={row.hasPhoto ? `/api/plants/${row.plantId}/photo` : null}
@@ -182,6 +260,15 @@
       {/each}
     </div>
   </div>
+
+  {#if choosing && chosenTrays.length > 0}
+    <ManyTrays
+      trays={chosenTrays}
+      onDone={finished}
+      {onLabels}
+      onClear={() => (chosen = {})}
+    />
+  {/if}
 
   <button class="back mobile-only" onclick={onBack}>Back</button>
 </main>

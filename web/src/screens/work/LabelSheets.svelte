@@ -17,7 +17,14 @@
 
   // Labels on A4 sticker sheets from an ordinary printer, for a nursery without a label printer, or to label a
   // whole bench at once.
-  let { onBack }: { onBack: () => void } = $props();
+  let {
+    onBack,
+    trayLabels = [],
+  }: {
+    onBack: () => void;
+    /** Trays already chosen, as when coming from Production with several picked. */
+    trayLabels?: string[];
+  } = $props();
 
   type What = "trays" | "places" | "plants";
   type Choice = { id: string; title: string; detail: string };
@@ -31,7 +38,10 @@
   let potSizeId = $state("");
   let layouts = $state<SheetLayout[]>([]);
   let sheetId = $state(rememberedSheet() ?? "21");
-  let chosen = $state<Record<string, boolean>>({});
+  // svelte-ignore state_referenced_locally
+  let chosen = $state<Record<string, boolean>>(
+    Object.fromEntries(trayLabels.map((label) => [label, true])),
+  );
   let startAt = $state(1);
   let copies = $state(1);
   let outlines = $state(false);
