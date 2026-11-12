@@ -34,16 +34,7 @@ internal static class PassportOrigin
 
         var here = facts.Now - facts.ArrivedAt;
 
-        // A plant nobody has checked is treated as a host, not assumed safe.
-        var host = facts.XylellaHost switch
-        {
-            true => "A Xylella host",
-            null => "Not yet checked as a Xylella host, so treated as one: it",
-            false when facts.CeratocystisHost => "A plane tree, a Ceratocystis platani host,",
-            false => null,
-        };
-
-        if (host is { } what)
+        if (HostWording(facts) is { } what)
         {
             return here >= HostWait
                 ? new(GreatBritain, $"{what} has been here over a year, so it is now grown in Great Britain.")
@@ -66,6 +57,22 @@ internal static class PassportOrigin
         }
 
         return new(facts.OriginCountry, $"Not grown on here yet (two weeks under cover, four anywhere, or potting on), so it keeps {facts.OriginCountry}.");
+    }
+
+    /// <summary>How a plant that waits a year is described, or null if it doesn't. One nobody has checked is treated as a host.</summary>
+    private static string? HostWording(Facts facts)
+    {
+        if (!facts.XylellaHost.HasValue)
+        {
+            return "Not yet checked as a Xylella host, so treated as one: it";
+        }
+
+        if (facts.XylellaHost.Value)
+        {
+            return "A Xylella host";
+        }
+
+        return facts.CeratocystisHost ? "A plane tree, a Ceratocystis platani host," : null;
     }
 
     /// <param name="ArrivedAt">When the plants arrived, or were sown or taken as cuttings.</param>

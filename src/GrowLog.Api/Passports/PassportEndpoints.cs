@@ -86,7 +86,7 @@ internal static class PassportEndpoints
             .Join(db.Events, line => line.EventId, e => e.Id, (line, e) => new { Line = line, Event = e });
 
         // A replacement correction carries the true time of the work it replaced.
-        var arrivedAt = await lines.MinAsync(row => (DateTimeOffset?)(row.Line.EffectiveAt ?? row.Event.OccurredAt), cancellationToken) ?? batch.CreatedAt;
+        var arrivedAt = await lines.MinAsync(row => (DateTimeOffset?)(row.Line.EffectiveAt.HasValue ? row.Line.EffectiveAt.Value : row.Event.OccurredAt), cancellationToken) ?? batch.CreatedAt;
 
         // Only work that put these plants into this tray counts: potting on some of a batch leaves the rest as they were.
         var changed = await lines.AnyAsync(
