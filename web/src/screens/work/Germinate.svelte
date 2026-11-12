@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+  import { api } from "../../api/client";
   import { recordWork } from "../../lib/queue";
   import type { Schemas } from "../../lib/types";
   import { isRecorded, outcomeProblem, plantName, work } from "../../lib/work";
@@ -26,8 +28,25 @@
 
   // Starts empty: whatever is entered becomes the number in the tray.
   let up = $state(0);
+  // Most people guess as seedlings come up; a guess is kept as one, so pricking out still counts them.
+  let rough = $state(true);
   let problem = $state("");
   let busy = $state(false);
+  // Seed sown by weight: what earlier sowings of this plant gave per gram, offered to tap rather than filled in.
+  let guess = $state<Schemas["SeedlingGuess"] | null>(null);
+
+  onMount(async () => {
+    try {
+      guess =
+        (
+          await api.GET("/api/batches/{id}/seedling-guess", {
+            params: { path: { id: line.batchId } },
+          })
+        ).data ?? null;
+    } catch {
+      // No signal: no guess, and nothing else is lost.
+    }
+  });
 
   async function record(withCount: boolean) {
     busy = true;
@@ -44,7 +63,11 @@
 
     if (withCount) {
       const counted = await recordWork(
-        work.count(container.id, { batchId: line.batchId, counted: up }, when),
+        work.count(
+          container.id,
+          { batchId: line.batchId, counted: up, rough },
+          when,
+        ),
       );
 
       if (!isRecorded(counted)) {
@@ -57,7 +80,7 @@
     busy = false;
     onDone(
       withCount
-        ? `${container.labelCode} germinated: ${up} ${name} up`
+        ? `${container.labelCode} germinated: ${rough ? "about " : ""}${up} ${name} up`
         : `${container.labelCode} germinated`,
       germinated.eventId,
     );
@@ -66,10 +89,24 @@
 
 <ActionFrame title="Germinated" {problem} {onCancel} {container}>
   <p>
-    How many are up? Count them, or give your best estimate: it becomes the
-    number in the tray, and Count can correct it later.
+    How many are up? Count them, or give your best guess: it becomes the number
+    in the tray until they're counted.
   </p>
   <Stepper bind:value={up} min={0} presets={[20, 50, 100, 200]} />
+  {#if guess?.forThisBatch != null && Number(guess.forThisBatch) > 0}
+    <button
+      class="secondary"
+      onclick={() => {
+        up = Number(guess!.forThisBatch);
+        rough = true;
+      }}
+      >Use about {guess.forThisBatch}: earlier sowings gave {guess.perGram} a gram</button
+    >
+  {/if}
+  <label class="tick">
+    <input type="checkbox" bind:checked={rough} />
+    Just a rough guess: ask how many when they're pricked out
+  </label>
   <button disabled={busy || up < 1} onclick={() => record(true)}
     >Save this number</button
   >

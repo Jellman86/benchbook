@@ -238,8 +238,9 @@ internal static class WorkEndpoints
             .Join(db.Plants, batch => batch.PlantId, plant => plant.Id, (batch, plant) => new { batch.Id, batch.TraceabilityCode, PlantId = plant.Id, plant.CommonName, plant.Variety, batch.Source })
             .ToListAsync(cancellationToken);
 
+        var rough = await store.RoughlyCountedAsync([container.Id], cancellationToken);
         var contents = state.Contents
-            .Join(batches, count => count.BatchId, batch => batch.Id, (count, batch) => new ContainerLine(batch.Id, batch.TraceabilityCode, batch.PlantId, batch.CommonName, batch.Variety, count.Quantity, batch.Source, count.NotCounted))
+            .Join(batches, count => count.BatchId, batch => batch.Id, (count, batch) => new ContainerLine(batch.Id, batch.TraceabilityCode, batch.PlantId, batch.CommonName, batch.Variety, count.Quantity, batch.Source, count.NotCounted, rough.Contains((container.Id, batch.Id))))
             .ToList();
 
         var paths = await PlacePaths.LoadAsync(db, cancellationToken);
@@ -274,6 +275,7 @@ internal static class WorkEndpoints
         var locationNames = await PlacePaths.LoadAsync(db, cancellationToken);
         var stages = await ProductionEndpoints.FindStagesAsync(containerIds, db, cancellationToken);
         var potSizeNames = await db.PotSizes.ToDictionaryAsync(size => size.Id, size => size.Name, cancellationToken);
+        var rough = await store.RoughlyCountedAsync(containerIds, cancellationToken);
 
         return containers.ConvertAll(container =>
         {
@@ -281,7 +283,7 @@ internal static class WorkEndpoints
 
             var contents = stock
                 .Where(row => row.ContainerId == container.Id)
-                .Select(row => new ContainerLine(row.BatchId, batches[row.BatchId].TraceabilityCode, batches[row.BatchId].PlantId, batches[row.BatchId].CommonName, batches[row.BatchId].Variety, row.Quantity, batches[row.BatchId].Source, row.NotCounted))
+                .Select(row => new ContainerLine(row.BatchId, batches[row.BatchId].TraceabilityCode, batches[row.BatchId].PlantId, batches[row.BatchId].CommonName, batches[row.BatchId].Variety, row.Quantity, batches[row.BatchId].Source, row.NotCounted, rough.Contains((row.ContainerId, row.BatchId))))
                 .ToList();
             var stage = stages.GetValueOrDefault(container.Id);
 
@@ -418,7 +420,7 @@ internal static class WorkEndpoints
         var work = NewEvent(request.EventId, EventType.StockCounted, request.OccurredAt, user, id);
 
         return await StoreAsync(
-            () => store.AppendStockCountAsync(work, request.BatchId, request.Counted, cancellationToken),
+            () => store.AppendStockCountAsync(work, request.BatchId, request.Counted, cancellationToken, request.Rough),
             () => Task.FromResult<object>(new WorkRecorded(work.Id)));
     }
 
@@ -640,7 +642,8 @@ internal static class WorkEndpoints
     // LeftInTray and CountEventId are needed only from a tray nobody has counted: what's taken plus what's left
     // becomes its first count, recorded under CountEventId just before the move.
 
-    internal sealed record CountRequest(Guid EventId, DateTimeOffset OccurredAt, Guid BatchId, int Counted);
+    /// <param name="Rough">Only a guess, as when seedlings are estimated as they come up.</param>
+    internal sealed record CountRequest(Guid EventId, DateTimeOffset OccurredAt, Guid BatchId, int Counted, bool Rough = false);
 
     internal sealed record TreatmentRequest(Guid EventId, DateTimeOffset OccurredAt, string Product, string Dose, string Area);
 
@@ -651,7 +654,8 @@ internal static class WorkEndpoints
     internal sealed record ReadyRequest(Guid EventId, DateTimeOffset OccurredAt);
 
     /// <param name="NotCounted">Sown without a count and not counted since: Quantity is 0 because nobody knows it yet.</param>
-    internal sealed record ContainerLine(Guid BatchId, string TraceabilityCode, Guid PlantId, string CommonName, string? Variety, int Quantity, BatchSource Source, bool NotCounted = false);
+    /// <param name="Rough">The latest count was only a rough guess, so Quantity is about right.</param>
+    internal sealed record ContainerLine(Guid BatchId, string TraceabilityCode, Guid PlantId, string CommonName, string? Variety, int Quantity, BatchSource Source, bool NotCounted = false, bool Rough = false);
 
     internal sealed record ContainerResponse(
         Guid Id,

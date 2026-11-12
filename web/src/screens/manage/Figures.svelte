@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { lossWords } from "../../lib/losses";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import type { Column } from "../../lib/table";
@@ -183,6 +184,10 @@
               rows={figures.losses.map((loss) => ({
                 label: reasonLabel(String(loss.reason)),
                 value: Number(loss.quantity),
+                text: lossWords(
+                  Number(loss.quantity),
+                  Number(loss.uncountedTrays),
+                ),
               }))}
             />
           </section>

@@ -67,8 +67,10 @@ internal static class FigureEndpoints
         var losses = lines
             .Where(row => row.Type == EventType.Lost)
             .GroupBy(row => LossReasonOf(row.Event.Payload) ?? nameof(LossReason.Other), StringComparer.Ordinal)
-            .Select(group => new LossFigures(group.Key, -group.Sum(row => row.Line.QuantityChange)))
+            // A tray lost before anyone counted it has no number to add, so it's counted as a tray.
+            .Select(group => new LossFigures(group.Key, -group.Sum(row => row.Line.QuantityChange), group.Count(row => row.Line.QuantityChange == 0)))
             .OrderByDescending(figures => figures.Quantity)
+            .ThenByDescending(figures => figures.UncountedTrays)
             .ToList();
 
         var (bySupplier, byPlace, bySeason) = await BreakdownsAsync(lines, batches, germinatedBatches, db, store, cancellationToken);
@@ -187,7 +189,8 @@ internal static class FigureEndpoints
             started,
             lost,
             seeds > 0 ? Math.Min(1, (double)up / (double)seeds) : null,
-            aboutSeeds > 0,
+            // A first count that was only a rough guess makes the rate a guess too.
+            aboutSeeds > 0 || watched.Any(row => row.FirstCount && row.Type == EventType.StockCounted && EventStore.IsRough(row.Event.Payload)),
             started > 0 ? (started - lost) / (double)started : null);
     }
 
@@ -265,10 +268,11 @@ internal static class FigureEndpoints
         double? SurvivalRate,
         bool GerminationApproximate = false);
 
-    internal sealed record LossFigures(string Reason, int Quantity);
+    /// <param name="UncountedTrays">Trays with losses for this reason before anyone counted them, so not in Quantity.</param>
+    internal sealed record LossFigures(string Reason, int Quantity, int UncountedTrays);
 
     /// <param name="Name">A supplier, a place such as "Greenhouse 2", or a month such as "2026-11".</param>
-    /// <param name="GerminationApproximate">Whether the rate rests on seed sown "about so many", not counted.</param>
+    /// <param name="GerminationApproximate">Whether the rate rests on seed sown "about so many", or on a rough first count.</param>
     internal sealed record GroupFigures(string Name, int Started, int Lost, double? GerminationRate, double? SurvivalRate, bool GerminationApproximate = false);
 
     internal sealed record Figures(

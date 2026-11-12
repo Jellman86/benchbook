@@ -417,6 +417,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/batches/{id}/seedling-guess": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SeedlingGuess"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/containers/{id}/history": {
         parameters: {
             query?: never;
@@ -7095,6 +7132,8 @@ export interface components {
             source: components["schemas"]["BatchSource"];
             /** @default false */
             notCounted: boolean;
+            /** @default false */
+            rough: boolean;
         };
         ContainerResponse: {
             /** Format: uuid */
@@ -7131,6 +7170,8 @@ export interface components {
             batchId: string;
             /** Format: int32 */
             counted: number | string;
+            /** @default false */
+            rough: boolean;
         };
         Credited: {
             text: string;
@@ -7510,6 +7551,8 @@ export interface components {
             reason: string;
             /** Format: int32 */
             quantity: number | string;
+            /** Format: int32 */
+            uncountedTrays: number | string;
         };
         /** @enum {unknown} */
         LossReason: "FailedToGerminate" | "DampingOff" | "Pest" | "Disease" | "Frost" | "Other";
@@ -8074,6 +8117,14 @@ export interface components {
         };
         SaveRefused: {
             problem: string;
+        };
+        SeedlingGuess: {
+            /** Format: double */
+            perGram: null | number | string;
+            /** Format: int32 */
+            forThisBatch: null | number | string;
+            /** Format: int32 */
+            from: number | string;
         };
         SensorKey: {
             /** Format: uuid */

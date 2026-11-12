@@ -28,5 +28,6 @@ describe("sowing", () => {
       "Not counted yet:",
     );
     expect(lineAmount({ quantity: 40 })).toBe("40");
+    expect(lineAmount({ quantity: 200, rough: true })).toBe("About 200");
   });
 });

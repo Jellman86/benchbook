@@ -291,7 +291,13 @@ internal static class CatalogueEndpoints
         supplier.Supplies = Clean(request.Supplies);
         supplier.TypicalLeadTimeDays = request.TypicalLeadTimeDays;
         supplier.PassportRegistrationNumber = Clean(request.PassportRegistrationNumber);
-        supplier.OtherRegistrations = Clean(request.OtherRegistrations);
+        // An app from before other registrations existed sends none at all: leave them as they are. Today's app
+        // sends an empty string to clear them.
+        if (request.OtherRegistrations is not null)
+        {
+            supplier.OtherRegistrations = Clean(request.OtherRegistrations);
+        }
+
         supplier.Notes = Clean(request.Notes);
     }
 

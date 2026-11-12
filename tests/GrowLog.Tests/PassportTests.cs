@@ -203,6 +203,21 @@ public sealed class PassportTests(PostgresFixture database)
     }
 
     [Fact]
+    public async Task An_older_app_saving_a_supplier_keeps_its_other_registrations()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var supplier = await AddAsync(nursery.Owner, "/api/suppliers", new { name = "Chiltern Seeds", otherRegistrations = "Seed standards: 5678" });
+        string? Others(JsonElement suppliers) => Assert.Single(suppliers.EnumerateArray()).GetProperty("otherRegistrations").GetString();
+
+        using var older = await nursery.Owner.PutAsJsonAsync(Route($"/api/suppliers/{supplier}"), new { name = "Chiltern Seeds", phone = "01234" }, Cancellation);
+        Assert.Equal(HttpStatusCode.NoContent, older.StatusCode);
+        Assert.Equal("Seed standards: 5678", Others(await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/suppliers"), Cancellation)));
+
+        using var cleared = await nursery.Owner.PutAsJsonAsync(Route($"/api/suppliers/{supplier}"), new { name = "Chiltern Seeds", otherRegistrations = "" }, Cancellation);
+        Assert.Null(Others(await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/suppliers"), Cancellation)));
+    }
+
+    [Fact]
     public async Task A_seed_packets_sow_by_date_is_kept_and_corrected_like_other_details()
     {
         await using var nursery = await TwoPersonNursery.CreateAsync(database);

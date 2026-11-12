@@ -317,7 +317,11 @@
               {#if line.notCounted}
                 <strong>Not counted yet:</strong>
               {:else}
-                <strong class="tray-quantity">{line.quantity}</strong>
+                <strong class="tray-quantity"
+                  >{line.rough
+                    ? `about ${line.quantity}`
+                    : line.quantity}</strong
+                >
               {/if}
               {plantName(line.commonName, line.variety)}
             </p>

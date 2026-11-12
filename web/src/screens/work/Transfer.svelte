@@ -36,7 +36,9 @@
       container.contents[0],
   );
 
-  // Usually the whole lot moves on, into the next size up. From a tray nobody counted, the count starts here.
+  // From a tray nobody counted, or only roughly, the count is made here: how many taken and how many left.
+  const counting = $derived(line.notCounted || !!line.rough);
+  // Usually the whole lot moves on, into the next size up. From a rough guess, start from the guess.
   let quantity = $derived(line.notCounted ? 1 : Number(line.quantity));
   // For a tray nobody counted: how many are left in it, which with those taken makes its first count.
   let answer = $state<"none" | "some" | null>(null);
@@ -73,8 +75,8 @@
           containerKind: kind,
           potSizeId: potSizeId || null,
           locationId: null,
-          leftInTray: line.notCounted ? left : null,
-          countEventId: line.notCounted ? countEventId : null,
+          leftInTray: counting ? left : null,
+          countEventId: counting ? countEventId : null,
         },
         when,
       ),
@@ -102,10 +104,12 @@
   <div class="action-columns">
     <div class="stack">
       <BatchChoice lines={container.contents} bind:selected={chosen} />
-      {#if line.notCounted}
+      {#if counting}
         <p>
           How many did you {type === "PottedOn" ? "pot on" : "prick out"}? Count
-          as you go: this is the first count of these.
+          as you go: {line.rough
+            ? `there were about ${line.quantity}, and this count replaces that guess.`
+            : "this is the first count of these."}
         </p>
         <Stepper bind:value={quantity} presets={[24, 40, 60, 84]} />
         <p>Any left in the tray?</p>
@@ -155,13 +159,11 @@
           <option value="BenchLot">Bench lot</option>
         </select>
       </label>
-      {#if line.notCounted && left === null}
+      {#if counting && left === null}
         <p class="muted">Say whether any are left in the tray.</p>
       {/if}
       <button
-        disabled={busy ||
-          potSizesUnavailable ||
-          (line.notCounted && left === null)}
+        disabled={busy || potSizesUnavailable || (counting && left === null)}
         onclick={record}>Done</button
       >
     </div>

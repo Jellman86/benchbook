@@ -7,6 +7,8 @@ import {
   stageLabel,
   timeAtStage,
   totalPlants,
+  chipTotal,
+  uncountedTrays,
   type ProductionRow,
 } from "./production";
 
@@ -125,5 +127,19 @@ describe("labels and choices", () => {
 
   it("lists distinct values in order, without blanks", () => {
     expect(choicesOf(["b", null, "a", "b", ""])).toEqual(["a", "b"]);
+  });
+
+  it("counts trays nobody has counted apart from the plants", () => {
+    const rows = [
+      row({ quantity: 40, stage: "Sown" }),
+      row({ quantity: 0, stage: "Sown", notCounted: true }),
+      row({ quantity: 0, stage: null, notCounted: true }),
+    ];
+    const uncounted = uncountedTrays(rows);
+    expect(uncounted.all).toBe(2);
+    expect(uncounted.byStage.get("Sown")).toBe(1);
+    expect(chipTotal(40, 1)).toBe("40 + 1 uncounted");
+    expect(chipTotal(0, 2)).toBe("2 uncounted");
+    expect(chipTotal(12, 0)).toBe("12");
   });
 });

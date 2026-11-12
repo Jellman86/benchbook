@@ -11,6 +11,8 @@
     stages,
     timeAtStage,
     totalPlants,
+    chipTotal,
+    uncountedTrays,
     type ProductionRow,
     type Stage,
   } from "../lib/production";
@@ -116,13 +118,19 @@
   // The stage tabs count what the other filters leave, so the numbers match the list.
   const matching = $derived(filterRows(rows, { text, place, supplier }));
   const counts = $derived(plantsByStage(matching));
+  const uncounted = $derived(uncountedTrays(matching));
   const shown = $derived(
     oldestFirst(
       stage ? matching.filter((row) => row.stage === stage) : matching,
     ),
   );
   const visibleStages = $derived(
-    stages.filter((item) => item.always || counts.has(item.stage)),
+    stages.filter(
+      (item) =>
+        item.always ||
+        counts.has(item.stage) ||
+        uncounted.byStage.has(item.stage),
+    ),
   );
   const places = $derived(choicesOf(rows.map((row) => row.locationName)));
   const suppliers = $derived(choicesOf(rows.map((row) => row.supplierName)));
@@ -169,7 +177,9 @@
 
   <div class="chips" role="group" aria-label="Stage">
     <button aria-pressed={stage === null} onclick={() => (stage = null)}>
-      All <span class="chip-count">{totalPlants(matching)}</span>
+      All <span class="chip-count"
+        >{chipTotal(totalPlants(matching), uncounted.all)}</span
+      >
     </button>
     {#each visibleStages as item (item.stage)}
       <button
@@ -177,7 +187,12 @@
         onclick={() => (stage = item.stage)}
       >
         {item.label}
-        <span class="chip-count">{counts.get(item.stage) ?? 0}</span>
+        <span class="chip-count"
+          >{chipTotal(
+            counts.get(item.stage) ?? 0,
+            uncounted.byStage.get(item.stage) ?? 0,
+          )}</span
+        >
       </button>
     {/each}
   </div>

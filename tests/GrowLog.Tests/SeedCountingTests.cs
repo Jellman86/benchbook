@@ -187,6 +187,75 @@ public sealed class SeedCountingTests(PostgresFixture database)
         Assert.Equal(0, await ContentsAsync(nursery.Staff, label));
     }
 
+    [Fact]
+    public async Task Seed_sown_by_weight_is_offered_a_guess_from_earlier_counts()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (plant, first, firstTray, _) = await SowAsync(nursery, "Grams", 2m);
+        var second = Json(await PostForTextAsync(nursery.Staff, "/api/batches", new { eventId = Guid.NewGuid(), occurredAt = Sown, plantId = plant, quantity = 0, source = "SeedLot", originCountry = "GB", containerKind = "Tray", sownAs = "Grams", sownAmount = 0.5m })).GetProperty("batchId").GetGuid();
+
+        var nothingYet = await nursery.Staff.GetFromJsonAsync<JsonElement>(Route($"/api/batches/{second}/seedling-guess"), Cancellation);
+        Assert.Equal(JsonValueKind.Null, nothingYet.GetProperty("perGram").ValueKind);
+
+        Assert.Equal(HttpStatusCode.Created, await CountAsync(nursery.Staff, firstTray, first, 300, Sown.AddDays(7)));
+        // A later count doesn't change what the weight gave when it came up.
+        Assert.Equal(HttpStatusCode.Created, await CountAsync(nursery.Staff, firstTray, first, 250, Sown.AddDays(9)));
+
+        var guess = await nursery.Staff.GetFromJsonAsync<JsonElement>(Route($"/api/batches/{second}/seedling-guess"), Cancellation);
+        Assert.Equal(150m, guess.GetProperty("perGram").GetDecimal());
+        Assert.Equal(75, guess.GetProperty("forThisBatch").GetInt32());
+        Assert.Equal(1, guess.GetProperty("from").GetInt32());
+    }
+
+    [Fact]
+    public async Task A_rough_guess_at_germination_is_counted_properly_when_pricked_out()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (_, batch, tray, label) = await SowAsync(nursery);
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Staff, $"/api/containers/{tray}/count", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow.AddHours(-1), batchId = batch, counted = 200, rough = true }));
+
+        var guessed = await LineAsync(nursery.Staff, label);
+        Assert.Equal(200, guessed.GetProperty("quantity").GetInt32());
+        Assert.True(guessed.GetProperty("rough").GetBoolean());
+
+        // There were really 150 taken and 30 left: that count replaces the guess, just before the pricking out.
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Staff, $"/api/containers/{tray}/transfer", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow, type = "PrickedOut", batchId = batch, quantity = 150, containerKind = "Tray", leftInTray = 30, countEventId = Guid.NewGuid() }));
+
+        var left = await LineAsync(nursery.Staff, label);
+        Assert.Equal(30, left.GetProperty("quantity").GetInt32());
+        Assert.False(left.GetProperty("rough").GetBoolean());
+    }
+
+    [Fact]
+    public async Task A_tray_lost_altogether_stays_lost_when_an_earlier_count_arrives_late()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (_, batch, tray, label) = await SowAsync(nursery);
+        var lostAt = DateTimeOffset.UtcNow.AddMinutes(-10);
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Staff, $"/api/containers/{tray}/losses", new { eventId = Guid.NewGuid(), occurredAt = lostAt, batchId = batch, quantity = 0, reason = "Pest", all = true }));
+
+        // Counted on a phone with no signal before they were lost, and sent once it was back.
+        Assert.Equal(HttpStatusCode.Created, await CountAsync(nursery.Staff, tray, batch, 30, lostAt.AddMinutes(-5)));
+        Assert.Equal(0, await ContentsAsync(nursery.Staff, label));
+
+        // A count after the loss still stands: the plants found there are real.
+        Assert.Equal(HttpStatusCode.Created, await CountAsync(nursery.Staff, tray, batch, 4));
+        Assert.Equal(4, (await nursery.Staff.GetFromJsonAsync<JsonElement>(Route($"/api/containers/by-label/{label}"), Cancellation)).GetProperty("contents")[0].GetProperty("quantity").GetInt32());
+    }
+
+    [Fact]
+    public async Task A_tray_lost_before_anyone_counted_it_shows_in_losses_by_reason()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (_, batch, tray, _) = await SowAsync(nursery);
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Staff, $"/api/containers/{tray}/losses", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow, batchId = batch, quantity = 0, reason = "Pest", all = true }));
+
+        var reason = Assert.Single((await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/figures"), Cancellation)).GetProperty("losses").EnumerateArray());
+        Assert.Equal("Pest", reason.GetProperty("reason").GetString());
+        Assert.Equal(0, reason.GetProperty("quantity").GetInt32());
+        Assert.Equal(1, reason.GetProperty("uncountedTrays").GetInt32());
+    }
+
     [Theory]
     [InlineData("About", "0")]
     [InlineData("About", "12.5")]
