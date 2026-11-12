@@ -783,6 +783,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/alerts": {
         parameters: {
             query?: never;
@@ -5240,6 +5273,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/import/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImportKindFields"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/import/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    kind: components["schemas"]["ImportKind"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ImportRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImportResult"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImportResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs": {
         parameters: {
             query?: never;
@@ -6793,6 +6911,8 @@ export interface components {
             redirectUri: string;
             fromDeployment: boolean;
         };
+        /** @enum {unknown} */
+        FieldType: "Text" | "YesNo" | "Number";
         Figures: {
             plants: components["schemas"]["PlantFigures"][];
             losses: components["schemas"]["LossFigures"][];
@@ -6835,6 +6955,47 @@ export interface components {
             potSizeName: null | string;
             details: components["schemas"]["JsonElement"];
             undone: boolean;
+        };
+        ImportField: {
+            key: string;
+            label: string;
+            type: components["schemas"]["FieldType"];
+            required: boolean;
+            aliases: string[];
+            /**
+             * Format: int32
+             * @default 200
+             */
+            longest: number | string;
+        };
+        /** @enum {unknown} */
+        ImportKind: "Plants" | "Suppliers" | "Customers";
+        ImportKindFields: {
+            kind: components["schemas"]["ImportKind"];
+            fields: components["schemas"]["ImportField"][];
+        };
+        ImportProblem: {
+            /** Format: int32 */
+            row: number | string;
+            problem: string;
+        };
+        ImportRequest: {
+            rows: components["schemas"]["ImportRow"][];
+            save: boolean;
+        };
+        ImportResult: {
+            /** Format: int32 */
+            adding: number | string;
+            alreadyThere: (number | string)[];
+            problems: components["schemas"]["ImportProblem"][];
+            saved: boolean;
+        };
+        ImportRow: {
+            /** Format: int32 */
+            row: number | string;
+            values: {
+                [key: string]: string;
+            };
         };
         InviteCreated: {
             token: string;

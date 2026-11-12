@@ -20,7 +20,7 @@ internal static class ProductionEndpoints
 
     public static void MapProductionEndpoints(this IEndpointRouteBuilder app) => app.MapGet("/api/production", ListAsync);
 
-    private static async Task<List<ProductionRow>> ListAsync(GrowLogDbContext db, EventStore store, CancellationToken cancellationToken)
+    internal static async Task<List<ProductionRow>> ListAsync(GrowLogDbContext db, EventStore store, CancellationToken cancellationToken)
     {
         var stock = await store.GetStockAsync(cancellationToken);
         var containerIds = stock.Select(row => row.ContainerId).Distinct().ToList();

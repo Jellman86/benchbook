@@ -4,6 +4,7 @@
   import { momentLabel } from "../../lib/dates";
   import { attempt, type Schemas } from "../../lib/types";
   import ClearRecords from "./ClearRecords.svelte";
+  import ImportSpreadsheet from "./ImportSpreadsheet.svelte";
 
   let { onBack }: { onBack: () => void } = $props();
 
@@ -84,9 +85,27 @@
           </p>
         {/if}
       </div>
+
+      <div class="form-card stack">
+        <h2 class="form-heading">Take everything out</h2>
+        <p class="muted">
+          Every record in one download: a spreadsheet file for each of plants,
+          batches, trays, all the work done, purchases, invoices, passports,
+          consignments and more. Photos stay in the backups.
+        </p>
+        <a class="button secondary" href="/api/export" download
+          >Download everything</a
+        >
+      </div>
     </section>
 
     <section class="stack">
+      <ImportSpreadsheet
+        onDone={(message) => {
+          saved = message;
+          problem = "";
+        }}
+      />
       {#if demo?.canClear}
         <div class="form-card stack">
           <h2 class="form-heading">Example data</h2>

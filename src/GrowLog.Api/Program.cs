@@ -16,6 +16,7 @@ using GrowLog.Api.Production;
 using GrowLog.Api.Reminders;
 using GrowLog.Api.Selling;
 using GrowLog.Api.Settings;
+using GrowLog.Api.Transfer;
 using GrowLog.Api.Work;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -113,6 +114,8 @@ app.MapReceivedPassportEndpoints();
 app.MapTraceEndpoints();
 app.MapPassportEndpoints();
 app.MapConsignmentEndpoints();
+app.MapExportEndpoints();
+app.MapImportEndpoints();
 app.MapJobEndpoints();
 app.MapMotherPlantEndpoints();
 app.MapAlertEndpoints();
