@@ -90,6 +90,17 @@ export const kindsOfLabel: {
       { key: "showNurseryName", label: "Nursery name" },
     ],
   },
+  {
+    kind: "PlantPassport",
+    label: "Plant passport",
+    use: "A UK plant passport the nursery issues: parts A to D in their own border, kept apart from everything else on the plants.",
+    sizes: [
+      { width: 50, height: 25 },
+      { width: 57, height: 32 },
+      { width: 76, height: 51 },
+    ],
+    switches: [],
+  },
 ];
 
 /** The text sizes, in the words the owner sees. */

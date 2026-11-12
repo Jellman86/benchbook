@@ -2,12 +2,15 @@
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { originCountries } from "../../lib/countries";
-  import { isoDay, momentOn, onDay } from "../../lib/days";
+  import { isoDay, momentOn } from "../../lib/days";
   import { batchChanges, type BatchForm } from "../../lib/batchEdit";
   import { attempt, optional, type Schemas } from "../../lib/types";
   import DayPicker from "../DayPicker.svelte";
   import ActionFrame from "./ActionFrame.svelte";
+  import BatchPhotos from "./BatchPhotos.svelte";
+  import SowByPicker from "./SowByPicker.svelte";
   import Stepper from "./Stepper.svelte";
+  import SupplierRegistrations from "./SupplierRegistrations.svelte";
 
   // Correcting a batch after it started. Every correction is kept, with who made it.
   let {
@@ -71,10 +74,19 @@
         originCountry: details.originCountry,
         startedOn: details.startedAt ? isoDay(new Date(details.startedAt)) : "",
         quantity: Number(details.quantity ?? 0),
+        sowBy: details.sowBy ?? "",
       };
       form = { ...before };
     }, setProblem),
   );
+
+  const chosenSupplier = $derived(
+    suppliers.find((item) => item.id === form?.supplierId),
+  );
+
+  async function reloadSuppliers() {
+    suppliers = (await api.GET("/api/suppliers")).data ?? [];
+  }
 
   const changes = $derived(
     form && before ? batchChanges(before, form, plants, suppliers) : [],
@@ -132,7 +144,7 @@
 
       try {
         const startChanged =
-          details.startCanChange &&
+          !!details.startedAt &&
           (form.startedOn !== before.startedOn ||
             form.quantity !== before.quantity);
         const cuttings = form.source === "Cuttings";
@@ -144,6 +156,7 @@
             sourceReference: cuttings ? null : optional(form.sourceReference),
             supplierId: cuttings ? null : form.supplierId || null,
             motherPlant: cuttings ? optional(form.motherPlant) : null,
+            sowBy: form.source === "SeedLot" && form.sowBy ? form.sowBy : null,
             originCountry: form.originCountry.trim().toUpperCase(),
             startedAt:
               startChanged && form.startedOn !== before.startedOn
@@ -222,6 +235,9 @@
       >
     {/if}
   {:else}
+    <BatchPhotos {batchId} canAdd />
+    <p class="muted">Photos are saved as soon as they're taken.</p>
+
     <label>
       Plant
       <select bind:value={form.plantId}>
@@ -249,20 +265,22 @@
       <DayPicker bind:value={form.startedOn} label={whenAsked[form.source]} />
       <p class="field-label">How many to start with</p>
       <Stepper bind:value={form.quantity} />
+    {:else if details.startedAt && form.startedOn}
+      <!-- Work recorded since stays after the start, so it can only move earlier. -->
+      <DayPicker
+        bind:value={form.startedOn}
+        label={whenAsked[form.source]}
+        max={before?.startedOn}
+      />
+      <p class="muted">
+        Started with {details.quantity}. Other work has been recorded on these
+        plants since, so the day can only move earlier, and how they started and
+        the number stay as they are. Use Count to correct the number.
+      </p>
     {:else}
       <p class="muted">
-        {#if details.startedAt}
-          Started {onDay(isoDay(new Date(details.startedAt))).replace(
-            /^on /,
-            "",
-          )}
-          with {details.quantity}. Other work has been recorded on these plants
-          since, so how they started, the day and the number can't be changed
-          here. Use Count to correct the number.
-        {:else}
-          This batch didn't start with a sowing, an arrival or cuttings, so how
-          it started, the day and the number can't be changed here.
-        {/if}
+        This batch didn't start with a sowing, an arrival or cuttings, so how it
+        started, the day and the number can't be changed here.
       </p>
     {/if}
 
@@ -278,8 +296,17 @@
           {/each}
         </select>
       </label>
+      {#if chosenSupplier}
+        <SupplierRegistrations
+          supplier={chosenSupplier}
+          onSaved={reloadSuppliers}
+        />
+      {/if}
       <label>Lot or reference <input bind:value={form.sourceReference} /></label
       >
+      {#if form.source === "SeedLot"}
+        <SowByPicker bind:value={form.sowBy} />
+      {/if}
     {/if}
 
     <label>

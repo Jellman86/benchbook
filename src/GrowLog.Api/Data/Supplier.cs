@@ -28,6 +28,9 @@ internal sealed class Supplier : IAudited, IArchivable
 
     public string? PassportRegistrationNumber { get; set; }
 
+    /// <summary>Other numbers the supplier is registered under, such as for seed marketing standards.</summary>
+    public string? OtherRegistrations { get; set; }
+
     public string? Notes { get; set; }
 
     public DateTimeOffset? ArchivedAt { get; set; }

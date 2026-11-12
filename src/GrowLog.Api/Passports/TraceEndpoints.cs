@@ -92,6 +92,7 @@ internal static class TraceEndpoints
             StartedAt = steps.Count > 0 ? steps.Min(step => step.OccurredAt) : origin.StartedAt,
             ReceivedPassports = await LoadPassportsAsync(id, db, cancellationToken),
             Corrections = await LoadCorrectionsAsync(id, db, cancellationToken),
+            IssuedPassports = await LoadIssuedAsync(id, db, cancellationToken),
             Containers = containers,
             Steps = steps,
             Sales = sales,
@@ -140,6 +141,7 @@ internal static class TraceEndpoints
             origin.Batch.SourceReference,
             origin.Batch.MotherPlant,
             origin.Batch.OriginCountry,
+            origin.Batch.SowBy,
             origin.Batch.CreatedAt,
             origin.Supplier,
             origin.Purchase,
@@ -150,10 +152,30 @@ internal static class TraceEndpoints
             [],
             [],
             [],
+            [],
             new TraceTotals(0, 0, 0));
     }
 
     /// <summary>Corrections to the batch's details, oldest first, each with what it was before and after.</summary>
+    /// <summary>Passports issued for the batch, oldest first, each as it was printed and with who it went to.</summary>
+    private static Task<List<TraceIssued>> LoadIssuedAsync(Guid id, GrowLogDbContext db, CancellationToken cancellationToken) =>
+        db.IssuedPassports
+            .AsNoTracking()
+            .Where(passport => passport.BatchId == id)
+            .OrderBy(passport => passport.CreatedAt)
+            .Select(passport => new TraceIssued(
+                passport.Id,
+                passport.IssuedOn,
+                passport.Quantity,
+                passport.IssuedTo,
+                db.Containers.Where(container => container.Id == passport.ContainerId).Select(container => container.LabelCode).First(),
+                passport.PartA,
+                passport.PartB,
+                passport.PartC,
+                passport.PartD,
+                passport.OriginRule))
+            .ToListAsync(cancellationToken);
+
     private static async Task<List<TraceCorrection>> LoadCorrectionsAsync(Guid id, GrowLogDbContext db, CancellationToken cancellationToken)
     {
         var key = id.ToString();
@@ -384,6 +406,8 @@ internal static class TraceEndpoints
 
     internal sealed record TraceTotals(int Lost, int Sold, int Now);
 
+    internal sealed record TraceIssued(Guid Id, DateOnly IssuedOn, int Quantity, string IssuedTo, string LabelCode, string PartA, string PartB, string PartC, string PartD, string OriginRule);
+
     private sealed record CorrectedValue(string? Before, string? After);
 
     /// <param name="Field">What was corrected, such as "Country of origin". "Started" values are moments in ISO 8601.</param>
@@ -397,6 +421,7 @@ internal static class TraceEndpoints
         string? SourceReference,
         string? MotherPlant,
         string OriginCountry,
+        DateOnly? SowBy,
         DateTimeOffset StartedAt,
         TraceSupplier? Supplier,
         TracePurchase? Purchase,
@@ -404,6 +429,7 @@ internal static class TraceEndpoints
         IReadOnlyList<TraceBatchLink> Children,
         IReadOnlyList<TracePassport> ReceivedPassports,
         IReadOnlyList<TraceCorrection> Corrections,
+        IReadOnlyList<TraceIssued> IssuedPassports,
         IReadOnlyList<TraceContainer> Containers,
         IReadOnlyList<TraceStep> Steps,
         IReadOnlyList<TraceSale> Sales,

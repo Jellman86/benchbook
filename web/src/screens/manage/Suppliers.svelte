@@ -20,6 +20,7 @@
     supplies: "",
     typicalLeadTimeDays: "",
     passportRegistrationNumber: "",
+    otherRegistrations: "",
     notes: "",
   };
 
@@ -55,6 +56,7 @@
       supplies: supplier.supplies ?? "",
       typicalLeadTimeDays: supplier.typicalLeadTimeDays?.toString() ?? "",
       passportRegistrationNumber: supplier.passportRegistrationNumber ?? "",
+      otherRegistrations: supplier.otherRegistrations ?? "",
       notes: supplier.notes ?? "",
     };
   }
@@ -73,6 +75,7 @@
       supplies: optional(form.supplies),
       typicalLeadTimeDays: leadTime === null ? null : Number(leadTime),
       passportRegistrationNumber: optional(form.passportRegistrationNumber),
+      otherRegistrations: optional(form.otherRegistrations),
       notes: optional(form.notes),
     };
 
@@ -132,6 +135,10 @@
             >Passport registration number
             <input bind:value={form.passportRegistrationNumber} />
           </label>
+          <label
+            >Other registration numbers
+            <textarea bind:value={form.otherRegistrations} rows="2"></textarea>
+          </label>
           <label>Notes <input bind:value={form.notes} /></label>
           <button type="submit">{editing ? "Save changes" : "Add"}</button>
           {#if editing}
@@ -148,6 +155,12 @@
       {#each suppliers as supplier (supplier.id)}
         <div class="card">
           <strong>{supplier.name}</strong>
+          {#if supplier.passportRegistrationNumber}<span class="muted"
+              >Passport number {supplier.passportRegistrationNumber}</span
+            >{/if}
+          {#if supplier.otherRegistrations}<span class="muted"
+              >{supplier.otherRegistrations}</span
+            >{/if}
           <div class="row">
             <button class="secondary" onclick={() => edit(supplier)}
               >Change</button

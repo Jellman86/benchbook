@@ -335,7 +335,9 @@ test("the owner sets up the nursery and staff can sign in", async ({
   const sidebar = page.getByRole("navigation", { name: "Main" });
   await expect(sidebar).toBeVisible();
   await sidebar.getByRole("button", { name: "Plants" }).click();
-  await expect(page.getByRole("heading", { name: "Plants" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Plants", exact: true }),
+  ).toBeVisible();
   await expect(button(page, "Back")).toHaveCount(0);
   await sidebar.getByRole("button", { name: "Figures" }).click();
   await expect(page.getByRole("heading", { name: "Figures" })).toBeVisible();
@@ -671,11 +673,23 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Done").click();
   await expect(page.getByRole("status")).toContainText("Note added");
 
-  // A received passport, filled in from what's known and copied from the label.
+  // Issuing a passport shows it as it would print, and says what's missing first.
   await scan(label);
-  await button(page, "Passports").click();
-  await expect(page.getByText("No passports recorded")).toBeVisible();
-  await button(page, "Add a passport").click();
+  await button(page, "Plant passports").click();
+  await expect(
+    page.getByText("None issued for these plants yet."),
+  ).toBeVisible();
+  await button(page, "Issue a passport").click();
+  await expect(page.locator(".passport").first()).toContainText(
+    "Lavandula angustifolia",
+  );
+  await expect(page.getByText("registration number, for part B")).toBeVisible();
+  await expect(button(page, "Issue passport")).toBeDisabled();
+  await button(page, "Cancel").click();
+
+  // A received passport, filled in from what's known and copied from the label.
+  await expect(page.getByText("No received passports recorded")).toBeVisible();
+  await button(page, "Add a received passport").click();
   await expect(page.getByLabel("A: Botanical name")).toHaveValue(
     "Lavandula angustifolia",
   );
@@ -683,11 +697,11 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await page.getByLabel("B: Registration number").fill("12345");
   await page.getByLabel("C: Traceability code").fill("LOT-77");
   await button(page, "Save passport").click();
-  await expect(page.getByText("B: 12345")).toBeVisible();
+  await expect(page.locator(".passport", { hasText: "12345" })).toBeVisible();
   await expect(page.getByText("potted on since")).toBeVisible();
   await button(page, "Used up").click();
   await expect(
-    page.locator(".card strong", { hasText: "Used up" }),
+    page.locator(".passport strong", { hasText: "Used up" }),
   ).toBeVisible();
   await button(page, "Back").click();
   await button(page, "Back").click();

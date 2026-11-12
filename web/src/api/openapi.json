@@ -570,6 +570,45 @@
         }
       }
     },
+    "/api/batches/{id}/passport-draft": {
+      "get": {
+        "tags": [
+          "PassportEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "containerId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueDraft"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/backups/status": {
       "get": {
         "tags": [
@@ -2177,6 +2216,39 @@
         }
       }
     },
+    "/api/suppliers/{id}/registrations": {
+      "put": {
+        "tags": [
+          "CatalogueEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplierRegistrationsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/suppliers/{id}/archive": {
       "post": {
         "tags": [
@@ -3574,6 +3646,42 @@
         }
       }
     },
+    "/api/labels/passports/{id}": {
+      "get": {
+        "tags": [
+          "LabelEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "copies",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/labels/preview/{kind}": {
       "post": {
         "tags": [
@@ -3703,6 +3811,76 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/passports": {
+      "get": {
+        "tags": [
+          "PassportEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "batchId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PassportSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "PassportEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssuePassportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PassportIssued"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PassportRefused"
+                }
+              }
+            }
           }
         }
       }
@@ -4559,6 +4737,7 @@
           "supplierId",
           "motherPlant",
           "originCountry",
+          "sowBy",
           "startedAt",
           "quantity",
           "startCanChange",
@@ -4602,6 +4781,13 @@
           },
           "originCountry": {
             "type": "string"
+          },
+          "sowBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
           },
           "startedAt": {
             "type": [
@@ -4709,6 +4895,7 @@
           "sourceReference",
           "motherPlant",
           "originCountry",
+          "sowBy",
           "startedAt",
           "supplier",
           "purchase",
@@ -4716,6 +4903,7 @@
           "children",
           "receivedPassports",
           "corrections",
+          "issuedPassports",
           "containers",
           "steps",
           "sales",
@@ -4750,6 +4938,13 @@
           },
           "originCountry": {
             "type": "string"
+          },
+          "sowBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
           },
           "startedAt": {
             "type": "string",
@@ -4801,6 +4996,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TraceCorrection"
+            }
+          },
+          "issuedPassports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceIssued"
             }
           },
           "containers": {
@@ -5371,6 +5572,13 @@
               "string"
             ],
             "format": "int32"
+          },
+          "sowBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
           }
         }
       },
@@ -5909,6 +6117,125 @@
           }
         }
       },
+      "IssueDraft": {
+        "required": [
+          "partA",
+          "partB",
+          "partC",
+          "partD",
+          "originRule",
+          "available",
+          "xylellaHost",
+          "problems"
+        ],
+        "type": "object",
+        "properties": {
+          "partA": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "partB": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "partC": {
+            "type": "string"
+          },
+          "partD": {
+            "type": "string"
+          },
+          "originRule": {
+            "type": "string"
+          },
+          "available": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "xylellaHost": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "IssuePassportRequest": {
+        "required": [
+          "passportId",
+          "batchId",
+          "containerId",
+          "quantity",
+          "customerId",
+          "issuedTo",
+          "examined",
+          "findings"
+        ],
+        "type": "object",
+        "properties": {
+          "passportId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "containerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "customerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "issuedTo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "examined": {
+            "type": "boolean"
+          },
+          "findings": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expectedPartD": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "IssueRefused": {
         "required": [
           "problem"
@@ -5927,6 +6254,7 @@
           "PlantLabel",
           "BenchCard",
           "PlaceLabel",
+          "PlantPassport",
           "Invoice"
         ]
       },
@@ -6608,6 +6936,29 @@
           }
         }
       },
+      "PassportIssued": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "PassportRefused": {
+        "required": [
+          "problem"
+        ],
+        "type": "object",
+        "properties": {
+          "problem": {
+            "type": "string"
+          }
+        }
+      },
       "PassportRequest": {
         "required": [
           "batchId",
@@ -6718,6 +7069,75 @@
           },
           "plantsChangedSince": {
             "type": "boolean"
+          }
+        }
+      },
+      "PassportSummary": {
+        "required": [
+          "id",
+          "batchId",
+          "labelCode",
+          "quantity",
+          "partA",
+          "partB",
+          "partC",
+          "partD",
+          "originRule",
+          "issuedTo",
+          "issuedOn",
+          "issuedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "labelCode": {
+            "type": "string"
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "partA": {
+            "type": "string"
+          },
+          "partB": {
+            "type": "string"
+          },
+          "partC": {
+            "type": "string"
+          },
+          "partD": {
+            "type": "string"
+          },
+          "originRule": {
+            "type": "string"
+          },
+          "issuedTo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "issuedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "issuedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -8547,6 +8967,13 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "sowBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
           }
         }
       },
@@ -8578,6 +9005,27 @@
         "properties": {
           "status": {
             "$ref": "#/components/schemas/ReceivedPassportStatus"
+          }
+        }
+      },
+      "SupplierRegistrationsRequest": {
+        "required": [
+          "passportRegistrationNumber",
+          "otherRegistrations"
+        ],
+        "type": "object",
+        "properties": {
+          "passportRegistrationNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "otherRegistrations": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -8655,6 +9103,12 @@
               "null",
               "string"
             ]
+          },
+          "otherRegistrations": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -8670,6 +9124,7 @@
           "supplies",
           "typicalLeadTimeDays",
           "passportRegistrationNumber",
+          "otherRegistrations",
           "notes",
           "archived"
         ],
@@ -8728,6 +9183,12 @@
             "format": "int32"
           },
           "passportRegistrationNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "otherRegistrations": {
             "type": [
               "null",
               "string"
@@ -8909,6 +9370,60 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "TraceIssued": {
+        "required": [
+          "id",
+          "issuedOn",
+          "quantity",
+          "issuedTo",
+          "labelCode",
+          "partA",
+          "partB",
+          "partC",
+          "partD",
+          "originRule"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "issuedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "issuedTo": {
+            "type": "string"
+          },
+          "labelCode": {
+            "type": "string"
+          },
+          "partA": {
+            "type": "string"
+          },
+          "partB": {
+            "type": "string"
+          },
+          "partC": {
+            "type": "string"
+          },
+          "partD": {
+            "type": "string"
+          },
+          "originRule": {
+            "type": "string"
           }
         }
       },
@@ -9398,6 +9913,9 @@
     },
     {
       "name": "TraceEndpoints"
+    },
+    {
+      "name": "PassportEndpoints"
     },
     {
       "name": "BackupStatusEndpoints"

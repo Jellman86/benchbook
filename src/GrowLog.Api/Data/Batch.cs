@@ -26,6 +26,9 @@ internal sealed class Batch
 
     public string? MotherPlant { get; set; }
 
+    /// <summary>The sow-by or use-by date printed on a seed packet: the last day of the month it gives.</summary>
+    public DateOnly? SowBy { get; set; }
+
     /// <summary>Original country of origin as a two-letter ISO code.</summary>
     public required string OriginCountry { get; set; }
 

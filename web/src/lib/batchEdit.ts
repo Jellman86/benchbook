@@ -1,4 +1,5 @@
 import { originCountries } from "./countries";
+import { sowByWords } from "./sowBy";
 import { dayLabel } from "./dates";
 import type { Schemas } from "./types";
 import { plantName } from "./work";
@@ -13,6 +14,8 @@ export interface BatchForm {
   /** The day it was sown, arrived or had cuttings taken, or empty if that isn't recorded. */
   startedOn: string;
   quantity: number;
+  /** A seed packet's sow-by date, or empty. Only seed keeps one. */
+  sowBy: string;
 }
 
 export const sourceWords: Record<Schemas["BatchSource"], string> = {
@@ -80,6 +83,11 @@ export function batchChanges(
       name: "Mother plant",
       before: text(before.motherPlant),
       after: mother(after),
+    },
+    {
+      name: "Sow by",
+      before: sowByWords(before.sowBy),
+      after: after.source === "SeedLot" ? sowByWords(after.sowBy) : "",
     },
     {
       name: "Country of origin",

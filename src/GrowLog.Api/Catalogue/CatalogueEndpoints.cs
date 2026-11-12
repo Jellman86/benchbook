@@ -29,6 +29,7 @@ internal static class CatalogueEndpoints
         suppliers.MapGet("/", ListSuppliersAsync);
         suppliers.MapPost("/", AddSupplierAsync).Produces<EntryCreated>(StatusCodes.Status201Created);
         suppliers.MapPut("/{id:guid}", UpdateSupplierAsync).RequireAuthorization(AccountServices.OwnerPolicy);
+        suppliers.MapPut("/{id:guid}/registrations", UpdateRegistrationsAsync);
         MapArchiving<Supplier>(suppliers);
 
         var locations = app.MapGroup("/api/locations");
@@ -274,6 +275,7 @@ internal static class CatalogueEndpoints
                 row.Supplier.Supplies,
                 row.Supplier.TypicalLeadTimeDays,
                 row.Supplier.PassportRegistrationNumber,
+                row.Supplier.OtherRegistrations,
                 row.Supplier.Notes,
                 row.Supplier.ArchivedAt != null))
             .ToListAsync(cancellationToken);
@@ -289,6 +291,7 @@ internal static class CatalogueEndpoints
         supplier.Supplies = Clean(request.Supplies);
         supplier.TypicalLeadTimeDays = request.TypicalLeadTimeDays;
         supplier.PassportRegistrationNumber = Clean(request.PassportRegistrationNumber);
+        supplier.OtherRegistrations = Clean(request.OtherRegistrations);
         supplier.Notes = Clean(request.Notes);
     }
 
@@ -318,6 +321,27 @@ internal static class CatalogueEndpoints
         }
 
         Apply(request, supplier);
+        return await SaveAsync(db, TypedResults.NoContent(), cancellationToken);
+    }
+
+    /// <summary>
+    /// A supplier's registration numbers, which anyone recording work may need to add from a packet or a passport.
+    /// Contact details stay the owner's to change. Every change is kept, like any other catalogue change.
+    /// </summary>
+    private static async Task<IResult> UpdateRegistrationsAsync(Guid id, SupplierRegistrationsRequest request, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        if ((request.PassportRegistrationNumber?.Length ?? 0) > 100 || (request.OtherRegistrations?.Length ?? 0) > 500)
+        {
+            return TypedResults.BadRequest();
+        }
+
+        if (await db.Suppliers.FindAsync([id], cancellationToken) is not { } supplier)
+        {
+            return TypedResults.NotFound();
+        }
+
+        supplier.PassportRegistrationNumber = Clean(request.PassportRegistrationNumber);
+        supplier.OtherRegistrations = Clean(request.OtherRegistrations);
         return await SaveAsync(db, TypedResults.NoContent(), cancellationToken);
     }
 
@@ -454,7 +478,10 @@ internal static class CatalogueEndpoints
         string? Supplies,
         int? TypicalLeadTimeDays,
         string? PassportRegistrationNumber,
-        string? Notes);
+        string? Notes,
+        string? OtherRegistrations = null);
+
+    internal sealed record SupplierRegistrationsRequest(string? PassportRegistrationNumber, string? OtherRegistrations);
 
     internal sealed record SupplierResponse(
         Guid Id,
@@ -467,6 +494,7 @@ internal static class CatalogueEndpoints
         string? Supplies,
         int? TypicalLeadTimeDays,
         string? PassportRegistrationNumber,
+        string? OtherRegistrations,
         string? Notes,
         bool Archived);
 

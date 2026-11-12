@@ -63,6 +63,8 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<CountAdjustment> CountAdjustments => Set<CountAdjustment>();
 
+    public DbSet<IssuedPassport> IssuedPassports => Set<IssuedPassport>();
+
     public DbSet<NurserySettings> NurserySettings => Set<NurserySettings>();
 
     public DbSet<Printer> Printers => Set<Printer>();
@@ -123,6 +125,7 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.RecordedBy).OnDelete(DeleteBehavior.Restrict);
         });
 
+        ConfigureIssuedPassports(modelBuilder);
         ConfigurePurchases(modelBuilder);
 
         modelBuilder.Entity<BackupStatus>(entity =>
@@ -137,6 +140,24 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         });
     }
+
+    private static void ConfigureIssuedPassports(ModelBuilder modelBuilder) =>
+        modelBuilder.Entity<IssuedPassport>(entity =>
+        {
+            entity.ToTable("issued_passports", table =>
+            {
+                table.HasCheckConstraint("ck_issued_passports_quantity", "quantity > 0");
+                table.HasCheckConstraint("ck_issued_passports_part_d", "part_d ~ '^[A-Z]{2}$'");
+            });
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.HasIndex(e => e.BatchId);
+            entity.HasOne<Batch>().WithMany().HasForeignKey(e => e.BatchId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Container>().WithMany().HasForeignKey(e => e.ContainerId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Customer>().WithMany().HasForeignKey(e => e.CustomerId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Event>().WithOne().HasForeignKey<IssuedPassport>(e => e.ExaminationEventId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.IssuedBy).OnDelete(DeleteBehavior.Restrict);
+        });
 
     private static void ConfigurePurchases(ModelBuilder modelBuilder)
     {

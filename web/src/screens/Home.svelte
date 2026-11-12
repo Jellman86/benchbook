@@ -51,6 +51,7 @@
   import Sidebar from "./Sidebar.svelte";
   import Camera from "./work/Camera.svelte";
   import ContainerView from "./work/ContainerView.svelte";
+  import FindTray from "./work/FindTray.svelte";
   import MoveMany from "./work/MoveMany.svelte";
   import PlaceView from "./work/PlaceView.svelte";
   import { findPlaceByCode, isPlaceCode, type Place } from "../lib/places";
@@ -617,6 +618,8 @@
             <button type="submit">Open</button>
           </form>
 
+          <FindTray onOpen={(code) => open(code)} />
+
           {#if cameraAvailable}
             <button
               class="secondary"
@@ -661,15 +664,18 @@
                       >Again</button
                     >
                   {/if}
-                  <button class="secondary" onclick={() => undoRecent(action)}
-                    >Undo</button
-                  >
+                  {#if action.type !== "Sold" && !(action.details as { forPassport?: boolean } | null)?.forPassport}
+                    <button class="secondary" onclick={() => undoRecent(action)}
+                      >Undo</button
+                    >
+                  {/if}
                 </div>
               </div>
             {/each}
           {:else}
             <p class="muted desktop-only">
-              Nothing recorded yet. Scan a label or start a new batch.
+              Nothing recorded yet. Scan a label, find a tray, or start a new
+              batch.
             </p>
           {/if}
         </section>

@@ -14,7 +14,7 @@ internal static partial class PrinterEndpoints
 {
     private const int LongestName = 100;
     private static readonly int[] Resolutions = [203, 300, 600];
-    private static readonly LabelKind[] Printable = [LabelKind.ContainerLabel, LabelKind.PlantLabel, LabelKind.BenchCard, LabelKind.PlaceLabel];
+    private static readonly LabelKind[] Printable = [LabelKind.ContainerLabel, LabelKind.PlantLabel, LabelKind.BenchCard, LabelKind.PlaceLabel, LabelKind.PlantPassport];
 
     public static void MapPrinterEndpoints(this IEndpointRouteBuilder app)
     {
@@ -151,6 +151,7 @@ internal static partial class PrinterEndpoints
             LabelKind.PlaceLabel when Guid.TryParse(request.Target, out var place) => await LabelEndpoints.PlaceLabelAsync(place, db, cancellationToken),
             LabelKind.PlantLabel when Guid.TryParse(request.Target, out var plant) => await LabelEndpoints.PlantLabelAsync(plant, request.PotSizeId, db, cancellationToken),
             LabelKind.BenchCard when Guid.TryParse(request.Target, out var card) => await LabelEndpoints.BenchCardAsync(card, db, cancellationToken),
+            LabelKind.PlantPassport when Guid.TryParse(request.Target, out var passport) => await LabelEndpoints.PassportLabelAsync(passport, db, cancellationToken),
             _ => null,
         };
 
