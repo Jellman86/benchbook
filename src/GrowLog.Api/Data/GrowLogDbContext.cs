@@ -69,6 +69,10 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<MotherPlant> MotherPlants => Set<MotherPlant>();
 
+    public DbSet<Sensor> Sensors => Set<Sensor>();
+
+    public DbSet<SensorReading> SensorReadings => Set<SensorReading>();
+
     public DbSet<Consignment> Consignments => Set<Consignment>();
 
     public DbSet<NurseryJobDone> JobsDone => Set<NurseryJobDone>();
@@ -136,6 +140,7 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         ConfigureIssuedPassports(modelBuilder);
         ConfigureJobsAndMothers(modelBuilder);
         ConfigureConsignments(modelBuilder);
+        ConfigureSensors(modelBuilder);
         ConfigurePurchases(modelBuilder);
 
         modelBuilder.Entity<BackupStatus>(entity =>
@@ -184,6 +189,37 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         });
 
         modelBuilder.Entity<IssuedPassport>().HasOne<ConsignmentPackage>().WithMany().HasForeignKey(e => e.PackageId).OnDelete(DeleteBehavior.Restrict);
+    }
+
+    private static void ConfigureSensors(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Sensor>(entity =>
+        {
+            entity.ToTable("sensors");
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Name).HasColumnType("citext");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.HasIndex(e => e.Name).IsUnique();
+            entity.HasIndex(e => e.KeyHash).IsUnique();
+            entity.HasOne<Location>().WithMany().HasForeignKey(e => e.LocationId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<SensorReading>(entity =>
+        {
+            entity.ToTable("sensor_readings", table =>
+            {
+                table.HasCheckConstraint("ck_sensor_readings_temperature", "temperature BETWEEN -50 AND 80");
+                table.HasCheckConstraint("ck_sensor_readings_humidity", "humidity BETWEEN 0 AND 100");
+                table.HasCheckConstraint("ck_sensor_readings_something", "temperature IS NOT NULL OR humidity IS NOT NULL");
+            });
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Temperature).HasPrecision(5, 2);
+            entity.Property(e => e.Humidity).HasPrecision(5, 2);
+            entity.HasIndex(e => new { e.LocationId, e.TakenAt });
+            entity.HasIndex(e => new { e.SensorId, e.TakenAt });
+            entity.HasOne<Sensor>().WithMany().HasForeignKey(e => e.SensorId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Location>().WithMany().HasForeignKey(e => e.LocationId).OnDelete(DeleteBehavior.Restrict);
+        });
     }
 
     private static void ConfigureJobsAndMothers(ModelBuilder modelBuilder)

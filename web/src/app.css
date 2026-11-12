@@ -26,6 +26,8 @@
   --on-accent: #ffffff;
   --accent-surface: #e7eafb;
   --accent-text: #34409b;
+  --chart-warm: #b4532a;
+  --chart-cool: #4a5cc0;
   --badge-surface: #f1e4f3;
   --badge-text: #6c3b79;
   --chart-1: #6b8cee;
@@ -72,6 +74,8 @@
     --on-accent: #141a42;
     --accent-surface: #232c4d;
     --accent-text: #c2ccfb;
+    --chart-warm: #d9744a;
+    --chart-cool: #7083e6;
     --badge-surface: #33243a;
     --badge-text: #e2bfe8;
     --chart-1: #6889ea;
@@ -108,6 +112,8 @@
   --on-accent: #141a42;
   --accent-surface: #232c4d;
   --accent-text: #c2ccfb;
+  --chart-warm: #d9744a;
+  --chart-cool: #7083e6;
   --badge-surface: #33243a;
   --badge-text: #e2bfe8;
   --chart-1: #6889ea;
@@ -2644,4 +2650,152 @@ button.danger:hover:not(:disabled) {
   max-height: 65dvh;
   border-radius: 0.5rem;
   object-fit: contain;
+}
+
+/* Climate: a card for each place, and its charts. */
+.climate-card {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: start;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 400;
+  text-align: left;
+  box-shadow: var(--shadow);
+}
+
+.climate-card:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.climate-now {
+  display: flex;
+  gap: 1.25rem;
+  font-size: 1.6rem;
+}
+
+.climate-now > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.climate-now :global(svg) {
+  color: var(--muted);
+}
+
+.climate-chart {
+  position: relative;
+  margin: 0;
+  min-width: 0;
+}
+
+.climate-chart figcaption {
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.climate-chart svg {
+  display: block;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.climate-chart .grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.climate-chart .tick {
+  fill: var(--muted);
+  font-size: 11px;
+  text-anchor: end;
+}
+
+.climate-chart .tick.day {
+  text-anchor: middle;
+}
+
+.climate-chart .series {
+  fill: none;
+  stroke: var(--series);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.climate-chart .band {
+  fill: var(--series);
+  opacity: 0.12;
+}
+
+.climate-chart .dot {
+  fill: var(--series);
+}
+
+.climate-chart .ringed {
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.climate-chart .crosshair {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.chart-tip {
+  position: absolute;
+  top: 1.5rem;
+  display: grid;
+  gap: 0.1rem;
+  margin: 0;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-size: 0.85rem;
+  transform: translateX(-50%);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.climate-table {
+  width: 100%;
+  margin-top: 0.5rem;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.climate-table th,
+.climate-table td {
+  padding: 0.35rem 0.25rem;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+}
+
+.climate-table th:first-child,
+.climate-table td:first-child {
+  text-align: left;
+}
+
+.sensor-key {
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  background: var(--line);
+  overflow-wrap: anywhere;
+}
+
+.sensor-config {
+  max-width: 100%;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--line);
+  font-size: 0.8rem;
+  overflow-x: auto;
 }

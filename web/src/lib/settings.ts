@@ -7,6 +7,7 @@ import MapIcon from "@lucide/svelte/icons/map";
 import Store from "@lucide/svelte/icons/store";
 import Tablet from "@lucide/svelte/icons/tablet";
 import Tag from "@lucide/svelte/icons/tag";
+import Thermometer from "@lucide/svelte/icons/thermometer";
 import UserRound from "@lucide/svelte/icons/user-round";
 import Users from "@lucide/svelte/icons/users";
 
@@ -15,6 +16,7 @@ export type SettingsPage =
   | "account"
   | "nursery"
   | "map"
+  | "sensors"
   | "printers"
   | "labels"
   | "potSizes"
@@ -49,6 +51,7 @@ const groups: SettingsGroup[] = [
       { page: "nursery", label: "Nursery details", icon: Store },
       { page: "map", label: "Map", icon: MapIcon },
       { page: "potSizes", label: "Pot sizes", icon: Cylinder },
+      { page: "sensors", label: "Sensors", icon: Thermometer },
     ],
   },
   {

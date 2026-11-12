@@ -650,6 +650,93 @@
         }
       }
     },
+    "/api/sensor-readings": {
+      "post": {
+        "tags": [
+          "SensorEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SensorReadingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/climate": {
+      "get": {
+        "tags": [
+          "ClimateEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlaceClimate"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/climate/{locationId}": {
+      "get": {
+        "tags": [
+          "ClimateEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 7
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceClimateHistory"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/alerts": {
       "get": {
         "tags": [
@@ -4191,6 +4278,141 @@
         }
       }
     },
+    "/api/sensors": {
+      "get": {
+        "tags": [
+          "SensorEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SensorSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "SensorEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SensorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensorKey"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sensors/{id}": {
+      "put": {
+        "tags": [
+          "SensorEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SensorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/sensors/{id}/new-key": {
+      "post": {
+        "tags": [
+          "SensorEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensorKey"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sensors/{id}/stop": {
+      "post": {
+        "tags": [
+          "SensorEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/jobs": {
       "get": {
         "tags": [
@@ -5806,6 +6028,137 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ClimateHour": {
+        "required": [
+          "hour",
+          "temperature",
+          "lowestTemperature",
+          "highestTemperature",
+          "humidity"
+        ],
+        "type": "object",
+        "properties": {
+          "hour": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "temperature": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "lowestTemperature": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "highestTemperature": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "humidity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "ClimateRange": {
+        "required": [
+          "lowestTemperature",
+          "highestTemperature",
+          "lowestHumidity",
+          "highestHumidity"
+        ],
+        "type": "object",
+        "properties": {
+          "lowestTemperature": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "highestTemperature": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "lowestHumidity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "highestHumidity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "ClimateReading": {
+        "required": [
+          "takenAt",
+          "temperature",
+          "humidity"
+        ],
+        "type": "object",
+        "properties": {
+          "takenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "temperature": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "humidity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
           }
         }
       },
@@ -8847,6 +9200,72 @@
           }
         }
       },
+      "PlaceClimate": {
+        "required": [
+          "locationId",
+          "place",
+          "latest",
+          "today"
+        ],
+        "type": "object",
+        "properties": {
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "place": {
+            "type": "string"
+          },
+          "latest": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ClimateReading"
+              }
+            ]
+          },
+          "today": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ClimateRange"
+              }
+            ]
+          }
+        }
+      },
+      "PlaceClimateHistory": {
+        "required": [
+          "locationId",
+          "place",
+          "since",
+          "hours"
+        ],
+        "type": "object",
+        "properties": {
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "place": {
+            "type": "string"
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "hours": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClimateHour"
+            }
+          }
+        }
+      },
       "PlaceMap": {
         "required": [
           "imageryKey",
@@ -10173,6 +10592,102 @@
         "properties": {
           "problem": {
             "type": "string"
+          }
+        }
+      },
+      "SensorKey": {
+        "required": [
+          "id",
+          "key"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          }
+        }
+      },
+      "SensorReadingRequest": {
+        "required": [
+          "temperature",
+          "humidity",
+          "takenAt"
+        ],
+        "type": "object",
+        "properties": {
+          "temperature": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "humidity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "takenAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "SensorRequest": {
+        "required": [
+          "name",
+          "locationId"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "SensorSummary": {
+        "required": [
+          "id",
+          "name",
+          "locationId",
+          "lastReadingAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lastReadingAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -11783,6 +12298,12 @@
     },
     {
       "name": "ExportEndpoints"
+    },
+    {
+      "name": "SensorEndpoints"
+    },
+    {
+      "name": "ClimateEndpoints"
     },
     {
       "name": "AlertEndpoints"

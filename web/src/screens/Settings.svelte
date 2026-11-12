@@ -12,6 +12,7 @@
   import NurseryDetails from "./settings/NurseryDetails.svelte";
   import PotSizes from "./settings/PotSizes.svelte";
   import Printers from "./settings/Printers.svelte";
+  import Sensors from "./settings/Sensors.svelte";
   import SigningIn from "./settings/SigningIn.svelte";
   import Staff from "./settings/Staff.svelte";
   import Stations from "./settings/Stations.svelte";
@@ -120,6 +121,8 @@
       <Stations onBack={toList} {onBecameStation} />
     {:else if shown === "data"}
       <DataAndBackups onBack={toList} />
+    {:else if shown === "sensors"}
+      <Sensors onBack={toList} />
     {:else if shown === "about"}
       <About onBack={toList} />
     {/if}

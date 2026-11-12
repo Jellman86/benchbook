@@ -512,6 +512,49 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Cancel").click();
   await leaveManage(page);
 
+  // A sensor sends readings with its own key, and Climate charts them for its place.
+  await openSettings(page, "Sensors");
+  await page.getByLabel("Name", { exact: true }).fill("Greenhouse sensor");
+  await chooser(page, "Place").selectOption({ index: 1 });
+  await button(page, "Add sensor").click();
+  const sensorKey = (await page.locator(".sensor-key").innerText()).trim();
+  expect(sensorKey).toMatch(/^glk_/);
+  for (let hour = 22; hour >= 0; hour--) {
+    const sent = await page.request.post("/api/sensor-readings", {
+      headers: { authorization: `Bearer ${sensorKey}` },
+      data: {
+        temperature: 14 + 8 * Math.sin(hour / 4),
+        humidity: 75 - 15 * Math.sin(hour / 4),
+        takenAt: new Date(Date.now() - hour * 3_600_000).toISOString(),
+      },
+    });
+    expect(sent.status()).toBe(204);
+  }
+  await button(page, "Done").click();
+  await expect(page.getByText("Last heard just now")).toBeVisible();
+  await button(page, "Back").click();
+
+  await openManage(page, "Climate");
+  await page.locator(".climate-card").first().click();
+  await button(page, "7 days").click();
+  await expect(page.locator(".climate-chart .series").first()).toBeVisible();
+  const chart = page.locator(".climate-chart svg").first();
+  const box = (await chart.boundingBox())!;
+  await page.mouse.move(box.x + box.width - 30, box.y + box.height / 2);
+  await expect(page.locator(".chart-tip").first()).toContainText("°");
+  await page.screenshot({
+    path: "build/peek/climate-light.png",
+    fullPage: true,
+  });
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.screenshot({
+    path: "build/peek/climate-dark.png",
+    fullPage: true,
+  });
+  await page.emulateMedia({ colorScheme: "light" });
+  await button(page, "Back").click();
+  await leaveManage(page);
+
   // This device becomes a bench station, which signs the owner out of it.
   await openSettings(page, "Bench stations");
   await page.getByLabel("Name for this device").fill("Potting shed");
