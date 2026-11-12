@@ -2434,3 +2434,62 @@ button.danger:hover:not(:disabled) {
     grid-column: auto;
   }
 }
+
+/* Printing labels on A4 stickers. */
+.sheet-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 22rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.sheet-choices .tick {
+  align-items: flex-start;
+  min-height: 2.75rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+/* A small picture of the sheet: tap the first free sticker. */
+.sheet-picture {
+  display: grid;
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  gap: 3px;
+  width: min(100%, 16rem);
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
+  background: #ffffff;
+  aspect-ratio: 210 / 297;
+}
+
+.sheet-picture button {
+  min-height: 0;
+  padding: 0;
+  border: 1px solid #b9bdb0;
+  border-radius: 2px;
+  background: #ffffff;
+}
+
+.sheet-picture button.used {
+  border-style: dashed;
+  background: #e6e6e1;
+}
+
+.sheet-picture button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.sheet-preview {
+  width: min(100%, 24rem);
+  border: 1px solid var(--line);
+  background: #ffffff;
+  box-shadow: var(--paper-edge);
+}

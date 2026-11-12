@@ -53,6 +53,7 @@
   import ContainerView from "./work/ContainerView.svelte";
   import FindTray from "./work/FindTray.svelte";
   import MoveMany from "./work/MoveMany.svelte";
+  import LabelSheets from "./work/LabelSheets.svelte";
   import PlaceView from "./work/PlaceView.svelte";
   import { findPlaceByCode, isPlaceCode, type Place } from "../lib/places";
   import { rememberedPlaces } from "../lib/offline";
@@ -76,6 +77,7 @@
     production: "Production",
     place: "Place",
     moveMany: "Move several",
+    labelSheets: "Labels on A4",
     plants: "Plants",
     manage: "Manage",
   };
@@ -91,6 +93,7 @@
     | { name: "production" }
     | { name: "place"; id: string }
     | { name: "moveMany"; destination?: string | null }
+    | { name: "labelSheets" }
     | { name: "plants" }
     | {
         name: "manage";
@@ -497,6 +500,8 @@
     {/key}
   {:else if view.name === "moveMany"}
     <MoveMany destination={view.destination} onFinished={goHome} />
+  {:else if view.name === "labelSheets"}
+    <LabelSheets onBack={goHome} />
   {:else if view.name === "plants"}
     <Plants canManage={false} onBack={goHome} />
   {:else if view.name === "production"}
@@ -631,6 +636,13 @@
             onclick={() => (view = { name: "moveMany" })}
             >Move several trays</button
           >
+          {#if !atBench}
+            <button
+              class="secondary"
+              onclick={() => (view = { name: "labelSheets" })}
+              >Print labels on A4</button
+            >
+          {/if}
 
           {#if me.isOwner && !atBench}
             <div class="desktop-only">

@@ -37,7 +37,7 @@ The owner sets the nursery's name, address, registration and VAT numbers and log
 
 Network label printers are added under Settings, Printers, by IP address or network name and port (9100 by default), with their language, ZPL (Zebra and compatible) or TSPL (TSC and the many compatible printers), their print head's resolution, and which kinds of label they print. A label of a kind a printer takes then prints straight to it with one press, as a single picture at the printer's resolution followed by the number of copies, and a PDF is always offered beside it. A test print sends a sample label. The server only sends to addresses a printer could have, never to itself or reserved addresses, so it must be able to reach the printer over the network. Printing at the bench puts the scan box back in focus afterwards. A free-form label designer is not planned: fixed layouts can't clip or misprint, and the plant passport must stay separate.
 
-A label never clips or runs onto a second label. Long names are printed smaller, down to a size that still reads; after that the label leaves out, in order, the care notes, the nursery's name and the logo, and a mixed tray lists as many plants as fit and says how many more there are. A price is always printed in pounds including VAT, in bold, and never shrinks below a clearly legible size. Text is solid black and lines and QR squares are whole printer dots, because a thermal printer has no greys. Tray and place labels print their code in words beside the QR code. No design uses the words "Plant Passport" or lettered parts: an issued passport will be its own label, or its own bordered block, so it stays distinct from everything else.
+Without a label printer, labels print on A4 sticker sheets from an ordinary printer, from Record's "Print labels on A4": choose trays, places or plants (by search, or all shown), a sheet (65, 24, 21, 14 or 8 to a page, matching the common makes), the first free sticker on a picture of the sheet so a part-used sheet is finished first, copies of each, and cut lines for plain paper. Each label is its usual design drawn to fit one sticker; the first sheet can be shown on screen before printing, and the page prints at actual size. At most 300 labels at once. A label never clips or runs onto a second label. Long names are printed smaller, down to a size that still reads; after that the label leaves out, in order, the care notes, the nursery's name and the logo, and a mixed tray lists as many plants as fit and says how many more there are. A price is always printed in pounds including VAT, in bold, and never shrinks below a clearly legible size. Text is solid black and lines and QR squares are whole printer dots, because a thermal printer has no greys. Tray and place labels print their code in words beside the QR code. No design uses the words "Plant Passport" or lettered parts: an issued passport will be its own label, or its own bordered block, so it stays distinct from everything else.
 
 ## Core concepts
 
@@ -195,19 +195,18 @@ AGPL-3.0-or-later. Dependencies and bundled fonts must use open-source licences 
 
 ## Roadmap
 
-**Done so far.** Stage 1 in full. From stage 2: purchases, invoices and credit notes, simple accounts, received and issued plant passports (one batch from one tray), and trace reports. Alongside them: correcting batches, sowing seed without a count, finding a tray without a label, supplier registration numbers and seed packet dates.
+**Done so far.** Stage 1 in full. From stage 2: purchases, invoices and credit notes, simple accounts, received and issued plant passports (one batch from one tray), and trace reports. Alongside them: correcting batches, sowing seed without a count, finding a tray without a label, supplier registration numbers, seed packet dates, and labels on A4 sticker sheets.
 
 **Next, in order:**
 
-1. **A sheet of labels on A4.** Choose trays, plants or places and print their labels together on A4 sticker sheets from an ordinary printer, for a nursery without a label printer.
-2. **Dates on all work.** Germinated, pricked out, potted on, losses, moves, counts and treatments take Today, Yesterday or another day, for work written up later and for backfilling.
-3. **Work on many trays at once.** Choose trays by place, stage or plant, then mark them ready, move, treat or print their labels together. Moving several trays is already there.
-4. **Reminders and tasks.** Repeating jobs such as watering, feeding and spraying rotas; the yearly authorisation and inspection; overdue invoices; plants ready for a while. Alerts say why they appeared, such as a spray too close to a sale, and clear themselves when dealt with.
-5. **Mother plants and cuttings.** Mother plants kept as records; cuttings numbered from them automatically; each mother lists every cutting taken, and each batch of cuttings leads back to its mother.
-6. **Consignments.** A sale or dispatch made up of packages, with passports that cover several batches, and GrowLog deciding whether a passport is needed.
-7. **A photo strip for each batch,** with the stage and day of each photo, and a way to remove a wrong one.
-8. **Import and export.** Spreadsheets brought in with their columns matched and every problem row named before anything is saved; everything taken out in one download.
-9. **Greenhouse sensors.** Temperature and humidity sent in from Home Assistant or a small sensor, charted for each place.
+1. **Dates on all work.** Germinated, pricked out, potted on, losses, moves, counts and treatments take Today, Yesterday or another day, for work written up later and for backfilling.
+2. **Work on many trays at once.** Choose trays by place, stage or plant, then mark them ready, move, treat or print their labels together. Moving several trays is already there.
+3. **Reminders and tasks.** Repeating jobs such as watering, feeding and spraying rotas; the yearly authorisation and inspection; overdue invoices; plants ready for a while. Alerts say why they appeared, such as a spray too close to a sale, and clear themselves when dealt with.
+4. **Mother plants and cuttings.** Mother plants kept as records; cuttings numbered from them automatically; each mother lists every cutting taken, and each batch of cuttings leads back to its mother.
+5. **Consignments.** A sale or dispatch made up of packages, with passports that cover several batches, and GrowLog deciding whether a passport is needed.
+6. **A photo strip for each batch,** with the stage and day of each photo, and a way to remove a wrong one.
+7. **Import and export.** Spreadsheets brought in with their columns matched and every problem row named before anything is saved; everything taken out in one download.
+8. **Greenhouse sensors.** Temperature and humidity sent in from Home Assistant or a small sensor, charted for each place.
 
 **Smaller follow-ups:**
 
