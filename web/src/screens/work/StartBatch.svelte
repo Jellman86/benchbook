@@ -100,6 +100,51 @@
   let newPassport = $state("");
   let newOther = $state("");
   let sowBy = $state("");
+  // Cuttings: the mother plant they're taken from, for plants already on the list.
+  let mothers = $state<Schemas["MotherSummary"][]>([]);
+  let motherId = $state("");
+  let newMother = $state("");
+
+  $effect(() => {
+    const id = plantId;
+    motherId = "";
+    mothers = [];
+
+    if (id) {
+      void api
+        .GET("/api/mother-plants", { params: { query: { plantId: id } } })
+        .then(({ data }) => (mothers = data ?? []))
+        .catch(() => (mothers = []));
+    }
+  });
+
+  const addMother = () =>
+    attempt(async () => {
+      const { data, response } = await api.POST("/api/mother-plants", {
+        body: {
+          plantId,
+          name: newMother.trim(),
+          locationId: null,
+          notes: null,
+        },
+      });
+
+      if (data) {
+        mothers =
+          (
+            await api.GET("/api/mother-plants", {
+              params: { query: { plantId } },
+            })
+          ).data ?? mothers;
+        motherId = data.id;
+        newMother = "";
+      } else {
+        problem =
+          response.status === 409
+            ? "That plant already has a mother with that name."
+            : "Please give the mother plant a name.";
+      }
+    }, setProblem);
   // How the seed was measured; only "I counted them" starts the tray with a number.
   let sownAs = $state<SownMeasure>("Counted");
   let aboutSeeds = $state(200);
@@ -346,6 +391,17 @@
     }
 
     rows.push(
+      ...(source === "Cuttings" && motherId
+        ? [
+            {
+              name: "Taken from",
+              value:
+                mothers.find((item) => item.id === motherId)?.name ??
+                "A mother plant",
+              stage: 3,
+            },
+          ]
+        : []),
       { name: "Country of origin", value: country, stage: 3 },
       {
         name: "Photos",
@@ -538,6 +594,8 @@
               supplierId: source === "Cuttings" ? null : supplierId || null,
               parentBatchId: null,
               motherPlant: null,
+              motherPlantId:
+                source === "Cuttings" && motherId ? motherId : null,
               originCountry,
               containerKind,
               locationId: locationId || null,
@@ -690,6 +748,36 @@
       {/each}
     </div>
     <DayPicker bind:value={startedOn} label={whenAsked[source]} />
+    {#if source === "Cuttings" && plantId}
+      <label
+        >Taken from <select bind:value={motherId}>
+          <option value="">No mother plant recorded</option>
+          {#each mothers as mother (mother.id)}
+            <option value={mother.id}
+              >{mother.name}{mother.locationName
+                ? ` · ${mother.locationName}`
+                : ""}</option
+            >
+          {/each}
+        </select></label
+      >
+      {#if !motherId}
+        <div class="row">
+          <label class="grow"
+            >Or a new mother plant <input
+              bind:value={newMother}
+              maxlength="100"
+              placeholder="By the door"
+            /></label
+          >
+          {#if newMother.trim()}
+            <button type="button" class="secondary" onclick={addMother}
+              >Add</button
+            >
+          {/if}
+        </div>
+      {/if}
+    {/if}
     {#if source !== "Cuttings"}
       <label>
         Supplier

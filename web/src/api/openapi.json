@@ -4089,6 +4089,157 @@
         }
       }
     },
+    "/api/mother-plants": {
+      "get": {
+        "tags": [
+          "MotherPlantEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "plantId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MotherSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "MotherPlantEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MotherRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MotherAdded"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mother-plants/{id}": {
+      "get": {
+        "tags": [
+          "MotherPlantEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MotherDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "MotherPlantEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MotherRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/mother-plants/{id}/archive": {
+      "post": {
+        "tags": [
+          "MotherPlantEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/purchases": {
       "get": {
         "tags": [
@@ -4969,6 +5120,7 @@
           "sownAmount",
           "packetShare",
           "packetSays",
+          "motherPlantId",
           "startedAt",
           "quantity",
           "startCanChange",
@@ -5054,6 +5206,13 @@
               "null",
               "string"
             ]
+          },
+          "motherPlantId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           },
           "startedAt": {
             "type": [
@@ -5162,6 +5321,7 @@
           "motherPlant",
           "originCountry",
           "sowBy",
+          "mother",
           "sownAs",
           "sownAmount",
           "packetShare",
@@ -5215,6 +5375,16 @@
               "string"
             ],
             "format": "date"
+          },
+          "mother": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TraceMother"
+              }
+            ]
           },
           "sownAs": {
             "oneOf": [
@@ -7164,6 +7334,186 @@
               "string"
             ],
             "format": "double"
+          }
+        }
+      },
+      "MotherAdded": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "MotherBatch": {
+        "required": [
+          "batchId",
+          "traceabilityCode",
+          "round",
+          "startedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "traceabilityCode": {
+            "type": "string"
+          },
+          "round": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MotherDetails": {
+        "required": [
+          "id",
+          "plantId",
+          "plantName",
+          "name",
+          "notes",
+          "batches"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plantName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "batches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MotherBatch"
+            }
+          }
+        }
+      },
+      "MotherRequest": {
+        "required": [
+          "plantId",
+          "name",
+          "locationId",
+          "notes"
+        ],
+        "type": "object",
+        "properties": {
+          "plantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "MotherSummary": {
+        "required": [
+          "id",
+          "plantId",
+          "plantName",
+          "name",
+          "locationId",
+          "locationName",
+          "notes",
+          "cuttingsTaken",
+          "lastTakenAt",
+          "archived"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plantName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "locationName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cuttingsTaken": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lastTakenAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "archived": {
+            "type": "boolean"
           }
         }
       },
@@ -9640,6 +9990,13 @@
               "null",
               "string"
             ]
+          },
+          "motherPlantId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -10130,6 +10487,31 @@
           "startedAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "TraceMother": {
+        "required": [
+          "id",
+          "name",
+          "round"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "round": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -10650,6 +11032,9 @@
     },
     {
       "name": "JobEndpoints"
+    },
+    {
+      "name": "MotherPlantEndpoints"
     },
     {
       "name": "PurchaseEndpoints"

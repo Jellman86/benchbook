@@ -304,7 +304,9 @@
       {#each sources as item (item.source)}
         <button
           aria-pressed={form.source === item.source}
-          disabled={(uncounted || !details.startCanChange) &&
+          disabled={(uncounted ||
+            !details.startCanChange ||
+            !!details.motherPlantId) &&
             form.source !== item.source}
           onclick={() => (form!.source = item.source)}>{item.label}</button
         >
@@ -378,7 +380,13 @@
     {/if}
 
     {#if form.source === "Cuttings"}
-      <label>Mother plant <input bind:value={form.motherPlant} /></label>
+      {#if details.motherPlantId}
+        <p class="muted">
+          Cuttings from {form.motherPlant}. They stay with that mother plant.
+        </p>
+      {:else}
+        <label>Mother plant <input bind:value={form.motherPlant} /></label>
+      {/if}
     {:else}
       <label>
         Supplier

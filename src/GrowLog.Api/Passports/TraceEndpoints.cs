@@ -142,6 +142,9 @@ internal static class TraceEndpoints
             origin.Batch.MotherPlant,
             origin.Batch.OriginCountry,
             origin.Batch.SowBy,
+            origin.Batch.MotherPlantId is { } motherId
+                ? new TraceMother(motherId, origin.Batch.MotherPlant ?? string.Empty, origin.Batch.CuttingsRound ?? 0)
+                : null,
             origin.Batch.SownAs,
             origin.Batch.SownAmount,
             origin.Batch.PacketShare,
@@ -414,6 +417,9 @@ internal static class TraceEndpoints
 
     internal sealed record TraceTotals(int Lost, int Sold, int Now);
 
+    /// <param name="Round">Which batch of cuttings from the mother this is: 1 for the first.</param>
+    internal sealed record TraceMother(Guid Id, string Name, int Round);
+
     internal sealed record TraceIssued(Guid Id, DateOnly IssuedOn, int Quantity, string IssuedTo, string LabelCode, string PartA, string PartB, string PartC, string PartD, string OriginRule);
 
     private sealed record CorrectedValue(string? Before, string? After);
@@ -430,6 +436,7 @@ internal static class TraceEndpoints
         string? MotherPlant,
         string OriginCountry,
         DateOnly? SowBy,
+        TraceMother? Mother,
         SownMeasure? SownAs,
         decimal? SownAmount,
         PacketShare? PacketShare,

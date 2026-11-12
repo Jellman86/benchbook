@@ -26,6 +26,12 @@ internal sealed class Batch
 
     public string? MotherPlant { get; set; }
 
+    /// <summary>The mother plant the cuttings were taken from, when it's kept as a record.</summary>
+    public Guid? MotherPlantId { get; init; }
+
+    /// <summary>Which batch of cuttings from that mother this is: 1 for the first taken, and so on.</summary>
+    public int? CuttingsRound { get; init; }
+
     /// <summary>How the seed was measured when sown. Null for plants not sown, and for batches from before this was kept.</summary>
     public SownMeasure? SownAs { get; set; }
 
