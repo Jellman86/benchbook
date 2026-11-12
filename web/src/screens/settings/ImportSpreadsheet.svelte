@@ -37,11 +37,14 @@
 
   const setProblem = (message: string) => (problem = message);
 
-  onMount(() =>
-    attempt(async () => {
+  // A file can be chosen before GrowLog's columns have arrived; matching waits for them.
+  let fieldsLoaded: Promise<unknown> = Promise.resolve();
+
+  onMount(() => {
+    fieldsLoaded = attempt(async () => {
       catalogue = (await api.GET("/api/import/fields")).data ?? [];
-    }, setProblem),
-  );
+    }, setProblem);
+  });
 
   const fields = $derived<ImportField[]>(
     catalogue.find((item) => item.kind === kind)?.fields ?? [],
@@ -88,6 +91,7 @@
     result = null;
     leftOut = [];
     const all = readRows(await file.text());
+    await fieldsLoaded;
 
     if (all.length < 2) {
       problem =
