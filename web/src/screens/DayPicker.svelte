@@ -44,6 +44,34 @@
   const grid = $derived(monthGrid(shown));
   const canGoBack = $derived(!min || addDays(shown, -1) >= min);
   const canGoOn = $derived(!max || addMonths(shown, 1) <= max);
+  // Month and year chosen straight from a list, so a date a year away is two taps, not twelve.
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const thisYear = now.getFullYear();
+  const years = $derived.by(() => {
+    const first = min ? Number(min.slice(0, 4)) : thisYear - 10;
+    const last = max ? Number(max.slice(0, 4)) : thisYear + 10;
+    return Array.from(
+      { length: last - first + 1 },
+      (_, index) => first + index,
+    );
+  });
+
+  function showMonth(year: number, month: number) {
+    shown = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+  }
 
   function toggle() {
     shown = addMonths(value || today, 0);
@@ -87,7 +115,36 @@
           onclick={() => (shown = addMonths(shown, -1))}
           ><ChevronLeft size={20} /></button
         >
-        <strong aria-live="polite">{monthName(shown)}</strong>
+        <span class="calendar-month" aria-live="polite">
+          <select
+            aria-label="Month"
+            value={Number(shown.slice(5, 7)) - 1}
+            onchange={(event) =>
+              showMonth(
+                Number(shown.slice(0, 4)),
+                Number(event.currentTarget.value),
+              )}
+          >
+            {#each months as name, index (name)}
+              <option value={index}>{name}</option>
+            {/each}
+          </select>
+          <select
+            class="calendar-year"
+            aria-label="Year"
+            value={Number(shown.slice(0, 4))}
+            onchange={(event) =>
+              showMonth(
+                Number(event.currentTarget.value),
+                Number(shown.slice(5, 7)) - 1,
+              )}
+          >
+            {#each years as year (year)}
+              <option value={year}>{year}</option>
+            {/each}
+          </select>
+          <span class="visually-hidden">{monthName(shown)}</span>
+        </span>
         <button
           type="button"
           class="secondary"

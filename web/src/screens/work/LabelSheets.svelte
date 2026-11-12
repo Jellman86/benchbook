@@ -47,7 +47,8 @@
   let outlines = $state(false);
   let busy = $state(false);
   let problem = $state("");
-  let pdf = $state<string | null>(null);
+  // The labels went to a new tab to print.
+  let sent = $state(false);
   let preview = $state<string | null>(null);
 
   onMount(async () => {
@@ -138,13 +139,11 @@
   }
 
   function clearPdf() {
-    for (const made of [pdf, preview]) {
-      if (made) {
-        URL.revokeObjectURL(made);
-      }
+    if (preview) {
+      URL.revokeObjectURL(preview);
     }
 
-    pdf = null;
+    sent = false;
     preview = null;
   }
 
@@ -159,48 +158,41 @@
     clearPdf();
   }
 
-  // A picture of the first sheet to check, or the PDF to print.
-  async function make(picture = false) {
+  const kind = $derived(
+    what === "trays"
+      ? "ContainerLabel"
+      : what === "places"
+        ? "PlaceLabel"
+        : "PlantLabel",
+  );
+  const request = $derived({
+    kind,
+    targets: picked,
+    sheet: sheetId,
+    startAt,
+    copies,
+    outlines,
+    potSizeId: what === "plants" && potSizeId ? potSizeId : null,
+  });
+
+  // A picture of the first sheet, to check before printing.
+  async function showFirstSheet() {
     busy = true;
     problem = "";
     clearPdf();
     rememberSheet(sheetId);
 
     try {
-      const kind =
-        what === "trays"
-          ? "ContainerLabel"
-          : what === "places"
-            ? "PlaceLabel"
-            : "PlantLabel";
       const response = await fetch("/api/labels/sheets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind,
-          targets: picked,
-          sheet: sheetId,
-          startAt,
-          copies,
-          outlines,
-          potSizeId: what === "plants" && potSizeId ? potSizeId : null,
-          picture,
-        }),
+        body: JSON.stringify({ ...request, picture: true }),
       });
 
       if (response.ok) {
-        const made = URL.createObjectURL(await response.blob());
-
-        if (picture) {
-          preview = made;
-        } else {
-          pdf = made;
-        }
+        preview = URL.createObjectURL(await response.blob());
       } else {
-        problem =
-          response.status === 404
-            ? "One of those no longer exists. Go back and choose again."
-            : "Those labels couldn't be made. Choose fewer, at most 300 at once.";
+        problem = sheetProblem(response.status);
       }
     } catch {
       problem = "Label sheets need a connection.";
@@ -208,6 +200,32 @@
       busy = false;
     }
   }
+
+  // The PDF to print, sent as an ordinary form into a new tab: a fetched PDF opened as a blob comes up blank
+  // from an iPhone's home-screen app.
+  function makeLabels() {
+    rememberSheet(sheetId);
+    const form = document.createElement("form");
+    form.method = "post";
+    form.action = "/api/labels/sheets/print";
+    form.target = "_blank";
+    const field = document.createElement("input");
+    field.type = "hidden";
+    field.name = "request";
+    field.value = JSON.stringify(request);
+    form.append(field);
+    document.body.append(form);
+    form.submit();
+    form.remove();
+    sent = true;
+  }
+
+  const sheetProblem = (status: number) =>
+    status === 401
+      ? "You've been signed out. Sign in again, then make the labels."
+      : status === 404
+        ? "One of those no longer exists. Go back and choose again."
+        : "Those labels couldn't be made. Please try again.";
 </script>
 
 <main class="label-sheets">
@@ -294,9 +312,24 @@
     {/if}
 
     {#if sheet}
-      <p class="field-label">
-        Start at sticker {startAt}. Tap the first free one on a used sheet.
-      </p>
+      <label class="sheet-start"
+        >Start at sticker <input
+          type="number"
+          inputmode="numeric"
+          min="1"
+          max={perSheet}
+          value={startAt}
+          onchange={(event) => {
+            startAt = Math.min(
+              Math.max(Math.round(Number(event.currentTarget.value)) || 1, 1),
+              perSheet,
+            );
+            event.currentTarget.value = String(startAt);
+            clearPdf();
+          }}
+        /></label
+      >
+      <p class="muted">Or tap the first free one on a used sheet.</p>
       <div
         class="sheet-picture"
         style:--columns={columnsOf(sheet)}
@@ -348,24 +381,30 @@
     />
   {/if}
 
-  {#if pdf}
-    <a class="button" href={pdf} target="_blank" rel="noopener"
-      ><Printer size={20} /> Open the labels to print</a
-    >
-  {:else}
-    <div class="row">
-      <button
-        disabled={busy || labelCount === 0 || labelCount > 300}
-        onclick={() => make()}
-        >{busy ? "Making the labels…" : "Make the labels"}</button
-      >
-      <button
-        class="secondary"
-        disabled={busy || labelCount === 0 || labelCount > 300}
-        onclick={() => make(true)}>Show the first sheet</button
-      >
-    </div>
+  {#if labelCount > 300}
+    <p class="problem">
+      That's {labelCount} labels: at most 300 can be made at once. Choose fewer, or
+      fewer copies of each.
+    </p>
   {/if}
+  {#if sent}
+    <p class="card done" role="status">
+      <Printer size={18} /> The labels open in a new tab, ready to print. If nothing
+      opened, allow pop-ups for GrowLog and make them again.
+    </p>
+  {/if}
+  <div class="row">
+    <button
+      disabled={busy || labelCount === 0 || labelCount > 300}
+      onclick={makeLabels}>Make the labels</button
+    >
+    <button
+      class="secondary"
+      disabled={busy || labelCount === 0 || labelCount > 300}
+      onclick={showFirstSheet}
+      >{busy ? "Drawing the sheet…" : "Show the first sheet"}</button
+    >
+  </div>
 
   <button class="back" onclick={onBack}>Back</button>
 </main>

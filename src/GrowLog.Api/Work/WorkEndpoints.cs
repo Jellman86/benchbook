@@ -418,8 +418,12 @@ internal static class WorkEndpoints
             async () => await db.Events
                 .AsNoTracking()
                 .Where(e => e.Id == request.EventId)
-                .Join(db.Containers, e => e.ContainerId, container => container.Id, (e, container) => new ContainerCreated(e.Id, container.Id, container.LabelCode))
-                .SingleAsync(cancellationToken));
+                .Join(db.Containers, e => e.ContainerId, container => container.Id, (e, container) => new ContainerCreated(e.Id, container.Id, container.LabelCode, false))
+                .SingleAsync(cancellationToken) with
+            {
+                // Taken from a tray counted after the time it's dated, which keeps its count.
+                CountedSince = work.Adjustments.Any(adjustment => adjustment.ContainerId == id),
+            });
     }
 
     private static async Task<IResult> CountAsync(Guid id, CountRequest request, ClaimsPrincipal user, EventStore store, CancellationToken cancellationToken)
@@ -612,7 +616,7 @@ internal static class WorkEndpoints
 
     internal sealed record BatchStarted(Guid EventId, Guid BatchId, string TraceabilityCode, Guid ContainerId, string LabelCode);
 
-    internal sealed record ContainerCreated(Guid EventId, Guid ContainerId, string LabelCode);
+    internal sealed record ContainerCreated(Guid EventId, Guid ContainerId, string LabelCode, bool CountedSince = false);
 
     internal sealed record StartBatchRequest(
         Guid EventId,

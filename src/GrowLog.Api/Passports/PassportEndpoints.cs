@@ -40,7 +40,8 @@ internal static class PassportEndpoints
         return draft is null ? TypedResults.NotFound() : TypedResults.Ok(draft);
     }
 
-    internal static async Task<IssueDraft?> MakeDraftAsync(Guid id, Guid containerId, GrowLogDbContext db, EventStore store, TimeProvider clock, CancellationToken cancellationToken)
+    /// <param name="sold">Plants already invoiced from the tray: their passport comes from the tray's history, though they've left it.</param>
+    internal static async Task<IssueDraft?> MakeDraftAsync(Guid id, Guid containerId, GrowLogDbContext db, EventStore store, TimeProvider clock, CancellationToken cancellationToken, bool sold = false)
     {
         var found = await db.Batches
             .AsNoTracking()
@@ -72,7 +73,11 @@ internal static class PassportEndpoints
             problems.Add("The nursery's plant health registration number, for part B, isn't set. The owner adds it under Settings, Nursery details.");
         }
 
-        if (here?.NotCounted == true)
+        if (sold)
+        {
+            // Gone from the tray on an invoice: nothing there to count.
+        }
+        else if (here?.NotCounted == true)
         {
             problems.Add("Count these plants first: a passport says how many it covers.");
         }

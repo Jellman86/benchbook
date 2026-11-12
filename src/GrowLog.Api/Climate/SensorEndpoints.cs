@@ -15,6 +15,8 @@ internal static class SensorEndpoints
 {
     private const int LongestName = 100;
 
+    private const int KeptYears = 2;
+
     /// <summary>A sensor sending more often than this is refused, so a fault can't fill the database.</summary>
     private static readonly TimeSpan Fastest = TimeSpan.FromSeconds(50);
 
@@ -158,10 +160,18 @@ internal static class SensorEndpoints
             return TypedResults.BadRequest();
         }
 
+        // The sensor is held while it's checked, so two readings sent at once can't both get past the limit.
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.Database.ExecuteSqlRawAsync("SELECT 1 FROM sensors WHERE id = {0} FOR UPDATE", [sensor.Id], cancellationToken);
+
         if (await db.SensorReadings.AnyAsync(reading => reading.SensorId == sensor.Id && reading.TakenAt > takenAt - Fastest && reading.TakenAt < takenAt + Fastest, cancellationToken))
         {
             return TypedResults.StatusCode(StatusCodes.Status429TooManyRequests);
         }
+
+        // Readings are kept two years, enough to compare a season with last year's.
+        var kept = now.AddYears(-KeptYears);
+        await db.SensorReadings.Where(reading => reading.SensorId == sensor.Id && reading.TakenAt < kept).ExecuteDeleteAsync(cancellationToken);
 
         db.SensorReadings.Add(new SensorReading
         {
@@ -172,6 +182,7 @@ internal static class SensorEndpoints
             Humidity = request.Humidity is { } humidity ? Math.Round(humidity, 2) : null,
         });
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return TypedResults.NoContent();
     }
 

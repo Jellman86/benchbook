@@ -67,5 +67,9 @@ public sealed class BackdatingTests(PostgresFixture database)
         Assert.True(before.GetProperty("countedSince").GetBoolean());
         var after = Json(await PostForTextAsync(nursery.Staff, $"/api/containers/{tray}/losses", new { eventId = Guid.NewGuid(), occurredAt = sown.AddDays(4), batchId = batch, quantity = 2, reason = "Pest" }));
         Assert.False(after.GetProperty("countedSince").GetBoolean());
+
+        // Pricking out written up for before the count says so too.
+        var pricked = Json(await PostForTextAsync(nursery.Staff, $"/api/containers/{tray}/transfer", new { eventId = Guid.NewGuid(), occurredAt = sown.AddDays(2.5), type = "PrickedOut", batchId = batch, quantity = 10, containerKind = "Tray" }));
+        Assert.True(pricked.GetProperty("countedSince").GetBoolean());
     }
 }

@@ -24,6 +24,7 @@ internal static class ConsignmentEndpoints
     {
         var consignments = app.MapGroup("/api/consignments").RequireAuthorization(AccountServices.OwnerPolicy);
         consignments.MapGet("/", ListAsync);
+        consignments.MapGet("/invoiced", InvoicedAsync);
         consignments.MapGet("/{id:guid}", GetAsync).Produces<ConsignmentDetails>();
         consignments.MapPost("/", AddAsync).Produces<ConsignmentAdded>(StatusCodes.Status201Created);
         consignments.MapDelete("/{id:guid}", RemoveAsync).Produces<PassportRefused>(StatusCodes.Status409Conflict);
@@ -81,6 +82,11 @@ internal static class ConsignmentEndpoints
             .ToDictionaryAsync(batch => batch.Id, cancellationToken);
         var labels = await db.Containers.Where(container => containerIds.Contains(container.Id)).ToDictionaryAsync(container => container.Id, container => container.LabelCode, cancellationToken);
         var passports = await db.IssuedPassports.AsNoTracking().Where(passport => passport.PackageId != null && packageIds.Contains(passport.PackageId.Value)).ToListAsync(cancellationToken);
+        var invoiceLineIds = consignment.Packages.SelectMany(package => package.Lines).Select(line => line.InvoiceLineId).OfType<Guid>().ToList();
+        var invoiceNumbers = await db.InvoiceLines
+            .Where(line => invoiceLineIds.Contains(line.Id))
+            .Join(db.Invoices, line => line.InvoiceId, invoice => invoice.Id, (line, invoice) => new { line.Id, invoice.Number })
+            .ToDictionaryAsync(row => row.Id, row => row.Number, cancellationToken);
 
         var (needed, why) = PassportNeeded(consignment.Kind);
 
@@ -101,7 +107,8 @@ internal static class ConsignmentEndpoints
                     batches[line.BatchId].TraceabilityCode,
                     batches[line.BatchId].Variety is { } variety ? $"{batches[line.BatchId].CommonName} '{variety}'" : batches[line.BatchId].CommonName,
                     labels[line.ContainerId],
-                    line.Quantity))],
+                    line.Quantity,
+                    line.InvoiceLineId is { } invoiceLine ? invoiceNumbers.GetValueOrDefault(invoiceLine) : null))],
                 Combined(passports.Where(passport => passport.PackageId == package.Id).ToList())))]);
     }
 
@@ -140,20 +147,24 @@ internal static class ConsignmentEndpoints
             return TypedResults.BadRequest();
         }
 
-        // Every line is plants that are in that tray now.
-        foreach (var container in lines.GroupBy(line => line.ContainerId))
+        if (await ResolveInvoicedAsync(request.Packages, db, cancellationToken) is not { } packages)
         {
-            var contents = (await store.GetContainerStateAsync(container.Key, cancellationToken)).Contents;
+            return TypedResults.BadRequest();
+        }
 
-            if (container.GroupBy(line => line.BatchId).Any(batch => (contents.FirstOrDefault(item => item.BatchId == batch.Key)?.Quantity ?? 0) < batch.Sum(line => line.Quantity)))
-            {
-                return TypedResults.Conflict(new PassportRefused("TooMany"));
-            }
+        if (!await InTraysAsync([.. packages.SelectMany(package => package).Where(line => line.InvoiceLineId is null)], store, cancellationToken))
+        {
+            return TypedResults.Conflict(new PassportRefused("TooMany"));
         }
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await db.Database.ExecuteSqlRawAsync("LOCK TABLE consignments IN EXCLUSIVE MODE", cancellationToken);
         var number = (await db.Consignments.MaxAsync(item => (int?)item.Number, cancellationToken) ?? 0) + 1;
+
+        if (!await InvoicedLeftAsync([.. packages.SelectMany(package => package).Where(line => line.InvoiceLineId is not null)], db, cancellationToken))
+        {
+            return TypedResults.Conflict(new PassportRefused("TooMany"));
+        }
 
         var consignment = new Consignment
         {
@@ -167,12 +178,108 @@ internal static class ConsignmentEndpoints
             CreatedBy = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!),
         };
 
-        AddPackages(consignment, request.Packages);
+        AddPackages(consignment, packages);
 
         db.Consignments.Add(consignment);
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return TypedResults.Created($"/api/consignments/{consignment.Id}", new ConsignmentAdded(consignment.Id, number));
+    }
+
+    /// <summary>Plants on invoices that can still go in a consignment: on an invoice not cancelled, from a tray.</summary>
+    private static IQueryable<InvoiceLine> Consignable(GrowLogDbContext db) =>
+        db.InvoiceLines.Where(line => line.BatchId != null
+            && line.ContainerId != null
+            && db.Invoices.Any(invoice => invoice.Id == line.InvoiceId
+                && invoice.Kind == InvoiceKind.Invoice
+                && !db.Invoices.Any(credit => credit.CreditsInvoiceId == invoice.Id)));
+
+    /// <summary>
+    /// Plants already invoiced and so gone from their trays, with how many of each line aren't in a consignment yet:
+    /// a consignment, and its passports, can still be made for them.
+    /// </summary>
+    private static async Task<List<InvoicedPlants>> InvoicedAsync(GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        var lines = await Consignable(db)
+            .Join(db.Invoices, line => line.InvoiceId, invoice => invoice.Id, (line, invoice) => new { Line = line, invoice.Number, invoice.CustomerId, invoice.CustomerName, invoice.IssuedOn })
+            .Join(db.Batches, row => row.Line.BatchId, batch => batch.Id, (row, batch) => new { row.Line, row.Number, row.CustomerId, row.CustomerName, row.IssuedOn, batch.TraceabilityCode, batch.PlantId })
+            .Join(db.Plants, row => row.PlantId, plant => plant.Id, (row, plant) => new { row.Line, row.Number, row.CustomerId, row.CustomerName, row.IssuedOn, row.TraceabilityCode, plant.CommonName, plant.Variety })
+            .Join(db.Containers, row => row.Line.ContainerId, container => container.Id, (row, container) => new { row, container.LabelCode })
+            .Select(item => new
+            {
+                item.row,
+                item.LabelCode,
+                Sent = db.Set<PackageLine>().Where(sent => sent.InvoiceLineId == item.row.Line.Id).Sum(sent => (int?)sent.Quantity) ?? 0,
+            })
+            .ToListAsync(cancellationToken);
+
+        return [.. lines
+            .Where(item => item.row.Line.Quantity > item.Sent)
+            .OrderByDescending(item => item.row.Number)
+            .Select(item => new InvoicedPlants(
+                item.row.Line.Id,
+                item.row.Number,
+                item.row.CustomerId,
+                item.row.CustomerName,
+                item.row.IssuedOn,
+                item.row.Line.BatchId!.Value,
+                item.row.Line.ContainerId!.Value,
+                item.LabelCode,
+                item.row.TraceabilityCode,
+                item.row.Variety is { } variety ? $"{item.row.CommonName} '{variety}'" : item.row.CommonName,
+                item.row.Line.Quantity - item.Sent))];
+    }
+
+    /// <summary>
+    /// The packages with each invoiced line's tray and batch taken from its invoice line, not from what was sent;
+    /// null if one isn't on an invoice that can go.
+    /// </summary>
+    private static async Task<List<List<ConsignmentLineRequest>>?> ResolveInvoicedAsync(IReadOnlyList<PackageRequest> packages, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        var ids = packages.SelectMany(package => package.Lines).Select(line => line.InvoiceLineId).OfType<Guid>().Distinct().ToList();
+        var invoiced = await Consignable(db).Where(line => ids.Contains(line.Id)).ToDictionaryAsync(line => line.Id, cancellationToken);
+
+        if (invoiced.Count != ids.Count)
+        {
+            return null;
+        }
+
+        return [.. packages.Select(package => package.Lines
+            .Select(line => line.InvoiceLineId is { } id ? line with { ContainerId = invoiced[id].ContainerId!.Value, BatchId = invoiced[id].BatchId!.Value } : line)
+            .ToList())];
+    }
+
+    /// <summary>Whether every line not from an invoice is plants that are in that tray now.</summary>
+    private static async Task<bool> InTraysAsync(List<ConsignmentLineRequest> lines, EventStore store, CancellationToken cancellationToken)
+    {
+        foreach (var container in lines.GroupBy(line => line.ContainerId))
+        {
+            var contents = (await store.GetContainerStateAsync(container.Key, cancellationToken)).Contents;
+
+            if (container.GroupBy(line => line.BatchId).Any(batch => (contents.FirstOrDefault(item => item.BatchId == batch.Key)?.Quantity ?? 0) < batch.Sum(line => line.Quantity)))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Whether each invoice line has that many left that aren't in a consignment already. Checked under the lock.</summary>
+    private static async Task<bool> InvoicedLeftAsync(List<ConsignmentLineRequest> lines, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        foreach (var line in lines.GroupBy(line => line.InvoiceLineId!.Value))
+        {
+            var invoiced = await db.InvoiceLines.Where(item => item.Id == line.Key).Select(item => item.Quantity).FirstAsync(cancellationToken);
+            var sent = await db.Set<PackageLine>().Where(item => item.InvoiceLineId == line.Key).SumAsync(item => (int?)item.Quantity, cancellationToken) ?? 0;
+
+            if (line.Sum(item => item.Quantity) > invoiced - sent)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool IsValid(ConsignmentRequest request, [NotNullWhen(true)] string? sentTo, List<ConsignmentLineRequest> lines, DateOnly today) =>
@@ -184,15 +291,15 @@ internal static class ConsignmentEndpoints
         && (request.SentOn ?? today) <= today.AddDays(MostDaysAhead)
         && (request.Notes?.Length ?? 0) <= LongestText * 5;
 
-    private static void AddPackages(Consignment consignment, IReadOnlyList<PackageRequest> packages)
+    private static void AddPackages(Consignment consignment, List<List<ConsignmentLineRequest>> packages)
     {
         foreach (var (package, index) in packages.Select((package, index) => (package, index)))
         {
             var made = new ConsignmentPackage { Number = index + 1 };
 
-            foreach (var line in package.Lines)
+            foreach (var line in package)
             {
-                made.Lines.Add(new PackageLine { BatchId = line.BatchId, ContainerId = line.ContainerId, Quantity = line.Quantity });
+                made.Lines.Add(new PackageLine { BatchId = line.BatchId, ContainerId = line.ContainerId, Quantity = line.Quantity, InvoiceLineId = line.InvoiceLineId });
             }
 
             consignment.Packages.Add(made);
@@ -308,9 +415,10 @@ internal static class ConsignmentEndpoints
 
         foreach (var line in package.Lines)
         {
-            var draft = await PassportEndpoints.MakeDraftAsync(line.BatchId, line.ContainerId, db, store, clock, cancellationToken);
+            var sold = line.InvoiceLineId is not null;
+            var draft = await PassportEndpoints.MakeDraftAsync(line.BatchId, line.ContainerId, db, store, clock, cancellationToken, sold);
 
-            if (draft is null || draft.Problems.Count > 0 || draft.Available < line.Quantity)
+            if (draft is null || draft.Problems.Count > 0 || (!sold && draft.Available < line.Quantity))
             {
                 return ([], draft is { Problems.Count: 0 } ? "TooMany" : "CannotIssue");
             }
@@ -322,14 +430,15 @@ internal static class ConsignmentEndpoints
     }
 
     /// <summary>
-    /// The examination before the issue, recorded on each tray in the package, and which examination each line
-    /// rests on. Each passport line keeps its own examination, as a passport issued alone does.
+    /// The examination before the issue, recorded once on each tray in the package, and which examination each line
+    /// rests on: every line from a tray rests on that tray's examination.
     /// </summary>
     private static async Task<Dictionary<Guid, Guid>?> ExamineAsync(ConsignmentPackage package, PackagePassportRequest request, Guid userId, EventStore store, TimeProvider clock, CancellationToken cancellationToken)
     {
         var examinations = new Dictionary<Guid, Guid>();
 
-        foreach (var line in package.Lines)
+        // One examination for each tray, however many of its batches are in the package.
+        foreach (var tray in package.Lines.GroupBy(line => line.ContainerId))
         {
             var examined = new Event
             {
@@ -337,7 +446,7 @@ internal static class ConsignmentEndpoints
                 Type = EventType.Examined,
                 OccurredAt = clock.GetUtcNow(),
                 RecordedBy = userId,
-                ContainerId = line.ContainerId,
+                ContainerId = tray.Key,
                 Payload = JsonSerializer.Serialize(new { findings = Clean(request.Findings) ?? "No pests or diseases seen", forPassport = true }),
             };
 
@@ -346,13 +455,30 @@ internal static class ConsignmentEndpoints
                 return null;
             }
 
-            examinations[line.Id] = examined.Id;
+            foreach (var line in tray)
+            {
+                examinations[line.Id] = examined.Id;
+            }
         }
 
         return examinations;
     }
 
-    internal sealed record ConsignmentLineRequest(Guid ContainerId, Guid BatchId, int Quantity);
+    /// <param name="InvoiceLineId">Plants already invoiced: their tray and batch come from the invoice line.</param>
+    internal sealed record ConsignmentLineRequest(Guid ContainerId, Guid BatchId, int Quantity, Guid? InvoiceLineId = null);
+
+    internal sealed record InvoicedPlants(
+        Guid InvoiceLineId,
+        int InvoiceNumber,
+        Guid CustomerId,
+        string CustomerName,
+        DateOnly IssuedOn,
+        Guid BatchId,
+        Guid ContainerId,
+        string LabelCode,
+        string TraceabilityCode,
+        string PlantName,
+        int Left);
 
     internal sealed record PackageRequest(IReadOnlyList<ConsignmentLineRequest> Lines);
 
@@ -369,7 +495,8 @@ internal static class ConsignmentEndpoints
 
     internal sealed record ConsignmentSummary(Guid Id, int Number, ConsignmentKind Kind, string SentTo, DateOnly SentOn, int Packages, bool PassportNeeded, int PackagesPassported);
 
-    internal sealed record PackageLineDetails(Guid BatchId, string TraceabilityCode, string PlantName, string LabelCode, int Quantity);
+    /// <param name="InvoiceNumber">The invoice the plants were sold on, when they'd left the tray before going.</param>
+    internal sealed record PackageLineDetails(Guid BatchId, string TraceabilityCode, string PlantName, string LabelCode, int Quantity, int? InvoiceNumber = null);
 
     /// <param name="Rules">How each batch's country of origin was worked out.</param>
     internal sealed record PackagePassportLine(string PartA, string PartC, string PartD, string Rule, int Quantity);

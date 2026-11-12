@@ -61,6 +61,11 @@ public sealed class LabelSheetTests(PostgresFixture database)
         Assert.Equal("image/png", picture.Content.Headers.ContentType?.MediaType);
         await File.WriteAllBytesAsync(Path.Join(Path.GetTempPath(), "growlog-sheet-preview.png"), await picture.Content.ReadAsByteArrayAsync(Cancellation), Cancellation);
 
+        // The same as an ordinary form, which opens in a new tab even from an iPhone's home-screen app.
+        using var form = new FormUrlEncodedContent([new("request", JsonSerializer.Serialize(new { kind = "ContainerLabel", targets = labels, sheet = "21" }))]);
+        using var fromForm = await nursery.Staff.PostAsync(Route("/api/labels/sheets/print"), form, Cancellation);
+        Assert.StartsWith("%PDF", Encoding.ASCII.GetString(await fromForm.Content.ReadAsByteArrayAsync(Cancellation), 0, 4), StringComparison.Ordinal);
+
         Assert.Equal(HttpStatusCode.BadRequest, await PostStatusAsync(nursery.Staff, "/api/labels/sheets", new { kind = "ContainerLabel", targets = labels, sheet = "99" }));
         Assert.Equal(HttpStatusCode.BadRequest, await PostStatusAsync(nursery.Staff, "/api/labels/sheets", new { kind = "Invoice", targets = labels, sheet = "21" }));
         Assert.Equal(HttpStatusCode.NotFound, await PostStatusAsync(nursery.Staff, "/api/labels/sheets", new { kind = "ContainerLabel", targets = NoSuchTray, sheet = "21" }));

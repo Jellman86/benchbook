@@ -88,7 +88,7 @@
       } else {
         problem =
           response.status === 409
-            ? "That plant already has a mother with that name, perhaps one no longer used, or its cuttings belong to another plant."
+            ? "That plant already has a mother with that name, or its cuttings belong to another plant."
             : "Choose the plant and give the mother a name.";
       }
     }, setProblem);

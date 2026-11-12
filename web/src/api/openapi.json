@@ -4158,6 +4158,28 @@
         }
       }
     },
+    "/api/consignments/invoiced": {
+      "get": {
+        "tags": [
+          "ConsignmentEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvoicedPlants"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/consignments/{id}": {
       "get": {
         "tags": [
@@ -6401,6 +6423,13 @@
               "string"
             ],
             "format": "int32"
+          },
+          "invoiceLineId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -6533,6 +6562,10 @@
           },
           "labelCode": {
             "type": "string"
+          },
+          "countedSince": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -7532,6 +7565,72 @@
           },
           "token": {
             "type": "string"
+          }
+        }
+      },
+      "InvoicedPlants": {
+        "required": [
+          "invoiceLineId",
+          "invoiceNumber",
+          "customerId",
+          "customerName",
+          "issuedOn",
+          "batchId",
+          "containerId",
+          "labelCode",
+          "traceabilityCode",
+          "plantName",
+          "left"
+        ],
+        "type": "object",
+        "properties": {
+          "invoiceLineId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "invoiceNumber": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "issuedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "containerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "labelCode": {
+            "type": "string"
+          },
+          "traceabilityCode": {
+            "type": "string"
+          },
+          "plantName": {
+            "type": "string"
+          },
+          "left": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -8936,6 +9035,15 @@
           "quantity": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "invoiceNumber": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
               "integer",
               "string"
             ],

@@ -52,9 +52,19 @@ public sealed class SensorTests(PostgresFixture database)
         Assert.InRange(hours.Count, 1, 2);
         Assert.Equal(18.5m, hours.Max(hour => hour.GetProperty("highestTemperature").GetDecimal()));
 
+        // Two sent at the same moment: only one gets in.
+        var at = DateTimeOffset.UtcNow.AddMinutes(-40);
+        var both = await Task.WhenAll(SendAsync(anyone, key, new { temperature = 15, takenAt = at }), SendAsync(anyone, key, new { temperature = 15, takenAt = at }));
+        Assert.Equal([HttpStatusCode.NoContent, HttpStatusCode.TooManyRequests], both.Order());
+
         // A new key stops the old one working.
         var newKey = Json(await PostForTextAsync(nursery.Owner, $"/api/sensors/{added.GetProperty("id").GetGuid()}/new-key", new { })).GetProperty("key").GetString()!;
         Assert.Equal(HttpStatusCode.Unauthorized, await SendAsync(anyone, key, new { temperature = 19, takenAt = DateTimeOffset.UtcNow.AddMinutes(-10) }));
         Assert.Equal(HttpStatusCode.NoContent, await SendAsync(anyone, newKey, new { temperature = 19, takenAt = DateTimeOffset.UtcNow.AddMinutes(-10) }));
+
+        // A stopped sensor's name can be used again, but not a working one's.
+        Assert.Equal(HttpStatusCode.Conflict, await PostStatusAsync(nursery.Owner, "/api/sensors", new { name = "Greenhouse sensor", locationId = greenhouse }));
+        Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(nursery.Owner, $"/api/sensors/{added.GetProperty("id").GetGuid()}/stop"));
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Owner, "/api/sensors", new { name = "Greenhouse sensor", locationId = greenhouse }));
     }
 }

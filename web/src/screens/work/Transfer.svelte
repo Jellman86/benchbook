@@ -3,7 +3,13 @@
   import { api } from "../../api/client";
   import { nextPotSize, quantityPresets } from "../../lib/tray";
   import type { Schemas } from "../../lib/types";
-  import { outcomeProblem, plantName, submit, work } from "../../lib/work";
+  import {
+    countedSinceNote,
+    outcomeProblem,
+    plantName,
+    submit,
+    work,
+  } from "../../lib/work";
   import ActionFrame from "./ActionFrame.svelte";
   import BatchChoice from "./BatchChoice.svelte";
   import Stepper from "./Stepper.svelte";
@@ -85,7 +91,7 @@
 
     if (outcome.kind === "stored") {
       onDone(
-        `${verb} ${quantity} ${plantName(line.commonName, line.variety)}. New label: ${outcome.labelCode}`,
+        `${verb} ${quantity} ${plantName(line.commonName, line.variety)}. New label: ${outcome.labelCode}.${countedSinceNote(outcome)}`,
         outcome.eventId,
         outcome.labelCode,
       );

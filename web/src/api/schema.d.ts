@@ -5342,6 +5342,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/consignments/invoiced": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InvoicedPlants"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/consignments/{id}": {
         parameters: {
             query?: never;
@@ -7144,6 +7179,8 @@ export interface components {
             batchId: string;
             /** Format: int32 */
             quantity: number | string;
+            /** Format: uuid */
+            invoiceLineId?: null | string;
         };
         ConsignmentRequest: {
             kind: components["schemas"]["ConsignmentKind"];
@@ -7178,6 +7215,8 @@ export interface components {
             /** Format: uuid */
             containerId: string;
             labelCode: string;
+            /** @default false */
+            countedSince: boolean;
         };
         /** @enum {unknown} */
         ContainerKind: "Tray" | "PotGroup" | "BenchLot";
@@ -7419,6 +7458,26 @@ export interface components {
             /** Format: uuid */
             userId: string;
             token: string;
+        };
+        InvoicedPlants: {
+            /** Format: uuid */
+            invoiceLineId: string;
+            /** Format: int32 */
+            invoiceNumber: number | string;
+            /** Format: uuid */
+            customerId: string;
+            customerName: string;
+            /** Format: date */
+            issuedOn: string;
+            /** Format: uuid */
+            batchId: string;
+            /** Format: uuid */
+            containerId: string;
+            labelCode: string;
+            traceabilityCode: string;
+            plantName: string;
+            /** Format: int32 */
+            left: number | string;
         };
         InvoiceDraft: {
             reference: null | string;
@@ -7767,6 +7826,8 @@ export interface components {
             labelCode: string;
             /** Format: int32 */
             quantity: number | string;
+            /** Format: int32 */
+            invoiceNumber?: null | number | string;
         };
         PackagePassport: {
             partB: string;

@@ -53,7 +53,7 @@
         problem = response.ok
           ? ""
           : response.status === 409
-            ? "Another sensor, perhaps one no longer used, already has that name."
+            ? "Another sensor already has that name."
             : "Give the sensor a name and choose its place.";
       } else {
         const { data, response } = await api.POST("/api/sensors", { body });
@@ -61,7 +61,7 @@
         problem = data
           ? ""
           : response.status === 409
-            ? "Another sensor, perhaps one no longer used, already has that name."
+            ? "Another sensor already has that name."
             : "Give the sensor a name and choose its place.";
       }
 

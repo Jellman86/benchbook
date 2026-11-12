@@ -186,6 +186,8 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.HasOne<Batch>().WithMany().HasForeignKey(e => e.BatchId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Container>().WithMany().HasForeignKey(e => e.ContainerId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<InvoiceLine>().WithMany().HasForeignKey(e => e.InvoiceLineId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.InvoiceLineId);
         });
 
         modelBuilder.Entity<IssuedPassport>().HasOne<ConsignmentPackage>().WithMany().HasForeignKey(e => e.PackageId).OnDelete(DeleteBehavior.Restrict);
@@ -199,7 +201,8 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.Name).HasColumnType("citext");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
-            entity.HasIndex(e => e.Name).IsUnique();
+            // A stopped sensor's name can be used again.
+            entity.HasIndex(e => e.Name).IsUnique().HasFilter("archived_at IS NULL");
             entity.HasIndex(e => e.KeyHash).IsUnique();
             entity.HasOne<Location>().WithMany().HasForeignKey(e => e.LocationId).OnDelete(DeleteBehavior.Restrict);
         });
@@ -238,7 +241,8 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.Name).HasColumnType("citext");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
-            entity.HasIndex(e => new { e.PlantId, e.Name }).IsUnique();
+            // A mother no longer used gives up her name.
+            entity.HasIndex(e => new { e.PlantId, e.Name }).IsUnique().HasFilter("archived_at IS NULL");
             entity.HasOne<Plant>().WithMany().HasForeignKey(e => e.PlantId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Location>().WithMany().HasForeignKey(e => e.LocationId).OnDelete(DeleteBehavior.Restrict);
         });
@@ -275,7 +279,8 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.HasOne<Batch>().WithMany().HasForeignKey(e => e.BatchId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Container>().WithMany().HasForeignKey(e => e.ContainerId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Customer>().WithMany().HasForeignKey(e => e.CustomerId).OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne<Event>().WithOne().HasForeignKey<IssuedPassport>(e => e.ExaminationEventId).OnDelete(DeleteBehavior.Restrict);
+            // One examination of a tray stands behind each of its batches in a package.
+            entity.HasOne<Event>().WithMany().HasForeignKey(e => e.ExaminationEventId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.IssuedBy).OnDelete(DeleteBehavior.Restrict);
         });
 
