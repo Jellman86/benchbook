@@ -763,6 +763,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Alert"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/backups/status": {
         parameters: {
             query?: never;
@@ -5048,6 +5083,177 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JobSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["JobRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JobAdded"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["JobRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{id}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{id}/done": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["JobDoneRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/purchases": {
         parameters: {
             query?: never;
@@ -5943,6 +6149,12 @@ export interface components {
             password: null | string;
             nameOnly: boolean;
         };
+        Alert: {
+            kind: string;
+            title: string;
+            why: string;
+            where: string;
+        };
         ArchiveRefused: {
             problem: string;
             /** Format: int32 */
@@ -6341,6 +6553,43 @@ export interface components {
         IssueRefused: {
             problem: string;
         };
+        JobAdded: {
+            /** Format: uuid */
+            id: string;
+        };
+        JobDoneRequest: {
+            /** Format: date */
+            doneOn: null | string;
+        };
+        JobRequest: {
+            title: string;
+            notes: null | string;
+            /** Format: int32 */
+            everyDays: number | string;
+            /** Format: date */
+            firstDue: string;
+            /** Format: uuid */
+            locationId: null | string;
+        };
+        JobSummary: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            notes: null | string;
+            /** Format: int32 */
+            everyDays: number | string;
+            /** Format: date */
+            nextDue: string;
+            /** Format: uuid */
+            locationId: null | string;
+            locationName: null | string;
+            /** Format: date */
+            lastDoneOn: null | string;
+            lastDoneBy: null | string;
+            due: boolean;
+            /** Format: int32 */
+            daysLate: number | string;
+        };
         JsonElement: unknown;
         /** @enum {unknown} */
         LabelKind: "ContainerLabel" | "PlantLabel" | "BenchCard" | "PlaceLabel" | "PlantPassport" | "Invoice";
@@ -6483,6 +6732,8 @@ export interface components {
             vatRegistered: boolean;
             /** Format: int32 */
             paymentTermsDays: number | string;
+            /** Format: date */
+            authorisationRenewsOn?: null | string;
         };
         OutlineRequest: {
             points: null | (number | string)[][];

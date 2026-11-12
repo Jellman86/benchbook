@@ -10,6 +10,7 @@
   import Purchases from "./manage/Purchases.svelte";
   import Suppliers from "./manage/Suppliers.svelte";
   import Trace from "./manage/Trace.svelte";
+  import Jobs from "./manage/Jobs.svelte";
 
   let {
     section,
@@ -46,6 +47,8 @@
   <Suppliers onBack={back} />
 {:else if section === "places"}
   <Locations onBack={back} {onOpenTray} {onMoveTraysHere} />
+{:else if section === "jobs"}
+  <Jobs onBack={back} />
 {:else if section === "trace"}
   <Trace {batchId} onChoose={onTrace} onBack={back} {onOpenTray} />
 {:else if section === "invoices"}

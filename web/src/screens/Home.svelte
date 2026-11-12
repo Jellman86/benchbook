@@ -54,6 +54,7 @@
   import FindTray from "./work/FindTray.svelte";
   import MoveMany from "./work/MoveMany.svelte";
   import LabelSheets from "./work/LabelSheets.svelte";
+  import JobsDue from "./work/JobsDue.svelte";
   import PlaceView from "./work/PlaceView.svelte";
   import { findPlaceByCode, isPlaceCode, type Place } from "../lib/places";
   import { rememberedPlaces } from "../lib/offline";
@@ -669,6 +670,21 @@
         </section>
 
         <section>
+          {#if !atBench}
+            <JobsDue
+              isOwner={me.isOwner}
+              onGo={(where) =>
+                (view =
+                  where === "nursery"
+                    ? { name: "settings", page: "nursery" }
+                    : where === "production"
+                      ? { name: "production" }
+                      : {
+                          name: "manage",
+                          section: where === "jobs" ? "jobs" : "invoices",
+                        })}
+            />
+          {/if}
           {#if recent.length > 0}
             <h2>Recent</h2>
             {#each recent as action (action.id)}

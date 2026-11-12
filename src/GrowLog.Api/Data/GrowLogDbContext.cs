@@ -65,6 +65,10 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<IssuedPassport> IssuedPassports => Set<IssuedPassport>();
 
+    public DbSet<NurseryJob> Jobs => Set<NurseryJob>();
+
+    public DbSet<NurseryJobDone> JobsDone => Set<NurseryJobDone>();
+
     public DbSet<NurserySettings> NurserySettings => Set<NurserySettings>();
 
     public DbSet<Printer> Printers => Set<Printer>();
@@ -126,6 +130,7 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         });
 
         ConfigureIssuedPassports(modelBuilder);
+        ConfigureJobs(modelBuilder);
         ConfigurePurchases(modelBuilder);
 
         modelBuilder.Entity<BackupStatus>(entity =>
@@ -138,6 +143,27 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         {
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        });
+    }
+
+    private static void ConfigureJobs(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<NurseryJob>(entity =>
+        {
+            entity.ToTable("jobs", table => table.HasCheckConstraint("ck_jobs_every_days", "every_days BETWEEN 1 AND 365"));
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.HasOne<Location>().WithMany().HasForeignKey(e => e.LocationId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<NurseryJobDone>(entity =>
+        {
+            entity.ToTable("jobs_done");
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.HasIndex(e => new { e.JobId, e.DoneOn }).IsUnique();
+            entity.HasOne<NurseryJob>().WithMany().HasForeignKey(e => e.JobId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.DoneBy).OnDelete(DeleteBehavior.Restrict);
         });
     }
 

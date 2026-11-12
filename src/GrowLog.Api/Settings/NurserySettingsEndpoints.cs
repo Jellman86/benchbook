@@ -53,7 +53,8 @@ internal static class NurserySettingsEndpoints
             settings.VatNumber,
             settings.Logo is { Length: > 0 },
             settings.VatRegistered,
-            settings.PaymentTermsDays);
+            settings.PaymentTermsDays,
+            settings.AuthorisationRenewsOn);
     }
 
     private static async Task<IResult> SaveDetailsAsync(NurseryDetails request, GrowLogDbContext db, CancellationToken cancellationToken)
@@ -68,6 +69,7 @@ internal static class NurserySettingsEndpoints
         settings.VatNumber = Clean(request.VatNumber);
         settings.VatRegistered = request.VatRegistered;
         settings.PaymentTermsDays = Math.Clamp(request.PaymentTermsDays, 0, MostPaymentDays);
+        settings.AuthorisationRenewsOn = request.AuthorisationRenewsOn;
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.NoContent();
     }
@@ -145,5 +147,6 @@ internal static class NurserySettingsEndpoints
         string? VatNumber,
         bool HasLogo,
         bool VatRegistered,
-        int PaymentTermsDays);
+        int PaymentTermsDays,
+        DateOnly? AuthorisationRenewsOn = null);
 }

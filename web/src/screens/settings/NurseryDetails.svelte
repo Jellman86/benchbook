@@ -3,6 +3,8 @@
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { attempt, type Schemas } from "../../lib/types";
+  import { isoDay } from "../../lib/days";
+  import DayPicker from "../DayPicker.svelte";
 
   // What invoices, labels and plant passports say about the nursery.
   let { onBack }: { onBack: () => void } = $props();
@@ -18,8 +20,11 @@
     hasLogo: false,
     vatRegistered: false,
     paymentTermsDays: 30,
+    authorisationRenewsOn: null,
   });
   let logoVersion = $state(0);
+  // When the plant health authorisation renews, or empty.
+  let renewsOn = $state("");
   let problem = $state("");
   let saved = $state("");
 
@@ -28,6 +33,7 @@
   async function load() {
     const { data } = await api.GET("/api/settings/nursery");
     details = data ?? details;
+    renewsOn = details.authorisationRenewsOn ?? "";
   }
 
   onMount(() => void attempt(load, setProblem));
@@ -37,7 +43,7 @@
 
     return attempt(async () => {
       const { response } = await api.PUT("/api/settings/nursery", {
-        body: details,
+        body: { ...details, authorisationRenewsOn: renewsOn || null },
       });
       saved = response.ok ? "Nursery details saved." : "";
       problem = response.ok ? "" : "Those details couldn't be saved.";
@@ -116,6 +122,28 @@
             bind:value={details.paymentTermsDays}
           /></label
         >
+        {#if renewsOn}
+          <DayPicker
+            bind:value={renewsOn}
+            label="Plant health authorisation renews on"
+            max={null}
+          />
+          <button
+            type="button"
+            class="link-button"
+            onclick={() => (renewsOn = "")}>No renewal date</button
+          >
+        {:else}
+          <button
+            type="button"
+            class="secondary"
+            onclick={() => (renewsOn = isoDay(new Date()))}
+            >Add the authorisation renewal date</button
+          >
+        {/if}
+        <p class="muted">
+          GrowLog reminds you six weeks before, so the inspection can be booked.
+        </p>
         <button type="submit">Save details</button>
       </form>
     </section>

@@ -609,6 +609,28 @@
         }
       }
     },
+    "/api/alerts": {
+      "get": {
+        "tags": [
+          "AlertEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Alert"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/backups/status": {
       "get": {
         "tags": [
@@ -3929,6 +3951,144 @@
         }
       }
     },
+    "/api/jobs": {
+      "get": {
+        "tags": [
+          "JobEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "JobEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAdded"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/{id}": {
+      "put": {
+        "tags": [
+          "JobEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/jobs/{id}/stop": {
+      "post": {
+        "tags": [
+          "JobEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/jobs/{id}/done": {
+      "post": {
+        "tags": [
+          "JobEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobDoneRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/purchases": {
       "get": {
         "tags": [
@@ -4717,6 +4877,29 @@
           },
           "nameOnly": {
             "type": "boolean"
+          }
+        }
+      },
+      "Alert": {
+        "required": [
+          "kind",
+          "title",
+          "why",
+          "where"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          },
+          "where": {
+            "type": "string"
           }
         }
       },
@@ -6412,6 +6595,153 @@
           }
         }
       },
+      "JobAdded": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "JobDoneRequest": {
+        "required": [
+          "doneOn"
+        ],
+        "type": "object",
+        "properties": {
+          "doneOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        }
+      },
+      "JobRequest": {
+        "required": [
+          "title",
+          "notes",
+          "everyDays",
+          "firstDue",
+          "locationId"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "everyDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "firstDue": {
+            "type": "string",
+            "format": "date"
+          },
+          "locationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "JobSummary": {
+        "required": [
+          "id",
+          "title",
+          "notes",
+          "everyDays",
+          "nextDue",
+          "locationId",
+          "locationName",
+          "lastDoneOn",
+          "lastDoneBy",
+          "due",
+          "daysLate"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "everyDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "nextDue": {
+            "type": "string",
+            "format": "date"
+          },
+          "locationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "locationName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lastDoneOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "lastDoneBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "due": {
+            "type": "boolean"
+          },
+          "daysLate": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "JsonElement": { },
       "LabelKind": {
         "enum": [
@@ -6985,6 +7315,13 @@
               "string"
             ],
             "format": "int32"
+          },
+          "authorisationRenewsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
           }
         }
       },
@@ -10267,6 +10604,9 @@
       "name": "PassportEndpoints"
     },
     {
+      "name": "AlertEndpoints"
+    },
+    {
       "name": "BackupStatusEndpoints"
     },
     {
@@ -10307,6 +10647,9 @@
     },
     {
       "name": "LabelEndpoints"
+    },
+    {
+      "name": "JobEndpoints"
     },
     {
       "name": "PurchaseEndpoints"
