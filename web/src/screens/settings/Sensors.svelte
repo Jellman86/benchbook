@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { showForm } from "../../lib/showForm";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { readingAge } from "../../lib/climate";
@@ -180,7 +181,7 @@ automation:
 
   <div class="split">
     <section>
-      <form class="form-card stack" onsubmit={save}>
+      <form class="form-card stack" onsubmit={save} data-edit-form>
         <h2 class="form-heading">
           {editing ? "Change the sensor" : "Add a sensor"}
         </h2>
@@ -228,6 +229,7 @@ automation:
               onclick={() => {
                 editing = sensor.id;
                 form = { name: sensor.name, locationId: sensor.locationId };
+                void showForm();
               }}>Change</button
             >
             <button class="link-button" onclick={() => newKey(sensor)}

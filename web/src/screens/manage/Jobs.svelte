@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { showForm } from "../../lib/showForm";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { dayLabel } from "../../lib/dates";
@@ -46,6 +47,7 @@
 
   function edit(job: Job) {
     editing = job.id;
+    void showForm();
     const weeks = Number(job.everyDays) % 7 === 0;
     form = {
       title: job.title,
@@ -139,7 +141,7 @@
 
   <div class="split">
     <section>
-      <form class="form-card stack" onsubmit={save}>
+      <form class="form-card stack" onsubmit={save} data-edit-form>
         <h2 class="form-heading">{editing ? "Change the job" : "Add a job"}</h2>
         <label
           >What <input

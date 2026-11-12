@@ -18,6 +18,9 @@ public sealed class JobTests(PostgresFixture database)
     public void A_job_done_late_comes_round_again_after_today(int doneDaysAgo, int everyDays, int nextInDays) =>
         Assert.Equal(Today.AddDays(nextInDays), JobDates.NextAfter(Today.AddDays(doneDaysAgo), everyDays, Today));
 
+    private static DateOnly NextDue(JsonElement job) =>
+        DateOnly.Parse(job.GetProperty("nextDue").GetString()!, System.Globalization.CultureInfo.InvariantCulture);
+
     private static async Task<JsonElement> JobsAsync(HttpClient client) =>
         await client.GetFromJsonAsync<JsonElement>(Route("/api/jobs"), Cancellation);
 
@@ -42,6 +45,15 @@ public sealed class JobTests(PostgresFixture database)
         Assert.False(string.IsNullOrEmpty(job.GetProperty("lastDoneBy").GetString()));
 
         Assert.Equal(HttpStatusCode.BadRequest, await PostStatusAsync(nursery.Staff, $"/api/jobs/{id}/done", new { doneOn = Today.AddDays(1) }));
+
+        // Done for an earlier day can't bring the next date forward.
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Staff, $"/api/jobs/{id}/done", new { doneOn = Today.AddDays(-1) }));
+        Assert.Equal(Today.AddDays(2), NextDue(Assert.Single((await JobsAsync(nursery.Staff)).EnumerateArray())));
+
+        // A tap by mistake is taken back, and the job is due again.
+        Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(nursery.Staff, $"/api/jobs/{id}/undo-done", new { }));
+        Assert.True(Assert.Single((await JobsAsync(nursery.Staff)).EnumerateArray()).GetProperty("due").GetBoolean());
+
         Assert.Equal(HttpStatusCode.NoContent, await PostStatusAsync(nursery.Owner, $"/api/jobs/{id}/stop"));
         Assert.Equal(0, (await JobsAsync(nursery.Staff)).GetArrayLength());
     }
@@ -50,8 +62,12 @@ public sealed class JobTests(PostgresFixture database)
     public async Task Alerts_say_why_they_are_there_and_only_the_owner_sees_them()
     {
         await using var nursery = await TwoPersonNursery.CreateAsync(database);
-        using var settings = await nursery.Owner.PutAsJsonAsync(Route("/api/settings/nursery"), new { name = "Croft View", hasLogo = false, vatRegistered = false, paymentTermsDays = 30, authorisationRenewsOn = Today.AddDays(10) }, Cancellation);
+        using var settings = await nursery.Owner.PutAsJsonAsync(Route("/api/settings/nursery"), new { name = "Croft View", hasLogo = false, vatRegistered = false, paymentTermsDays = 30, authorisationRenewsOn = Today.AddDays(10), setsRenewal = true }, Cancellation);
         settings.EnsureSuccessStatusCode();
+
+        // An older app saving the details without the renewal date leaves it set.
+        using var older = await nursery.Owner.PutAsJsonAsync(Route("/api/settings/nursery"), new { name = "Croft View", hasLogo = false, vatRegistered = false, paymentTermsDays = 30 }, Cancellation);
+        older.EnsureSuccessStatusCode();
         await PostForTextAsync(nursery.Owner, "/api/jobs", new { title = "Spray roses", everyDays = 14, firstDue = Today.AddDays(-5) });
 
         var alerts = (await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/alerts"), Cancellation)).EnumerateArray().ToList();

@@ -12,12 +12,12 @@
     type DraftLine,
   } from "../../lib/consignments";
   import { dayLabel } from "../../lib/dates";
-  import { isoDay } from "../../lib/days";
+  import { addDays, isoDay } from "../../lib/days";
   import { attempt, optional, type Schemas } from "../../lib/types";
   import { plantName } from "../../lib/work";
   import DayPicker from "../DayPicker.svelte";
   import PrintButton from "../PrintButton.svelte";
-  import PassportCard from "../work/PassportCard.svelte";
+  import PackagePassportCard from "../work/PackagePassportCard.svelte";
 
   // Plants going out together: who to, how, and in which packages. Each package that needs a passport gets
   // one, covering every batch packed in it.
@@ -26,6 +26,8 @@
   let list = $state<Schemas["ConsignmentSummary"][]>([]);
   let customers = $state<Schemas["CustomerResponse"][]>([]);
   let stock = $state<Schemas["ProductionRow"][]>([]);
+  // Plants already invoiced, gone from their trays, that can still go in a consignment.
+  let invoiced = $state<Schemas["InvoicedPlants"][]>([]);
   let opened = $state<Schemas["ConsignmentDetails"] | null>(null);
   let writing = $state(false);
   let kind = $state<ConsignmentKind>("TradeSale");
@@ -34,6 +36,8 @@
   let sentOn = $state(isoDay(new Date()));
   let notes = $state("");
   let packages = $state<DraftLine[][]>([]);
+  // Made here, so sending again after a lost reply finds the same consignment rather than making a second.
+  let draftId = $state("");
   let examined = $state<Record<string, boolean>>({});
   let findings = $state<Record<string, string>>({});
   let busy = $state(false);
@@ -48,8 +52,12 @@
   const trays = $derived(
     stock.filter((row) => !row.notCounted && Number(row.quantity) > 0),
   );
+  const invoicedKey = (row: { invoiceLineId: string }) =>
+    `invoice:${row.invoiceLineId}`;
   const holds = (tray: string) =>
-    Number(trays.find((row) => trayKey(row) === tray)?.quantity ?? 0);
+    tray.startsWith("invoice:")
+      ? Number(invoiced.find((row) => invoicedKey(row) === tray)?.left ?? 0)
+      : Number(trays.find((row) => trayKey(row) === tray)?.quantity ?? 0);
   const choice = $derived(kindChoices.find((item) => item.kind === kind)!);
   const tooMany = $derived(overdrawn(packages, holds));
   const ready = $derived(
@@ -82,6 +90,7 @@
   const start = () =>
     attempt(async () => {
       stock = (await api.GET("/api/production")).data ?? [];
+      invoiced = (await api.GET("/api/consignments/invoiced")).data ?? [];
       writing = true;
       problem = "";
       kind = "TradeSale";
@@ -90,6 +99,7 @@
       sentOn = isoDay(new Date());
       notes = "";
       packages = [[{ tray: "", quantity: 1 }]];
+      draftId = crypto.randomUUID();
     }, setProblem);
 
   const record = (event: SubmitEvent) => {
@@ -100,6 +110,7 @@
       async () => {
         const { data, error, response } = await api.POST("/api/consignments", {
           body: {
+            id: draftId,
             kind,
             customerId: customerId || null,
             sentTo: customerId ? null : sentTo.trim(),
@@ -107,8 +118,26 @@
             notes: optional(notes),
             packages: packages.map((lines) => ({
               lines: lines.map((line) => {
+                const sold = invoiced.find(
+                  (row) => invoicedKey(row) === line.tray,
+                );
+
+                if (sold) {
+                  return {
+                    containerId: sold.containerId,
+                    batchId: sold.batchId,
+                    quantity: line.quantity,
+                    invoiceLineId: sold.invoiceLineId,
+                  };
+                }
+
                 const [containerId, batchId] = line.tray.split("|");
-                return { containerId, batchId, quantity: line.quantity };
+                return {
+                  containerId,
+                  batchId,
+                  quantity: line.quantity,
+                  invoiceLineId: null,
+                };
               }),
             })),
           },
@@ -171,6 +200,45 @@
     );
   };
 
+  const remove = () => {
+    if (
+      !opened ||
+      !confirm(
+        `Remove consignment ${opened.number}? Do this only if it was recorded by mistake.`,
+      )
+    ) {
+      return;
+    }
+
+    const id = opened.id;
+
+    return attempt(async () => {
+      const { error, response } = await api.DELETE("/api/consignments/{id}", {
+        params: { path: { id } },
+      });
+
+      if (response.ok) {
+        opened = null;
+        problem = "";
+        await load();
+      } else {
+        problem = consignmentProblem(
+          response.status,
+          (error as { problem?: string } | undefined)?.problem,
+        );
+      }
+    }, setProblem);
+  };
+
+  // Plants from an invoice usually go to that customer: fill them in if nobody's chosen yet.
+  function fromInvoice(tray: string) {
+    const sold = invoiced.find((row) => invoicedKey(row) === tray);
+
+    if (sold && !customerId && !sentTo.trim()) {
+      customerId = sold.customerId;
+    }
+  }
+
   const trayWords = (row: Schemas["ProductionRow"]) =>
     `${row.labelCode} · ${plantName(row.commonName, row.variety)} · ${row.quantity} there${row.locationName ? ` · ${row.locationName}` : ""}`;
 
@@ -196,29 +264,29 @@
       <section class="form-card stack" aria-label="Package {pack.number}">
         <h2 class="form-heading">Package {pack.number}</h2>
         <ul class="plain-list">
-          {#each pack.lines as line (line.batchId + line.labelCode)}
+          {#each pack.lines as line, index (index)}
             <li>
               <strong>{line.quantity} {line.plantName}</strong>
               <span class="muted">
-                · batch {line.traceabilityCode}, from {line.labelCode}</span
+                · batch {line.traceabilityCode}, from {line.labelCode}{line.invoiceNumber
+                  ? `, sold on invoice ${line.invoiceNumber}`
+                  : ""}</span
               >
             </li>
           {/each}
         </ul>
 
         {#if pack.passport}
-          <PassportCard
+          <PackagePassportCard
             caption="Passport for package {pack.number}"
-            partA={pack.passport.partA}
             partB={pack.passport.partB}
-            partC={pack.passport.partC}
-            partD={pack.passport.partD}
+            lines={pack.passport.lines}
           >
             <span>Issued {dayLabel(pack.passport.issuedOn, now)}</span>
-            {#each pack.passport.rules as rule (rule)}
-              <span class="muted">D for {rule}</span>
+            {#each pack.passport.lines as line (line.partC + line.partD)}
+              <span class="muted">{line.partC}, D: {line.rule}</span>
             {/each}
-          </PassportCard>
+          </PackagePassportCard>
           <PrintButton
             href="/api/labels/passports/{pack.id}"
             label="Print the passport"
@@ -245,10 +313,15 @@
     {/each}
     {#if consignment.passportNeeded}
       <p class="muted">
-        One passport covers each package: every plant in part A and every
-        batch's code in part C. The examination is recorded on each tray with
-        your name.
+        One passport covers each package: part B once, then each batch's
+        botanical name, code and origin together. The examination is recorded on
+        each tray with your name.
       </p>
+    {/if}
+    {#if consignment.packages.every((pack) => !pack.passport)}
+      <button class="secondary danger" disabled={busy} onclick={remove}
+        >Remove this consignment</button
+      >
     {/if}
     <button class="back" onclick={() => (opened = null)}>Back</button>
   </main>
@@ -294,7 +367,11 @@
             /></label
           >
         {/if}
-        <DayPicker bind:value={sentOn} label="Sent on" max={null} />
+        <DayPicker
+          bind:value={sentOn}
+          label="Going on"
+          max={addDays(isoDay(new Date()), 14)}
+        />
         <label
           >Notes (optional) <input
             bind:value={notes}
@@ -307,17 +384,33 @@
       {#each packages as lines, index (index)}
         <fieldset class="form-card stack">
           <legend>Package {index + 1}</legend>
-          {#if trays.length === 0}
+          {#if trays.length === 0 && invoiced.length === 0}
             <p class="muted">No counted trays to send from.</p>
           {/if}
           {#each lines as line, lineIndex (lineIndex)}
             <div class="consignment-line">
               <label
-                >Tray <select bind:value={line.tray} required>
+                >Tray <select
+                  bind:value={line.tray}
+                  required
+                  onchange={() => fromInvoice(line.tray)}
+                >
                   <option value="">Choose…</option>
-                  {#each trays as row (trayKey(row))}
-                    <option value={trayKey(row)}>{trayWords(row)}</option>
-                  {/each}
+                  <optgroup label="In the trays">
+                    {#each trays as row (trayKey(row))}
+                      <option value={trayKey(row)}>{trayWords(row)}</option>
+                    {/each}
+                  </optgroup>
+                  {#if invoiced.length > 0}
+                    <optgroup label="Already invoiced">
+                      {#each invoiced as row (row.invoiceLineId)}
+                        <option value={invoicedKey(row)}
+                          >Invoice {row.invoiceNumber} · {row.left}
+                          {row.plantName} · {row.customerName}</option
+                        >
+                      {/each}
+                    </optgroup>
+                  {/if}
                 </select></label
               >
               <label
@@ -369,8 +462,9 @@
         >Another package</button
       >
       <p class="muted">
-        Recording a consignment doesn't take plants out of the trays: an invoice
-        or a loss does that.
+        Plants can come from the trays, or from an invoice if they've been
+        invoiced already. Recording a consignment doesn't change what's in the
+        trays: an invoice or a loss does that.
       </p>
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
       <div class="row">

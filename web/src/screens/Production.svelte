@@ -282,6 +282,12 @@
       onDone={finished}
       {onLabels}
       onClear={() => (chosen = {})}
+      onKeepOnly={(ids) => {
+        chosen = Object.fromEntries(
+          Object.entries(chosen).filter(([id]) => ids.includes(id)),
+        );
+        void load();
+      }}
     />
   {/if}
 

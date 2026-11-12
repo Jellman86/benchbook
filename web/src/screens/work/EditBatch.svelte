@@ -289,7 +289,7 @@
 
     <label>
       Plant
-      <select bind:value={form.plantId}>
+      <select bind:value={form.plantId} disabled={!!details.motherPlantId}>
         {#each plants as plant (plant.id)}
           <option value={plant.id}
             >{plant.commonName}{plant.variety

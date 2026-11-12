@@ -4158,6 +4158,28 @@
         }
       }
     },
+    "/api/consignments/invoiced": {
+      "get": {
+        "tags": [
+          "ConsignmentEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvoicedPlants"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/consignments/{id}": {
       "get": {
         "tags": [
@@ -4181,6 +4203,34 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConsignmentDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ConsignmentEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PassportRefused"
                 }
               }
             }
@@ -4549,6 +4599,39 @@
       }
     },
     "/api/jobs/{id}/done": {
+      "post": {
+        "tags": [
+          "JobEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobDoneRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/jobs/{id}/undo-done": {
       "post": {
         "tags": [
           "JobEndpoints"
@@ -6340,6 +6423,13 @@
               "string"
             ],
             "format": "int32"
+          },
+          "invoiceLineId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -6388,6 +6478,13 @@
             "items": {
               "$ref": "#/components/schemas/PackageRequest"
             }
+          },
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -6465,6 +6562,10 @@
           },
           "labelCode": {
             "type": "string"
+          },
+          "countedSince": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -6596,6 +6697,13 @@
             ]
           },
           "stageSince": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "startedAt": {
             "type": [
               "null",
               "string"
@@ -7460,6 +7568,72 @@
           }
         }
       },
+      "InvoicedPlants": {
+        "required": [
+          "invoiceLineId",
+          "invoiceNumber",
+          "customerId",
+          "customerName",
+          "issuedOn",
+          "batchId",
+          "containerId",
+          "labelCode",
+          "traceabilityCode",
+          "plantName",
+          "left"
+        ],
+        "type": "object",
+        "properties": {
+          "invoiceLineId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "invoiceNumber": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "issuedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "containerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "labelCode": {
+            "type": "string"
+          },
+          "traceabilityCode": {
+            "type": "string"
+          },
+          "plantName": {
+            "type": "string"
+          },
+          "left": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "InvoiceDraft": {
         "required": [
           "reference",
@@ -7968,6 +8142,7 @@
           "BenchCard",
           "PlaceLabel",
           "PlantPassport",
+          "PackagePassport",
           "Invoice"
         ]
       },
@@ -8729,6 +8904,10 @@
               "string"
             ],
             "format": "date"
+          },
+          "setsRenewal": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -8860,24 +9039,52 @@
               "string"
             ],
             "format": "int32"
+          },
+          "invoiceNumber": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
       "PackagePassport": {
         "required": [
-          "partA",
           "partB",
-          "partC",
-          "partD",
-          "rules",
+          "lines",
           "issuedOn"
         ],
         "type": "object",
         "properties": {
-          "partA": {
+          "partB": {
             "type": "string"
           },
-          "partB": {
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackagePassportLine"
+            }
+          },
+          "issuedOn": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "PackagePassportLine": {
+        "required": [
+          "partA",
+          "partC",
+          "partD",
+          "rule",
+          "quantity"
+        ],
+        "type": "object",
+        "properties": {
+          "partA": {
             "type": "string"
           },
           "partC": {
@@ -8886,15 +9093,16 @@
           "partD": {
             "type": "string"
           },
-          "rules": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "rule": {
+            "type": "string"
           },
-          "issuedOn": {
-            "type": "string",
-            "format": "date"
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -12320,6 +12528,10 @@
           "eventId": {
             "type": "string",
             "format": "uuid"
+          },
+          "countedSince": {
+            "type": "boolean",
+            "default": false
           }
         }
       },

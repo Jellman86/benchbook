@@ -23,7 +23,7 @@ internal static class ImportEndpoints
 
     private static async Task<IResult> ImportAsync(ImportKind kind, ImportRequest request, GrowLogDbContext db, CancellationToken cancellationToken)
     {
-        if (request.Rows.Count is 0 or > MostRows)
+        if (request.Rows is not { Count: > 0 and <= MostRows } || request.Rows.Any(row => row?.Values is null))
         {
             return TypedResults.BadRequest();
         }
@@ -101,10 +101,10 @@ internal static class ImportEndpoints
 
     private static (string Key, object Entry)? Build(ImportKind kind, RowReader read) => kind switch
     {
-        ImportKind.Plants => read.Required("commonName") is { } name ? (PlantKey(name, read.Text("variety")), new Plant
+        ImportKind.Plants => read.Required("commonName") is { } name && read.Text("variety") is var variety ? (PlantKey(name, variety), new Plant
         {
             CommonName = name,
-            Variety = read.Text("variety"),
+            Variety = variety,
             BotanicalName = read.Text("botanicalName"),
             Category = read.Text("category"),
             Position = read.Text("position"),

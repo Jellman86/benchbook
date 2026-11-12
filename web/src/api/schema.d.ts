@@ -5342,6 +5342,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/consignments/invoiced": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InvoicedPlants"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/consignments/{id}": {
         parameters: {
             query?: never;
@@ -5373,7 +5408,28 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PassportRefused"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -5808,6 +5864,45 @@ export interface paths {
         trace?: never;
     };
     "/api/jobs/{id}/done": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["JobDoneRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{id}/undo-done": {
         parameters: {
             query?: never;
             header?: never;
@@ -7084,6 +7179,8 @@ export interface components {
             batchId: string;
             /** Format: int32 */
             quantity: number | string;
+            /** Format: uuid */
+            invoiceLineId?: null | string;
         };
         ConsignmentRequest: {
             kind: components["schemas"]["ConsignmentKind"];
@@ -7094,6 +7191,8 @@ export interface components {
             sentOn: null | string;
             notes: null | string;
             packages: components["schemas"]["PackageRequest"][];
+            /** Format: uuid */
+            id?: null | string;
         };
         ConsignmentSummary: {
             /** Format: uuid */
@@ -7116,6 +7215,8 @@ export interface components {
             /** Format: uuid */
             containerId: string;
             labelCode: string;
+            /** @default false */
+            countedSince: boolean;
         };
         /** @enum {unknown} */
         ContainerKind: "Tray" | "PotGroup" | "BenchLot";
@@ -7150,6 +7251,8 @@ export interface components {
             stage: null | components["schemas"]["ProductionStage"];
             /** Format: date-time */
             stageSince: null | string;
+            /** Format: date-time */
+            startedAt?: null | string;
         };
         CorrectRequest: {
             /** Format: uuid */
@@ -7356,6 +7459,26 @@ export interface components {
             userId: string;
             token: string;
         };
+        InvoicedPlants: {
+            /** Format: uuid */
+            invoiceLineId: string;
+            /** Format: int32 */
+            invoiceNumber: number | string;
+            /** Format: uuid */
+            customerId: string;
+            customerName: string;
+            /** Format: date */
+            issuedOn: string;
+            /** Format: uuid */
+            batchId: string;
+            /** Format: uuid */
+            containerId: string;
+            labelCode: string;
+            traceabilityCode: string;
+            plantName: string;
+            /** Format: int32 */
+            left: number | string;
+        };
         InvoiceDraft: {
             reference: null | string;
             /** Format: date */
@@ -7481,7 +7604,7 @@ export interface components {
         };
         JsonElement: unknown;
         /** @enum {unknown} */
-        LabelKind: "ContainerLabel" | "PlantLabel" | "BenchCard" | "PlaceLabel" | "PlantPassport" | "Invoice";
+        LabelKind: "ContainerLabel" | "PlantLabel" | "BenchCard" | "PlaceLabel" | "PlantPassport" | "PackagePassport" | "Invoice";
         /** @enum {unknown} */
         LabelLayout: "Compact" | "Standard" | "Large";
         LabelStyle: {
@@ -7673,6 +7796,8 @@ export interface components {
             paymentTermsDays: number | string;
             /** Format: date */
             authorisationRenewsOn?: null | string;
+            /** @default false */
+            setsRenewal: boolean;
         };
         OutlineRequest: {
             points: null | (number | string)[][];
@@ -7701,15 +7826,22 @@ export interface components {
             labelCode: string;
             /** Format: int32 */
             quantity: number | string;
+            /** Format: int32 */
+            invoiceNumber?: null | number | string;
         };
         PackagePassport: {
-            partA: string;
             partB: string;
-            partC: string;
-            partD: string;
-            rules: string[];
+            lines: components["schemas"]["PackagePassportLine"][];
             /** Format: date */
             issuedOn: string;
+        };
+        PackagePassportLine: {
+            partA: string;
+            partC: string;
+            partD: string;
+            rule: string;
+            /** Format: int32 */
+            quantity: number | string;
         };
         PackagePassportRequest: {
             examined: boolean;
@@ -8532,6 +8664,8 @@ export interface components {
         WorkRecorded: {
             /** Format: uuid */
             eventId: string;
+            /** @default false */
+            countedSince: boolean;
         };
         WorkRefused: {
             problem: string;

@@ -32,6 +32,8 @@ internal sealed record LabelStyle(
         LabelKind.Invoice => new(LabelLayout.Standard, 210, 297, ShowLogo: true, ShowNurseryName: true, ShowBotanical: false, ShowPrice: true, ShowCare: false),
         LabelKind.BenchCard => new(LabelLayout.Standard, 100, 150, ShowLogo: true, ShowNurseryName: true, ShowBotanical: true, ShowPrice: true, ShowCare: true),
         LabelKind.PlantPassport => new(LabelLayout.Standard, 50, 25, ShowLogo: false, ShowNurseryName: false, ShowBotanical: true, ShowPrice: false, ShowCare: false),
+        // Fits a 100mm label roll or a sheet of paper in a sleeve on the package.
+        LabelKind.PackagePassport => new(LabelLayout.Standard, 100, 150, ShowLogo: false, ShowNurseryName: false, ShowBotanical: true, ShowPrice: false, ShowCare: false),
         LabelKind.PlaceLabel => new(LabelLayout.Standard, 100, 150, ShowLogo: false, ShowNurseryName: false, ShowBotanical: true, ShowPrice: false, ShowCare: false),
         _ => new(LabelLayout.Standard, 50, 25, ShowLogo: false, ShowNurseryName: false, ShowBotanical: true, ShowPrice: false, ShowCare: false),
     };

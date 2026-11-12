@@ -12,4 +12,7 @@ internal sealed class PackageLine
     public required Guid ContainerId { get; init; }
 
     public required int Quantity { get; init; }
+
+    /// <summary>Plants already sold on this invoice line, and so no longer in the tray they came from.</summary>
+    public Guid? InvoiceLineId { get; init; }
 }

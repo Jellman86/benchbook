@@ -3,6 +3,7 @@
   import BatchPhotos from "./BatchPhotos.svelte";
   import EditBatch from "./EditBatch.svelte";
   import DayPicker from "../DayPicker.svelte";
+  import { chooseWorkDay, workDayFor } from "../../lib/workDays";
   import { isoDay, momentOn, onDay } from "../../lib/days";
   import Germinate from "./Germinate.svelte";
   import PlantCard from "./PlantCard.svelte";
@@ -66,8 +67,11 @@
   let busy = $state(false);
   let cardPlant = $state<string | null>(null);
   let editing = $state<string | null>(null);
-  // The day work on this tray is recorded for: today, unless someone is writing up earlier work.
-  let workDay = $state(isoDay(new Date()));
+  // The day work on this tray is recorded for: today, unless someone is writing up earlier work. A day chosen
+  // is kept for this tray for a while, as each piece of work returns to Record and the tray is opened again.
+  // svelte-ignore state_referenced_locally
+  let workDay = $state(workDayFor(label));
+  $effect(() => chooseWorkDay(label, workDay));
   let choosingDay = $state(false);
   const when = $derived(
     workDay === isoDay(new Date()) ? undefined : momentOn(workDay),
@@ -370,10 +374,16 @@
           >
         </div>
         {#if choosingDay}
-          <DayPicker bind:value={workDay} label="When was this work done?" />
+          <DayPicker
+            bind:value={workDay}
+            label="When was this work done?"
+            min={container.startedAt
+              ? isoDay(new Date(container.startedAt))
+              : null}
+          />
           <p class="muted">
-            Everything recorded on this tray now is dated that day, until you
-            leave the tray.
+            Everything recorded on this tray is dated that day for the next half
+            hour, or until you change it back to today.
           </p>
         {/if}
         <div class="next-actions">

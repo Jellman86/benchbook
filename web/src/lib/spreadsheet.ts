@@ -3,6 +3,18 @@ import type { Schemas } from "./types";
 export type ImportField = Schemas["ImportField"];
 
 /**
+ * A CSV file's text. Excel on Windows saves an ordinary "CSV" in its own Windows-1252 encoding, not UTF-8, so
+ * "×" and accents would come out as nonsense: a file that isn't valid UTF-8 is read as Windows-1252 instead.
+ */
+export function decodeSpreadsheet(bytes: ArrayBuffer): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder("windows-1252").decode(bytes);
+  }
+}
+
+/**
  * The rows of a spreadsheet saved as CSV, each a list of cells. Handles quoted cells with commas or line breaks
  * in them, Excel's byte-order mark, and semicolon or tab separated files.
  */

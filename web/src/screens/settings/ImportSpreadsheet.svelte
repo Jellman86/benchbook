@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import {
+    decodeSpreadsheet,
     mappedRows,
     matchColumns,
     readRows,
@@ -90,7 +91,7 @@
     problem = "";
     result = null;
     leftOut = [];
-    const all = readRows(await file.text());
+    const all = readRows(decodeSpreadsheet(await file.arrayBuffer()));
     await fieldsLoaded;
 
     if (all.length < 2) {

@@ -2,6 +2,7 @@
   import { recordWork } from "../../lib/queue";
   import type { Schemas } from "../../lib/types";
   import {
+    countedSinceNote,
     lossReasons,
     isRecorded,
     outcomeProblem,
@@ -56,7 +57,7 @@
 
     if (isRecorded(outcome)) {
       onDone(
-        `Lost ${line.notCounted ? (all ? "all the" : "some") : quantity} ${plantName(line.commonName, line.variety)} (${label})`,
+        `Lost ${line.notCounted ? (all ? "all the" : "some") : quantity} ${plantName(line.commonName, line.variety)} (${label}).${countedSinceNote(outcome)}`,
         outcome.eventId,
       );
     } else {

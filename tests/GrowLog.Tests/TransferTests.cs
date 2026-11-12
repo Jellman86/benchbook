@@ -18,6 +18,8 @@ public sealed class TransferTests(PostgresFixture database)
         Assert.Equal("\"Say \"\"hello\"\"\"", Csv.Cell("Say \"hello\""));
         Assert.Equal("'=HYPERLINK(1)", Csv.Cell("=HYPERLINK(1)"));
         Assert.Equal("-3", Csv.Cell(-3));
+        Assert.Equal("+44 1629 123456", Csv.Cell("+44 1629 123456"));
+        Assert.Equal("'+SUM(A1)", Csv.Cell("+SUM(A1)"));
         Assert.Equal("Yes", Csv.Cell(true));
         Assert.Equal("2026-11-12", Csv.Cell(new DateOnly(2026, 11, 12)));
     }

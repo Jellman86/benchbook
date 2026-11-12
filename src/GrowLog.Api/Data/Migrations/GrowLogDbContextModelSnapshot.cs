@@ -1030,7 +1030,6 @@ namespace GrowLog.Api.Data.Migrations
                         .HasDatabaseName("ix_issued_passports_customer_id");
 
                     b.HasIndex("ExaminationEventId")
-                        .IsUnique()
                         .HasDatabaseName("ix_issued_passports_examination_event_id");
 
                     b.HasIndex("IssuedBy")
@@ -1144,7 +1143,8 @@ namespace GrowLog.Api.Data.Migrations
 
                     b.HasIndex("PlantId", "Name")
                         .IsUnique()
-                        .HasDatabaseName("ix_mother_plants_plant_id_name");
+                        .HasDatabaseName("ix_mother_plants_plant_id_name")
+                        .HasFilter("archived_at IS NULL");
 
                     b.ToTable("mother_plants", (string)null);
                 });
@@ -1221,6 +1221,10 @@ namespace GrowLog.Api.Data.Migrations
                     b.Property<Guid>("JobId")
                         .HasColumnType("uuid")
                         .HasColumnName("job_id");
+
+                    b.Property<DateOnly?>("NextDueBefore")
+                        .HasColumnType("date")
+                        .HasColumnName("next_due_before");
 
                     b.HasKey("Id")
                         .HasName("pk_jobs_done");
@@ -1326,6 +1330,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("container_id");
 
+                    b.Property<Guid?>("InvoiceLineId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("invoice_line_id");
+
                     b.Property<Guid>("PackageId")
                         .HasColumnType("uuid")
                         .HasColumnName("package_id");
@@ -1342,6 +1350,9 @@ namespace GrowLog.Api.Data.Migrations
 
                     b.HasIndex("ContainerId")
                         .HasDatabaseName("ix_package_lines_container_id");
+
+                    b.HasIndex("InvoiceLineId")
+                        .HasDatabaseName("ix_package_lines_invoice_line_id");
 
                     b.HasIndex("PackageId")
                         .HasDatabaseName("ix_package_lines_package_id");
@@ -1834,7 +1845,8 @@ namespace GrowLog.Api.Data.Migrations
 
                     b.HasIndex("Name")
                         .IsUnique()
-                        .HasDatabaseName("ix_sensors_name");
+                        .HasDatabaseName("ix_sensors_name")
+                        .HasFilter("archived_at IS NULL");
 
                     b.ToTable("sensors", (string)null);
                 });
@@ -2665,8 +2677,8 @@ namespace GrowLog.Api.Data.Migrations
                         .HasConstraintName("fk_issued_passports_customers_customer_id");
 
                     b.HasOne("GrowLog.Api.Data.Event", null)
-                        .WithOne()
-                        .HasForeignKey("GrowLog.Api.Data.IssuedPassport", "ExaminationEventId")
+                        .WithMany()
+                        .HasForeignKey("ExaminationEventId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_issued_passports_events_examination_event_id");
@@ -2751,6 +2763,12 @@ namespace GrowLog.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_package_lines_containers_container_id");
+
+                    b.HasOne("GrowLog.Api.Data.InvoiceLine", null)
+                        .WithMany()
+                        .HasForeignKey("InvoiceLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_package_lines_invoice_lines_invoice_line_id");
 
                     b.HasOne("GrowLog.Api.Data.ConsignmentPackage", null)
                         .WithMany("Lines")

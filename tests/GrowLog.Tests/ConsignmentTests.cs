@@ -62,8 +62,12 @@ public sealed class ConsignmentTests(PostgresFixture database)
         Assert.Equal(HttpStatusCode.OK, await PostStatusAsync(nursery.Owner, $"/api/consignments/{id}/packages/{package}/passport", new { examined = true }));
 
         var passport = (await nursery.Owner.GetFromJsonAsync<JsonElement>(Route($"/api/consignments/{id}"), Cancellation)).GetProperty("packages")[0].GetProperty("passport");
-        Assert.Equal("Lavandula angustifolia; Salvia officinalis", passport.GetProperty("partA").GetString());
-        Assert.Equal(2, passport.GetProperty("partC").GetString()!.Split(", ").Length);
+        // Each batch's name, code and origin stay together.
+        var lines = passport.GetProperty("lines").EnumerateArray().ToList();
+        Assert.Equal("Lavandula angustifolia", lines[0].GetProperty("partA").GetString());
+        Assert.Equal("Salvia officinalis", lines[1].GetProperty("partA").GetString());
+        Assert.All(lines, line => Assert.Equal("GB", line.GetProperty("partD").GetString()));
+        Assert.Equal(10, lines[0].GetProperty("quantity").GetInt32());
         Assert.Equal("123456", passport.GetProperty("partB").GetString());
 
         using var label = await nursery.Owner.GetAsync(Route($"/api/labels/passports/{package}"), Cancellation);
@@ -74,5 +78,32 @@ public sealed class ConsignmentTests(PostgresFixture database)
         Assert.Equal("Hilltop Garden Centre", Assert.Single(trace.GetProperty("issuedPassports").EnumerateArray()).GetProperty("issuedTo").GetString());
 
         Assert.Equal(HttpStatusCode.Forbidden, await GetStatusAsync(nursery.Staff, "/api/consignments"));
+    }
+
+    [Fact]
+    public async Task Plants_already_invoiced_can_still_go_in_a_consignment_with_a_passport()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        using var settings = await nursery.Owner.PutAsJsonAsync(Route("/api/settings/nursery"), new { name = "Croft View", registrationNumber = "123456", hasLogo = false, vatRegistered = false, paymentTermsDays = 30 }, Cancellation);
+        settings.EnsureSuccessStatusCode();
+        var (batch, tray) = await SowAsync(nursery, "Lavender", "Lavandula angustifolia");
+        var customer = await AddAsync(nursery.Owner, "/api/customers", new { name = "Hilltop Garden Centre" });
+        using var invoiced = await PostAsync(nursery.Owner, "/api/invoices", new { customerId = customer, notes = "", lines = new[] { new { description = "Lavender", quantity = 12, unitPrice = 3m, vatRate = 0m, containerId = tray, batchId = batch } } });
+        Assert.Equal(HttpStatusCode.Created, invoiced.StatusCode);
+
+        var waiting = Assert.Single((await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/consignments/invoiced"), Cancellation)).EnumerateArray());
+        Assert.Equal(12, waiting.GetProperty("left").GetInt32());
+        var invoiceLine = waiting.GetProperty("invoiceLineId").GetGuid();
+
+        // The tray and batch come from the invoice, whatever was sent.
+        object Line(int quantity) => new { containerId = Guid.NewGuid(), batchId = Guid.NewGuid(), quantity, invoiceLineId = invoiceLine };
+        using var tooMany = await PostAsync(nursery.Owner, "/api/consignments", new { kind = "TradeSale", customerId = customer, packages = new[] { new { lines = new[] { Line(13) } } } });
+        Assert.Equal(HttpStatusCode.Conflict, tooMany.StatusCode);
+        var id = Json(await PostForTextAsync(nursery.Owner, "/api/consignments", new { kind = "TradeSale", customerId = customer, packages = new[] { new { lines = new[] { Line(12) } } } })).GetProperty("id").GetGuid();
+        Assert.Equal(0, (await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/consignments/invoiced"), Cancellation)).GetArrayLength());
+
+        var package = (await nursery.Owner.GetFromJsonAsync<JsonElement>(Route($"/api/consignments/{id}"), Cancellation)).GetProperty("packages")[0];
+        Assert.Equal(1, package.GetProperty("lines")[0].GetProperty("invoiceNumber").GetInt32());
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Owner, $"/api/consignments/{id}/packages/{package.GetProperty("id").GetGuid()}/passport", new { examined = true }));
     }
 }

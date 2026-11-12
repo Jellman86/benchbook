@@ -1,9 +1,12 @@
 using System.Globalization;
+using System.Text.Json;
 using GrowLog.Api.Accounts;
 using GrowLog.Api.Catalogue;
 using GrowLog.Api.Data;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace GrowLog.Api.Labels;
 
@@ -19,6 +22,7 @@ internal static class LabelEndpoints
         labels.MapGet("/passports/{id:guid}", PrintPassportAsync).ProducesPdf();
         labels.MapGet("/sheet-layouts", ListSheetLayouts);
         labels.MapPost("/sheets", PrintSheetAsync).ProducesPdf().Produces(StatusCodes.Status200OK, contentType: "image/png");
+        labels.MapPost("/sheets/print", PrintSheetFromFormAsync).ProducesPdf().ExcludeFromDescription();
         labels.MapPost("/preview/{kind}", PreviewAsync)
             .ProducesPdf()
             .Produces(StatusCodes.Status200OK, contentType: "image/png")
@@ -144,8 +148,48 @@ internal static class LabelEndpoints
             jobs.AddRange(Enumerable.Repeat(job, copies));
         }
 
+        // Only the first sheet is shown, so only its labels are drawn.
+        if (request.Picture)
+        {
+            jobs = [.. jobs.Take(LabelSheets.Lay(sheet, jobs.Count, request.StartAt)[0].Count)];
+        }
+
         var made = await printer.RenderSheetAsync(jobs, sheet, request.StartAt, request.Outlines, cancellationToken, request.Picture);
         return request.Picture ? TypedResults.File(made, "image/png") : Pdf(made);
+    }
+
+    /// <summary>
+    /// The same sheets sent as an ordinary form into a new tab. A PDF fetched and opened as a blob shows blank in
+    /// an iPhone's home-screen app, whose new tab can't see it; a form's reply opens anywhere.
+    /// </summary>
+    private static async Task<IResult> PrintSheetFromFormAsync(
+        HttpRequest http,
+        IOptions<JsonOptions> json,
+        GrowLogDbContext db,
+        EventStore store,
+        LabelPrinter printer,
+        CancellationToken cancellationToken)
+    {
+        if (!http.HasFormContentType)
+        {
+            return TypedResults.BadRequest();
+        }
+
+        var form = await http.ReadFormAsync(cancellationToken);
+        SheetRequest? request;
+
+        try
+        {
+            request = JsonSerializer.Deserialize<SheetRequest>(form["request"].ToString(), json.Value.SerializerOptions);
+        }
+        catch (JsonException)
+        {
+            return TypedResults.BadRequest();
+        }
+
+        return request is { Targets: not null }
+            ? await PrintSheetAsync(request with { Picture = false }, db, store, printer, cancellationToken)
+            : TypedResults.BadRequest();
     }
 
     private static async Task<IResult> PrintPassportAsync(Guid id, GrowLogDbContext db, LabelPrinter printer, CancellationToken cancellationToken, int copies = 1) =>
@@ -157,24 +201,29 @@ internal static class LabelEndpoints
     /// </summary>
     internal static async Task<LabelJob?> PassportLabelAsync(Guid id, GrowLogDbContext db, CancellationToken cancellationToken)
     {
-        object data;
-
         if (await db.IssuedPassports.AsNoTracking().FirstOrDefaultAsync(passport => passport.Id == id, cancellationToken) is { } passport)
         {
-            data = new { partA = passport.PartA, partB = passport.PartB, partC = passport.PartC, partD = passport.PartD };
+            var data = new { partA = passport.PartA, partB = passport.PartB, partC = passport.PartC, partD = passport.PartD };
+            return new LabelJob(LabelKind.PlantPassport, data, null, await LabelSettings.LoadAsync(db, LabelKind.PlantPassport, cancellationToken));
         }
-        else if (Passports.ConsignmentEndpoints.Combined(await db.IssuedPassports.AsNoTracking().Where(line => line.PackageId == id).ToListAsync(cancellationToken)) is { } package)
-        {
-            // A package's one passport: every species and every batch code in it.
-            data = new { partA = package.PartA, partB = package.PartB, partC = package.PartC, partD = package.PartD };
-        }
-        else
+
+        if (Passports.ConsignmentEndpoints.Combined(await db.IssuedPassports.AsNoTracking().Where(line => line.PackageId == id).ToListAsync(cancellationToken)) is not { } package)
         {
             return null;
         }
 
-        var context = await LabelSettings.LoadAsync(db, LabelKind.PlantPassport, cancellationToken);
-        return new LabelJob(LabelKind.PlantPassport, data, null, context);
+        // A package's one passport, on its own page with each batch's parts together.
+        var where = await db.Consignments
+            .SelectMany(consignment => consignment.Packages.Where(item => item.Id == id).Select(item => new { Consignment = consignment.Number, Package = item.Number }))
+            .FirstAsync(cancellationToken);
+        var packageData = new
+        {
+            partB = package.PartB,
+            lines = package.Lines.Select(line => new { partA = line.PartA, partC = line.PartC, partD = line.PartD }),
+            package = $"Consignment {where.Consignment}, package {where.Package}",
+        };
+
+        return new LabelJob(LabelKind.PackagePassport, packageData, null, await LabelSettings.LoadAsync(db, LabelKind.PackagePassport, cancellationToken));
     }
 
     private static async Task<IResult> PrintPlantLabelAsync(

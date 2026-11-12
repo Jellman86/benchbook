@@ -108,7 +108,7 @@ internal static class WorkEndpoints
     }
 
     private static Task<IResult> StoreSimpleAsync(EventStore store, Event work, CancellationToken cancellationToken) =>
-        StoreAsync(() => store.AppendAsync(work, cancellationToken), () => Task.FromResult<object>(new WorkRecorded(work.Id)));
+        StoreAsync(() => store.AppendAsync(work, cancellationToken), () => Task.FromResult<object>(new WorkRecorded(work.Id, CountedSince: work.Adjustments.Count > 0)));
 
     private static async Task<IResult> StartBatchAsync(
         StartBatchRequest request,
@@ -257,8 +257,18 @@ internal static class WorkEndpoints
             state.PotSizeId,
             potSizeName,
             stage?.Stage,
-            stage?.Since));
+            stage?.Since,
+            (await StartsAsync([container.Id], db, cancellationToken)).TryGetValue(container.Id, out var startedAt) ? startedAt : null));
     }
+
+    /// <summary>When each container was started: its earliest work that still stands. Work can't be dated before it.</summary>
+    private static async Task<Dictionary<Guid, DateTimeOffset>> StartsAsync(List<Guid> containerIds, GrowLogDbContext db, CancellationToken cancellationToken) =>
+        await db.EventLines
+            .Where(line => containerIds.Contains(line.ContainerId))
+            .Join(db.Events.Where(e => e.CorrectsEventId == null && !db.Events.Any(c => c.CorrectsEventId == e.Id)), line => line.EventId, e => e.Id, (line, e) => new { line.ContainerId, e.OccurredAt })
+            .GroupBy(row => row.ContainerId)
+            .Select(group => new { group.Key, Started = group.Min(row => row.OccurredAt) })
+            .ToDictionaryAsync(row => row.Key, row => row.Started, cancellationToken);
 
     /// <summary>Every container with plants in it, or seed not counted yet, so a device can still open a label with no signal.</summary>
     private static async Task<List<ContainerResponse>> ListActiveAsync(GrowLogDbContext db, EventStore store, CancellationToken cancellationToken)
@@ -276,6 +286,7 @@ internal static class WorkEndpoints
         var stages = await ProductionEndpoints.FindStagesAsync(containerIds, db, cancellationToken);
         var potSizeNames = await db.PotSizes.ToDictionaryAsync(size => size.Id, size => size.Name, cancellationToken);
         var rough = await store.RoughlyCountedAsync(containerIds, cancellationToken);
+        var starts = await StartsAsync(containerIds, db, cancellationToken);
 
         return containers.ConvertAll(container =>
         {
@@ -297,7 +308,8 @@ internal static class WorkEndpoints
                 placement?.PotSizeId,
                 placement?.PotSizeId is { } potSizeId ? potSizeNames[potSizeId] : null,
                 stage?.Stage,
-                stage?.Since);
+                stage?.Since,
+                starts.TryGetValue(container.Id, out var startedAt) ? startedAt : null);
         });
     }
 
@@ -406,8 +418,12 @@ internal static class WorkEndpoints
             async () => await db.Events
                 .AsNoTracking()
                 .Where(e => e.Id == request.EventId)
-                .Join(db.Containers, e => e.ContainerId, container => container.Id, (e, container) => new ContainerCreated(e.Id, container.Id, container.LabelCode))
-                .SingleAsync(cancellationToken));
+                .Join(db.Containers, e => e.ContainerId, container => container.Id, (e, container) => new ContainerCreated(e.Id, container.Id, container.LabelCode, false))
+                .SingleAsync(cancellationToken) with
+            {
+                // Taken from a tray counted after the time it's dated, which keeps its count.
+                CountedSince = work.Adjustments.Any(adjustment => adjustment.ContainerId == id),
+            });
     }
 
     private static async Task<IResult> CountAsync(Guid id, CountRequest request, ClaimsPrincipal user, EventStore store, CancellationToken cancellationToken)
@@ -590,13 +606,17 @@ internal static class WorkEndpoints
         return lines.ToLookup(line => line.EventId, line => line.Line);
     }
 
-    internal sealed record WorkRecorded(Guid EventId);
+    /// <param name="CountedSince">
+    /// The tray was counted after the time this work was dated, so the count still says how many are there and the
+    /// work leaves the number as it was. Said to the person, as otherwise it looks as though nothing happened.
+    /// </param>
+    internal sealed record WorkRecorded(Guid EventId, bool CountedSince = false);
 
     internal sealed record WorkRefused(string Problem);
 
     internal sealed record BatchStarted(Guid EventId, Guid BatchId, string TraceabilityCode, Guid ContainerId, string LabelCode);
 
-    internal sealed record ContainerCreated(Guid EventId, Guid ContainerId, string LabelCode);
+    internal sealed record ContainerCreated(Guid EventId, Guid ContainerId, string LabelCode, bool CountedSince = false);
 
     internal sealed record StartBatchRequest(
         Guid EventId,
@@ -667,7 +687,8 @@ internal static class WorkEndpoints
         Guid? PotSizeId,
         string? PotSizeName,
         ProductionStage? Stage,
-        DateTimeOffset? StageSince);
+        DateTimeOffset? StageSince,
+        DateTimeOffset? StartedAt = null);
 
     internal sealed record RecentLine(
         Guid ContainerId,

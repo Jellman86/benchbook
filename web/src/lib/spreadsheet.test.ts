@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  decodeSpreadsheet,
   mappedRows,
   matchColumns,
   readRows,
@@ -59,5 +60,18 @@ describe("reading a spreadsheet", () => {
       { row: 2, values: { commonName: "Sage" } },
       { row: 4, values: { commonName: "Thyme" } },
     ]);
+  });
+
+  it("reads Excel's Windows-1252 CSV as well as UTF-8", () => {
+    const utf8 = new TextEncoder().encode("Lavandula × intermedia");
+    expect(decodeSpreadsheet(utf8.buffer as ArrayBuffer)).toBe(
+      "Lavandula × intermedia",
+    );
+    const windows = new Uint8Array([
+      ...new TextEncoder().encode("Lavandula "),
+      0xd7,
+      ...new TextEncoder().encode(" intermedia"),
+    ]);
+    expect(decodeSpreadsheet(windows.buffer)).toBe("Lavandula × intermedia");
   });
 });

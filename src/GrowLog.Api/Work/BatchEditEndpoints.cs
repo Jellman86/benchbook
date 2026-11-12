@@ -131,11 +131,11 @@ internal static class BatchEditEndpoints
 
     /// <summary>
     /// The batch as the edit wants it, or null if it can't be: cuttings taken from a mother plant record stay hers,
-    /// so their source and her name come from the record.
+    /// so their source, her name and her plant come from the record.
     /// </summary>
     private static Wanted? WantedFor(Batch batch, EditBatchRequest request) =>
         batch.MotherPlantId is null ? Wanted.From(request)
-        : request.Source == BatchSource.Cuttings ? Wanted.From(request) with { MotherPlant = batch.MotherPlant }
+        : request.Source == BatchSource.Cuttings && request.PlantId == batch.PlantId ? Wanted.From(request) with { MotherPlant = batch.MotherPlant }
         : null;
 
     private static void Apply(Batch batch, Wanted wanted)
