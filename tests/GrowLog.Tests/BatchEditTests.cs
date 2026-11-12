@@ -149,6 +149,27 @@ public sealed class BatchEditTests(PostgresFixture database)
     }
 
     [Fact]
+    public async Task After_other_work_the_start_can_still_move_earlier_but_not_later()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (plant, batch, tray, label) = await SowAsync(nursery);
+        await PostForTextAsync(nursery.Staff, $"/api/containers/{tray}/losses", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow, batchId = batch, quantity = 30, reason = "Frost" });
+
+        using var later = await EditAsync(nursery.Staff, batch, Body(plant, startedAt: DateTimeOffset.UtcNow));
+        Assert.Equal(HttpStatusCode.Conflict, later.StatusCode);
+
+        var earlier = Sown.AddDays(-20);
+        using var moved = await EditAsync(nursery.Staff, batch, Body(plant, startedAt: earlier));
+        Assert.Equal(HttpStatusCode.NoContent, moved.StatusCode);
+
+        // The loss still stands, and the plants are as they were.
+        Assert.Equal(10, await QuantityAsync(nursery.Staff, label));
+        var steps = (await TraceAsync(nursery.Owner, batch)).GetProperty("steps").EnumerateArray().ToList();
+        Assert.Equal(["Sown", "Lost"], steps.Select(step => step.GetProperty("type").GetString()!).ToArray());
+        Assert.Equal(earlier.ToUnixTimeSeconds(), steps[0].GetProperty("occurredAt").GetDateTimeOffset().ToUnixTimeSeconds());
+    }
+
+    [Fact]
     public async Task A_locked_start_refuses_a_change_of_source()
     {
         await using var nursery = await TwoPersonNursery.CreateAsync(database);

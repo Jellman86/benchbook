@@ -11,8 +11,8 @@ namespace GrowLog.Api.Work;
 /// <summary>
 /// Correcting a batch's details after it was started. Each correction is kept, with who made it, when, and the
 /// values before and after, so the trace report shows it. The day it was sown and how many are changed by
-/// undoing the start and recording it again, never by altering it, and only while nothing else has been
-/// recorded on the plants; after that a stock count corrects the number.
+/// undoing the start and recording it again, never by altering it. Any change can be made while nothing else has
+/// been recorded on the plants; after that the start can only move earlier, and a stock count corrects the number.
 /// </summary>
 internal static class BatchEditEndpoints
 {
@@ -211,7 +211,10 @@ internal static class BatchEditEndpoints
             return null;
         }
 
-        if (!await StartCanChangeAsync(db, batch.Id, start, cancellationToken))
+        // Sown earlier than recorded is always safe: everything recorded since still comes after it.
+        var onlyEarlier = startedAt < start.Event.OccurredAt && quantity == start.Quantity && type == start.Event.Type;
+
+        if (!onlyEarlier && !await StartCanChangeAsync(db, batch.Id, start, cancellationToken))
         {
             return TypedResults.Conflict(new EditRefused("StartLocked"));
         }
@@ -233,7 +236,8 @@ internal static class BatchEditEndpoints
         };
         again.Lines.Add(new EventLine { ContainerId = start.ContainerId, BatchId = batch.Id, QuantityChange = quantity });
 
-        if (await store.AppendAsync(undo, cancellationToken) != AppendResult.Stored || await store.AppendAsync(again, cancellationToken) != AppendResult.Stored)
+        // The new start first, then the undo, so the stock never dips below what later work took from it.
+        if (await store.AppendAsync(again, cancellationToken) != AppendResult.Stored || await store.AppendAsync(undo, cancellationToken) != AppendResult.Stored)
         {
             return TypedResults.Conflict(new EditRefused("StartLocked"));
         }

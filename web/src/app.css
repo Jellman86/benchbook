@@ -2328,3 +2328,10 @@ button.danger:hover:not(:disabled) {
 .batch-check dd .link-button {
   font-weight: 400;
 }
+
+.batch-photo-add {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}

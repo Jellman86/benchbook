@@ -49,6 +49,11 @@ export function rememberContainers(containers: Schemas["ContainerResponse"][]) {
   localStorage.setItem(keys.containers, JSON.stringify(containers));
 }
 
+/** Every tray this device last saw with plants in it. */
+export function rememberedContainers(): Schemas["ContainerResponse"][] {
+  return read<Schemas["ContainerResponse"][]>(keys.containers) ?? [];
+}
+
 export function rememberedContainer(label: string) {
   return (
     read<Schemas["ContainerResponse"][]>(keys.containers)?.find(
