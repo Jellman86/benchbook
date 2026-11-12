@@ -40,7 +40,7 @@ internal static class PassportEndpoints
         return draft is null ? TypedResults.NotFound() : TypedResults.Ok(draft);
     }
 
-    private static async Task<IssueDraft?> MakeDraftAsync(Guid id, Guid containerId, GrowLogDbContext db, EventStore store, TimeProvider clock, CancellationToken cancellationToken)
+    internal static async Task<IssueDraft?> MakeDraftAsync(Guid id, Guid containerId, GrowLogDbContext db, EventStore store, TimeProvider clock, CancellationToken cancellationToken)
     {
         var found = await db.Batches
             .AsNoTracking()

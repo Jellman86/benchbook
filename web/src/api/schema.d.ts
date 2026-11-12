@@ -5083,6 +5083,143 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/consignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConsignmentSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConsignmentRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConsignmentAdded"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/consignments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConsignmentDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/consignments/{id}/packages/{packageId}/passport": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    packageId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PackagePassportRequest"];
+                };
+            };
+            responses: {
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PassportRefused"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs": {
         parameters: {
             query?: never;
@@ -6427,6 +6564,61 @@ export interface components {
             token: string;
             password: string;
         };
+        ConsignmentAdded: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number | string;
+        };
+        ConsignmentDetails: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number | string;
+            kind: components["schemas"]["ConsignmentKind"];
+            sentTo: string;
+            /** Format: date */
+            sentOn: string;
+            notes: null | string;
+            passportNeeded: boolean;
+            why: string;
+            packages: components["schemas"]["PackageDetails"][];
+        };
+        /** @enum {unknown} */
+        ConsignmentKind: "TradeSale" | "DistanceSale" | "InPerson" | "OwnSite";
+        ConsignmentLineRequest: {
+            /** Format: uuid */
+            containerId: string;
+            /** Format: uuid */
+            batchId: string;
+            /** Format: int32 */
+            quantity: number | string;
+        };
+        ConsignmentRequest: {
+            kind: components["schemas"]["ConsignmentKind"];
+            sentTo: null | string;
+            /** Format: uuid */
+            customerId: null | string;
+            /** Format: date */
+            sentOn: null | string;
+            notes: null | string;
+            packages: components["schemas"]["PackageRequest"][];
+        };
+        ConsignmentSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number | string;
+            kind: components["schemas"]["ConsignmentKind"];
+            sentTo: string;
+            /** Format: date */
+            sentOn: string;
+            /** Format: int32 */
+            packages: number | string;
+            passportNeeded: boolean;
+            /** Format: int32 */
+            packagesPassported: number | string;
+        };
         ContainerCreated: {
             /** Format: uuid */
             eventId: string;
@@ -6952,6 +7144,39 @@ export interface components {
             variety: null | string;
             botanicalName: null | string;
             hasPhoto: boolean;
+        };
+        PackageDetails: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number | string;
+            lines: components["schemas"]["PackageLineDetails"][];
+            passport: null | components["schemas"]["PackagePassport"];
+        };
+        PackageLineDetails: {
+            /** Format: uuid */
+            batchId: string;
+            traceabilityCode: string;
+            plantName: string;
+            labelCode: string;
+            /** Format: int32 */
+            quantity: number | string;
+        };
+        PackagePassport: {
+            partA: string;
+            partB: string;
+            partC: string;
+            partD: string;
+            rules: string[];
+            /** Format: date */
+            issuedOn: string;
+        };
+        PackagePassportRequest: {
+            examined: boolean;
+            findings: null | string;
+        };
+        PackageRequest: {
+            lines: components["schemas"]["ConsignmentLineRequest"][];
         };
         /** @enum {unknown} */
         PacketShare: "Whole" | "Half" | "Part" | null;

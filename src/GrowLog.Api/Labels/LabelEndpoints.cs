@@ -151,15 +151,28 @@ internal static class LabelEndpoints
     private static async Task<IResult> PrintPassportAsync(Guid id, GrowLogDbContext db, LabelPrinter printer, CancellationToken cancellationToken, int copies = 1) =>
         await PdfOfAsync(await PassportLabelAsync(id, db, cancellationToken), printer, copies, cancellationToken);
 
-    /// <summary>A passport exactly as it was issued: the parts are kept with it, never worked out again.</summary>
+    /// <summary>
+    /// A passport exactly as it was issued, by its own id or by its package's: the parts are kept with it, never
+    /// worked out again.
+    /// </summary>
     internal static async Task<LabelJob?> PassportLabelAsync(Guid id, GrowLogDbContext db, CancellationToken cancellationToken)
     {
-        if (await db.IssuedPassports.AsNoTracking().FirstOrDefaultAsync(passport => passport.Id == id, cancellationToken) is not { } passport)
+        object data;
+
+        if (await db.IssuedPassports.AsNoTracking().FirstOrDefaultAsync(passport => passport.Id == id, cancellationToken) is { } passport)
+        {
+            data = new { partA = passport.PartA, partB = passport.PartB, partC = passport.PartC, partD = passport.PartD };
+        }
+        else if (Passports.ConsignmentEndpoints.Combined(await db.IssuedPassports.AsNoTracking().Where(line => line.PackageId == id).ToListAsync(cancellationToken)) is { } package)
+        {
+            // A package's one passport: every species and every batch code in it.
+            data = new { partA = package.PartA, partB = package.PartB, partC = package.PartC, partD = package.PartD };
+        }
+        else
         {
             return null;
         }
 
-        var data = new { partA = passport.PartA, partB = passport.PartB, partC = passport.PartC, partD = passport.PartD };
         var context = await LabelSettings.LoadAsync(db, LabelKind.PlantPassport, cancellationToken);
         return new LabelJob(LabelKind.PlantPassport, data, null, context);
     }

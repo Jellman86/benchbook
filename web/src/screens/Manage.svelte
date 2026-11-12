@@ -1,6 +1,7 @@
 <script lang="ts">
   import { manageGroups, type ManageSection } from "../lib/sections";
   import type { BatchPrefill } from "../lib/work";
+  import Consignments from "./manage/Consignments.svelte";
   import Customers from "./manage/Customers.svelte";
   import Figures from "./manage/Figures.svelte";
   import Invoices from "./manage/Invoices.svelte";
@@ -56,6 +57,8 @@
   <Trace {batchId} onChoose={onTrace} onBack={back} {onOpenTray} />
 {:else if section === "invoices"}
   <Invoices onBack={back} />
+{:else if section === "consignments"}
+  <Consignments onBack={back} />
 {:else if section === "customers"}
   <Customers onBack={back} />
 {:else}

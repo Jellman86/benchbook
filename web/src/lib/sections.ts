@@ -5,6 +5,7 @@ import FileText from "@lucide/svelte/icons/file-text";
 import Flower2 from "@lucide/svelte/icons/flower-2";
 import MapPin from "@lucide/svelte/icons/map-pin";
 import ReceiptText from "@lucide/svelte/icons/receipt-text";
+import Package from "@lucide/svelte/icons/package";
 import Truck from "@lucide/svelte/icons/truck";
 import RouteIcon from "@lucide/svelte/icons/route";
 import Sprout from "@lucide/svelte/icons/sprout";
@@ -20,6 +21,7 @@ export type ManageSection =
   | "figures"
   | "money"
   | "invoices"
+  | "consignments"
   | "customers"
   | "purchases"
   | "suppliers";
@@ -47,6 +49,7 @@ export const manageGroups: { heading: string; items: ManageItem[] }[] = [
       { section: "figures", label: "Figures", icon: ChartColumn },
       { section: "money", label: "Money", icon: Wallet },
       { section: "invoices", label: "Invoices", icon: FileText },
+      { section: "consignments", label: "Consignments", icon: Package },
       { section: "customers", label: "Customers", icon: Contact },
       { section: "purchases", label: "Purchases", icon: ReceiptText },
       { section: "suppliers", label: "Suppliers", icon: Truck },

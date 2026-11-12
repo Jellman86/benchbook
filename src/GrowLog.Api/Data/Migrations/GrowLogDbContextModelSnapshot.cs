@@ -427,6 +427,91 @@ namespace GrowLog.Api.Data.Migrations
                     b.ToTable("catalogue_entry_photos", (string)null);
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.Consignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("customer_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
+                    b.Property<DateOnly>("SentOn")
+                        .HasColumnType("date")
+                        .HasColumnName("sent_on");
+
+                    b.Property<string>("SentTo")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("sent_to");
+
+                    b.HasKey("Id")
+                        .HasName("pk_consignments");
+
+                    b.HasIndex("CreatedBy")
+                        .HasDatabaseName("ix_consignments_created_by");
+
+                    b.HasIndex("CustomerId")
+                        .HasDatabaseName("ix_consignments_customer_id");
+
+                    b.HasIndex("Number")
+                        .IsUnique()
+                        .HasDatabaseName("ix_consignments_number");
+
+                    b.ToTable("consignments", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_consignments_kind", "kind IN ('TradeSale', 'DistanceSale', 'InPerson', 'OwnSite')");
+                        });
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.ConsignmentPackage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ConsignmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("consignment_id");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
+                    b.HasKey("Id")
+                        .HasName("pk_consignment_packages");
+
+                    b.HasIndex("ConsignmentId", "Number")
+                        .IsUnique()
+                        .HasDatabaseName("ix_consignment_packages_consignment_id_number");
+
+                    b.ToTable("consignment_packages", (string)null);
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.Container", b =>
                 {
                     b.Property<Guid>("Id")
@@ -893,6 +978,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("origin_rule");
 
+                    b.Property<Guid?>("PackageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("package_id");
+
                     b.Property<string>("PartA")
                         .IsRequired()
                         .HasColumnType("text")
@@ -935,6 +1024,9 @@ namespace GrowLog.Api.Data.Migrations
 
                     b.HasIndex("IssuedBy")
                         .HasDatabaseName("ix_issued_passports_issued_by");
+
+                    b.HasIndex("PackageId")
+                        .HasDatabaseName("ix_issued_passports_package_id");
 
                     b.ToTable("issued_passports", null, t =>
                         {
@@ -1206,6 +1298,46 @@ namespace GrowLog.Api.Data.Migrations
                     b.ToTable("nursery_settings", null, t =>
                         {
                             t.HasCheckConstraint("ck_nursery_settings_single", "id = 1");
+                        });
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.PackageLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("batch_id");
+
+                    b.Property<Guid>("ContainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("container_id");
+
+                    b.Property<Guid>("PackageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("package_id");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.HasKey("Id")
+                        .HasName("pk_package_lines");
+
+                    b.HasIndex("BatchId")
+                        .HasDatabaseName("ix_package_lines_batch_id");
+
+                    b.HasIndex("ContainerId")
+                        .HasDatabaseName("ix_package_lines_container_id");
+
+                    b.HasIndex("PackageId")
+                        .HasDatabaseName("ix_package_lines_package_id");
+
+                    b.ToTable("package_lines", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_package_lines_quantity", "quantity > 0");
                         });
                 });
 
@@ -2246,6 +2378,32 @@ namespace GrowLog.Api.Data.Migrations
                         .HasConstraintName("fk_catalogue_entry_photos_asp_net_users_uploaded_by");
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.Consignment", b =>
+                {
+                    b.HasOne("GrowLog.Api.Accounts.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_consignments_asp_net_users_created_by");
+
+                    b.HasOne("GrowLog.Api.Data.Customer", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_consignments_customers_customer_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.ConsignmentPackage", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Consignment", null)
+                        .WithMany("Packages")
+                        .HasForeignKey("ConsignmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_consignment_packages_consignments_consignment_id");
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.CountAdjustment", b =>
                 {
                     b.HasOne("GrowLog.Api.Data.Batch", null)
@@ -2408,6 +2566,12 @@ namespace GrowLog.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_issued_passports_asp_net_users_issued_by");
+
+                    b.HasOne("GrowLog.Api.Data.ConsignmentPackage", null)
+                        .WithMany()
+                        .HasForeignKey("PackageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_issued_passports_consignment_packages_package_id");
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.Location", b =>
@@ -2459,6 +2623,30 @@ namespace GrowLog.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_jobs_done_jobs_job_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.PackageLine", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Batch", null)
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_package_lines_batches_batch_id");
+
+                    b.HasOne("GrowLog.Api.Data.Container", null)
+                        .WithMany()
+                        .HasForeignKey("ContainerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_package_lines_containers_container_id");
+
+                    b.HasOne("GrowLog.Api.Data.ConsignmentPackage", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("PackageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_package_lines_consignment_packages_package_id");
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.Plant", b =>
@@ -2720,6 +2908,16 @@ namespace GrowLog.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_asp_net_user_tokens_asp_net_users_user_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.Consignment", b =>
+                {
+                    b.Navigation("Packages");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.ConsignmentPackage", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.Event", b =>
