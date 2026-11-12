@@ -18,7 +18,7 @@ internal static class ClearRecordsEndpoints
     private static readonly string[] RecordTables =
     [
         "invoice_lines", "invoices", "customers",
-        "till_takings", "purchase_receipts", "purchase_lines", "purchases", "received_passports",
+        "till_takings", "purchase_receipts", "purchase_lines", "purchases", "received_passports", "issued_passports",
         "count_adjustments", "event_lines", "events", "batch_photos", "containers", "batches",
         "plant_notes", "plant_photos", "plant_prices", "plants", "catalogue_entry_photos", "catalogue_changes",
         "pot_sizes", "suppliers", "locations",

@@ -16,6 +16,7 @@ internal static class LabelEndpoints
         labels.MapGet("/plants/{id:guid}", PrintPlantLabelAsync).ProducesPdf();
         labels.MapGet("/bench-cards/{id:guid}", PrintBenchCardAsync).ProducesPdf();
         labels.MapGet("/places/{id:guid}", PrintPlaceLabelAsync).ProducesPdf();
+        labels.MapGet("/passports/{id:guid}", PrintPassportAsync).ProducesPdf();
         labels.MapPost("/preview/{kind}", PreviewAsync)
             .ProducesPdf()
             .Produces(StatusCodes.Status200OK, contentType: "image/png")
@@ -98,6 +99,22 @@ internal static class LabelEndpoints
         var context = await LabelSettings.LoadAsync(db, LabelKind.PlaceLabel, cancellationToken);
 
         return new LabelJob(LabelKind.PlaceLabel, data, place.LabelCode, context);
+    }
+
+    private static async Task<IResult> PrintPassportAsync(Guid id, GrowLogDbContext db, LabelPrinter printer, CancellationToken cancellationToken, int copies = 1) =>
+        await PdfOfAsync(await PassportLabelAsync(id, db, cancellationToken), printer, copies, cancellationToken);
+
+    /// <summary>A passport exactly as it was issued: the parts are kept with it, never worked out again.</summary>
+    internal static async Task<LabelJob?> PassportLabelAsync(Guid id, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        if (await db.IssuedPassports.AsNoTracking().FirstOrDefaultAsync(passport => passport.Id == id, cancellationToken) is not { } passport)
+        {
+            return null;
+        }
+
+        var data = new { partA = passport.PartA, partB = passport.PartB, partC = passport.PartC, partD = passport.PartD };
+        var context = await LabelSettings.LoadAsync(db, LabelKind.PlantPassport, cancellationToken);
+        return new LabelJob(LabelKind.PlantPassport, data, null, context);
     }
 
     private static async Task<IResult> PrintPlantLabelAsync(
@@ -200,6 +217,7 @@ internal static class LabelEndpoints
                 prices = new[] { new { size = "9cm", price = Money(4.5m) }, new { size = "2L", price = Money(9.95m) } },
             },
             LabelKind.PlaceLabel => new { code = "P0001", name = "Bench 1", path = "Greenhouse 2, Bench 1" },
+            LabelKind.PlantPassport => new { partA = "Lavandula angustifolia", partB = "123456", partC = "B000001", partD = "GB" },
             _ => new { code = "C000001", lines = new[] { new { plant = "Lavender 'Hidcote'", botanical = "Lavandula angustifolia", batch = "B000001" } } },
         };
 

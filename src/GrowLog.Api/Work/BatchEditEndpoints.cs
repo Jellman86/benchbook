@@ -46,6 +46,7 @@ internal static class BatchEditEndpoints
             batch.SupplierId,
             batch.MotherPlant,
             batch.OriginCountry,
+            batch.SowBy,
             start?.Event.OccurredAt,
             start?.Quantity,
             start is not null && await StartCanChangeAsync(db, id, start, cancellationToken),
@@ -128,6 +129,7 @@ internal static class BatchEditEndpoints
         batch.SupplierId = wanted.SupplierId;
         batch.MotherPlant = wanted.MotherPlant;
         batch.OriginCountry = wanted.OriginCountry;
+        batch.SowBy = wanted.SowBy;
     }
 
     private static async Task<bool> IsValidAsync(EditBatchRequest request, GrowLogDbContext db, TimeProvider clock, CancellationToken cancellationToken)
@@ -179,6 +181,7 @@ internal static class BatchEditEndpoints
         Compare("Lot or reference", batch.SourceReference, wanted.SourceReference);
         Compare("Mother plant", batch.MotherPlant, wanted.MotherPlant);
         Compare("Country of origin", batch.OriginCountry, wanted.OriginCountry);
+        Compare("Sow by", batch.SowBy?.ToString("yyyy-MM", CultureInfo.InvariantCulture), wanted.SowBy?.ToString("yyyy-MM", CultureInfo.InvariantCulture));
         return changes;
     }
 
@@ -294,7 +297,7 @@ internal static class BatchEditEndpoints
     private sealed record Restart(Batch Batch, Start? Start, EditBatchRequest Request, Wanted Wanted, Guid UserId);
 
     /// <summary>The batch as the edit wants it. Details that don't apply to how it started are cleared.</summary>
-    private sealed record Wanted(Guid PlantId, BatchSource Source, string? SourceReference, Guid? SupplierId, string? MotherPlant, string OriginCountry)
+    private sealed record Wanted(Guid PlantId, BatchSource Source, string? SourceReference, Guid? SupplierId, string? MotherPlant, string OriginCountry, DateOnly? SowBy)
     {
         public static Wanted From(EditBatchRequest request)
         {
@@ -306,7 +309,8 @@ internal static class BatchEditEndpoints
                 cuttings ? null : Clean(request.SourceReference),
                 cuttings ? null : request.SupplierId,
                 cuttings ? Clean(request.MotherPlant) : null,
-                request.OriginCountry.Trim().ToUpperInvariant());
+                request.OriginCountry.Trim().ToUpperInvariant(),
+                request.Source == BatchSource.SeedLot ? request.SowBy : null);
         }
     }
 
@@ -320,7 +324,8 @@ internal static class BatchEditEndpoints
         string? MotherPlant,
         string OriginCountry,
         DateTimeOffset? StartedAt,
-        int? Quantity);
+        int? Quantity,
+        DateOnly? SowBy = null);
 
     internal sealed record EditRefused(string Problem);
 
@@ -337,6 +342,7 @@ internal static class BatchEditEndpoints
         Guid? SupplierId,
         string? MotherPlant,
         string OriginCountry,
+        DateOnly? SowBy,
         DateTimeOffset? StartedAt,
         int? Quantity,
         bool StartCanChange,

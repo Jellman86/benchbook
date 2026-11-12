@@ -7,6 +7,8 @@
   import { plantName } from "../../lib/work";
   import ActionFrame from "./ActionFrame.svelte";
   import BatchChoice from "./BatchChoice.svelte";
+  import IssuePassport from "./IssuePassport.svelte";
+  import PassportCard from "./PassportCard.svelte";
 
   let {
     container,
@@ -126,9 +128,15 @@
     }, setProblem);
 </script>
 
-<ActionFrame title="Received passports" {problem} {onCancel} {container}>
+<ActionFrame title="Plant passports" {problem} {onCancel} {container}>
   <BatchChoice lines={container.contents} bind:selected={chosen} />
   <p class="muted">{plantName(line.commonName, line.variety)}</p>
+
+  {#key line.batchId}
+    <IssuePassport containerId={container.id} batchId={line.batchId} />
+  {/key}
+
+  <h2>Received with the plants</h2>
 
   {#if adding}
     <form class="stack" onsubmit={save}>
@@ -160,39 +168,46 @@
       >
     </form>
   {:else}
-    <button onclick={startAdding}>Add a passport</button>
+    <button class="secondary" onclick={startAdding}
+      >Add a received passport</button
+    >
 
-    {#each passports as passport (passport.id)}
-      <div class="card">
-        <strong>{statusLabels[passport.status]}</strong>
-        <span
-          >{passport.supplierName}, received {dayLabel(
-            passport.receivedOn,
-          )}</span
-        >
-        <span>A: {passport.partA}</span>
-        <span>B: {passport.partB}</span>
-        {#if passport.partC}<span>C: {passport.partC}</span>{/if}
-        <span>D: {passport.partD}</span>
-        {#if passport.partE}<span>E: {passport.partE}</span>{/if}
-        {#if passport.plantsChangedSince}
-          <p class="problem">
-            These plants have been potted on since. A new passport is needed
-            before selling them where one is required.
-          </p>
-        {/if}
-        <div class="row">
-          {#each statuses.filter((status) => status !== passport.status) as status (status)}
-            <button
-              class="secondary"
-              onclick={() => setStatus(passport.id, status)}
-              >{statusLabels[status]}</button
+    <div class="passport-list">
+      {#each passports as passport (passport.id)}
+        <div class="stack tight">
+          <PassportCard
+            caption="Passport received from {passport.supplierName}"
+            partA={passport.partA}
+            partB={passport.partB}
+            partC={passport.partC}
+            partD={passport.partD}
+            partE={passport.partE}
+          >
+            <span
+              ><strong>{statusLabels[passport.status]}</strong> · from {passport.supplierName},
+              {dayLabel(passport.receivedOn)}</span
             >
-          {/each}
+          </PassportCard>
+          {#if passport.plantsChangedSince}
+            <p class="caution">
+              These plants have been potted on since, so this passport no longer
+              covers them. Issue a new one above before selling them where one
+              is needed.
+            </p>
+          {/if}
+          <div class="row">
+            {#each statuses.filter((status) => status !== passport.status) as status (status)}
+              <button
+                class="secondary"
+                onclick={() => setStatus(passport.id, status)}
+                >{statusLabels[status]}</button
+              >
+            {/each}
+          </div>
         </div>
-      </div>
-    {:else}
-      <p class="muted">No passports recorded for these plants.</p>
-    {/each}
+      {:else}
+        <p class="muted">No received passports recorded for these plants.</p>
+      {/each}
+    </div>
   {/if}
 </ActionFrame>

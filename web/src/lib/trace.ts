@@ -66,7 +66,9 @@ export function describeStep(step: TraceStep): string {
         .join(", ");
     }
     case "Examined":
-      return "Examined";
+      return details?.forPassport
+        ? `Examined for a plant passport: ${text("findings") || "no pests or diseases seen"}`
+        : `Examined${text("findings") ? `: ${text("findings")}` : ""}`;
     case "StockCounted": {
       const counted = details?.counted;
       return typeof counted === "number" ? `Counted: ${counted}` : "Counted";

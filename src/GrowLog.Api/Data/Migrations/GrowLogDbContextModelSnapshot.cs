@@ -17,7 +17,7 @@ namespace GrowLog.Api.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.14")
+                .HasAnnotation("ProductVersion", "10.0.15")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "citext");
@@ -215,6 +215,10 @@ namespace GrowLog.Api.Data.Migrations
                     b.Property<string>("SourceReference")
                         .HasColumnType("text")
                         .HasColumnName("source_reference");
+
+                    b.Property<DateOnly?>("SowBy")
+                        .HasColumnType("date")
+                        .HasColumnName("sow_by");
 
                     b.Property<Guid?>("SupplierId")
                         .HasColumnType("uuid")
@@ -811,6 +815,103 @@ namespace GrowLog.Api.Data.Migrations
                             t.HasCheckConstraint("ck_invoice_lines_quantity", "quantity > 0");
 
                             t.HasCheckConstraint("ck_invoice_lines_vat", "vat_rate >= 0 AND vat_rate <= 100");
+                        });
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.IssuedPassport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("batch_id");
+
+                    b.Property<Guid>("ContainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("container_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("customer_id");
+
+                    b.Property<Guid>("ExaminationEventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("examination_event_id");
+
+                    b.Property<Guid>("IssuedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("issued_by");
+
+                    b.Property<DateOnly>("IssuedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("issued_on");
+
+                    b.Property<string>("IssuedTo")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("issued_to");
+
+                    b.Property<string>("OriginRule")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("origin_rule");
+
+                    b.Property<string>("PartA")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("part_a");
+
+                    b.Property<string>("PartB")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("part_b");
+
+                    b.Property<string>("PartC")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("part_c");
+
+                    b.Property<string>("PartD")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("part_d");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.HasKey("Id")
+                        .HasName("pk_issued_passports");
+
+                    b.HasIndex("BatchId")
+                        .HasDatabaseName("ix_issued_passports_batch_id");
+
+                    b.HasIndex("ContainerId")
+                        .HasDatabaseName("ix_issued_passports_container_id");
+
+                    b.HasIndex("CustomerId")
+                        .HasDatabaseName("ix_issued_passports_customer_id");
+
+                    b.HasIndex("ExaminationEventId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_issued_passports_examination_event_id");
+
+                    b.HasIndex("IssuedBy")
+                        .HasDatabaseName("ix_issued_passports_issued_by");
+
+                    b.ToTable("issued_passports", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_issued_passports_part_d", "part_d ~ '^[A-Z]{2}$'");
+
+                            t.HasCheckConstraint("ck_issued_passports_quantity", "quantity > 0");
                         });
                 });
 
@@ -1620,6 +1721,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("notes");
 
+                    b.Property<string>("OtherRegistrations")
+                        .HasColumnType("text")
+                        .HasColumnName("other_registrations");
+
                     b.Property<string>("PassportRegistrationNumber")
                         .HasColumnType("text")
                         .HasColumnName("passport_registration_number");
@@ -2095,6 +2200,43 @@ namespace GrowLog.Api.Data.Migrations
                         .HasForeignKey("PlantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_invoice_lines_plants_plant_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.IssuedPassport", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Batch", null)
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_issued_passports_batches_batch_id");
+
+                    b.HasOne("GrowLog.Api.Data.Container", null)
+                        .WithMany()
+                        .HasForeignKey("ContainerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_issued_passports_containers_container_id");
+
+                    b.HasOne("GrowLog.Api.Data.Customer", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_issued_passports_customers_customer_id");
+
+                    b.HasOne("GrowLog.Api.Data.Event", null)
+                        .WithOne()
+                        .HasForeignKey("GrowLog.Api.Data.IssuedPassport", "ExaminationEventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_issued_passports_events_examination_event_id");
+
+                    b.HasOne("GrowLog.Api.Accounts.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("IssuedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_issued_passports_asp_net_users_issued_by");
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.Location", b =>

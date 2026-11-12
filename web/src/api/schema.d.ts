@@ -724,6 +724,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/batches/{id}/passport-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    containerId: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["IssueDraft"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/backups/status": {
         parameters: {
             query?: never;
@@ -3074,6 +3113,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/suppliers/{id}/registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SupplierRegistrationsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/suppliers/{id}/archive": {
         parameters: {
             query?: never;
@@ -4652,6 +4730,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/labels/passports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    copies?: number | string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/labels/preview/{kind}": {
         parameters: {
             query?: never;
@@ -4783,6 +4898,75 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/passports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    batchId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PassportSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["IssuePassportRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PassportIssued"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PassportRefused"];
+                    };
                 };
             };
         };
@@ -5712,6 +5896,8 @@ export interface components {
             supplierId: null | string;
             motherPlant: null | string;
             originCountry: string;
+            /** Format: date */
+            sowBy: null | string;
             /** Format: date-time */
             startedAt: null | string;
             /** Format: int32 */
@@ -5750,6 +5936,8 @@ export interface components {
             sourceReference: null | string;
             motherPlant: null | string;
             originCountry: string;
+            /** Format: date */
+            sowBy: null | string;
             /** Format: date-time */
             startedAt: string;
             supplier: null | components["schemas"]["TraceSupplier"];
@@ -5758,6 +5946,7 @@ export interface components {
             children: components["schemas"]["TraceBatchLink"][];
             receivedPassports: components["schemas"]["TracePassport"][];
             corrections: components["schemas"]["TraceCorrection"][];
+            issuedPassports: components["schemas"]["TraceIssued"][];
             containers: components["schemas"]["TraceContainer"][];
             steps: components["schemas"]["TraceStep"][];
             sales: components["schemas"]["TraceSale"][];
@@ -5900,6 +6089,8 @@ export interface components {
             startedAt: null | string;
             /** Format: int32 */
             quantity: null | number | string;
+            /** Format: date */
+            sowBy?: null | string;
         };
         EditRefused: {
             problem: string;
@@ -6029,12 +6220,36 @@ export interface components {
             /** Format: uuid */
             creditsInvoiceId: null | string;
         };
+        IssueDraft: {
+            partA: null | string;
+            partB: null | string;
+            partC: string;
+            partD: string;
+            originRule: string;
+            /** Format: int32 */
+            available: number | string;
+            xylellaHost: null | boolean;
+            problems: string[];
+        };
+        IssuePassportRequest: {
+            /** Format: uuid */
+            batchId: string;
+            /** Format: uuid */
+            containerId: string;
+            /** Format: int32 */
+            quantity: number | string;
+            /** Format: uuid */
+            customerId: null | string;
+            issuedTo: null | string;
+            examined: boolean;
+            findings: null | string;
+        };
         IssueRefused: {
             problem: string;
         };
         JsonElement: unknown;
         /** @enum {unknown} */
-        LabelKind: "ContainerLabel" | "PlantLabel" | "BenchCard" | "PlaceLabel" | "Invoice";
+        LabelKind: "ContainerLabel" | "PlantLabel" | "BenchCard" | "PlaceLabel" | "PlantPassport" | "Invoice";
         /** @enum {unknown} */
         LabelLayout: "Compact" | "Standard" | "Large";
         LabelStyle: {
@@ -6200,6 +6415,13 @@ export interface components {
             partB: null | string;
             partD: string;
         };
+        PassportIssued: {
+            /** Format: uuid */
+            id: string;
+        };
+        PassportRefused: {
+            problem: string;
+        };
         PassportRequest: {
             /** Format: uuid */
             batchId: string;
@@ -6230,6 +6452,24 @@ export interface components {
             partE: null | string;
             status: components["schemas"]["ReceivedPassportStatus"];
             plantsChangedSince: boolean;
+        };
+        PassportSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            batchId: string;
+            labelCode: string;
+            /** Format: int32 */
+            quantity: number | string;
+            partA: string;
+            partB: string;
+            partC: string;
+            partD: string;
+            originRule: string;
+            issuedTo: string;
+            /** Format: date */
+            issuedOn: string;
+            issuedBy: null | string;
         };
         PasswordSignInRequest: {
             /** Format: uuid */
@@ -6652,6 +6892,8 @@ export interface components {
             potSizeId: null | string;
             /** Format: uuid */
             purchaseLineId: null | string;
+            /** Format: date */
+            sowBy?: null | string;
         };
         StationSummary: {
             /** Format: uuid */
@@ -6661,6 +6903,10 @@ export interface components {
         };
         StatusRequest: {
             status: components["schemas"]["ReceivedPassportStatus"];
+        };
+        SupplierRegistrationsRequest: {
+            passportRegistrationNumber: null | string;
+            otherRegistrations: null | string;
         };
         SupplierRequest: {
             name: string;
@@ -6674,6 +6920,7 @@ export interface components {
             typicalLeadTimeDays: null | number | string;
             passportRegistrationNumber: null | string;
             notes: null | string;
+            otherRegistrations?: null | string;
         };
         SupplierResponse: {
             /** Format: uuid */
@@ -6688,6 +6935,7 @@ export interface components {
             /** Format: int32 */
             typicalLeadTimeDays: null | number | string;
             passportRegistrationNumber: null | string;
+            otherRegistrations: null | string;
             notes: null | string;
             archived: boolean;
         };
@@ -6732,6 +6980,21 @@ export interface components {
             field: string;
             before: null | string;
             after: null | string;
+        };
+        TraceIssued: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            issuedOn: string;
+            /** Format: int32 */
+            quantity: number | string;
+            issuedTo: string;
+            labelCode: string;
+            partA: string;
+            partB: string;
+            partC: string;
+            partD: string;
+            originRule: string;
         };
         TraceMatch: {
             /** Format: uuid */

@@ -133,6 +133,7 @@ internal static class WorkEndpoints
             ParentBatchId = request.ParentBatchId,
             MotherPlant = Clean(request.MotherPlant),
             OriginCountry = request.OriginCountry.Trim().ToUpperInvariant(),
+            SowBy = request.Source == BatchSource.SeedLot ? request.SowBy : null,
         };
         var container = new Container { LabelCode = await LabelCodes.NextContainerAsync(db, cancellationToken), Kind = request.ContainerKind };
 
@@ -365,6 +366,12 @@ internal static class WorkEndpoints
             return Refused("SoldByInvoice");
         }
 
+        // A passport is issued only after an examination, so that examination stays with it.
+        if (await db.IssuedPassports.AnyAsync(passport => passport.ExaminationEventId == original.Id, cancellationToken))
+        {
+            return Refused("ExaminedForPassport");
+        }
+
         var replacing = request.Quantity is not null || request.LocationId is not null;
 
         var correction = new Event
@@ -491,7 +498,8 @@ internal static class WorkEndpoints
         ContainerKind ContainerKind,
         Guid? LocationId,
         Guid? PotSizeId,
-        Guid? PurchaseLineId);
+        Guid? PurchaseLineId,
+        DateOnly? SowBy = null);
 
     internal sealed record GerminatedRequest(Guid EventId, DateTimeOffset OccurredAt);
 

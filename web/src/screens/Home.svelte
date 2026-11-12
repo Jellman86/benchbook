@@ -664,9 +664,11 @@
                       >Again</button
                     >
                   {/if}
-                  <button class="secondary" onclick={() => undoRecent(action)}
-                    >Undo</button
-                  >
+                  {#if action.type !== "Sold" && !(action.details as { forPassport?: boolean } | null)?.forPassport}
+                    <button class="secondary" onclick={() => undoRecent(action)}
+                      >Undo</button
+                    >
+                  {/if}
                 </div>
               </div>
             {/each}

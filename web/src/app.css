@@ -2335,3 +2335,73 @@ button.danger:hover:not(:disabled) {
   padding: 0;
   border: 0;
 }
+
+/* A plant passport looks like the label it is: black on white, in its own firm border, whatever the theme. */
+.passport {
+  --passport-ink: #141414;
+  width: 100%;
+  max-width: 24rem;
+  margin: 0;
+  padding: 0.7rem 0.9rem 0.75rem;
+  border: 2px solid var(--passport-ink);
+  border-radius: 0.25rem;
+  background: #ffffff;
+  box-shadow: var(--paper-edge);
+  color: var(--passport-ink);
+}
+
+.passport-title {
+  margin: 0 0 0.35rem;
+  font-family: var(--heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.passport dl {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr;
+  gap: 0.1rem 0.4rem;
+  margin: 0;
+}
+
+.passport dt {
+  font-family: ui-monospace, "DejaVu Sans Mono", monospace;
+  font-weight: 800;
+}
+
+.passport dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, "DejaVu Sans Mono", monospace;
+}
+
+.passport dd.botanical {
+  font-family: var(--heading);
+  font-style: italic;
+}
+
+.passport dd.missing {
+  color: #a8231a;
+  font-family: inherit;
+  font-style: normal;
+}
+
+.passport-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed #8a8a8a;
+  font-size: 0.9rem;
+}
+
+.passport-foot .muted {
+  color: #555555;
+}
+
+.passport-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 0.9rem;
+}

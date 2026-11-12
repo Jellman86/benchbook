@@ -80,7 +80,7 @@ export const actionLabels: Record<TrayAction, string> = {
   count: "Count",
   treat: "Treated",
   note: "Note",
-  passports: "Passports",
+  passports: "Plant passports",
   germinated: "Germinated",
   ready: "Ready",
 };
@@ -157,6 +157,10 @@ export function describeHistory(entry: HistoryEntry): string {
       return `Note: ${details?.note ?? ""}`;
     case "Ready":
       return "Marked ready";
+    case "Examined":
+      return details?.forPassport
+        ? `Examined for a plant passport: ${details?.findings ?? "no pests or diseases seen"}`
+        : `Examined${details?.findings ? `: ${details.findings}` : ""}`;
     default:
       return String(entry.type);
   }

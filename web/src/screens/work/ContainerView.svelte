@@ -367,7 +367,7 @@
                     ? `, ${entry.recordedBy}`
                     : ""}{entry.undone ? " · undone" : ""}
                 </span>
-                {#if !entry.undone && entry.type !== "Sold"}
+                {#if !entry.undone && entry.type !== "Sold" && !(entry.details as { forPassport?: boolean } | null)?.forPassport}
                   <button
                     class="link-button"
                     disabled={busy}

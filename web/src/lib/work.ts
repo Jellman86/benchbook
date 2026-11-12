@@ -137,6 +137,8 @@ export function outcomeProblem(outcome: Outcome): string {
           return "That clashed with other work. Please record it again.";
         case "SoldByInvoice":
           return "A sale is cancelled with a credit note, under Invoices.";
+        case "ExaminedForPassport":
+          return "That examination belongs to a plant passport, so it stays.";
         default:
           return "That has already been corrected.";
       }
@@ -250,6 +252,10 @@ export function describeRecent(action: Schemas["RecentAction"]): string {
       return `${action.labelCode} marked ready`;
     case "Treated":
       return `Treated ${action.labelCode} with ${details?.product}`;
+    case "Examined":
+      return details?.forPassport
+        ? `Examined ${action.labelCode} for a plant passport`
+        : `Examined ${action.labelCode}`;
     case "Note":
       return `Note on ${action.labelCode}`;
     default:

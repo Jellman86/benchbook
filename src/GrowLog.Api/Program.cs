@@ -110,6 +110,7 @@ app.MapLabelEndpoints();
 app.MapFigureEndpoints();
 app.MapReceivedPassportEndpoints();
 app.MapTraceEndpoints();
+app.MapPassportEndpoints();
 app.MapPurchaseEndpoints();
 app.MapMoneyEndpoints();
 app.MapCustomerEndpoints();

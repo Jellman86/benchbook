@@ -23,6 +23,9 @@
   import PlantSearch from "./PlantSearch.svelte";
   import PlantThumb from "./PlantThumb.svelte";
   import Stepper from "./Stepper.svelte";
+  import SowByPicker from "./SowByPicker.svelte";
+  import SupplierRegistrations from "./SupplierRegistrations.svelte";
+  import { sowByWords } from "../../lib/sowBy";
   import DayPicker from "../DayPicker.svelte";
   import { isoDay, momentOn, onDay } from "../../lib/days";
   import { originCountries } from "../../lib/countries";
@@ -86,6 +89,9 @@
   let sourceReference = $state("");
   let supplierId = $state("");
   let newSupplier = $state("");
+  let newPassport = $state("");
+  let newOther = $state("");
+  let sowBy = $state("");
   let locationId = $state("");
   let potSizeId = $state("");
   let containerKind = $state<Schemas["ContainerKind"]>("Tray");
@@ -226,6 +232,14 @@
     }
   }
 
+  const chosenSupplier = $derived(
+    suppliers.find((item) => item.id === supplierId),
+  );
+
+  async function reloadSuppliers() {
+    suppliers = (await api.GET("/api/suppliers")).data ?? [];
+  }
+
   function next() {
     problem = "";
     goTo(stage + 1);
@@ -285,6 +299,10 @@
           stage: 3,
         });
       }
+
+      if (source === "SeedLot" && sowBy) {
+        rows.push({ name: "Sow by", value: sowByWords(sowBy), stage: 3 });
+      }
     }
 
     rows.push(
@@ -318,8 +336,9 @@
           accountReference: null,
           supplies: null,
           typicalLeadTimeDays: null,
-          passportRegistrationNumber: null,
+          passportRegistrationNumber: newPassport.trim() || null,
           notes: null,
+          otherRegistrations: newOther.trim() || null,
         },
       });
 
@@ -327,6 +346,8 @@
         suppliers = (await api.GET("/api/suppliers")).data ?? [];
         supplierId = data.id;
         newSupplier = "";
+        newPassport = "";
+        newOther = "";
         problem = "";
       } else {
         problem =
@@ -471,6 +492,7 @@
               locationId: locationId || null,
               potSizeId: potSizeId || null,
               purchaseLineId: prefill?.purchaseLineId ?? null,
+              sowBy: source === "SeedLot" && sowBy ? sowBy : null,
             },
             momentOn(startedOn),
           ),
@@ -580,10 +602,31 @@
       {#if !supplierId}
         <label>New supplier <input bind:value={newSupplier} /></label>
         {#if newSupplier.trim()}
+          <label
+            >Their plant passport number (if known) <input
+              bind:value={newPassport}
+              autocapitalize="characters"
+              placeholder="GB 123456"
+            /></label
+          >
+          <label
+            >Other registration numbers <textarea
+              bind:value={newOther}
+              rows="2"
+              placeholder="Seed standards: 12345"></textarea></label
+          >
           <button class="secondary" onclick={addSupplier}>Add supplier</button>
         {/if}
+      {:else if chosenSupplier}
+        <SupplierRegistrations
+          supplier={chosenSupplier}
+          onSaved={reloadSuppliers}
+        />
       {/if}
       <label>Lot or reference <input bind:value={sourceReference} /></label>
+      {#if source === "SeedLot"}
+        <SowByPicker bind:value={sowBy} />
+      {/if}
     {/if}
     <label>
       Country of origin

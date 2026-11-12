@@ -11,7 +11,8 @@ export default defineConfig({
   testDir: "e2e",
   workers: 1,
   forbidOnly: !!process.env.CI,
-  timeout: 60_000,
+  // One long story that grows with GrowLog, including a phone waiting for its signal back.
+  timeout: 120_000,
   use: {
     ...devices["Desktop Chrome"],
     viewport: { width: 420, height: 900 },

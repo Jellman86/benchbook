@@ -15,6 +15,7 @@ export function labelOf(
     plants: "PlantLabel",
     "bench-cards": "BenchCard",
     places: "PlaceLabel",
+    passports: "PlantPassport",
   };
   const kind = what ? kinds[what] : undefined;
 
@@ -63,5 +64,6 @@ export const printableKinds: { kind: LabelKind; label: string }[] = [
   { kind: "PlantLabel", label: "Plant labels" },
   { kind: "ContainerLabel", label: "Tray labels" },
   { kind: "BenchCard", label: "Bench cards" },
+  { kind: "PlantPassport", label: "Plant passports" },
   { kind: "PlaceLabel", label: "Place labels" },
 ];

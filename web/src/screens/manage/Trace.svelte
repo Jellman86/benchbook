@@ -13,7 +13,9 @@
     stillGrowing,
     type BatchTrace,
   } from "../../lib/trace";
+  import { sowByPassed, sowByWords } from "../../lib/sowBy";
   import { attempt, type Schemas } from "../../lib/types";
+  import PassportCard from "../work/PassportCard.svelte";
   import { plantName } from "../../lib/work";
 
   // Trace-back and trace-forward for one batch: what a plant health inspector asks to see.
@@ -81,6 +83,13 @@
       ["Started", dayLabel(isoDay(new Date(trace.startedAt)), now)],
       ["Country of origin", trace.originCountry],
     ];
+
+    if (trace.sowBy) {
+      rows.push([
+        "Sow by, from the packet",
+        `${sowByWords(trace.sowBy)}${sowByPassed(trace.sowBy, now) ? " (passed)" : ""}`,
+      ]);
+    }
 
     if (trace.sourceReference) {
       rows.push(["Seed lot or reference", trace.sourceReference]);
@@ -157,23 +166,60 @@
           {/if}
 
           <h2>Plant passports received</h2>
-          {#each trace.receivedPassports as passport, index (index)}
-            <div class="card stack tight">
-              <strong
-                >{passport.supplierName}, received {dayLabel(
-                  passport.receivedOn,
-                  now,
-                )} · {passportStatusLabels[passport.status]}</strong
+          <div class="passport-list">
+            {#each trace.receivedPassports as passport, index (index)}
+              <PassportCard
+                caption="Passport received from {passport.supplierName}"
+                partA={passport.partA}
+                partB={passport.partB}
+                partC={passport.partC}
+                partD={passport.partD}
+                partE={passport.partE}
               >
-              <span>A: {passport.partA}</span>
-              <span>B: {passport.partB}</span>
-              {#if passport.partC}<span>C: {passport.partC}</span>{/if}
-              <span>D: {passport.partD}</span>
-              {#if passport.partE}<span>E: {passport.partE}</span>{/if}
-            </div>
-          {:else}
-            <p class="muted">None recorded for this batch.</p>
-          {/each}
+                <span
+                  ><strong>{passportStatusLabels[passport.status]}</strong> ·
+                  from
+                  {passport.supplierName}, {dayLabel(
+                    passport.receivedOn,
+                    now,
+                  )}</span
+                >
+              </PassportCard>
+            {:else}
+              <p class="muted">None recorded for this batch.</p>
+            {/each}
+          </div>
+
+          <h2>Plant passports issued</h2>
+          <div class="passport-list">
+            {#each trace.issuedPassports as passport (passport.id)}
+              <div class="stack tight">
+                <PassportCard
+                  caption="Passport issued to {passport.issuedTo}"
+                  partA={passport.partA}
+                  partB={passport.partB}
+                  partC={passport.partC}
+                  partD={passport.partD}
+                >
+                  <span
+                    >{passport.quantity} to {passport.issuedTo}, {dayLabel(
+                      passport.issuedOn,
+                      now,
+                    )}, from {passport.labelCode}</span
+                  >
+                  <span class="muted">D: {passport.originRule}</span>
+                </PassportCard>
+                <a
+                  class="link-button no-print"
+                  href="/api/labels/passports/{passport.id}"
+                  target="_blank"
+                  rel="noopener">Print again</a
+                >
+              </div>
+            {:else}
+              <p class="muted">None issued for this batch.</p>
+            {/each}
+          </div>
 
           <h2>Now</h2>
           <dl class="facts card">

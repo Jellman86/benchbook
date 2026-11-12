@@ -8,7 +8,9 @@
   import DayPicker from "../DayPicker.svelte";
   import ActionFrame from "./ActionFrame.svelte";
   import BatchPhotos from "./BatchPhotos.svelte";
+  import SowByPicker from "./SowByPicker.svelte";
   import Stepper from "./Stepper.svelte";
+  import SupplierRegistrations from "./SupplierRegistrations.svelte";
 
   // Correcting a batch after it started. Every correction is kept, with who made it.
   let {
@@ -72,10 +74,19 @@
         originCountry: details.originCountry,
         startedOn: details.startedAt ? isoDay(new Date(details.startedAt)) : "",
         quantity: Number(details.quantity ?? 0),
+        sowBy: details.sowBy ?? "",
       };
       form = { ...before };
     }, setProblem),
   );
+
+  const chosenSupplier = $derived(
+    suppliers.find((item) => item.id === form?.supplierId),
+  );
+
+  async function reloadSuppliers() {
+    suppliers = (await api.GET("/api/suppliers")).data ?? [];
+  }
 
   const changes = $derived(
     form && before ? batchChanges(before, form, plants, suppliers) : [],
@@ -145,6 +156,7 @@
             sourceReference: cuttings ? null : optional(form.sourceReference),
             supplierId: cuttings ? null : form.supplierId || null,
             motherPlant: cuttings ? optional(form.motherPlant) : null,
+            sowBy: form.source === "SeedLot" && form.sowBy ? form.sowBy : null,
             originCountry: form.originCountry.trim().toUpperCase(),
             startedAt:
               startChanged && form.startedOn !== before.startedOn
@@ -284,8 +296,17 @@
           {/each}
         </select>
       </label>
+      {#if chosenSupplier}
+        <SupplierRegistrations
+          supplier={chosenSupplier}
+          onSaved={reloadSuppliers}
+        />
+      {/if}
       <label>Lot or reference <input bind:value={form.sourceReference} /></label
       >
+      {#if form.source === "SeedLot"}
+        <SowByPicker bind:value={form.sowBy} />
+      {/if}
     {/if}
 
     <label>
