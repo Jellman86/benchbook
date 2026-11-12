@@ -5717,6 +5717,10 @@ export interface components {
             /** Format: int32 */
             quantity: null | number | string;
             startCanChange: boolean;
+            /** Format: int32 */
+            receivedPassports: number | string;
+            /** Format: int32 */
+            splitInto: number | string;
         };
         /** @enum {unknown} */
         BatchPhotoKind: "Packet" | "Label" | "Packaging";

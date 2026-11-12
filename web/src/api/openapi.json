@@ -4561,7 +4561,9 @@
           "originCountry",
           "startedAt",
           "quantity",
-          "startCanChange"
+          "startCanChange",
+          "receivedPassports",
+          "splitInto"
         ],
         "type": "object",
         "properties": {
@@ -4619,6 +4621,22 @@
           },
           "startCanChange": {
             "type": "boolean"
+          },
+          "receivedPassports": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "splitInto": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },

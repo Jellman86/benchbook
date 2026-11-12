@@ -358,6 +358,12 @@ internal static class WorkEndpoints
             return TypedResults.BadRequest();
         }
 
+        // A sale belongs to its invoice, and is reversed only by a credit note, so the two always agree.
+        if (original.Type == EventType.Sold)
+        {
+            return Refused("SoldByInvoice");
+        }
+
         var replacing = request.Quantity is not null || request.LocationId is not null;
 
         var correction = new Event

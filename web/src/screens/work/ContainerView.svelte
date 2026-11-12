@@ -367,7 +367,7 @@
                     ? `, ${entry.recordedBy}`
                     : ""}{entry.undone ? " · undone" : ""}
                 </span>
-                {#if !entry.undone}
+                {#if !entry.undone && entry.type !== "Sold"}
                   <button
                     class="link-button"
                     disabled={busy}

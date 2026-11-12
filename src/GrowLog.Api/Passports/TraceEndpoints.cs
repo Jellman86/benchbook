@@ -63,7 +63,10 @@ internal static class TraceEndpoints
                 plant.CommonName,
                 plant.Variety,
                 batch.Source,
-                db.Events.Where(e => e.Lines.Any(line => line.BatchId == batch.Id)).Min(e => (DateTimeOffset?)e.OccurredAt) ?? batch.CreatedAt))
+                db.Events
+                    .Where(e => e.Lines.Any(line => line.BatchId == batch.Id) && !db.Events.Any(correction => correction.CorrectsEventId == e.Id))
+                    .Min(e => (DateTimeOffset?)(e.CorrectsEventId == null ? e.OccurredAt : db.Events.Where(original => original.Id == e.CorrectsEventId).Select(original => original.OccurredAt).First()))
+                    ?? batch.CreatedAt))
             .ToListAsync(cancellationToken);
     }
 

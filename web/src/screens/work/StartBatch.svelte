@@ -77,6 +77,10 @@
   let details = $state<Schemas["SpeciesDetailsResponse"] | null>(null);
   let variety = $state("");
   let plantId = $state("");
+  // The species pick and variety a plant was made for, so a changed variety makes a new plant.
+  let plantMadeFor = "";
+  // Set while the browser moves back to a step, so a second tap can't move it twice.
+  let moving = false;
   let quantity = $state(1);
   let source = $state<Schemas["BatchSource"]>("SeedLot");
   let sourceReference = $state("");
@@ -194,6 +198,7 @@
   }
 
   function stepped() {
+    moving = false;
     const kept = stepOf<number>("batchStage") ?? 1;
 
     if (kept < stage) {
@@ -228,9 +233,20 @@
 
   // Back through the browser's history, so Back after changing something still behaves.
   function change(target: number) {
+    if (moving) {
+      return;
+    }
+
+    moving = true;
     problem = "";
     history.go(target - stage);
   }
+
+  // The answers on "Where from?" must be complete, even if the browser's Forward skipped past it.
+  const whereFromDone = $derived(
+    originCountry.trim().length === 2 &&
+      (source !== "BoughtIn" || !!supplierId),
+  );
 
   /** Everything about to be recorded, each with the step that changes it. */
   const summary = $derived.by(() => {
@@ -339,7 +355,14 @@
 
   /** Adds the plant only now, so abandoning the steps leaves nothing behind. */
   async function resolvePlant(): Promise<string | null> {
-    if (plantId || !picked || picked.kind === "plant") {
+    const madeFor =
+      picked?.kind === "species" ? `${picked.id}|${variety.trim()}` : "";
+
+    if (
+      !picked ||
+      picked.kind === "plant" ||
+      (plantId && plantMadeFor === madeFor)
+    ) {
       return plantId;
     }
 
@@ -428,6 +451,8 @@
         }
 
         plantId = savedPlantId;
+        plantMadeFor =
+          picked?.kind === "species" ? `${picked.id}|${variety.trim()}` : "";
         const outcome = await submit(
           work.startBatch(
             {
@@ -592,11 +617,7 @@
         Bought-in plants need their supplier, for the passport record.
       </p>
     {/if}
-    <button
-      onclick={next}
-      disabled={originCountry.trim().length !== 2 ||
-        (source === "BoughtIn" && !supplierId)}>Next</button
-    >
+    <button onclick={next} disabled={!whereFromDone}>Next</button>
   {:else if stage === 4}
     <p class="muted">Take a photo of anything worth keeping. All optional.</p>
     <div class="card-grid">
@@ -648,6 +669,14 @@
         </dd>
       {/each}
     </dl>
-    <button disabled={busy} onclick={start}>Start batch</button>
+    {#if !whereFromDone}
+      <p class="problem" role="alert">
+        "Where from?" isn't finished: bought-in plants need their supplier, and
+        every batch its country of origin.
+      </p>
+    {/if}
+    <button disabled={busy || !whereFromDone} onclick={start}
+      >Start batch</button
+    >
   {/if}
 </ActionFrame>

@@ -135,6 +135,8 @@ export function outcomeProblem(outcome: Outcome): string {
           return "That plant isn't in this tray. Please start again from the label.";
         case "IdInUse":
           return "That clashed with other work. Please record it again.";
+        case "SoldByInvoice":
+          return "A sale is cancelled with a credit note, under Invoices.";
         default:
           return "That has already been corrected.";
       }

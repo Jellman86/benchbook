@@ -49,7 +49,7 @@ describe("batchChanges", () => {
     ]);
   });
 
-  it("drops the supplier when plants become cuttings", () => {
+  it("drops the supplier and lot when plants become cuttings", () => {
     const changes = batchChanges(
       before,
       { ...before, source: "Cuttings", motherPlant: "Big one by the door" },
@@ -60,6 +60,7 @@ describe("batchChanges", () => {
     expect(changes.map((change) => change.name)).toEqual([
       "Source",
       "Supplier",
+      "Lot or reference",
       "Mother plant",
     ]);
   });

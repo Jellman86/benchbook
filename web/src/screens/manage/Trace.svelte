@@ -3,6 +3,7 @@
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { dayLabel, momentLabel } from "../../lib/dates";
+  import { isoDay } from "../../lib/days";
   import {
     containerOf,
     correctionValue,
@@ -77,7 +78,7 @@
 
     const rows: [string, string][] = [
       ["How it started", sourceLabels[trace.source]],
-      ["Started", dayLabel(trace.startedAt.slice(0, 10), now)],
+      ["Started", dayLabel(isoDay(new Date(trace.startedAt)), now)],
       ["Country of origin", trace.originCountry],
     ];
 
@@ -309,7 +310,7 @@
               >
               <em
                 >{sourceLabels[match.source]}, {dayLabel(
-                  match.startedAt.slice(0, 10),
+                  isoDay(new Date(match.startedAt)),
                   now,
                 )}</em
               >

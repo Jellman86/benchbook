@@ -50,7 +50,10 @@
         api.GET("/api/suppliers"),
       ]);
 
-      plants = plantList.data ?? [];
+      // Plants no longer used stay out of the list, unless this batch is one of them.
+      plants = (plantList.data ?? []).filter(
+        (plant) => !plant.archived || plant.id === loaded.data?.plantId,
+      );
       suppliers = supplierList.data ?? [];
       details = loaded.data ?? null;
 
@@ -80,6 +83,33 @@
     !!form &&
       !originCountries.some((item) => item.code === form!.originCountry),
   );
+  // Received passports and split batches keep their own details, so say so when the details they share change.
+  const keptElsewhere = $derived.by(() => {
+    if (!details) {
+      return "";
+    }
+
+    const shared = ["Plant", "Source", "Supplier", "Country of origin"];
+
+    if (!changes.some((change) => shared.includes(change.name))) {
+      return "";
+    }
+
+    const passports = Number(details.receivedPassports);
+    const splits = Number(details.splitInto);
+
+    return [
+      passports > 0
+        ? `${passports === 1 ? "Its received passport keeps" : `Its ${passports} received passports keep`} what was printed on ${passports === 1 ? "it" : "them"}; add a new one if the plants came with another.`
+        : "",
+      splits > 0
+        ? `${splits === 1 ? "The batch split from it keeps" : `The ${splits} batches split from it keep`} their own details.`
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+  });
+
   const ready = $derived(
     !!form &&
       form.originCountry.trim().length === 2 &&
@@ -105,15 +135,15 @@
           details.startCanChange &&
           (form.startedOn !== before.startedOn ||
             form.quantity !== before.quantity);
+        const cuttings = form.source === "Cuttings";
         const { response, error } = await api.PUT("/api/batches/{id}", {
           params: { path: { id: batchId } },
           body: {
             plantId: form.plantId,
             source: form.source,
-            sourceReference: optional(form.sourceReference),
-            supplierId:
-              form.source === "Cuttings" ? null : form.supplierId || null,
-            motherPlant: optional(form.motherPlant),
+            sourceReference: cuttings ? null : optional(form.sourceReference),
+            supplierId: cuttings ? null : form.supplierId || null,
+            motherPlant: cuttings ? optional(form.motherPlant) : null,
             originCountry: form.originCountry.trim().toUpperCase(),
             startedAt:
               startChanged && form.startedOn !== before.startedOn
@@ -131,13 +161,22 @@
         } else if (
           (error as { problem?: string } | undefined)?.problem === "StartLocked"
         ) {
+          // Work was recorded meanwhile: the start stays as it was, and the form says so.
           checking = false;
+          details.startCanChange = false;
+          form.startedOn = before.startedOn;
+          form.quantity = before.quantity;
+          form.source = before.source;
           problem =
-            "Other work has been recorded on these plants since, so the day and number can't be changed. Use Count to correct the number.";
+            "Other work has been recorded on these plants since, so how they started, the day and the number can't be changed. Use Count to correct the number.";
         } else {
           checking = false;
           problem =
-            "That couldn't be saved. Bought-in plants need their supplier, and the country is a two-letter code.";
+            response.status === 400
+              ? "That couldn't be saved. Bought-in plants need their supplier, and the country is a two-letter code."
+              : response.status === 404
+                ? "That batch no longer exists."
+                : "That couldn't be saved. Please try again.";
         }
       } finally {
         busy = false;
@@ -176,6 +215,7 @@
           </dd>
         {/each}
       </dl>
+      {#if keptElsewhere}<p class="caution">{keptElsewhere}</p>{/if}
       <button disabled={busy} onclick={save}>Save changes</button>
       <button class="secondary" onclick={() => (checking = false)}
         >Change something else</button
@@ -199,6 +239,7 @@
       {#each sources as item (item.source)}
         <button
           aria-pressed={form.source === item.source}
+          disabled={!details.startCanChange && form.source !== item.source}
           onclick={() => (form!.source = item.source)}>{item.label}</button
         >
       {/each}
@@ -210,10 +251,15 @@
       <Stepper bind:value={form.quantity} />
     {:else}
       <p class="muted">
-        {details.startedAt
-          ? `Started ${dayWords(isoDay(new Date(details.startedAt)))} with ${details.quantity}. `
-          : ""}Other work has been recorded on these plants since, so the day
-        and number can't be changed here. Use Count to correct the number.
+        {#if details.startedAt}
+          Started {dayWords(isoDay(new Date(details.startedAt))).toLowerCase()}
+          with {details.quantity}. Other work has been recorded on these plants
+          since, so how they started, the day and the number can't be changed
+          here. Use Count to correct the number.
+        {:else}
+          This batch didn't start with a sowing, an arrival or cuttings, so how
+          it started, the day and the number can't be changed here.
+        {/if}
       </p>
     {/if}
 

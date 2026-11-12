@@ -41,6 +41,11 @@ export function batchChanges(
     return originCountries.find((item) => item.code === clean)?.name ?? clean;
   };
   const text = (value: string) => value.trim();
+  // As saved: cuttings have a mother plant, everything else a lot or reference.
+  const reference = (form: BatchForm) =>
+    form.source === "Cuttings" ? "" : text(form.sourceReference);
+  const mother = (form: BatchForm) =>
+    form.source === "Cuttings" ? text(form.motherPlant) : "";
   const day = (value: string) => (value ? dayLabel(value) : "");
 
   return [
@@ -67,13 +72,13 @@ export function batchChanges(
     { name: "Supplier", before: supplier(before), after: supplier(after) },
     {
       name: "Lot or reference",
-      before: text(before.sourceReference),
-      after: text(after.sourceReference),
+      before: reference(before),
+      after: reference(after),
     },
     {
       name: "Mother plant",
-      before: text(before.motherPlant),
-      after: text(after.motherPlant),
+      before: mother(before),
+      after: mother(after),
     },
     {
       name: "Country of origin",

@@ -113,6 +113,53 @@ public sealed class BatchEditTests(PostgresFixture database)
         Assert.Equal(HttpStatusCode.NoContent, details.StatusCode);
     }
 
+    [Fact]
+    public async Task Changing_how_a_batch_started_records_the_start_again_as_that_kind_of_work()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (plant, batch, _, _) = await SowAsync(nursery);
+        var supplier = await AddAsync(nursery.Owner, "/api/suppliers", new { name = "Hillside Plants" });
+
+        using var edited = await EditAsync(nursery.Staff, batch, Body(plant, source: "BoughtIn", supplier: supplier));
+        Assert.Equal(HttpStatusCode.NoContent, edited.StatusCode);
+        Assert.Equal("Received", Assert.Single((await TraceAsync(nursery.Owner, batch)).GetProperty("steps").EnumerateArray()).GetProperty("type").GetString());
+
+        // Cuttings have a mother plant rather than a lot or supplier.
+        using var cuttings = await EditAsync(nursery.Staff, batch, new { plantId = plant, source = "Cuttings", sourceReference = "Lot 7", supplierId = supplier, motherPlant = "By the door", originCountry = "GB" });
+        Assert.Equal(HttpStatusCode.NoContent, cuttings.StatusCode);
+        var details = await DetailsAsync(nursery.Staff, batch);
+        Assert.Equal(JsonValueKind.Null, details.GetProperty("sourceReference").ValueKind);
+        Assert.Equal(JsonValueKind.Null, details.GetProperty("supplierId").ValueKind);
+        Assert.Equal("By the door", details.GetProperty("motherPlant").GetString());
+        Assert.Equal("CuttingsTaken", Assert.Single((await TraceAsync(nursery.Owner, batch)).GetProperty("steps").EnumerateArray()).GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public async Task The_search_list_shows_the_corrected_start_day()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (plant, batch, _, _) = await SowAsync(nursery);
+        var later = Sown.AddMinutes(30);
+
+        using var edited = await EditAsync(nursery.Staff, batch, Body(plant, startedAt: later));
+        Assert.Equal(HttpStatusCode.NoContent, edited.StatusCode);
+
+        var match = Assert.Single((await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/trace"), Cancellation)).EnumerateArray());
+        Assert.Equal(later.ToUnixTimeSeconds(), match.GetProperty("startedAt").GetDateTimeOffset().ToUnixTimeSeconds());
+    }
+
+    [Fact]
+    public async Task A_locked_start_refuses_a_change_of_source()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (plant, batch, tray, _) = await SowAsync(nursery);
+        await PostForTextAsync(nursery.Staff, $"/api/containers/{tray}/germinated", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow });
+
+        using var refused = await EditAsync(nursery.Staff, batch, Body(plant, source: "Cuttings"));
+        Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
+        Assert.Equal("SeedLot", (await DetailsAsync(nursery.Staff, batch)).GetProperty("source").GetString());
+    }
+
     [Theory]
     [InlineData("BoughtIn", "GB", 0)]
     [InlineData("SeedLot", "G", 0)]
