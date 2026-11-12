@@ -30,10 +30,16 @@ internal static class PassportOrigin
 
         var here = facts.Now - facts.ArrivedAt;
 
-        if (facts.XylellaHost is not false)
+        // A plant nobody has checked is treated as a host, not assumed safe.
+        var host = facts.XylellaHost switch
         {
-            var what = facts.XylellaHost is true ? "A Xylella host" : "Not yet checked as a Xylella host, so treated as one: it";
+            true => "A Xylella host",
+            null => "Not yet checked as a Xylella host, so treated as one: it",
+            false => null,
+        };
 
+        if (host is { } what)
+        {
             return here >= HostWait
                 ? new(GreatBritain, $"{what} has been here over a year, so it is now grown in Great Britain.")
                 : new(facts.OriginCountry, $"{what} takes GB only after a year here, so it keeps {facts.OriginCountry} until then.");

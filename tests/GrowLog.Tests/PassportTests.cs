@@ -18,7 +18,7 @@ public sealed class PassportTests(PostgresFixture database)
 
     private static async Task RegisterAsync(HttpClient owner, string? number)
     {
-        using var response = await owner.PutAsJsonAsync(Route("/api/settings/nursery"), new { name = "Croft View", address = "Croft Lane", phone = "", email = "", website = "", registrationNumber = number, vatNumber = (string?)null, hasLogo = false, vatRegistered = false, paymentTermsDays = 30 }, Cancellation);
+        using var response = await owner.PutAsJsonAsync(Route("/api/settings/nursery"), new { name = "Croft View", address = "Croft Lane", phone = "", email = "", website = "", registrationNumber = number, hasLogo = false, vatRegistered = false, paymentTermsDays = 30 }, Cancellation);
         response.EnsureSuccessStatusCode();
     }
 
