@@ -441,6 +441,67 @@
         }
       }
     },
+    "/api/trace": {
+      "get": {
+        "tags": [
+          "TraceEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TraceMatch"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/batches/{id}/trace": {
+      "get": {
+        "tags": [
+          "TraceEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchTrace"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/backups/status": {
       "get": {
         "tags": [
@@ -4480,6 +4541,125 @@
           }
         }
       },
+      "BatchTrace": {
+        "required": [
+          "id",
+          "traceabilityCode",
+          "plant",
+          "source",
+          "sourceReference",
+          "motherPlant",
+          "originCountry",
+          "startedAt",
+          "supplier",
+          "purchase",
+          "parent",
+          "children",
+          "receivedPassports",
+          "containers",
+          "steps",
+          "sales",
+          "totals"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "traceabilityCode": {
+            "type": "string"
+          },
+          "plant": {
+            "$ref": "#/components/schemas/TracePlant"
+          },
+          "source": {
+            "$ref": "#/components/schemas/BatchSource"
+          },
+          "sourceReference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "motherPlant": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "originCountry": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "supplier": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TraceSupplier"
+              }
+            ]
+          },
+          "purchase": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TracePurchase"
+              }
+            ]
+          },
+          "parent": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TraceBatchLink"
+              }
+            ]
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceBatchLink"
+            }
+          },
+          "receivedPassports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TracePassport"
+            }
+          },
+          "containers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceContainer"
+            }
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceStep"
+            }
+          },
+          "sales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraceSale"
+            }
+          },
+          "totals": {
+            "$ref": "#/components/schemas/TraceTotals"
+          }
+        }
+      },
       "BenchSignInRequest": {
         "required": [
           "userId",
@@ -8400,6 +8580,374 @@
           }
         }
       },
+      "TraceBatchLink": {
+        "required": [
+          "id",
+          "traceabilityCode",
+          "commonName",
+          "variety"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "traceabilityCode": {
+            "type": "string"
+          },
+          "commonName": {
+            "type": "string"
+          },
+          "variety": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TraceContainer": {
+        "required": [
+          "labelCode",
+          "kind",
+          "now",
+          "place"
+        ],
+        "type": "object",
+        "properties": {
+          "labelCode": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ContainerKind"
+          },
+          "now": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "place": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TraceMatch": {
+        "required": [
+          "batchId",
+          "traceabilityCode",
+          "commonName",
+          "variety",
+          "source",
+          "startedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "traceabilityCode": {
+            "type": "string"
+          },
+          "commonName": {
+            "type": "string"
+          },
+          "variety": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
+            "$ref": "#/components/schemas/BatchSource"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TracePassport": {
+        "required": [
+          "receivedOn",
+          "supplierName",
+          "partA",
+          "partB",
+          "partC",
+          "partD",
+          "partE",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "receivedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "supplierName": {
+            "type": "string"
+          },
+          "partA": {
+            "type": "string"
+          },
+          "partB": {
+            "type": "string"
+          },
+          "partC": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "partD": {
+            "type": "string"
+          },
+          "partE": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReceivedPassportStatus"
+          }
+        }
+      },
+      "TracePlant": {
+        "required": [
+          "id",
+          "commonName",
+          "variety",
+          "botanicalName",
+          "xylellaHost"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "commonName": {
+            "type": "string"
+          },
+          "variety": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "botanicalName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "xylellaHost": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "TracePurchase": {
+        "required": [
+          "id",
+          "purchasedOn",
+          "reference"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "purchasedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "reference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TraceSale": {
+        "required": [
+          "invoiceId",
+          "number",
+          "issuedOn",
+          "customerName",
+          "quantity",
+          "cancelled"
+        ],
+        "type": "object",
+        "properties": {
+          "invoiceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "issuedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "cancelled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TraceStep": {
+        "required": [
+          "eventId",
+          "type",
+          "occurredAt",
+          "labelCode",
+          "fromLabelCode",
+          "quantity",
+          "place",
+          "recordedBy",
+          "details",
+          "corrected"
+        ],
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "$ref": "#/components/schemas/EventType"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "labelCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fromLabelCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "place": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "recordedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "details": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "corrected": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TraceSupplier": {
+        "required": [
+          "id",
+          "name",
+          "passportRegistrationNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "passportRegistrationNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TraceTotals": {
+        "required": [
+          "lost",
+          "sold",
+          "now"
+        ],
+        "type": "object",
+        "properties": {
+          "lost": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "sold": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "now": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "TransferRequest": {
         "required": [
           "eventId",
@@ -8570,6 +9118,9 @@
     },
     {
       "name": "ReceivedPassportEndpoints"
+    },
+    {
+      "name": "TraceEndpoints"
     },
     {
       "name": "BackupStatusEndpoints"

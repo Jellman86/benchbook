@@ -284,6 +284,14 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(page.getByText("Nothing recorded yet.")).toBeVisible();
   await leaveManage(page);
 
+  // Tracing finds nothing before any batch is started.
+  await openManage(page, "Trace a batch");
+  await expect(page.getByText("No batches yet.")).toBeVisible();
+  await page.getByLabel("Batch, tray or plant").fill("B000001");
+  await button(page, "Find").click();
+  await expect(page.getByText("No batch matches that.")).toBeVisible();
+  await leaveManage(page);
+
   // Staff, with a refused PIN first.
   await openSettings(page, "Staff");
   await page.getByLabel("Name", { exact: true }).fill("Alex Moss");

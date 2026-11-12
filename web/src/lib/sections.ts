@@ -5,12 +5,14 @@ import Flower2 from "@lucide/svelte/icons/flower-2";
 import MapPin from "@lucide/svelte/icons/map-pin";
 import ReceiptText from "@lucide/svelte/icons/receipt-text";
 import Truck from "@lucide/svelte/icons/truck";
+import RouteIcon from "@lucide/svelte/icons/route";
 import Wallet from "@lucide/svelte/icons/wallet";
 
 // The owner's everyday work. Setting the nursery up lives under Settings (settings.ts).
 export type ManageSection =
   | "plants"
   | "places"
+  | "trace"
   | "figures"
   | "money"
   | "invoices"
@@ -30,6 +32,7 @@ export const manageGroups: { heading: string; items: ManageItem[] }[] = [
     items: [
       { section: "plants", label: "Plants", icon: Flower2 },
       { section: "places", label: "Places", icon: MapPin },
+      { section: "trace", label: "Trace a batch", icon: RouteIcon },
     ],
   },
   {

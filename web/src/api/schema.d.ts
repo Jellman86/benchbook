@@ -588,6 +588,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/trace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    q?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TraceMatch"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/batches/{id}/trace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BatchTrace"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/backups/status": {
         parameters: {
             query?: never;
@@ -5583,6 +5657,27 @@ export interface components {
             containerId: string;
             labelCode: string;
         };
+        BatchTrace: {
+            /** Format: uuid */
+            id: string;
+            traceabilityCode: string;
+            plant: components["schemas"]["TracePlant"];
+            source: components["schemas"]["BatchSource"];
+            sourceReference: null | string;
+            motherPlant: null | string;
+            originCountry: string;
+            /** Format: date-time */
+            startedAt: string;
+            supplier: null | components["schemas"]["TraceSupplier"];
+            purchase: null | components["schemas"]["TracePurchase"];
+            parent: null | components["schemas"]["TraceBatchLink"];
+            children: components["schemas"]["TraceBatchLink"][];
+            receivedPassports: components["schemas"]["TracePassport"][];
+            containers: components["schemas"]["TraceContainer"][];
+            steps: components["schemas"]["TraceStep"][];
+            sales: components["schemas"]["TraceSale"][];
+            totals: components["schemas"]["TraceTotals"];
+        };
         BenchSignInRequest: {
             /** Format: uuid */
             userId: string;
@@ -6513,6 +6608,97 @@ export interface components {
             /** Format: double */
             amount: number | string;
             notes: null | string;
+        };
+        TraceBatchLink: {
+            /** Format: uuid */
+            id: string;
+            traceabilityCode: string;
+            commonName: string;
+            variety: null | string;
+        };
+        TraceContainer: {
+            labelCode: string;
+            kind: components["schemas"]["ContainerKind"];
+            /** Format: int32 */
+            now: number | string;
+            place: null | string;
+        };
+        TraceMatch: {
+            /** Format: uuid */
+            batchId: string;
+            traceabilityCode: string;
+            commonName: string;
+            variety: null | string;
+            source: components["schemas"]["BatchSource"];
+            /** Format: date-time */
+            startedAt: string;
+        };
+        TracePassport: {
+            /** Format: date */
+            receivedOn: string;
+            supplierName: string;
+            partA: string;
+            partB: string;
+            partC: null | string;
+            partD: string;
+            partE: null | string;
+            status: components["schemas"]["ReceivedPassportStatus"];
+        };
+        TracePlant: {
+            /** Format: uuid */
+            id: string;
+            commonName: string;
+            variety: null | string;
+            botanicalName: null | string;
+            xylellaHost: null | boolean;
+        };
+        TracePurchase: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            purchasedOn: string;
+            reference: null | string;
+        };
+        TraceSale: {
+            /** Format: uuid */
+            invoiceId: string;
+            /** Format: int32 */
+            number: number | string;
+            /** Format: date */
+            issuedOn: string;
+            customerName: string;
+            /** Format: int32 */
+            quantity: number | string;
+            cancelled: boolean;
+        };
+        TraceStep: {
+            /** Format: uuid */
+            eventId: string;
+            type: components["schemas"]["EventType"];
+            /** Format: date-time */
+            occurredAt: string;
+            labelCode: null | string;
+            fromLabelCode: null | string;
+            /** Format: int32 */
+            quantity: null | number | string;
+            place: null | string;
+            recordedBy: null | string;
+            details: components["schemas"]["JsonElement"];
+            corrected: boolean;
+        };
+        TraceSupplier: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            passportRegistrationNumber: null | string;
+        };
+        TraceTotals: {
+            /** Format: int32 */
+            lost: number | string;
+            /** Format: int32 */
+            sold: number | string;
+            /** Format: int32 */
+            now: number | string;
         };
         TransferRequest: {
             /** Format: uuid */

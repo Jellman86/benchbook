@@ -2267,3 +2267,51 @@ button.danger:hover:not(:disabled) {
 .calendar-grid button:disabled {
   opacity: 0.35;
 }
+
+/* A printed report is the page alone: no navigation and no buttons. */
+@media print {
+  .sidebar,
+  .bottom-nav,
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff;
+    color: #000000;
+  }
+
+  .trace .card {
+    break-inside: avoid;
+  }
+}
+
+.trace-search {
+  align-items: flex-end;
+  max-width: 36rem;
+}
+
+.trace-search .grow {
+  flex: 1 1 14rem;
+}
+
+.row.trace-search button {
+  flex: 0 0 auto;
+}
+
+.trace-print {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  align-self: flex-start;
+}
+
+@media print {
+  .split.trace {
+    display: block;
+  }
+
+  .split.trace > section + section {
+    margin-top: 1.5rem;
+  }
+}
