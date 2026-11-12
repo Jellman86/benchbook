@@ -66,6 +66,7 @@
         rows="2"
         placeholder="Seed standards: 12345"></textarea></label
     >
+    <p class="muted">Saved for {supplier.name} straight away.</p>
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
     <div class="row">
       <button type="button" disabled={busy} onclick={save}>Save numbers</button>
@@ -81,11 +82,11 @@
       {:else}
         No registration numbers for {supplier.name} yet.
       {/if}
-      <button type="button" class="link-button" onclick={start}
-        >{supplier.passportRegistrationNumber || supplier.otherRegistrations
-          ? "Change numbers"
-          : "Add numbers"}</button
-      >
     </p>
+    <button type="button" class="link-button" onclick={start}
+      >{supplier.passportRegistrationNumber || supplier.otherRegistrations
+        ? "Change numbers"
+        : "Add numbers"}</button
+    >
   {/if}
 </div>

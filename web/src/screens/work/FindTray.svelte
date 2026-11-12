@@ -15,7 +15,9 @@
   );
   let fetched = false;
 
+  const mostShown = 20;
   const found = $derived(findTrays(containers, query));
+  const shown = $derived(found.slice(0, mostShown));
 
   // Fresh from the server when someone starts looking; what the device remembers otherwise.
   async function refresh() {
@@ -31,9 +33,12 @@
       if (data) {
         containers = data;
         rememberContainers(data);
+      } else {
+        fetched = false;
       }
     } catch {
-      // No signal: the remembered trays will do.
+      // No signal: the remembered trays will do, and the next look tries again.
+      fetched = false;
     }
   }
 
@@ -52,7 +57,15 @@
     <input
       type="search"
       bind:value={query}
-      onfocus={refresh}
+      onfocus={(event) => {
+        void refresh();
+        // On a phone the keyboard covers the lower half, so bring the box and its results up.
+        const box = event.currentTarget;
+        setTimeout(
+          () => box.scrollIntoView({ behavior: "smooth", block: "start" }),
+          300,
+        );
+      }}
       autocomplete="off"
       placeholder="Plant, place or code"
     />
@@ -63,7 +76,7 @@
       <p class="muted">No tray with plants matches that.</p>
     {:else}
       <ul class="place-tree" aria-label="Trays found">
-        {#each found as container (container.id)}
+        {#each shown as container (container.id)}
           <li>
             <button
               class="place-row"
@@ -82,6 +95,12 @@
           </li>
         {/each}
       </ul>
+      {#if found.length > shown.length}
+        <p class="muted">
+          Showing the first {shown.length} of {found.length}. Type more to
+          narrow it down.
+        </p>
+      {/if}
     {/if}
   {/if}
 </div>

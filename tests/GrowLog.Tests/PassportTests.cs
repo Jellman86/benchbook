@@ -33,8 +33,26 @@ public sealed class PassportTests(PostgresFixture database)
     private static Task<JsonElement> DraftAsync(HttpClient client, Guid batch, Guid tray) =>
         client.GetFromJsonAsync<JsonElement>(Route($"/api/batches/{batch}/passport-draft?containerId={tray}"), Cancellation);
 
-    private static Task<HttpResponseMessage> IssueAsync(HttpClient client, Guid batch, Guid tray, int quantity = 10, bool examined = true) =>
-        PostAsync(client, "/api/passports", new { batchId = batch, containerId = tray, quantity, issuedTo = "Hilltop Garden Centre", examined });
+    private static Task<HttpResponseMessage> IssueAsync(HttpClient client, Guid batch, Guid tray, int quantity = 10, bool examined = true, Guid? passportId = null, string? expectedPartD = null) =>
+        PostAsync(client, "/api/passports", new { passportId = passportId ?? Guid.NewGuid(), batchId = batch, containerId = tray, quantity, issuedTo = "Hilltop Garden Centre", examined, expectedPartD });
+
+    private static async Task<(Guid Batch, Guid Tray)> BuyInAtAsync(TwoPersonNursery nursery, Guid place, DateTimeOffset when, string botanical = "Lavandula angustifolia")
+    {
+        var plant = await AddAsync(nursery.Owner, "/api/plants", new { commonName = $"{botanical} {Guid.NewGuid():N}", botanicalName = botanical, xylellaHost = false, protectedVariety = false });
+        var supplier = await AddAsync(nursery.Staff, "/api/suppliers", new { name = $"Supplier {Guid.NewGuid():N}" });
+        var started = Json(await PostForTextAsync(nursery.Staff, "/api/batches", new { eventId = Guid.NewGuid(), occurredAt = when, plantId = plant, quantity = 40, source = "BoughtIn", supplierId = supplier, originCountry = "NL", containerKind = "Tray", locationId = place }));
+        return (started.GetProperty("batchId").GetGuid(), started.GetProperty("containerId").GetGuid());
+    }
+
+    private static async Task<(Guid Outside, Guid Tunnel)> PlacesAsync(HttpClient owner)
+    {
+        var site = await AddAsync(owner, "/api/locations", new { name = "Croft", kind = "Site" });
+        return (await AddAsync(owner, "/api/locations", new { name = "Standing ground", kind = "StandingBed", parentId = site }),
+            await AddAsync(owner, "/api/locations", new { name = "Tunnel", kind = "Polytunnel", parentId = site }));
+    }
+
+    private static async Task<string> PartDAsync(HttpClient client, Guid batch, Guid tray) =>
+        (await DraftAsync(client, batch, tray)).GetProperty("partD").GetString()!;
 
     private static PassportOrigin.Facts Facts(
         BatchSource source = BatchSource.BoughtIn,
@@ -42,7 +60,7 @@ public sealed class PassportTests(PostgresFixture database)
         bool changed = false,
         bool underCover = false,
         bool? host = false) =>
-        new(source, "NL", Now.AddDays(-daysHere), Now, changed, underCover, host);
+        new(source, "NL", Now.AddDays(-daysHere), Now, changed, underCover ? Now.AddDays(-daysHere) : null, host);
 
     [Theory]
     [InlineData(1, false, false, "NL")]
@@ -56,6 +74,7 @@ public sealed class PassportTests(PostgresFixture database)
     [Fact]
     public void Xylella_hosts_and_unchecked_plants_wait_a_year_and_plants_raised_here_are_GB()
     {
+        Assert.Equal("NL", PassportOrigin.Decide(Facts(daysHere: 60) with { CeratocystisHost = true }).Country);
         Assert.Equal("NL", PassportOrigin.Decide(Facts(daysHere: 200, changed: true, host: true)).Country);
         Assert.Equal("NL", PassportOrigin.Decide(Facts(daysHere: 200, host: null)).Country);
         Assert.Equal("GB", PassportOrigin.Decide(Facts(daysHere: 400, host: true)).Country);
@@ -87,9 +106,16 @@ public sealed class PassportTests(PostgresFixture database)
         using var tooMany = await IssueAsync(nursery.Staff, batch, tray, quantity: 41);
         Assert.Equal(HttpStatusCode.Conflict, tooMany.StatusCode);
 
-        using var issued = await IssueAsync(nursery.Staff, batch, tray);
+        using var changed = await IssueAsync(nursery.Staff, batch, tray, expectedPartD: "GB");
+        Assert.Equal("Changed", Json(await changed.Content.ReadAsStringAsync(Cancellation)).GetProperty("problem").GetString());
+
+        // A retry after a lost reply finds the passport already issued.
+        var id = Guid.NewGuid();
+        using var issued = await IssueAsync(nursery.Staff, batch, tray, passportId: id, expectedPartD: "NL");
         Assert.Equal(HttpStatusCode.Created, issued.StatusCode);
-        var id = Json(await issued.Content.ReadAsStringAsync(Cancellation)).GetProperty("id").GetGuid();
+        using var retried = await IssueAsync(nursery.Staff, batch, tray, passportId: id, expectedPartD: "NL");
+        Assert.Equal(HttpStatusCode.OK, retried.StatusCode);
+        Assert.Equal(id, Json(await issued.Content.ReadAsStringAsync(Cancellation)).GetProperty("id").GetGuid());
 
         var kept = Assert.Single((await nursery.Staff.GetFromJsonAsync<JsonElement>(Route($"/api/passports?batchId={batch}"), Cancellation)).EnumerateArray());
         Assert.Equal("Hilltop Garden Centre", kept.GetProperty("issuedTo").GetString());
@@ -108,6 +134,44 @@ public sealed class PassportTests(PostgresFixture database)
         using var label = await nursery.Staff.GetAsync(Route($"/api/labels/passports/{id}"), Cancellation);
         Assert.Equal(HttpStatusCode.OK, label.StatusCode);
         Assert.StartsWith("%PDF", Encoding.ASCII.GetString(await label.Content.ReadAsByteArrayAsync(Cancellation), 0, 4), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Only_the_owner_and_whoever_issued_a_passport_see_who_it_went_to()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        await RegisterAsync(nursery.Owner, "123456");
+        var (batch, tray) = await BuyInAsync(nursery);
+        using var issued = await IssueAsync(nursery.Owner, batch, tray);
+
+        var seen = Assert.Single((await nursery.Staff.GetFromJsonAsync<JsonElement>(Route($"/api/passports?batchId={batch}"), Cancellation)).EnumerateArray());
+        Assert.Equal(JsonValueKind.Null, seen.GetProperty("issuedTo").ValueKind);
+        Assert.Equal(HttpStatusCode.BadRequest, await GetStatusAsync(nursery.Staff, "/api/passports"));
+    }
+
+    [Fact]
+    public async Task Part_d_follows_where_these_plants_have_been_not_the_rest_of_the_batch()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (outside, tunnel) = await PlacesAsync(nursery.Owner);
+
+        // Potting on some of a batch makes only those grown on here.
+        var (batch, tray) = await BuyInAtAsync(nursery, outside, DateTimeOffset.UtcNow.AddDays(-2));
+        var potted = Json(await PostForTextAsync(nursery.Staff, $"/api/containers/{tray}/transfer", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow.AddDays(-1), type = "PottedOn", batchId = batch, quantity = 10, containerKind = "PotGroup" })).GetProperty("containerId").GetGuid();
+        Assert.Equal("NL", await PartDAsync(nursery.Staff, batch, tray));
+        Assert.Equal("GB", await PartDAsync(nursery.Staff, batch, potted));
+
+        // Two weeks under cover count from when the tray went under cover.
+        var (moved, movedTray) = await BuyInAtAsync(nursery, outside, DateTimeOffset.UtcNow.AddDays(-15));
+        await PostForTextAsync(nursery.Staff, $"/api/containers/{movedTray}/move", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow.AddHours(-1), locationId = tunnel });
+        Assert.Equal("NL", await PartDAsync(nursery.Staff, moved, movedTray));
+
+        var (covered, coveredTray) = await BuyInAtAsync(nursery, tunnel, DateTimeOffset.UtcNow.AddDays(-15));
+        Assert.Equal("GB", await PartDAsync(nursery.Staff, covered, coveredTray));
+
+        // Plane trees host Ceratocystis platani, so they wait a year.
+        var (plane, planeTray) = await BuyInAtAsync(nursery, tunnel, DateTimeOffset.UtcNow.AddDays(-30), "Platanus x hispanica");
+        Assert.Equal("NL", await PartDAsync(nursery.Staff, plane, planeTray));
     }
 
     [Fact]

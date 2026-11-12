@@ -3824,6 +3824,7 @@
           {
             "name": "batchId",
             "in": "query",
+            "required": true,
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -6174,6 +6175,7 @@
       },
       "IssuePassportRequest": {
         "required": [
+          "passportId",
           "batchId",
           "containerId",
           "quantity",
@@ -6184,6 +6186,10 @@
         ],
         "type": "object",
         "properties": {
+          "passportId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "batchId": {
             "type": "string",
             "format": "uuid"
@@ -6217,6 +6223,12 @@
             "type": "boolean"
           },
           "findings": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expectedPartD": {
             "type": [
               "null",
               "string"
@@ -7112,7 +7124,10 @@
             "type": "string"
           },
           "issuedTo": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "issuedOn": {
             "type": "string",

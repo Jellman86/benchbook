@@ -19,9 +19,16 @@
     "December",
   ];
   const thisYear = new Date().getFullYear();
-  const years = Array.from({ length: 9 }, (_, index) => thisYear - 3 + index);
-
   const parts = $derived(sowByParts(value));
+  // A few years either side, and whatever year is already kept, however far out.
+  const years = $derived(
+    [
+      ...new Set([
+        ...Array.from({ length: 9 }, (_, index) => thisYear - 3 + index),
+        ...(parts ? [parts.year] : []),
+      ]),
+    ].sort((a, b) => a - b),
+  );
 
   function set(month: number | null, year: number | null) {
     value = month && year ? monthEnd(year, month) : "";
@@ -30,7 +37,7 @@
 
 <fieldset class="day-picker">
   <legend class="field-label">Sow by or use by, from the packet</legend>
-  <div class="field-grid">
+  <div class="sow-by-fields">
     <label
       >Month <select
         value={parts?.month ?? ""}

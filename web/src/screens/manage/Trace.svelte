@@ -15,6 +15,7 @@
   } from "../../lib/trace";
   import { sowByPassed, sowByWords } from "../../lib/sowBy";
   import { attempt, type Schemas } from "../../lib/types";
+  import PrintButton from "../PrintButton.svelte";
   import PassportCard from "../work/PassportCard.svelte";
   import { plantName } from "../../lib/work";
 
@@ -209,12 +210,12 @@
                   >
                   <span class="muted">D: {passport.originRule}</span>
                 </PassportCard>
-                <a
-                  class="link-button no-print"
-                  href="/api/labels/passports/{passport.id}"
-                  target="_blank"
-                  rel="noopener">Print again</a
-                >
+                <div class="no-print">
+                  <PrintButton
+                    href="/api/labels/passports/{passport.id}"
+                    label="Print again"
+                  />
+                </div>
               </div>
             {:else}
               <p class="muted">None issued for this batch.</p>

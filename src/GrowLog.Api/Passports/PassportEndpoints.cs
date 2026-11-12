@@ -55,7 +55,7 @@ internal static class PassportEndpoints
 
         var settings = await db.GetNurserySettingsAsync(cancellationToken);
         var available = (await store.GetContainerStateAsync(containerId, cancellationToken)).Contents.FirstOrDefault(line => line.BatchId == id)?.Quantity ?? 0;
-        var origin = PassportOrigin.Decide(await FactsAsync(found.Batch, found.XylellaHost, containerId, db, store, clock, cancellationToken));
+        var origin = PassportOrigin.Decide(await FactsAsync(found.Batch, found.BotanicalName, found.XylellaHost, containerId, db, clock, cancellationToken));
         var partA = found.BotanicalName?.Trim();
         var partB = PartB(settings.RegistrationNumber);
 
@@ -79,29 +79,82 @@ internal static class PassportEndpoints
         return new IssueDraft(partA, partB, found.Batch.TraceabilityCode, origin.Country, origin.Rule, available, found.XylellaHost, problems);
     }
 
-    private static async Task<PassportOrigin.Facts> FactsAsync(Batch batch, bool? xylellaHost, Guid containerId, GrowLogDbContext db, EventStore store, TimeProvider clock, CancellationToken cancellationToken)
+    private static async Task<PassportOrigin.Facts> FactsAsync(Batch batch, string? botanical, bool? xylellaHost, Guid containerId, GrowLogDbContext db, TimeProvider clock, CancellationToken cancellationToken)
     {
-        var standing = db.Events.Where(e => !db.Events.Any(correction => correction.CorrectsEventId == e.Id) && e.Lines.Any(line => line.BatchId == batch.Id));
-        var arrivedAt = await standing.MinAsync(e => (DateTimeOffset?)e.OccurredAt, cancellationToken) ?? batch.CreatedAt;
-        var changed = await standing.AnyAsync(
-            e => ChangesThePlants.Contains(e.Type)
-                || (e.Type == EventType.Corrected && db.Events.Any(original => original.Id == e.CorrectsEventId && ChangesThePlants.Contains(original.Type))),
+        var lines = db.EventLines
+            .Where(line => line.BatchId == batch.Id && !db.Events.Any(correction => correction.CorrectsEventId == line.EventId))
+            .Join(db.Events, line => line.EventId, e => e.Id, (line, e) => new { Line = line, Event = e });
+
+        // A replacement correction carries the true time of the work it replaced.
+        var arrivedAt = await lines.MinAsync(row => (DateTimeOffset?)(row.Line.EffectiveAt ?? row.Event.OccurredAt), cancellationToken) ?? batch.CreatedAt;
+
+        // Only work that put these plants into this tray counts: potting on some of a batch leaves the rest as they were.
+        var changed = await lines.AnyAsync(
+            row => row.Line.ContainerId == containerId
+                && row.Line.QuantityChange > 0
+                && (ChangesThePlants.Contains(row.Event.Type)
+                    || (row.Event.Type == EventType.Corrected && db.Events.Any(original => original.Id == row.Event.CorrectsEventId && ChangesThePlants.Contains(original.Type)))),
             cancellationToken);
 
-        var placeId = (await store.GetPlacementsAsync([containerId], cancellationToken)).GetValueOrDefault(containerId)?.LocationId;
-        var places = await db.Locations.AsNoTracking().ToDictionaryAsync(place => place.Id, cancellationToken);
-        var underCover = false;
-
-        // The tray counts as under cover if the place it's in, or any place that sits around it, is.
-        for (var depth = 0; placeId is { } current && places.TryGetValue(current, out var place) && depth < 12; depth++)
-        {
-            underCover |= Covered.Contains(place.Kind);
-            placeId = place.ParentId;
-        }
-
-        return new PassportOrigin.Facts(batch.Source, batch.OriginCountry, arrivedAt, clock.GetUtcNow(), changed, underCover, xylellaHost);
+        return new PassportOrigin.Facts(
+            batch.Source,
+            batch.OriginCountry,
+            arrivedAt,
+            clock.GetUtcNow(),
+            changed,
+            await UnderCoverSinceAsync(containerId, db, cancellationToken),
+            xylellaHost,
+            CeratocystisHost: botanical?.TrimStart().StartsWith("Platanus", StringComparison.OrdinalIgnoreCase) == true);
     }
 
+    /// <summary>Since when the tray has been under cover without a break, going back from where it is now; null if it isn't.</summary>
+    private static async Task<DateTimeOffset?> UnderCoverSinceAsync(Guid containerId, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        var placings = await db.Events
+            .AsNoTracking()
+            .Where(e => e.ContainerId == containerId && e.LocationId != null && !db.Events.Any(correction => correction.CorrectsEventId == e.Id))
+            .Select(e => new
+            {
+                LocationId = e.LocationId!.Value,
+                At = e.CorrectsEventId == null ? e.OccurredAt : db.Events.Where(original => original.Id == e.CorrectsEventId).Select(original => original.OccurredAt).First(),
+            })
+            .OrderBy(placing => placing.At)
+            .ToListAsync(cancellationToken);
+
+        var places = await db.Locations.AsNoTracking().ToDictionaryAsync(place => place.Id, cancellationToken);
+        DateTimeOffset? since = null;
+
+        for (var index = placings.Count - 1; index >= 0 && IsCovered(placings[index].LocationId, places); index--)
+        {
+            since = placings[index].At;
+        }
+
+        return since;
+    }
+
+    /// <summary>A place is under cover if it, or any place it sits inside, is a greenhouse, polytunnel or cold frame.</summary>
+    private static bool IsCovered(Guid placeId, Dictionary<Guid, Location> places)
+    {
+        Guid? current = placeId;
+
+        for (var depth = 0; current is { } id && places.TryGetValue(id, out var place) && depth < 12; depth++)
+        {
+            if (Covered.Contains(place.Kind))
+            {
+                return true;
+            }
+
+            current = place.ParentId;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Issues a passport once. The device names it, so a retry after a lost reply finds the one already issued
+    /// rather than making a second. Part D is worked out again here, and if it differs from what the screen
+    /// showed, nothing is issued and the screen shows the new one.
+    /// </summary>
     private static async Task<IResult> IssueAsync(
         IssuePassportRequest request,
         ClaimsPrincipal user,
@@ -110,9 +163,14 @@ internal static class PassportEndpoints
         TimeProvider clock,
         CancellationToken cancellationToken)
     {
+        if (await db.IssuedPassports.AnyAsync(passport => passport.Id == request.PassportId, cancellationToken))
+        {
+            return TypedResults.Ok(new PassportIssued(request.PassportId));
+        }
+
         var issuedTo = await RecipientAsync(request, user, db, cancellationToken);
 
-        if (issuedTo is null || request.Quantity <= 0 || (request.Findings?.Length ?? 0) > LongestText)
+        if (request.PassportId == Guid.Empty || issuedTo is null || request.Quantity <= 0 || (request.Findings?.Length ?? 0) > LongestText)
         {
             return TypedResults.BadRequest();
         }
@@ -130,9 +188,9 @@ internal static class PassportEndpoints
             return TypedResults.NotFound();
         }
 
-        if (draft.Problems.Count > 0 || request.Quantity > draft.Available)
+        if (Refusal(request, draft) is { } refused)
         {
-            return TypedResults.Conflict(new PassportRefused(draft.Problems.Count > 0 ? "CannotIssue" : "TooMany"));
+            return TypedResults.Conflict(new PassportRefused(refused));
         }
 
         var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -143,27 +201,45 @@ internal static class PassportEndpoints
             return TypedResults.Conflict(new PassportRefused("CannotIssue"));
         }
 
-        var passport = new IssuedPassport
+        db.IssuedPassports.Add(Passport(request, draft, issuedTo, examined.Id, userId, clock));
+
+        try
         {
-            BatchId = request.BatchId,
-            ContainerId = request.ContainerId,
-            Quantity = request.Quantity,
-            PartA = draft.PartA!,
-            PartB = draft.PartB!,
-            PartC = draft.PartC,
-            PartD = draft.PartD,
-            OriginRule = draft.OriginRule,
-            CustomerId = request.CustomerId,
-            IssuedTo = issuedTo,
-            IssuedOn = DateOnly.FromDateTime(clock.GetLocalNow().DateTime),
-            ExaminationEventId = examined.Id,
-            IssuedBy = userId,
-        };
-        db.IssuedPassports.Add(passport);
-        await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return TypedResults.Created($"/api/passports/{passport.Id}", new PassportIssued(passport.Id));
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
+        {
+            // The same passport arrived twice at once, and the other one was kept.
+            return TypedResults.Ok(new PassportIssued(request.PassportId));
+        }
+
+        return TypedResults.Created($"/api/passports/{request.PassportId}", new PassportIssued(request.PassportId));
     }
+
+    private static string? Refusal(IssuePassportRequest request, IssueDraft draft) =>
+        draft.Problems.Count > 0 ? "CannotIssue"
+        : request.Quantity > draft.Available ? "TooMany"
+        : request.ExpectedPartD is { } shown && !string.Equals(shown, draft.PartD, StringComparison.Ordinal) ? "Changed"
+        : null;
+
+    private static IssuedPassport Passport(IssuePassportRequest request, IssueDraft draft, string issuedTo, Guid examinationId, Guid userId, TimeProvider clock) => new()
+    {
+        Id = request.PassportId,
+        BatchId = request.BatchId,
+        ContainerId = request.ContainerId,
+        Quantity = request.Quantity,
+        PartA = draft.PartA!,
+        PartB = draft.PartB!,
+        PartC = draft.PartC,
+        PartD = draft.PartD,
+        OriginRule = draft.OriginRule,
+        CustomerId = request.CustomerId,
+        IssuedTo = issuedTo,
+        IssuedOn = DateOnly.FromDateTime(clock.GetLocalNow().DateTime),
+        ExaminationEventId = examinationId,
+        IssuedBy = userId,
+    };
 
     /// <summary>The examination before an issue, recorded on the tray like any other work.</summary>
     private static Event Examination(IssuePassportRequest request, Guid userId, TimeProvider clock) => new()
@@ -192,10 +268,18 @@ internal static class PassportEndpoints
         return Clean(request.IssuedTo) is { Length: <= LongestText } typed ? typed : null;
     }
 
-    private static async Task<List<PassportSummary>> ListAsync(GrowLogDbContext db, Guid? batchId = null, CancellationToken cancellationToken = default) =>
-        await db.IssuedPassports
+    /// <summary>
+    /// The passports issued for a batch. Who they went to is the owner's to see, and the person who issued
+    /// each one, as with customers elsewhere.
+    /// </summary>
+    private static async Task<List<PassportSummary>> ListAsync(Guid batchId, ClaimsPrincipal user, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var owner = user.IsInRole(Accounts.AccountServices.OwnerRole) && user.FindFirst(Accounts.AccountServices.BenchSessionClaim) is null;
+
+        return await db.IssuedPassports
             .AsNoTracking()
-            .Where(passport => batchId == null || passport.BatchId == batchId)
+            .Where(passport => passport.BatchId == batchId)
             .OrderByDescending(passport => passport.CreatedAt)
             .Select(passport => new PassportSummary(
                 passport.Id,
@@ -207,10 +291,11 @@ internal static class PassportEndpoints
                 passport.PartC,
                 passport.PartD,
                 passport.OriginRule,
-                passport.IssuedTo,
+                owner || passport.IssuedBy == userId ? passport.IssuedTo : null,
                 passport.IssuedOn,
                 db.Users.Where(person => person.Id == passport.IssuedBy).Select(person => person.UserName).FirstOrDefault()))
             .ToListAsync(cancellationToken);
+    }
 
     /// <param name="Problems">Why a passport can't be issued yet, in words. Empty when it can.</param>
     /// <param name="Available">How many of the batch are in the tray now: the most one passport can cover.</param>
@@ -226,14 +311,18 @@ internal static class PassportEndpoints
 
     /// <param name="Examined">That the plants were examined just now and found fit to move.</param>
     /// <param name="Findings">What the examination found, if more than "no pests or diseases seen".</param>
+    /// <param name="PassportId">Made on the device, so a retry is recognised.</param>
+    /// <param name="ExpectedPartD">The Part D the screen showed; the issue is refused if it has changed since.</param>
     internal sealed record IssuePassportRequest(
+        Guid PassportId,
         Guid BatchId,
         Guid ContainerId,
         int Quantity,
         Guid? CustomerId,
         string? IssuedTo,
         bool Examined,
-        string? Findings);
+        string? Findings,
+        string? ExpectedPartD = null);
 
     internal sealed record PassportIssued(Guid Id);
 
@@ -249,7 +338,7 @@ internal static class PassportEndpoints
         string PartC,
         string PartD,
         string OriginRule,
-        string IssuedTo,
+        string? IssuedTo,
         DateOnly IssuedOn,
         string? IssuedBy);
 }

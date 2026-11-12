@@ -4916,8 +4916,8 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: {
-                    batchId?: string;
+                query: {
+                    batchId: string;
                 };
                 header?: never;
                 path?: never;
@@ -6233,6 +6233,8 @@ export interface components {
         };
         IssuePassportRequest: {
             /** Format: uuid */
+            passportId: string;
+            /** Format: uuid */
             batchId: string;
             /** Format: uuid */
             containerId: string;
@@ -6243,6 +6245,7 @@ export interface components {
             issuedTo: null | string;
             examined: boolean;
             findings: null | string;
+            expectedPartD?: null | string;
         };
         IssueRefused: {
             problem: string;
@@ -6466,7 +6469,7 @@ export interface components {
             partC: string;
             partD: string;
             originRule: string;
-            issuedTo: string;
+            issuedTo: null | string;
             /** Format: date */
             issuedOn: string;
             issuedBy: null | string;

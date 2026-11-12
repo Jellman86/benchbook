@@ -2405,3 +2405,13 @@ button.danger:hover:not(:disabled) {
   grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
   gap: 0.9rem;
 }
+
+.sow-by-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 0.75rem;
+}
+
+.supplier-registrations .link-button {
+  align-self: flex-start;
+}

@@ -2,8 +2,6 @@ import type { Schemas } from "./types";
 
 type Container = Schemas["ContainerResponse"];
 
-const mostShown = 20;
-
 const wordsIn = (text: string) =>
   text
     .toLowerCase()
@@ -49,6 +47,5 @@ export function findTrays(containers: Container[], query: string): Container[] {
       (a, b) =>
         Number(startsWell(b)) - Number(startsWell(a)) ||
         a.labelCode.localeCompare(b.labelCode),
-    )
-    .slice(0, mostShown);
+    );
 }
