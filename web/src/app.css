@@ -2493,3 +2493,21 @@ button.danger:hover:not(:disabled) {
   background: #ffffff;
   box-shadow: var(--paper-edge);
 }
+
+/* The day work on a tray is recorded for; picked out when it isn't today. */
+.work-day {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.work-day.earlier {
+  border-color: var(--accent);
+  background: var(--accent-surface);
+  color: var(--accent-text);
+}

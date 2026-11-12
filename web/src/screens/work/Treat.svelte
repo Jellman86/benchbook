@@ -8,10 +8,13 @@
 
   let {
     container,
+    when,
     onDone,
     onCancel,
   }: {
     container: Schemas["ContainerResponse"];
+    /** When the work was done, if not just now. */
+    when?: string;
     onDone: (message: string, eventId: string) => void;
     onCancel: () => void;
   } = $props();
@@ -36,7 +39,7 @@
     event.preventDefault();
     busy = true;
     const outcome = await recordWork(
-      work.treat(container.id, { product, dose, area }),
+      work.treat(container.id, { product, dose, area }, when),
     );
     busy = false;
 

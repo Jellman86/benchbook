@@ -16,10 +16,13 @@
 
   let {
     container,
+    when,
     onDone,
     onCancel,
   }: {
     container: Schemas["ContainerResponse"];
+    /** When the work was done, if not just now. */
+    when?: string;
     onDone: (message: string, eventId: string) => void;
     onCancel: () => void;
   } = $props();
@@ -38,12 +41,16 @@
 
   async function record(reason: Schemas["LossReason"], label: string) {
     busy = true;
-    const item: WorkRequest = work.lose(container.id, {
-      batchId: line.batchId,
-      quantity: line.notCounted ? 0 : quantity,
-      reason,
-      all: line.notCounted ? all : null,
-    });
+    const item: WorkRequest = work.lose(
+      container.id,
+      {
+        batchId: line.batchId,
+        quantity: line.notCounted ? 0 : quantity,
+        reason,
+        all: line.notCounted ? all : null,
+      },
+      when,
+    );
     const outcome = await recordWork(item);
     busy = false;
 

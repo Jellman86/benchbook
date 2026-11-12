@@ -160,9 +160,9 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
         await LockContainersAsync(keys, newEvent.ContainerId, cancellationToken);
 
         // Checked first: a resend is not a new change, whatever has happened to the stock since.
-        if (await AlreadyStoredAsync(newEvent, cancellationToken) is { } earlier)
+        if (await RefusedAsync(newEvent, keys, cancellationToken) is { } refused)
         {
-            return earlier;
+            return refused;
         }
 
         foreach (var key in keys)
@@ -195,6 +195,44 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
             db.ChangeTracker.Clear();
             return await AlreadyStoredAsync(newEvent, cancellationToken) ?? AppendResult.AlreadyStored;
         }
+    }
+
+    /// <summary>A resend, an identifier clash, or work dated before its tray was started; null if the work can go in.</summary>
+    private async Task<AppendResult?> RefusedAsync(Event newEvent, List<StockKey> keys, CancellationToken cancellationToken)
+    {
+        if (await AlreadyStoredAsync(newEvent, cancellationToken) is { } earlier)
+        {
+            return earlier;
+        }
+
+        return await BeforeStartAsync(newEvent, keys, cancellationToken) ? AppendResult.BeforeStart : null;
+    }
+
+    private static readonly EventType[] Starts = [EventType.Sown, EventType.Received, EventType.CuttingsTaken, EventType.Corrected];
+
+    /// <summary>
+    /// Whether work is dated before a container it touches was started, as when someone picks the wrong day while
+    /// writing up earlier work. Starting work, and corrections, which stand in for earlier work, are never refused.
+    /// </summary>
+    private async Task<bool> BeforeStartAsync(Event newEvent, List<StockKey> keys, CancellationToken cancellationToken)
+    {
+        if (Starts.Contains(newEvent.Type))
+        {
+            return false;
+        }
+
+        var containers = keys.Select(key => key.ContainerId)
+            .Concat(newEvent.ContainerId is { } id ? [id] : [])
+            .Distinct()
+            .ToList();
+
+        var started = await db.Events
+            .Where(e => !db.Events.Any(c => c.CorrectsEventId == e.Id)
+                && e.CorrectsEventId == null
+                && ((e.ContainerId != null && containers.Contains(e.ContainerId.Value)) || e.Lines.Any(line => containers.Contains(line.ContainerId))))
+            .MinAsync(e => (DateTimeOffset?)e.OccurredAt, cancellationToken);
+
+        return started is { } first && newEvent.OccurredAt < first;
     }
 
     /// <summary>Work timed by a device whose clock is out is put back on the server's clock, and never in the future.</summary>

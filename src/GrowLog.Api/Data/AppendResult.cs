@@ -15,4 +15,7 @@ internal enum AppendResult
 
     /// <summary>Nothing was stored: a stock count named a batch that has never been in that container.</summary>
     NotInContainer,
+
+    /// <summary>Nothing was stored: the work is dated before the container was started.</summary>
+    BeforeStart,
 }

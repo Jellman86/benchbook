@@ -17,10 +17,13 @@
 
   let {
     container,
+    when,
     onDone,
     onCancel,
   }: {
     container: Schemas["ContainerResponse"];
+    /** When the work was done, if not just now. */
+    when?: string;
     onDone: (message: string, eventId: string) => void;
     onCancel: () => void;
   } = $props();
@@ -52,7 +55,7 @@
   async function move(place: { id: string; label: string }) {
     busy = true;
     const outcome = await recordWork(
-      work.move(container.id, { locationId: place.id }),
+      work.move(container.id, { locationId: place.id }, when),
     );
     busy = false;
 

@@ -8,10 +8,13 @@
 
   let {
     container,
+    when,
     onDone,
     onCancel,
   }: {
     container: Schemas["ContainerResponse"];
+    /** When the work was done, if not just now. */
+    when?: string;
     onDone: (message: string, eventId: string) => void;
     onCancel: () => void;
   } = $props();
@@ -31,7 +34,7 @@
   async function record() {
     busy = true;
     const outcome = await recordWork(
-      work.count(container.id, { batchId: line.batchId, counted }),
+      work.count(container.id, { batchId: line.batchId, counted }, when),
     );
     busy = false;
 

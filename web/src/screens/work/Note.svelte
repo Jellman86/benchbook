@@ -6,10 +6,13 @@
 
   let {
     container,
+    when,
     onDone,
     onCancel,
   }: {
     container: Schemas["ContainerResponse"];
+    /** When the work was done, if not just now. */
+    when?: string;
     onDone: (message: string, eventId: string) => void;
     onCancel: () => void;
   } = $props();
@@ -21,7 +24,7 @@
   async function record(event: SubmitEvent) {
     event.preventDefault();
     busy = true;
-    const outcome = await recordWork(work.note(container.id, { note }));
+    const outcome = await recordWork(work.note(container.id, { note }, when));
     busy = false;
 
     if (isRecorded(outcome)) {

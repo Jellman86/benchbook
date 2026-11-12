@@ -42,20 +42,41 @@ export const work = {
     details: Details<Schemas["StartBatchRequest"]>,
     occurredAt?: string,
   ) => request("/api/batches", details, occurredAt),
-  germinated: (id: string) => request(onContainer(id, "germinated"), {}),
-  ready: (id: string) => request(onContainer(id, "ready"), {}),
-  lose: (id: string, details: Details<Schemas["LossRequest"]>) =>
-    request(onContainer(id, "losses"), details),
-  move: (id: string, details: Details<Schemas["MoveRequest"]>) =>
-    request(onContainer(id, "move"), details),
-  transfer: (id: string, details: Details<Schemas["TransferRequest"]>) =>
-    request(onContainer(id, "transfer"), details),
-  count: (id: string, details: Details<Schemas["CountRequest"]>) =>
-    request(onContainer(id, "count"), details),
-  treat: (id: string, details: Details<Schemas["TreatmentRequest"]>) =>
-    request(onContainer(id, "treatments"), details),
-  note: (id: string, details: Details<Schemas["NoteRequest"]>) =>
-    request(onContainer(id, "notes"), details),
+  // Each takes the moment the work was done, when it wasn't just now.
+  germinated: (id: string, occurredAt?: string) =>
+    request(onContainer(id, "germinated"), {}, occurredAt),
+  ready: (id: string, occurredAt?: string) =>
+    request(onContainer(id, "ready"), {}, occurredAt),
+  lose: (
+    id: string,
+    details: Details<Schemas["LossRequest"]>,
+    occurredAt?: string,
+  ) => request(onContainer(id, "losses"), details, occurredAt),
+  move: (
+    id: string,
+    details: Details<Schemas["MoveRequest"]>,
+    occurredAt?: string,
+  ) => request(onContainer(id, "move"), details, occurredAt),
+  transfer: (
+    id: string,
+    details: Details<Schemas["TransferRequest"]>,
+    occurredAt?: string,
+  ) => request(onContainer(id, "transfer"), details, occurredAt),
+  count: (
+    id: string,
+    details: Details<Schemas["CountRequest"]>,
+    occurredAt?: string,
+  ) => request(onContainer(id, "count"), details, occurredAt),
+  treat: (
+    id: string,
+    details: Details<Schemas["TreatmentRequest"]>,
+    occurredAt?: string,
+  ) => request(onContainer(id, "treatments"), details, occurredAt),
+  note: (
+    id: string,
+    details: Details<Schemas["NoteRequest"]>,
+    occurredAt?: string,
+  ) => request(onContainer(id, "notes"), details, occurredAt),
   undo: (eventId: string) =>
     request(`/api/events/${eventId}/correct`, {
       quantity: null,
@@ -137,6 +158,8 @@ export function outcomeProblem(outcome: Outcome): string {
           return "That clashed with other work. Please record it again.";
         case "SoldByInvoice":
           return "A sale is cancelled with a credit note, under Invoices.";
+        case "BeforeStart":
+          return "That day is before this tray was started. Choose a later day.";
         case "NotCounted":
           return "Nobody has counted this tray yet. Open it again and say how many you took and how many are left.";
         case "NowCounted":
