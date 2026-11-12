@@ -86,6 +86,7 @@ internal static class WorkEndpoints
                 AppendResult.AlreadyStored => TypedResults.Json(await describe(), statusCode: StatusCodes.Status200OK),
                 AppendResult.IdInUse => Refused("IdInUse"),
                 AppendResult.NotInContainer => Refused("NotInContainer"),
+                AppendResult.BeforeStart => Refused("BeforeStart"),
                 _ => Refused("BelowZero"),
             };
         }

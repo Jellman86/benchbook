@@ -8,10 +8,13 @@
   // Germinated, on a tray nobody has counted: a count or best estimate now is welcome, but never needed.
   let {
     container,
+    when,
     onDone,
     onCancel,
   }: {
     container: Schemas["ContainerResponse"];
+    /** When the work was done, if not just now. */
+    when?: string;
     onDone: (message: string, eventId: string) => void;
     onCancel: () => void;
   } = $props();
@@ -31,7 +34,7 @@
     problem = "";
 
     // Both wait on the device if there's no signal, and go in this order.
-    const germinated = await recordWork(work.germinated(container.id));
+    const germinated = await recordWork(work.germinated(container.id, when));
 
     if (!isRecorded(germinated)) {
       busy = false;
@@ -41,7 +44,7 @@
 
     if (withCount) {
       const counted = await recordWork(
-        work.count(container.id, { batchId: line.batchId, counted: up }),
+        work.count(container.id, { batchId: line.batchId, counted: up }, when),
       );
 
       if (!isRecorded(counted)) {

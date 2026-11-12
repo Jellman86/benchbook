@@ -10,11 +10,14 @@
 
   let {
     container,
+    when,
     type,
     onDone,
     onCancel,
   }: {
     container: Schemas["ContainerResponse"];
+    /** When the work was done, if not just now. */
+    when?: string;
     type: "PottedOn" | "PrickedOut";
     onDone: (message: string, eventId: string, newLabel?: string) => void;
     onCancel: () => void;
@@ -61,16 +64,20 @@
   async function record() {
     busy = true;
     const outcome = await submit(
-      work.transfer(container.id, {
-        type,
-        batchId: line.batchId,
-        quantity,
-        containerKind: kind,
-        potSizeId: potSizeId || null,
-        locationId: null,
-        leftInTray: line.notCounted ? left : null,
-        countEventId: line.notCounted ? countEventId : null,
-      }),
+      work.transfer(
+        container.id,
+        {
+          type,
+          batchId: line.batchId,
+          quantity,
+          containerKind: kind,
+          potSizeId: potSizeId || null,
+          locationId: null,
+          leftInTray: line.notCounted ? left : null,
+          countEventId: line.notCounted ? countEventId : null,
+        },
+        when,
+      ),
     );
     busy = false;
 

@@ -2,6 +2,8 @@
   import PrintButton from "../PrintButton.svelte";
   import BatchPhotos from "./BatchPhotos.svelte";
   import EditBatch from "./EditBatch.svelte";
+  import DayPicker from "../DayPicker.svelte";
+  import { isoDay, momentOn, onDay } from "../../lib/days";
   import Germinate from "./Germinate.svelte";
   import PlantCard from "./PlantCard.svelte";
   import { onMount } from "svelte";
@@ -64,6 +66,12 @@
   let busy = $state(false);
   let cardPlant = $state<string | null>(null);
   let editing = $state<string | null>(null);
+  // The day work on this tray is recorded for: today, unless someone is writing up earlier work.
+  let workDay = $state(isoDay(new Date()));
+  let choosingDay = $state(false);
+  const when = $derived(
+    workDay === isoDay(new Date()) ? undefined : momentOn(workDay),
+  );
   let saved = $state("");
   let fromDevice = $state(false);
 
@@ -129,7 +137,7 @@
     }
 
     await record(
-      work.move(container.id, { locationId: place.id }),
+      work.move(container.id, { locationId: place.id }, when),
       `moved to ${place.path}`,
     );
   }
@@ -220,9 +228,9 @@
     const uncounted = !!container?.contents.some((line) => line.notCounted);
 
     if (chosen === "germinated" && container && !uncounted) {
-      void record(work.germinated(container.id), "germinated");
+      void record(work.germinated(container.id, when), "germinated");
     } else if (chosen === "ready" && container) {
-      void record(work.ready(container.id), "marked ready");
+      void record(work.ready(container.id, when), "marked ready");
     } else {
       action = chosen;
       pushStep("trayAction", chosen);
@@ -259,23 +267,23 @@
 {:else if editing}
   <EditBatch batchId={editing} onSaved={editSaved} onCancel={back} />
 {:else if action === "lost"}
-  <Lose {container} {onDone} onCancel={back} />
+  <Lose {container} {when} {onDone} onCancel={back} />
 {:else if action === "move"}
-  <Move {container} {onDone} onCancel={back} />
+  <Move {container} {when} {onDone} onCancel={back} />
 {:else if action === "potOn"}
-  <Transfer {container} type="PottedOn" {onDone} onCancel={back} />
+  <Transfer {container} {when} type="PottedOn" {onDone} onCancel={back} />
 {:else if action === "prickOut"}
-  <Transfer {container} type="PrickedOut" {onDone} onCancel={back} />
+  <Transfer {container} {when} type="PrickedOut" {onDone} onCancel={back} />
 {:else if action === "germinated"}
-  <Germinate {container} {onDone} onCancel={back} />
+  <Germinate {container} {when} {onDone} onCancel={back} />
 {:else if action === "count"}
-  <Count {container} {onDone} onCancel={back} />
+  <Count {container} {when} {onDone} onCancel={back} />
 {:else if action === "treat"}
-  <Treat {container} {onDone} onCancel={back} />
+  <Treat {container} {when} {onDone} onCancel={back} />
 {:else if action === "passports"}
   <Passports {container} onCancel={back} />
 {:else if action === "note"}
-  <Note {container} {onDone} onCancel={back} />
+  <Note {container} {when} {onDone} onCancel={back} />
 {:else}
   <main class="tray">
     <header class="plant-title">
@@ -341,6 +349,25 @@
       <section class="tray-actions">
         {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
         {#if saved}<p class="card done" role="status">{saved}</p>{/if}
+        <div class="work-day" class:earlier={!!when}>
+          <span
+            >Recording for <strong>{onDay(workDay).replace(/^on /, "")}</strong
+            ></span
+          >
+          <button
+            class="link-button"
+            aria-expanded={choosingDay}
+            onclick={() => (choosingDay = !choosingDay)}
+            >{choosingDay ? "Done" : "Change"}</button
+          >
+        </div>
+        {#if choosingDay}
+          <DayPicker bind:value={workDay} label="When was this work done?" />
+          <p class="muted">
+            Everything recorded on this tray now is dated that day, until you
+            leave the tray.
+          </p>
+        {/if}
         <div class="next-actions">
           {#each first as item (item)}
             <button disabled={busy} onclick={() => choose(item)}
