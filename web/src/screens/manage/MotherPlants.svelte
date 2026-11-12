@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { showForm } from "../../lib/showForm";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { dayLabel } from "../../lib/dates";
@@ -49,6 +50,7 @@
 
   function edit(mother: Mother) {
     editing = mother.id;
+    void showForm();
     form = {
       plantId: mother.plantId,
       name: mother.name,
@@ -86,7 +88,7 @@
       } else {
         problem =
           response.status === 409
-            ? "That plant already has a mother with that name, or its cuttings belong to another plant."
+            ? "That plant already has a mother with that name, perhaps one no longer used, or its cuttings belong to another plant."
             : "Choose the plant and give the mother a name.";
       }
     }, setProblem);
@@ -119,7 +121,7 @@
 
   <div class="split">
     <section>
-      <form class="form-card stack" onsubmit={save}>
+      <form class="form-card stack" onsubmit={save} data-edit-form>
         <h2 class="form-heading">
           {editing ? "Change the mother plant" : "Add a mother plant"}
         </h2>

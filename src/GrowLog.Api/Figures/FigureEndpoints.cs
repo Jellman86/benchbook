@@ -67,8 +67,11 @@ internal static class FigureEndpoints
         var losses = lines
             .Where(row => row.Type == EventType.Lost)
             .GroupBy(row => LossReasonOf(row.Event.Payload) ?? nameof(LossReason.Other), StringComparer.Ordinal)
-            // A tray lost before anyone counted it has no number to add, so it's counted as a tray.
-            .Select(group => new LossFigures(group.Key, -group.Sum(row => row.Line.QuantityChange), group.Count(row => row.Line.QuantityChange == 0)))
+            // A tray lost altogether before anyone counted it has no number to add, so it's counted as a tray, once.
+            .Select(group => new LossFigures(
+                group.Key,
+                -group.Sum(row => row.Line.QuantityChange),
+                group.Where(row => row.Line.QuantityChange == 0 && EventStore.LostAll(row.Event.Payload)).Select(row => row.Line.ContainerId).Distinct().Count()))
             .OrderByDescending(figures => figures.Quantity)
             .ThenByDescending(figures => figures.UncountedTrays)
             .ToList();
@@ -268,7 +271,7 @@ internal static class FigureEndpoints
         double? SurvivalRate,
         bool GerminationApproximate = false);
 
-    /// <param name="UncountedTrays">Trays with losses for this reason before anyone counted them, so not in Quantity.</param>
+    /// <param name="UncountedTrays">Trays lost altogether for this reason before anyone counted them, so not in Quantity.</param>
     internal sealed record LossFigures(string Reason, int Quantity, int UncountedTrays);
 
     /// <param name="Name">A supplier, a place such as "Greenhouse 2", or a month such as "2026-11".</param>

@@ -17,6 +17,8 @@
   let alerts = $state<Schemas["Alert"][]>([]);
   let busyId = $state<string | null>(null);
   let problem = $state("");
+  // The job last ticked off here, so a tap by mistake can be taken back.
+  let lastDone = $state<{ id: string; title: string } | null>(null);
 
   const due = $derived(jobs.filter((job) => job.due));
 
@@ -44,9 +46,35 @@
         body: { doneOn: null },
       });
       problem = response.ok ? "" : "That couldn't be marked done.";
+      lastDone = response.ok ? { id: job.id, title: job.title } : null;
       await load();
     } catch {
       problem = "Marking a job done needs a signal.";
+    } finally {
+      busyId = null;
+    }
+  }
+
+  async function undo() {
+    if (!lastDone) {
+      return;
+    }
+
+    const job = lastDone;
+    busyId = job.id;
+
+    try {
+      const { response } = await api.POST("/api/jobs/{id}/undo-done", {
+        params: { path: { id: job.id } },
+        body: { doneOn: null },
+      });
+      problem = response.ok
+        ? ""
+        : "That can't be undone now: it's only possible for a quarter of an hour.";
+      lastDone = null;
+      await load();
+    } catch {
+      problem = "Undoing needs a signal.";
     } finally {
       busyId = null;
     }
@@ -73,6 +101,18 @@
   {/each}
 {/if}
 
+{#if lastDone}
+  <p class="card done row" role="status">
+    <span class="grow">{lastDone.title}: done.</span>
+    <button class="link-button" disabled={busyId === lastDone.id} onclick={undo}
+      >Undo</button
+    >
+  </p>
+{/if}
+{#if problem && due.length === 0}<p class="problem" role="alert">
+    {problem}
+  </p>{/if}
+
 {#if due.length > 0}
   <h2>Jobs due</h2>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
@@ -89,6 +129,7 @@
             ? ` · last done ${dayLabel(job.lastDoneOn)}${job.lastDoneBy ? ` by ${job.lastDoneBy}` : ""}`
             : ""}</em
         >
+        {#if job.notes}<span class="job-notes">{job.notes}</span>{/if}
       </span>
       <div class="row">
         <button

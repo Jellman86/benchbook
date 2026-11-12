@@ -325,8 +325,24 @@
     suppliers = (await api.GET("/api/suppliers")).data ?? [];
   }
 
-  function next() {
+  async function next() {
     problem = "";
+
+    // A new mother plant typed in but not added yet is added now, rather than left behind.
+    if (
+      stage === 3 &&
+      source === "Cuttings" &&
+      plantId &&
+      !motherId &&
+      newMother.trim()
+    ) {
+      await addMother();
+
+      if (!motherId) {
+        return;
+      }
+    }
+
     goTo(stage + 1);
   }
 

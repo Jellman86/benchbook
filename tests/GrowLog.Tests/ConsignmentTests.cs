@@ -62,8 +62,12 @@ public sealed class ConsignmentTests(PostgresFixture database)
         Assert.Equal(HttpStatusCode.OK, await PostStatusAsync(nursery.Owner, $"/api/consignments/{id}/packages/{package}/passport", new { examined = true }));
 
         var passport = (await nursery.Owner.GetFromJsonAsync<JsonElement>(Route($"/api/consignments/{id}"), Cancellation)).GetProperty("packages")[0].GetProperty("passport");
-        Assert.Equal("Lavandula angustifolia; Salvia officinalis", passport.GetProperty("partA").GetString());
-        Assert.Equal(2, passport.GetProperty("partC").GetString()!.Split(", ").Length);
+        // Each batch's name, code and origin stay together.
+        var lines = passport.GetProperty("lines").EnumerateArray().ToList();
+        Assert.Equal("Lavandula angustifolia", lines[0].GetProperty("partA").GetString());
+        Assert.Equal("Salvia officinalis", lines[1].GetProperty("partA").GetString());
+        Assert.All(lines, line => Assert.Equal("GB", line.GetProperty("partD").GetString()));
+        Assert.Equal(10, lines[0].GetProperty("quantity").GetInt32());
         Assert.Equal("123456", passport.GetProperty("partB").GetString());
 
         using var label = await nursery.Owner.GetAsync(Route($"/api/labels/passports/{package}"), Cancellation);

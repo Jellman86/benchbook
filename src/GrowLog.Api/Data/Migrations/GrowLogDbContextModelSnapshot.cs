@@ -1222,6 +1222,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("job_id");
 
+                    b.Property<DateOnly?>("NextDueBefore")
+                        .HasColumnType("date")
+                        .HasColumnName("next_due_before");
+
                     b.HasKey("Id")
                         .HasName("pk_jobs_done");
 

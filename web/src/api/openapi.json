@@ -4186,6 +4186,34 @@
             }
           }
         }
+      },
+      "delete": {
+        "tags": [
+          "ConsignmentEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PassportRefused"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/consignments/{id}/packages/{packageId}/passport": {
@@ -4549,6 +4577,39 @@
       }
     },
     "/api/jobs/{id}/done": {
+      "post": {
+        "tags": [
+          "JobEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobDoneRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/jobs/{id}/undo-done": {
       "post": {
         "tags": [
           "JobEndpoints"
@@ -6388,6 +6449,13 @@
             "items": {
               "$ref": "#/components/schemas/PackageRequest"
             }
+          },
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -6596,6 +6664,13 @@
             ]
           },
           "stageSince": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "startedAt": {
             "type": [
               "null",
               "string"
@@ -7968,6 +8043,7 @@
           "BenchCard",
           "PlaceLabel",
           "PlantPassport",
+          "PackagePassport",
           "Invoice"
         ]
       },
@@ -8729,6 +8805,10 @@
               "string"
             ],
             "format": "date"
+          },
+          "setsRenewal": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -8865,19 +8945,38 @@
       },
       "PackagePassport": {
         "required": [
-          "partA",
           "partB",
-          "partC",
-          "partD",
-          "rules",
+          "lines",
           "issuedOn"
         ],
         "type": "object",
         "properties": {
-          "partA": {
+          "partB": {
             "type": "string"
           },
-          "partB": {
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackagePassportLine"
+            }
+          },
+          "issuedOn": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "PackagePassportLine": {
+        "required": [
+          "partA",
+          "partC",
+          "partD",
+          "rule",
+          "quantity"
+        ],
+        "type": "object",
+        "properties": {
+          "partA": {
             "type": "string"
           },
           "partC": {
@@ -8886,15 +8985,16 @@
           "partD": {
             "type": "string"
           },
-          "rules": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "rule": {
+            "type": "string"
           },
-          "issuedOn": {
-            "type": "string",
-            "format": "date"
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -12320,6 +12420,10 @@
           "eventId": {
             "type": "string",
             "format": "uuid"
+          },
+          "countedSince": {
+            "type": "boolean",
+            "default": false
           }
         }
       },

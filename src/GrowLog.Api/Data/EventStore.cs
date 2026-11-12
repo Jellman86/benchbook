@@ -108,6 +108,16 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
     public async Task<AppendResult> AppendCountThenAsync(Event stockCount, Guid batchId, int counted, Event then, CancellationToken cancellationToken)
     {
         PutOnServerClock(then);
+
+        // Placed after its tray's start first, if need be, so the count still falls just before it.
+        if (!Starts.Contains(then.Type)
+            && await StartedAsync(then, [.. then.Lines.Select(line => new StockKey(line.ContainerId, line.BatchId))], cancellationToken) is { PutPlantsIn: true } started
+            && then.OccurredAt <= started.At.AddSeconds(1)
+            && SameDay(then.OccurredAt, started.At))
+        {
+            then.OccurredAt = started.At.AddMinutes(1);
+        }
+
         stockCount.OccurredAt = then.OccurredAt.AddSeconds(-1);
         stockCount.Payload = JsonSerializer.Serialize(new { batchId, counted });
 
@@ -244,26 +254,49 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
     /// <summary>
     /// Whether work is dated before a container it touches was started, as when someone picks the wrong day while
     /// writing up earlier work. Starting work, and corrections, which stand in for earlier work, are never refused.
+    /// Work written up for the day the container was started, but timed earlier that day than the start, is moved
+    /// to just after the start: the day is what the person chose.
     /// </summary>
     private async Task<bool> BeforeStartAsync(Event newEvent, List<StockKey> keys, CancellationToken cancellationToken)
     {
-        if (Starts.Contains(newEvent.Type))
+        if (Starts.Contains(newEvent.Type) || await StartedAsync(newEvent, keys, cancellationToken) is not { } first || newEvent.OccurredAt >= first.At)
         {
             return false;
         }
 
+        // Only work after a real start, one that put plants in, is moved; anything else stays refused.
+        if (!first.PutPlantsIn || !SameDay(newEvent.OccurredAt, first.At))
+        {
+            return true;
+        }
+
+        newEvent.OccurredAt = first.At.AddMinutes(1);
+        return false;
+    }
+
+    private bool SameDay(DateTimeOffset one, DateTimeOffset other) =>
+        TimeZoneInfo.ConvertTime(one, clock.LocalTimeZone).Date == TimeZoneInfo.ConvertTime(other, clock.LocalTimeZone).Date;
+
+    /// <summary>
+    /// The earliest work on the containers this work touches, and whether it put plants in them, as a start does;
+    /// null if there's none.
+    /// </summary>
+    private async Task<(DateTimeOffset At, bool PutPlantsIn)?> StartedAsync(Event newEvent, List<StockKey> keys, CancellationToken cancellationToken)
+    {
         var containers = keys.Select(key => key.ContainerId)
             .Concat(newEvent.ContainerId is { } id ? [id] : [])
             .Distinct()
             .ToList();
 
-        var started = await db.Events
+        var first = await db.Events
             .Where(e => !db.Events.Any(c => c.CorrectsEventId == e.Id)
                 && e.CorrectsEventId == null
                 && ((e.ContainerId != null && containers.Contains(e.ContainerId.Value)) || e.Lines.Any(line => containers.Contains(line.ContainerId))))
-            .MinAsync(e => (DateTimeOffset?)e.OccurredAt, cancellationToken);
+            .OrderBy(e => e.OccurredAt)
+            .Select(e => new { e.OccurredAt, PutPlantsIn = e.Lines.Any(line => containers.Contains(line.ContainerId) && line.QuantityChange >= 0) })
+            .FirstOrDefaultAsync(cancellationToken);
 
-        return started is { } first && newEvent.OccurredAt < first;
+        return first is null ? null : (first.OccurredAt, first.PutPlantsIn);
     }
 
     /// <summary>Work timed by a device whose clock is out is put back on the server's clock, and never in the future.</summary>

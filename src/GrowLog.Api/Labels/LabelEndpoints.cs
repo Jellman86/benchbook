@@ -157,24 +157,29 @@ internal static class LabelEndpoints
     /// </summary>
     internal static async Task<LabelJob?> PassportLabelAsync(Guid id, GrowLogDbContext db, CancellationToken cancellationToken)
     {
-        object data;
-
         if (await db.IssuedPassports.AsNoTracking().FirstOrDefaultAsync(passport => passport.Id == id, cancellationToken) is { } passport)
         {
-            data = new { partA = passport.PartA, partB = passport.PartB, partC = passport.PartC, partD = passport.PartD };
+            var data = new { partA = passport.PartA, partB = passport.PartB, partC = passport.PartC, partD = passport.PartD };
+            return new LabelJob(LabelKind.PlantPassport, data, null, await LabelSettings.LoadAsync(db, LabelKind.PlantPassport, cancellationToken));
         }
-        else if (Passports.ConsignmentEndpoints.Combined(await db.IssuedPassports.AsNoTracking().Where(line => line.PackageId == id).ToListAsync(cancellationToken)) is { } package)
-        {
-            // A package's one passport: every species and every batch code in it.
-            data = new { partA = package.PartA, partB = package.PartB, partC = package.PartC, partD = package.PartD };
-        }
-        else
+
+        if (Passports.ConsignmentEndpoints.Combined(await db.IssuedPassports.AsNoTracking().Where(line => line.PackageId == id).ToListAsync(cancellationToken)) is not { } package)
         {
             return null;
         }
 
-        var context = await LabelSettings.LoadAsync(db, LabelKind.PlantPassport, cancellationToken);
-        return new LabelJob(LabelKind.PlantPassport, data, null, context);
+        // A package's one passport, on its own page with each batch's parts together.
+        var where = await db.Consignments
+            .SelectMany(consignment => consignment.Packages.Where(item => item.Id == id).Select(item => new { Consignment = consignment.Number, Package = item.Number }))
+            .FirstAsync(cancellationToken);
+        var packageData = new
+        {
+            partB = package.PartB,
+            lines = package.Lines.Select(line => new { partA = line.PartA, partC = line.PartC, partD = line.PartD }),
+            package = $"Consignment {where.Consignment}, package {where.Package}",
+        };
+
+        return new LabelJob(LabelKind.PackagePassport, packageData, null, await LabelSettings.LoadAsync(db, LabelKind.PackagePassport, cancellationToken));
     }
 
     private static async Task<IResult> PrintPlantLabelAsync(

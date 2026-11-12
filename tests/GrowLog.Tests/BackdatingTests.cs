@@ -32,4 +32,40 @@ public sealed class BackdatingTests(PostgresFixture database)
         Assert.Equal("BeforeStart", Json(await early.Content.ReadAsStringAsync(Cancellation)).GetProperty("problem").GetString());
         Assert.Equal(HttpStatusCode.Conflict, await PostStatusAsync(nursery.Staff, $"/api/containers/{tray}/notes", new { eventId = Guid.NewGuid(), occurredAt = sown.AddDays(-1), note = "Too early" }));
     }
+
+    [Fact]
+    public async Task Work_written_up_for_the_day_a_tray_was_started_goes_just_after_the_start()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var plant = Json(await PostForTextAsync(nursery.Owner, "/api/plants", new { commonName = "Cosmos", xylellaHost = false, protectedVariety = false })).GetProperty("id").GetGuid();
+        var day = DateTimeOffset.UtcNow.UtcDateTime.Date.AddDays(-3);
+        var sown = new DateTimeOffset(day.AddHours(15), TimeSpan.Zero);
+        var started = Json(await PostForTextAsync(nursery.Staff, "/api/batches", new { eventId = Guid.NewGuid(), occurredAt = sown, plantId = plant, quantity = 40, source = "SeedLot", originCountry = "GB", containerKind = "Tray" }));
+        var tray = started.GetProperty("containerId").GetGuid();
+        var batch = started.GetProperty("batchId").GetGuid();
+
+        // Written up the next morning for "yesterday", which the phone times at this morning's hour.
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Staff, $"/api/containers/{tray}/losses", new { eventId = Guid.NewGuid(), occurredAt = new DateTimeOffset(day.AddHours(9), TimeSpan.Zero), batchId = batch, quantity = 2, reason = "Pest" }));
+
+        var history = (await nursery.Staff.GetFromJsonAsync<JsonElement>(Route($"/api/containers/{tray}/history"), Cancellation)).EnumerateArray().ToList();
+        var lost = history.Single(entry => string.Equals(entry.GetProperty("type").GetString(), "Lost", StringComparison.Ordinal));
+        Assert.Equal(sown.AddMinutes(1), lost.GetProperty("occurredAt").GetDateTimeOffset());
+    }
+
+    [Fact]
+    public async Task A_loss_dated_before_a_later_count_says_the_count_still_stands()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var plant = Json(await PostForTextAsync(nursery.Owner, "/api/plants", new { commonName = "Cosmos", xylellaHost = false, protectedVariety = false })).GetProperty("id").GetGuid();
+        var sown = DateTimeOffset.UtcNow.AddDays(-5);
+        var started = Json(await PostForTextAsync(nursery.Staff, "/api/batches", new { eventId = Guid.NewGuid(), occurredAt = sown, plantId = plant, quantity = 40, source = "SeedLot", originCountry = "GB", containerKind = "Tray" }));
+        var tray = started.GetProperty("containerId").GetGuid();
+        var batch = started.GetProperty("batchId").GetGuid();
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Staff, $"/api/containers/{tray}/count", new { eventId = Guid.NewGuid(), occurredAt = sown.AddDays(3), batchId = batch, counted = 30, rough = false }));
+
+        var before = Json(await PostForTextAsync(nursery.Staff, $"/api/containers/{tray}/losses", new { eventId = Guid.NewGuid(), occurredAt = sown.AddDays(2), batchId = batch, quantity = 4, reason = "Pest" }));
+        Assert.True(before.GetProperty("countedSince").GetBoolean());
+        var after = Json(await PostForTextAsync(nursery.Staff, $"/api/containers/{tray}/losses", new { eventId = Guid.NewGuid(), occurredAt = sown.AddDays(4), batchId = batch, quantity = 2, reason = "Pest" }));
+        Assert.False(after.GetProperty("countedSince").GetBoolean());
+    }
 }

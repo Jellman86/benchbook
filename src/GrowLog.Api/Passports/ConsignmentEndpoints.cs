@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using System.Text.Json;
 using GrowLog.Api.Accounts;
@@ -16,12 +17,16 @@ internal static class ConsignmentEndpoints
     private const int LongestText = 200;
     private const int MostLines = 100;
 
+    /// <summary>A consignment can be made ready up to a fortnight before it goes.</summary>
+    private const int MostDaysAhead = 14;
+
     public static void MapConsignmentEndpoints(this IEndpointRouteBuilder app)
     {
         var consignments = app.MapGroup("/api/consignments").RequireAuthorization(AccountServices.OwnerPolicy);
         consignments.MapGet("/", ListAsync);
         consignments.MapGet("/{id:guid}", GetAsync).Produces<ConsignmentDetails>();
         consignments.MapPost("/", AddAsync).Produces<ConsignmentAdded>(StatusCodes.Status201Created);
+        consignments.MapDelete("/{id:guid}", RemoveAsync).Produces<PassportRefused>(StatusCodes.Status409Conflict);
         consignments.MapPost("/{id:guid}/packages/{packageId:guid}/passport", IssueAsync).Produces<PassportRefused>(StatusCodes.Status409Conflict);
     }
 
@@ -101,39 +106,36 @@ internal static class ConsignmentEndpoints
     }
 
     /// <summary>
-    /// One passport for a whole package: every species in part A and every batch's code in part C, so each code
-    /// leads back to a batch in the package. Null until it's issued.
+    /// One passport for a whole package: part B once, then a line for each batch with its own botanical name (A),
+    /// code (C) and origin (D), so each code and origin stays with its plant. The same batch from two trays is one
+    /// line. Null until it's issued.
     /// </summary>
-    internal static PackagePassport? Combined(List<IssuedPassport> unordered)
-    {
-        var passports = unordered.OrderBy(passport => passport.PartC, StringComparer.Ordinal).ToList();
-
-        return passports.Count == 0
+    internal static PackagePassport? Combined(List<IssuedPassport> passports) =>
+        passports.Count == 0
             ? null
             : new PackagePassport(
-                string.Join("; ", passports.Select(passport => passport.PartA).Distinct(StringComparer.Ordinal)),
                 passports[0].PartB,
-                string.Join(", ", passports.Select(passport => passport.PartC).Distinct(StringComparer.Ordinal)),
-                string.Join(", ", passports.Select(passport => passport.PartD).Distinct(StringComparer.Ordinal)),
-                [.. passports.Select(passport => $"{passport.PartC}: {passport.OriginRule}")],
+                [.. passports
+                    .GroupBy(passport => (passport.PartA, passport.PartC, passport.PartD, passport.OriginRule))
+                    .Select(group => new PackagePassportLine(group.Key.PartA, group.Key.PartC, group.Key.PartD, group.Key.OriginRule, group.Sum(passport => passport.Quantity)))
+                    .OrderBy(line => line.PartC, StringComparer.Ordinal)],
                 passports.Min(passport => passport.IssuedOn));
-    }
 
     private static async Task<IResult> AddAsync(ConsignmentRequest request, ClaimsPrincipal user, GrowLogDbContext db, EventStore store, TimeProvider clock, CancellationToken cancellationToken)
     {
+        // Sent again after a reply was lost: the consignment made the first time.
+        if (request.Id is { } given && await db.Consignments.AsNoTracking().FirstOrDefaultAsync(item => item.Id == given, cancellationToken) is { } already)
+        {
+            return TypedResults.Created($"/api/consignments/{already.Id}", new ConsignmentAdded(already.Id, already.Number));
+        }
+
         var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
         var sentTo = request.CustomerId is { } customerId
             ? await db.Customers.Where(customer => customer.Id == customerId).Select(customer => customer.Name).FirstOrDefaultAsync(cancellationToken)
             : Clean(request.SentTo);
         var lines = request.Packages.SelectMany(package => package.Lines).ToList();
 
-        if (sentTo is not { Length: <= LongestText }
-            || request.Packages.Count == 0
-            || request.Packages.Any(package => package.Lines.Count == 0)
-            || lines.Count > MostLines
-            || lines.Any(line => line.Quantity <= 0)
-            || (request.SentOn ?? today) > today
-            || (request.Notes?.Length ?? 0) > LongestText * 5)
+        if (!IsValid(request, sentTo, lines, today))
         {
             return TypedResults.BadRequest();
         }
@@ -155,6 +157,7 @@ internal static class ConsignmentEndpoints
 
         var consignment = new Consignment
         {
+            Id = request.Id ?? Guid.CreateVersion7(),
             Number = number,
             Kind = request.Kind,
             SentTo = sentTo,
@@ -164,7 +167,26 @@ internal static class ConsignmentEndpoints
             CreatedBy = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!),
         };
 
-        foreach (var (package, index) in request.Packages.Select((package, index) => (package, index)))
+        AddPackages(consignment, request.Packages);
+
+        db.Consignments.Add(consignment);
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return TypedResults.Created($"/api/consignments/{consignment.Id}", new ConsignmentAdded(consignment.Id, number));
+    }
+
+    private static bool IsValid(ConsignmentRequest request, [NotNullWhen(true)] string? sentTo, List<ConsignmentLineRequest> lines, DateOnly today) =>
+        sentTo is { Length: <= LongestText }
+        && request.Packages.Count > 0
+        && request.Packages.All(package => package.Lines.Count > 0)
+        && lines.Count <= MostLines
+        && lines.All(line => line.Quantity > 0)
+        && (request.SentOn ?? today) <= today.AddDays(MostDaysAhead)
+        && (request.Notes?.Length ?? 0) <= LongestText * 5;
+
+    private static void AddPackages(Consignment consignment, IReadOnlyList<PackageRequest> packages)
+    {
+        foreach (var (package, index) in packages.Select((package, index) => (package, index)))
         {
             var made = new ConsignmentPackage { Number = index + 1 };
 
@@ -175,11 +197,31 @@ internal static class ConsignmentEndpoints
 
             consignment.Packages.Add(made);
         }
+    }
 
-        db.Consignments.Add(consignment);
+    /// <summary>
+    /// A consignment recorded by mistake, taken away while none of its passports has been issued. Once one has, it
+    /// stays: an issued passport is kept for three years with the consignment it went with.
+    /// </summary>
+    private static async Task<IResult> RemoveAsync(Guid id, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        if (await db.Consignments.Include(item => item.Packages).ThenInclude(package => package.Lines).FirstOrDefaultAsync(item => item.Id == id, cancellationToken) is not { } consignment)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var packages = consignment.Packages.Select(package => package.Id).ToList();
+
+        if (await db.IssuedPassports.AnyAsync(passport => passport.PackageId != null && packages.Contains(passport.PackageId.Value), cancellationToken))
+        {
+            return TypedResults.Conflict(new PassportRefused("Issued"));
+        }
+
+        db.RemoveRange(consignment.Packages.SelectMany(package => package.Lines));
+        db.RemoveRange(consignment.Packages);
+        db.Consignments.Remove(consignment);
         await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return TypedResults.Created($"/api/consignments/{consignment.Id}", new ConsignmentAdded(consignment.Id, number));
+        return TypedResults.NoContent();
     }
 
     /// <summary>
@@ -316,7 +358,8 @@ internal static class ConsignmentEndpoints
 
     /// <param name="SentTo">Who or where it went, when it isn't one of the owner's customers.</param>
     /// <param name="SentOn">The day it went, if not today.</param>
-    internal sealed record ConsignmentRequest(ConsignmentKind Kind, string? SentTo, Guid? CustomerId, DateOnly? SentOn, string? Notes, IReadOnlyList<PackageRequest> Packages);
+    /// <param name="Id">Made by the device, so sending it again after a lost reply finds the same consignment.</param>
+    internal sealed record ConsignmentRequest(ConsignmentKind Kind, string? SentTo, Guid? CustomerId, DateOnly? SentOn, string? Notes, IReadOnlyList<PackageRequest> Packages, Guid? Id = null);
 
     internal sealed record ConsignmentAdded(Guid Id, int Number);
 
@@ -329,7 +372,9 @@ internal static class ConsignmentEndpoints
     internal sealed record PackageLineDetails(Guid BatchId, string TraceabilityCode, string PlantName, string LabelCode, int Quantity);
 
     /// <param name="Rules">How each batch's country of origin was worked out.</param>
-    internal sealed record PackagePassport(string PartA, string PartB, string PartC, string PartD, IReadOnlyList<string> Rules, DateOnly IssuedOn);
+    internal sealed record PackagePassportLine(string PartA, string PartC, string PartD, string Rule, int Quantity);
+
+    internal sealed record PackagePassport(string PartB, IReadOnlyList<PackagePassportLine> Lines, DateOnly IssuedOn);
 
     internal sealed record PackageDetails(Guid Id, int Number, IReadOnlyList<PackageLineDetails> Lines, PackagePassport? Passport);
 

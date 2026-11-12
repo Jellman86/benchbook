@@ -12,11 +12,14 @@
     onDone,
     onLabels,
     onClear,
+    onKeepOnly,
   }: {
     trays: { id: string; labelCode: string }[];
     onDone: (message: string) => void;
     onLabels: (labelCodes: string[]) => void;
     onClear: () => void;
+    /** After some couldn't be done: keep just these trays chosen. */
+    onKeepOnly: (ids: string[]) => void;
   } = $props();
 
   type Doing = "ready" | "move" | "treat" | null;
@@ -45,20 +48,21 @@
   ) {
     busy = true;
     problem = "";
-    const outcomes: Outcome[] = [];
+    const results: { id: string; labelCode: string; outcome: Outcome }[] = [];
 
     for (const tray of trays) {
-      outcomes.push(await recordWork(make(tray.id)));
+      results.push({ ...tray, outcome: await recordWork(make(tray.id)) });
     }
 
     busy = false;
-    const result = manyTraysResult(done, outcomes);
+    const result = manyTraysResult(done, results);
 
     if (result.allDone) {
       doing = null;
       onDone(result.message);
     } else {
       problem = result.message;
+      onKeepOnly(result.failed);
     }
   }
 

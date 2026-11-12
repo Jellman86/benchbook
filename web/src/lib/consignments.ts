@@ -80,6 +80,8 @@ export function consignmentProblem(status: number, problem?: string): string {
       return "A tray doesn't hold that many now. Check the numbers.";
     case "NotExamined":
       return "Examine the plants in this package first, and tick to say so.";
+    case "Issued":
+      return "A passport has been issued for this consignment, so it's kept with it.";
     case "CannotIssue":
       return "One of the trays in this package can't have a passport yet. Open the tray's plant passport to see what's missing, such as the nursery's registration number.";
     default:

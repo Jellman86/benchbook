@@ -23,6 +23,7 @@ internal static class JobEndpoints
         jobs.MapPut("/{id:guid}", ChangeAsync).RequireAuthorization(AccountServices.OwnerPolicy);
         jobs.MapPost("/{id:guid}/stop", StopAsync).RequireAuthorization(AccountServices.OwnerPolicy);
         jobs.MapPost("/{id:guid}/done", DoneAsync);
+        jobs.MapPost("/{id:guid}/undo-done", UndoDoneAsync);
     }
 
     private static DateOnly Today(TimeProvider clock) => DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
@@ -146,8 +147,11 @@ internal static class JobEndpoints
             return TypedResults.Ok(new JobDone(job.NextDue));
         }
 
-        db.JobsDone.Add(new NurseryJobDone { JobId = id, DoneOn = doneOn, DoneBy = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!) });
-        job.NextDue = JobDates.NextAfter(doneOn, job.EveryDays, today);
+        db.JobsDone.Add(new NurseryJobDone { JobId = id, DoneOn = doneOn, DoneBy = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!), NextDueBefore = job.NextDue });
+
+        // Done for an earlier day never brings the next date forward.
+        var next = JobDates.NextAfter(doneOn, job.EveryDays, today);
+        job.NextDue = next > job.NextDue ? next : job.NextDue;
 
         try
         {
@@ -160,6 +164,33 @@ internal static class JobEndpoints
         }
 
         return TypedResults.Created($"/api/jobs/{id}", new JobDone(job.NextDue));
+    }
+
+    /// <summary>
+    /// A "done" tapped by mistake, taken back within a quarter of an hour by whoever tapped it, or the owner: the job
+    /// is due again when it was.
+    /// </summary>
+    private static async Task<IResult> UndoDoneAsync(Guid id, JobDoneRequest request, ClaimsPrincipal user, GrowLogDbContext db, TimeProvider clock, CancellationToken cancellationToken)
+    {
+        var doneOn = request.DoneOn ?? Today(clock);
+        var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var owner = user.IsInRole(AccountServices.OwnerRole) && user.FindFirst(AccountServices.BenchSessionClaim) is null;
+
+        if (await db.JobsDone.FirstOrDefaultAsync(done => done.JobId == id && done.DoneOn == doneOn, cancellationToken) is not { } done
+            || await db.Jobs.FirstOrDefaultAsync(job => job.Id == id, cancellationToken) is not { } job)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if ((done.DoneBy != userId && !owner) || done.CreatedAt < clock.GetUtcNow().AddMinutes(-15))
+        {
+            return TypedResults.Conflict();
+        }
+
+        job.NextDue = done.NextDueBefore ?? job.NextDue;
+        db.JobsDone.Remove(done);
+        await db.SaveChangesAsync(cancellationToken);
+        return TypedResults.NoContent();
     }
 
     /// <param name="FirstDue">When it's next due: the first time, or a new date when changed.</param>

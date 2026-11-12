@@ -12,12 +12,12 @@
     type DraftLine,
   } from "../../lib/consignments";
   import { dayLabel } from "../../lib/dates";
-  import { isoDay } from "../../lib/days";
+  import { addDays, isoDay } from "../../lib/days";
   import { attempt, optional, type Schemas } from "../../lib/types";
   import { plantName } from "../../lib/work";
   import DayPicker from "../DayPicker.svelte";
   import PrintButton from "../PrintButton.svelte";
-  import PassportCard from "../work/PassportCard.svelte";
+  import PackagePassportCard from "../work/PackagePassportCard.svelte";
 
   // Plants going out together: who to, how, and in which packages. Each package that needs a passport gets
   // one, covering every batch packed in it.
@@ -34,6 +34,8 @@
   let sentOn = $state(isoDay(new Date()));
   let notes = $state("");
   let packages = $state<DraftLine[][]>([]);
+  // Made here, so sending again after a lost reply finds the same consignment rather than making a second.
+  let draftId = $state("");
   let examined = $state<Record<string, boolean>>({});
   let findings = $state<Record<string, string>>({});
   let busy = $state(false);
@@ -90,6 +92,7 @@
       sentOn = isoDay(new Date());
       notes = "";
       packages = [[{ tray: "", quantity: 1 }]];
+      draftId = crypto.randomUUID();
     }, setProblem);
 
   const record = (event: SubmitEvent) => {
@@ -100,6 +103,7 @@
       async () => {
         const { data, error, response } = await api.POST("/api/consignments", {
           body: {
+            id: draftId,
             kind,
             customerId: customerId || null,
             sentTo: customerId ? null : sentTo.trim(),
@@ -171,6 +175,36 @@
     );
   };
 
+  const remove = () => {
+    if (
+      !opened ||
+      !confirm(
+        `Remove consignment ${opened.number}? Do this only if it was recorded by mistake.`,
+      )
+    ) {
+      return;
+    }
+
+    const id = opened.id;
+
+    return attempt(async () => {
+      const { error, response } = await api.DELETE("/api/consignments/{id}", {
+        params: { path: { id } },
+      });
+
+      if (response.ok) {
+        opened = null;
+        problem = "";
+        await load();
+      } else {
+        problem = consignmentProblem(
+          response.status,
+          (error as { problem?: string } | undefined)?.problem,
+        );
+      }
+    }, setProblem);
+  };
+
   const trayWords = (row: Schemas["ProductionRow"]) =>
     `${row.labelCode} · ${plantName(row.commonName, row.variety)} · ${row.quantity} there${row.locationName ? ` · ${row.locationName}` : ""}`;
 
@@ -196,7 +230,7 @@
       <section class="form-card stack" aria-label="Package {pack.number}">
         <h2 class="form-heading">Package {pack.number}</h2>
         <ul class="plain-list">
-          {#each pack.lines as line (line.batchId + line.labelCode)}
+          {#each pack.lines as line, index (index)}
             <li>
               <strong>{line.quantity} {line.plantName}</strong>
               <span class="muted">
@@ -207,18 +241,16 @@
         </ul>
 
         {#if pack.passport}
-          <PassportCard
+          <PackagePassportCard
             caption="Passport for package {pack.number}"
-            partA={pack.passport.partA}
             partB={pack.passport.partB}
-            partC={pack.passport.partC}
-            partD={pack.passport.partD}
+            lines={pack.passport.lines}
           >
             <span>Issued {dayLabel(pack.passport.issuedOn, now)}</span>
-            {#each pack.passport.rules as rule (rule)}
-              <span class="muted">D for {rule}</span>
+            {#each pack.passport.lines as line (line.partC + line.partD)}
+              <span class="muted">{line.partC}, D: {line.rule}</span>
             {/each}
-          </PassportCard>
+          </PackagePassportCard>
           <PrintButton
             href="/api/labels/passports/{pack.id}"
             label="Print the passport"
@@ -245,10 +277,15 @@
     {/each}
     {#if consignment.passportNeeded}
       <p class="muted">
-        One passport covers each package: every plant in part A and every
-        batch's code in part C. The examination is recorded on each tray with
-        your name.
+        One passport covers each package: part B once, then each batch's
+        botanical name, code and origin together. The examination is recorded on
+        each tray with your name.
       </p>
+    {/if}
+    {#if consignment.packages.every((pack) => !pack.passport)}
+      <button class="secondary danger" disabled={busy} onclick={remove}
+        >Remove this consignment</button
+      >
     {/if}
     <button class="back" onclick={() => (opened = null)}>Back</button>
   </main>
@@ -294,7 +331,11 @@
             /></label
           >
         {/if}
-        <DayPicker bind:value={sentOn} label="Sent on" max={null} />
+        <DayPicker
+          bind:value={sentOn}
+          label="Going on"
+          max={addDays(isoDay(new Date()), 14)}
+        />
         <label
           >Notes (optional) <input
             bind:value={notes}
@@ -369,8 +410,10 @@
         >Another package</button
       >
       <p class="muted">
-        Recording a consignment doesn't take plants out of the trays: an invoice
-        or a loss does that.
+        Record the consignment, and issue its passports, before invoicing: an
+        invoice takes the plants out of the trays, and a consignment can only be
+        made from plants still in them. Recording it doesn't change what's in
+        the trays.
       </p>
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
       <div class="row">

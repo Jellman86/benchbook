@@ -21,6 +21,7 @@
     vatRegistered: false,
     paymentTermsDays: 30,
     authorisationRenewsOn: null,
+    setsRenewal: true,
   });
   let logoVersion = $state(0);
   // When the plant health authorisation renews, or empty.
@@ -43,7 +44,11 @@
 
     return attempt(async () => {
       const { response } = await api.PUT("/api/settings/nursery", {
-        body: { ...details, authorisationRenewsOn: renewsOn || null },
+        body: {
+          ...details,
+          authorisationRenewsOn: renewsOn || null,
+          setsRenewal: true,
+        },
       });
       saved = response.ok ? "Nursery details saved." : "";
       problem = response.ok ? "" : "Those details couldn't be saved.";

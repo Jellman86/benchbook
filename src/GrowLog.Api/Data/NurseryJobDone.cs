@@ -11,5 +11,8 @@ internal sealed class NurseryJobDone
 
     public required Guid DoneBy { get; init; }
 
+    /// <summary>When the job was next due before this, so a tap made by mistake can be undone.</summary>
+    public DateOnly? NextDueBefore { get; init; }
+
     public DateTimeOffset CreatedAt { get; private set; }
 }

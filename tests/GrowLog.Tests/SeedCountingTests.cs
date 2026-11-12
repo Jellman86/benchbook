@@ -248,6 +248,8 @@ public sealed class SeedCountingTests(PostgresFixture database)
     {
         await using var nursery = await TwoPersonNursery.CreateAsync(database);
         var (_, batch, tray, _) = await SowAsync(nursery);
+        // Some lost first, which isn't a tray lost; then the rest.
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Staff, $"/api/containers/{tray}/losses", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow.AddMinutes(-5), batchId = batch, quantity = 0, reason = "Pest", all = false }));
         Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Staff, $"/api/containers/{tray}/losses", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow, batchId = batch, quantity = 0, reason = "Pest", all = true }));
 
         var reason = Assert.Single((await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/figures"), Cancellation)).GetProperty("losses").EnumerateArray());

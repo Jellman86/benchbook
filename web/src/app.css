@@ -2685,7 +2685,7 @@ button.danger:hover:not(:disabled) {
   gap: 0.35rem;
 }
 
-.climate-now :global(svg) {
+.climate-now svg {
   color: var(--muted);
 }
 
@@ -2798,4 +2798,39 @@ button.danger:hover:not(:disabled) {
   background: var(--line);
   font-size: 0.8rem;
   overflow-x: auto;
+}
+
+.package-passport table {
+  width: 100%;
+  margin-top: 0.35rem;
+  border-collapse: collapse;
+  font-family: ui-monospace, "DejaVu Sans Mono", monospace;
+}
+
+.package-passport th {
+  border-bottom: 2px solid var(--passport-ink);
+  font-weight: 800;
+  text-align: left;
+}
+
+.package-passport th abbr {
+  text-decoration: none;
+}
+
+.package-passport td {
+  padding: 0.15rem 0.4rem 0.15rem 0;
+  border-bottom: 1px solid #c8c8c8;
+  vertical-align: top;
+}
+
+.package-passport td.botanical {
+  font-family: var(--heading);
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.job-notes {
+  margin-top: 0.15rem;
+  font-size: 0.9rem;
+  white-space: pre-line;
 }

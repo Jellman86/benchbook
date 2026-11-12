@@ -9,7 +9,14 @@ export interface WorkRequest {
 }
 
 export type Outcome =
-  | { kind: "stored"; eventId: string; labelCode?: string; batchId?: string }
+  | {
+      kind: "stored";
+      eventId: string;
+      labelCode?: string;
+      batchId?: string;
+      /** Dated before the tray's latest count, which still stands. */
+      countedSince?: boolean;
+    }
   | { kind: "queued"; eventId: string }
   | { kind: "signedOut" }
   | { kind: "refused"; problem: string }
@@ -117,12 +124,14 @@ export async function submit(item: WorkRequest): Promise<Outcome> {
     const result = (await response.json()) as {
       labelCode?: string;
       batchId?: string;
+      countedSince?: boolean;
     };
     return {
       kind: "stored",
       eventId: item.body.eventId,
       labelCode: result.labelCode,
       batchId: result.batchId,
+      countedSince: result.countedSince,
     };
   }
 
@@ -133,6 +142,12 @@ export async function submit(item: WorkRequest): Promise<Outcome> {
 
   return { kind: "rejected" };
 }
+
+/** Said after work dated before the tray's latest count, which is left as it stands. */
+export const countedSinceNote = (outcome: Outcome) =>
+  outcome.kind === "stored" && outcome.countedSince
+    ? " The tray was counted after then, so its number stays as counted."
+    : "";
 
 export function isRecorded(
   outcome: Outcome,

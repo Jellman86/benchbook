@@ -54,7 +54,8 @@ internal static class NurserySettingsEndpoints
             settings.Logo is { Length: > 0 },
             settings.VatRegistered,
             settings.PaymentTermsDays,
-            settings.AuthorisationRenewsOn);
+            settings.AuthorisationRenewsOn,
+            SetsRenewal: true);
     }
 
     private static async Task<IResult> SaveDetailsAsync(NurseryDetails request, GrowLogDbContext db, CancellationToken cancellationToken)
@@ -69,7 +70,13 @@ internal static class NurserySettingsEndpoints
         settings.VatNumber = Clean(request.VatNumber);
         settings.VatRegistered = request.VatRegistered;
         settings.PaymentTermsDays = Math.Clamp(request.PaymentTermsDays, 0, MostPaymentDays);
-        settings.AuthorisationRenewsOn = request.AuthorisationRenewsOn;
+
+        // An app from before the renewal date existed sends nothing for it: leave it as it is.
+        if (request.SetsRenewal)
+        {
+            settings.AuthorisationRenewsOn = request.AuthorisationRenewsOn;
+        }
+
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.NoContent();
     }
@@ -148,5 +155,6 @@ internal static class NurserySettingsEndpoints
         bool HasLogo,
         bool VatRegistered,
         int PaymentTermsDays,
-        DateOnly? AuthorisationRenewsOn = null);
+        DateOnly? AuthorisationRenewsOn = null,
+        bool SetsRenewal = false);
 }
