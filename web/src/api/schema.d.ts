@@ -4767,6 +4767,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/labels/sheet-layouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SheetLayout"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/labels/sheets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SheetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/labels/preview/{kind}": {
         parameters: {
             query?: never;
@@ -6836,6 +6908,37 @@ export interface components {
         };
         SetupStatus: {
             needsSetup: boolean;
+        };
+        SheetLayout: {
+            id: string;
+            name: string;
+            /** Format: int32 */
+            perSheet: number | string;
+            /** Format: double */
+            widthMm: number | string;
+            /** Format: double */
+            heightMm: number | string;
+        };
+        SheetRequest: {
+            kind: components["schemas"]["LabelKind"];
+            targets: string[];
+            sheet: string;
+            /**
+             * Format: int32
+             * @default 1
+             */
+            startAt: number | string;
+            /**
+             * Format: int32
+             * @default 1
+             */
+            copies: number | string;
+            /** @default false */
+            outlines: boolean;
+            /** Format: uuid */
+            potSizeId?: null | string;
+            /** @default false */
+            picture: boolean;
         };
         /** @enum {unknown} */
         SignInLevel: "Open" | "Names" | "Personal" | "Strict";

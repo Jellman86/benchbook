@@ -3682,6 +3682,50 @@
         }
       }
     },
+    "/api/labels/sheet-layouts": {
+      "get": {
+        "tags": [
+          "LabelEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SheetLayout"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/labels/sheets": {
+      "post": {
+        "tags": [
+          "LabelEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SheetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/labels/preview/{kind}": {
       "post": {
         "tags": [
@@ -8757,6 +8801,103 @@
         "properties": {
           "needsSetup": {
             "type": "boolean"
+          }
+        }
+      },
+      "SheetLayout": {
+        "required": [
+          "id",
+          "name",
+          "perSheet",
+          "widthMm",
+          "heightMm"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "perSheet": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "widthMm": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "heightMm": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "SheetRequest": {
+        "required": [
+          "kind",
+          "targets",
+          "sheet"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/LabelKind"
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sheet": {
+            "type": "string"
+          },
+          "startAt": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32",
+            "default": 1
+          },
+          "copies": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32",
+            "default": 1
+          },
+          "outlines": {
+            "type": "boolean",
+            "default": false
+          },
+          "potSizeId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "picture": {
+            "type": "boolean",
+            "default": false
           }
         }
       },

@@ -17,6 +17,8 @@ internal static class LabelEndpoints
         labels.MapGet("/bench-cards/{id:guid}", PrintBenchCardAsync).ProducesPdf();
         labels.MapGet("/places/{id:guid}", PrintPlaceLabelAsync).ProducesPdf();
         labels.MapGet("/passports/{id:guid}", PrintPassportAsync).ProducesPdf();
+        labels.MapGet("/sheet-layouts", ListSheetLayouts);
+        labels.MapPost("/sheets", PrintSheetAsync).ProducesPdf().Produces(StatusCodes.Status200OK, contentType: "image/png");
         labels.MapPost("/preview/{kind}", PreviewAsync)
             .ProducesPdf()
             .Produces(StatusCodes.Status200OK, contentType: "image/png")
@@ -99,6 +101,51 @@ internal static class LabelEndpoints
         var context = await LabelSettings.LoadAsync(db, LabelKind.PlaceLabel, cancellationToken);
 
         return new LabelJob(LabelKind.PlaceLabel, data, place.LabelCode, context);
+    }
+
+    private const int MostOnSheets = 300;
+
+    private static List<SheetLayout> ListSheetLayouts() =>
+        [.. LabelSheets.All.Select(sheet => new SheetLayout(sheet.Id, sheet.Name, sheet.PerSheet, sheet.WidthMm, sheet.HeightMm))];
+
+    /// <summary>
+    /// Tray, place or plant labels on A4 sticker sheets, for an ordinary printer. Each label is its usual design,
+    /// drawn to fit one sticker.
+    /// </summary>
+    private static async Task<IResult> PrintSheetAsync(SheetRequest request, GrowLogDbContext db, EventStore store, LabelPrinter printer, CancellationToken cancellationToken)
+    {
+        var copies = Math.Clamp(request.Copies, 1, 10);
+
+        if (LabelSheets.Find(request.Sheet) is not { } sheet
+            || request.Targets.Count == 0
+            || request.Targets.Count * copies > MostOnSheets
+            || request.Kind is not (LabelKind.ContainerLabel or LabelKind.PlaceLabel or LabelKind.PlantLabel))
+        {
+            return TypedResults.BadRequest();
+        }
+
+        var jobs = new List<LabelJob>();
+
+        foreach (var target in request.Targets)
+        {
+            var job = request.Kind switch
+            {
+                LabelKind.ContainerLabel => await ContainerLabelAsync(target, db, store, cancellationToken),
+                LabelKind.PlaceLabel when Guid.TryParse(target, out var place) => await PlaceLabelAsync(place, db, cancellationToken),
+                LabelKind.PlantLabel when Guid.TryParse(target, out var plant) => await PlantLabelAsync(plant, request.PotSizeId, db, cancellationToken),
+                _ => null,
+            };
+
+            if (job is null)
+            {
+                return TypedResults.NotFound();
+            }
+
+            jobs.AddRange(Enumerable.Repeat(job, copies));
+        }
+
+        var made = await printer.RenderSheetAsync(jobs, sheet, request.StartAt, request.Outlines, cancellationToken, request.Picture);
+        return request.Picture ? TypedResults.File(made, "image/png") : Pdf(made);
     }
 
     private static async Task<IResult> PrintPassportAsync(Guid id, GrowLogDbContext db, LabelPrinter printer, CancellationToken cancellationToken, int copies = 1) =>
@@ -200,6 +247,22 @@ internal static class LabelEndpoints
         var content = await printer.RenderAsync(kind, job.Data, job.QrText, job.Context, copies: 1, cancellationToken, asPicture: picture);
         return picture ? TypedResults.File(content, "image/png") : Pdf(content);
     }
+
+    internal sealed record SheetLayout(string Id, string Name, int PerSheet, decimal WidthMm, decimal HeightMm);
+
+    /// <param name="Targets">Tray label codes, or place or plant ids, depending on Kind.</param>
+    /// <param name="StartAt">The first sticker to use on the first sheet, counting across then down from 1.</param>
+    /// <param name="Outlines">Faint outlines around each label, for plain paper to cut out.</param>
+    /// <param name="Picture">The first sheet as a PNG, to check on screen, rather than the PDF to print.</param>
+    internal sealed record SheetRequest(
+        LabelKind Kind,
+        IReadOnlyList<string> Targets,
+        string Sheet,
+        int StartAt = 1,
+        int Copies = 1,
+        bool Outlines = false,
+        Guid? PotSizeId = null,
+        bool Picture = false);
 
     /// <summary>A made-up label of the given kind, for previews and a printer's test print.</summary>
     internal static LabelJob Sample(LabelKind kind, LabelContext context)

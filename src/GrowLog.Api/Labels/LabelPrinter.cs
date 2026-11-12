@@ -22,14 +22,69 @@ internal sealed class LabelPrinter(IConfiguration configuration)
     /// Renders one label, or several copies of it as pages of one PDF, in the style chosen for its kind.
     /// As a picture it is a single PNG at the printer's 300 dots an inch, for showing on a screen.
     /// </summary>
-    public async Task<byte[]> RenderAsync(LabelKind kind, object data, string? qrText, LabelContext context, int copies, CancellationToken cancellationToken, bool asPicture = false, int dotsPerInch = 300)
+    public Task<byte[]> RenderAsync(LabelKind kind, object data, string? qrText, LabelContext context, int copies, CancellationToken cancellationToken, bool asPicture = false, int dotsPerInch = 300) =>
+        RenderAsync(
+            new LabelJob(kind, data, qrText, context),
+            new Output(asPicture ? "png" : "pdf", context.Style.WidthMm, context.Style.HeightMm, asPicture ? dotsPerInch : null),
+            asPicture ? 1 : copies,
+            cancellationToken);
+
+    /// <summary>
+    /// Labels laid out on A4 sticker sheets for an ordinary printer: each is drawn by its own design at the size of
+    /// one sticker, then placed on the sheet's grid, starting at any sticker so part-used sheets can be finished.
+    /// </summary>
+    /// <param name="asPicture">The first sheet as a picture, to check on screen before printing.</param>
+    public async Task<byte[]> RenderSheetAsync(IReadOnlyList<LabelJob> jobs, LabelSheet sheet, int startAt, bool outlines, CancellationToken cancellationToken, bool asPicture = false)
     {
+        var directory = Directory.CreateTempSubdirectory("growlog-sheet-");
+
+        try
+        {
+            var drawn = new byte[jobs.Count][];
+            var size = new Output("svg", sheet.WidthMm, sheet.HeightMm, null);
+
+            // A few at a time: each is its own Typst run.
+            await Parallel.ForEachAsync(
+                Enumerable.Range(0, jobs.Count),
+                new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = cancellationToken },
+                async (index, token) => drawn[index] = await RenderAsync(jobs[index], size, 1, token));
+
+            for (var index = 0; index < drawn.Length; index++)
+            {
+                await File.WriteAllBytesAsync(Path.Join(directory.FullName, $"label-{index}.svg"), drawn[index], cancellationToken);
+            }
+
+            var pages = LabelSheets.Lay(sheet, jobs.Count, startAt)
+                .Select(page => page.Select(cell => new { x = cell.X, y = cell.Y, w = sheet.WidthMm, h = sheet.HeightMm, file = $"label-{cell.Index}.svg" }))
+                .ToList();
+
+            var template = Path.Join(directory.FullName, "sheet.typ");
+            await File.WriteAllTextAsync(template, await ReadTemplateAsync("Sheet", cancellationToken), cancellationToken);
+            await File.WriteAllTextAsync(Path.Join(directory.FullName, "sheet.json"), JsonSerializer.Serialize(new { pages, outlines }), cancellationToken);
+
+            var output = Path.Join(directory.FullName, asPicture ? "sheet.png" : "sheet.pdf");
+            var page = asPicture
+                ? new Output("png", LabelSheets.PageWidthMm, LabelSheets.PageHeightMm, 72, FirstPageOnly: true)
+                : new Output("pdf", LabelSheets.PageWidthMm, LabelSheets.PageHeightMm, null);
+            await RunTypstAsync(page, directory.FullName, template, output, cancellationToken);
+            return await File.ReadAllBytesAsync(output, cancellationToken);
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    private async Task<byte[]> RenderAsync(LabelJob job, Output output, int copies, CancellationToken cancellationToken)
+    {
+        var (kind, data, qrText, context) = job;
         var directory = Directory.CreateTempSubdirectory("growlog-label-");
 
         try
         {
             var template = Path.Join(directory.FullName, "label.typ");
-            var output = Path.Join(directory.FullName, asPicture ? "label.png" : "label.pdf");
+            var file = Path.Join(directory.FullName, $"label.{output.Format}");
+            var asPicture = !output.IsPdf;
             var logo = await WriteLogoAsync(directory.FullName, context, cancellationToken);
             var style = context.Style;
             (string Svg, int Modules)? qr = qrText is null ? null : Qr(qrText);
@@ -61,8 +116,8 @@ internal sealed class LabelPrinter(IConfiguration configuration)
                 await File.WriteAllTextAsync(Path.Join(directory.FullName, "qr.svg"), qr.Value.Svg, cancellationToken);
             }
 
-            await RunTypstAsync(style, directory.FullName, template, output, asPicture ? dotsPerInch : null, cancellationToken);
-            return await File.ReadAllBytesAsync(output, cancellationToken);
+            await RunTypstAsync(output, directory.FullName, template, file, cancellationToken);
+            return await File.ReadAllBytesAsync(file, cancellationToken);
         }
         finally
         {
@@ -109,10 +164,10 @@ internal sealed class LabelPrinter(IConfiguration configuration)
         return name;
     }
 
-    private async Task RunTypstAsync(LabelStyle style, string root, string template, string output, int? pictureDotsPerInch, CancellationToken cancellationToken)
+    private async Task RunTypstAsync(Output size, string root, string template, string output, CancellationToken cancellationToken)
     {
-        var width = style.WidthMm.ToString(CultureInfo.InvariantCulture);
-        var height = style.HeightMm.ToString(CultureInfo.InvariantCulture);
+        var width = size.WidthMm.ToString(CultureInfo.InvariantCulture);
+        var height = size.HeightMm.ToString(CultureInfo.InvariantCulture);
 
         var start = new ProcessStartInfo(configuration["Typst:Path"] ?? "typst")
         {
@@ -128,7 +183,9 @@ internal sealed class LabelPrinter(IConfiguration configuration)
             "--ignore-system-fonts",
             "--input", $"width={width}",
             "--input", $"height={height}",
-            .. pictureDotsPerInch is { } ppi ? ["--format", "png", "--ppi", ppi.ToString(CultureInfo.InvariantCulture)] : Array.Empty<string>(),
+            .. size.IsPdf ? Array.Empty<string>() : ["--format", size.Format],
+            .. size.PixelsPerInch is { } ppi ? ["--ppi", ppi.ToString(CultureInfo.InvariantCulture)] : Array.Empty<string>(),
+            .. size.FirstPageOnly ? ["--pages", "1"] : Array.Empty<string>(),
             template,
             output,
         ];
@@ -160,5 +217,11 @@ internal sealed class LabelPrinter(IConfiguration configuration)
         {
             throw new InvalidOperationException($"Typst could not make the label: {await errors}");
         }
+    }
+
+    /// <summary>What Typst makes: a PDF, a PNG at so many pixels an inch, or an SVG; and at what size.</summary>
+    private sealed record Output(string Format, decimal WidthMm, decimal HeightMm, int? PixelsPerInch, bool FirstPageOnly = false)
+    {
+        public bool IsPdf => string.Equals(Format, "pdf", StringComparison.Ordinal);
     }
 }
