@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import DayPicker from "../DayPicker.svelte";
+  import { dayLabel } from "../../lib/dates";
   import { api } from "../../api/client";
   import { attempt, optional, type Schemas } from "../../lib/types";
   import { plantName } from "../../lib/work";
@@ -140,13 +142,7 @@
           {/each}
         </select>
       </label>
-      <label
-        >Date received <input
-          type="date"
-          bind:value={form.receivedOn}
-          required
-        /></label
-      >
+      <DayPicker bind:value={form.receivedOn} label="Date received" />
       <label>A: Botanical name <input bind:value={form.partA} required /></label
       >
       <label
@@ -169,7 +165,11 @@
     {#each passports as passport (passport.id)}
       <div class="card">
         <strong>{statusLabels[passport.status]}</strong>
-        <span>{passport.supplierName}, received {passport.receivedOn}</span>
+        <span
+          >{passport.supplierName}, received {dayLabel(
+            passport.receivedOn,
+          )}</span
+        >
         <span>A: {passport.partA}</span>
         <span>B: {passport.partB}</span>
         {#if passport.partC}<span>C: {passport.partC}</span>{/if}

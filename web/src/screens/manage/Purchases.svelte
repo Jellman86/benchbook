@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DayPicker from "../DayPicker.svelte";
   import FormPanel from "../FormPanel.svelte";
   import { onMount } from "svelte";
   import FileUp from "@lucide/svelte/icons/file-up";
@@ -204,9 +205,7 @@
               {/each}
             </select>
           </label>
-          <label
-            >Date <input type="date" bind:value={purchasedOn} required /></label
-          >
+          <DayPicker bind:value={purchasedOn} label="Date" />
           <label class="photo-choice">
             <FileUp size={20} />
             <span
@@ -315,6 +314,7 @@
                       quantity: Number(line.quantity ?? 1),
                       purchaseLineId: line.id,
                       description: line.description,
+                      receivedOn: purchase.purchasedOn,
                     })}>Start a batch</button
                 >
               {/if}

@@ -23,6 +23,8 @@
   import PlantSearch from "./PlantSearch.svelte";
   import PlantThumb from "./PlantThumb.svelte";
   import Stepper from "./Stepper.svelte";
+  import DayPicker from "../DayPicker.svelte";
+  import { isoDay, momentOn, onDay } from "../../lib/days";
 
   type PhotoKind = Schemas["BatchPhotoKind"] | "Plant";
 
@@ -78,6 +80,19 @@
   // Grown here starts as Great Britain; bought-in plants must have their origin chosen.
   let originCountry = $state("GB");
   let otherCountry = $state(false);
+  // Sown, arrived or taken today unless someone says otherwise: work is often written up later.
+  let startedOn = $state(isoDay(new Date()));
+
+  const whenAsked: Record<Schemas["BatchSource"], string> = {
+    SeedLot: "When were they sown?",
+    BoughtIn: "When did they arrive?",
+    Cuttings: "When were the cuttings taken?",
+  };
+  const started: Record<Schemas["BatchSource"], string> = {
+    SeedLot: "Sown",
+    BoughtIn: "Arrived",
+    Cuttings: "Cuttings taken",
+  };
 
   const originCountries = [
     { code: "GB", name: "Great Britain" },
@@ -138,6 +153,10 @@
         source = "BoughtIn";
         originCountry = "";
         supplierId = prefill.supplierId;
+        startedOn =
+          prefill.receivedOn && prefill.receivedOn <= startedOn
+            ? prefill.receivedOn
+            : startedOn;
         quantity = prefill.quantity;
       }
     }, setProblem),
@@ -355,20 +374,23 @@
 
         plantId = savedPlantId;
         const outcome = await submit(
-          work.startBatch({
-            plantId: savedPlantId,
-            quantity,
-            source,
-            sourceReference: optional(sourceReference),
-            supplierId: source === "Cuttings" ? null : supplierId || null,
-            parentBatchId: null,
-            motherPlant: null,
-            originCountry,
-            containerKind,
-            locationId: locationId || null,
-            potSizeId: potSizeId || null,
-            purchaseLineId: prefill?.purchaseLineId ?? null,
-          }),
+          work.startBatch(
+            {
+              plantId: savedPlantId,
+              quantity,
+              source,
+              sourceReference: optional(sourceReference),
+              supplierId: source === "Cuttings" ? null : supplierId || null,
+              parentBatchId: null,
+              motherPlant: null,
+              originCountry,
+              containerKind,
+              locationId: locationId || null,
+              potSizeId: potSizeId || null,
+              purchaseLineId: prefill?.purchaseLineId ?? null,
+            },
+            momentOn(startedOn),
+          ),
         );
 
         if (outcome.kind !== "stored") {
@@ -461,6 +483,7 @@
         >
       {/each}
     </div>
+    <DayPicker bind:value={startedOn} label={whenAsked[source]} />
     {#if source !== "Cuttings"}
       <label>
         Supplier
@@ -544,6 +567,7 @@
   {:else}
     <div class="card">
       <strong>{quantity} {chosenName}</strong>
+      <span class="muted">{started[source]} {onDay(startedOn)}</span>
     </div>
     <label>
       Place

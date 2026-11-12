@@ -60,7 +60,7 @@ Partial potting-on creates a new container from the same batch, and no new batch
 
 ## Main flows
 
-1. **Start a batch.** Choose or add a plant, enter quantity, source and greenhouse, print a label.
+1. **Start a batch.** Choose or add a plant, enter quantity, source, the day it was sown, arrived or had cuttings taken (today unless changed; a batch started from a purchase takes the purchase date), and greenhouse, then print a label.
 2. **Record what happened.** Scan, choose an action, confirm, with an undo for the last action. Recent actions appear as one-press shortcuts, such as "another tray of Lavender 'Hidcote', Greenhouse 2".
 3. **Record losses.** Scan, Lost, how many, why: failed to germinate, damping off, pest, disease, frost, other.
 4. **Pot on.** Scan, how many, new pot size. Prints new container labels.
@@ -73,7 +73,7 @@ Partial potting-on creates a new container from the same batch, and no new batch
 
 A **corrected** event references the event it reverses and carries the replacement. **Stock counted** records what was there when the count was made, and the difference from the stock at that moment is recorded as an **adjustment,** separate from losses in statistics. Work from before a count that reaches the server later, or is undone later, is absorbed by that count's adjustment, so the count still stands. A derived count can never go below zero: the interface asks for a correction or a stock count instead. A count can only name a batch that has been in that container.
 
-The time a device gives for work is believed unless it is more than a few minutes ahead of the server, when the server's time is used. Work is sent with an identifier made on the device, so a resend is recognised; an identifier already used for different work is refused. Work that can't reach the server, including while it restarts, waits on the device and is sent later; work the server refuses is kept on the device so it can be tried again.
+Days are chosen with one tap for today or yesterday, or from a calendar that starts weeks on Monday and offers no day after today; work dated an earlier day is recorded at the same time of day on that day. The time a device gives for work is believed unless it is more than a few minutes ahead of the server, when the server's time is used. Work is sent with an identifier made on the device, so a resend is recognised; an identifier already used for different work is refused. Work that can't reach the server, including while it restarts, waits on the device and is sent later; work the server refuses is kept on the device so it can be tried again.
 
 Work can be undone from Recent or from a container's history, which shows who did what and when; undone work stays in the history, marked as undone. Places are shown with the places they sit in, such as "Greenhouse 2, Bench A".
 
