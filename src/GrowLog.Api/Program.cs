@@ -112,6 +112,7 @@ app.MapFigureEndpoints();
 app.MapReceivedPassportEndpoints();
 app.MapTraceEndpoints();
 app.MapPassportEndpoints();
+app.MapConsignmentEndpoints();
 app.MapJobEndpoints();
 app.MapMotherPlantEndpoints();
 app.MapAlertEndpoints();

@@ -33,6 +33,9 @@ internal sealed class IssuedPassport
 
     public Guid? CustomerId { get; init; }
 
+    /// <summary>The package it was issued for, when it covers a package of several batches with others.</summary>
+    public Guid? PackageId { get; init; }
+
     /// <summary>Who the plants went to, as written at issue. A business name; kept when a customer's contact details are forgotten.</summary>
     public required string IssuedTo { get; init; }
 

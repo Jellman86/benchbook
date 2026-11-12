@@ -69,6 +69,8 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<MotherPlant> MotherPlants => Set<MotherPlant>();
 
+    public DbSet<Consignment> Consignments => Set<Consignment>();
+
     public DbSet<NurseryJobDone> JobsDone => Set<NurseryJobDone>();
 
     public DbSet<NurserySettings> NurserySettings => Set<NurserySettings>();
@@ -133,6 +135,7 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
         ConfigureIssuedPassports(modelBuilder);
         ConfigureJobsAndMothers(modelBuilder);
+        ConfigureConsignments(modelBuilder);
         ConfigurePurchases(modelBuilder);
 
         modelBuilder.Entity<BackupStatus>(entity =>
@@ -146,6 +149,41 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         });
+    }
+
+    private static void ConfigureConsignments(ModelBuilder modelBuilder)
+    {
+        var kinds = string.Join(", ", Enum.GetNames<ConsignmentKind>().Select(name => $"'{name}'"));
+
+        modelBuilder.Entity<Consignment>(entity =>
+        {
+            entity.ToTable("consignments", table => table.HasCheckConstraint("ck_consignments_kind", $"kind IN ({kinds})"));
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Kind).HasConversion<string>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+            entity.HasIndex(e => e.Number).IsUnique();
+            entity.HasOne<Customer>().WithMany().HasForeignKey(e => e.CustomerId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.CreatedBy).OnDelete(DeleteBehavior.Restrict);
+            entity.HasMany(e => e.Packages).WithOne().HasForeignKey(e => e.ConsignmentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ConsignmentPackage>(entity =>
+        {
+            entity.ToTable("consignment_packages");
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.HasIndex(e => new { e.ConsignmentId, e.Number }).IsUnique();
+            entity.HasMany(e => e.Lines).WithOne().HasForeignKey(e => e.PackageId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PackageLine>(entity =>
+        {
+            entity.ToTable("package_lines", table => table.HasCheckConstraint("ck_package_lines_quantity", "quantity > 0"));
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.HasOne<Batch>().WithMany().HasForeignKey(e => e.BatchId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Container>().WithMany().HasForeignKey(e => e.ContainerId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<IssuedPassport>().HasOne<ConsignmentPackage>().WithMany().HasForeignKey(e => e.PackageId).OnDelete(DeleteBehavior.Restrict);
     }
 
     private static void ConfigureJobsAndMothers(ModelBuilder modelBuilder)

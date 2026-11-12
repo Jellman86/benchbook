@@ -468,6 +468,22 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Back").click();
   await leaveManage(page);
 
+  // Sending plants to a business says a passport is needed, and there's nothing counted to send yet.
+  await openManage(page, "Consignments");
+  await expect(page.getByText("None yet.")).toBeVisible();
+  await button(page, "Send plants").click();
+  await expect(page.getByText("Passport needed.")).toBeVisible();
+  await button(page, "Sold in person").click();
+  await expect(page.getByText("No passport.")).toBeVisible();
+  await expect(page.getByText("No counted trays to send from.")).toBeVisible();
+  await expect(button(page, "Record it")).toBeDisabled();
+  await page.screenshot({
+    path: "build/peek/consignment-new.png",
+    fullPage: true,
+  });
+  await button(page, "Cancel").click();
+  await leaveManage(page);
+
   // This device becomes a bench station, which signs the owner out of it.
   await openSettings(page, "Bench stations");
   await page.getByLabel("Name for this device").fill("Potting shed");

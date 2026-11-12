@@ -3951,6 +3951,134 @@
         }
       }
     },
+    "/api/consignments": {
+      "get": {
+        "tags": [
+          "ConsignmentEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConsignmentSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ConsignmentEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsignmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsignmentAdded"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/consignments/{id}": {
+      "get": {
+        "tags": [
+          "ConsignmentEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsignmentDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/consignments/{id}/packages/{packageId}/passport": {
+      "post": {
+        "tags": [
+          "ConsignmentEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "packageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PackagePassportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PassportRefused"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/jobs": {
       "get": {
         "tags": [
@@ -5575,6 +5703,221 @@
           },
           "password": {
             "type": "string"
+          }
+        }
+      },
+      "ConsignmentAdded": {
+        "required": [
+          "id",
+          "number"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "ConsignmentDetails": {
+        "required": [
+          "id",
+          "number",
+          "kind",
+          "sentTo",
+          "sentOn",
+          "notes",
+          "passportNeeded",
+          "why",
+          "packages"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ConsignmentKind"
+          },
+          "sentTo": {
+            "type": "string"
+          },
+          "sentOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "passportNeeded": {
+            "type": "boolean"
+          },
+          "why": {
+            "type": "string"
+          },
+          "packages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageDetails"
+            }
+          }
+        }
+      },
+      "ConsignmentKind": {
+        "enum": [
+          "TradeSale",
+          "DistanceSale",
+          "InPerson",
+          "OwnSite"
+        ]
+      },
+      "ConsignmentLineRequest": {
+        "required": [
+          "containerId",
+          "batchId",
+          "quantity"
+        ],
+        "type": "object",
+        "properties": {
+          "containerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "ConsignmentRequest": {
+        "required": [
+          "kind",
+          "sentTo",
+          "customerId",
+          "sentOn",
+          "notes",
+          "packages"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ConsignmentKind"
+          },
+          "sentTo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "customerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sentOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "packages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageRequest"
+            }
+          }
+        }
+      },
+      "ConsignmentSummary": {
+        "required": [
+          "id",
+          "number",
+          "kind",
+          "sentTo",
+          "sentOn",
+          "packages",
+          "passportNeeded",
+          "packagesPassported"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ConsignmentKind"
+          },
+          "sentTo": {
+            "type": "string"
+          },
+          "sentOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "packages": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "passportNeeded": {
+            "type": "boolean"
+          },
+          "packagesPassported": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -7731,6 +8074,145 @@
           },
           "hasPhoto": {
             "type": "boolean"
+          }
+        }
+      },
+      "PackageDetails": {
+        "required": [
+          "id",
+          "number",
+          "lines",
+          "passport"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageLineDetails"
+            }
+          },
+          "passport": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PackagePassport"
+              }
+            ]
+          }
+        }
+      },
+      "PackageLineDetails": {
+        "required": [
+          "batchId",
+          "traceabilityCode",
+          "plantName",
+          "labelCode",
+          "quantity"
+        ],
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "traceabilityCode": {
+            "type": "string"
+          },
+          "plantName": {
+            "type": "string"
+          },
+          "labelCode": {
+            "type": "string"
+          },
+          "quantity": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "PackagePassport": {
+        "required": [
+          "partA",
+          "partB",
+          "partC",
+          "partD",
+          "rules",
+          "issuedOn"
+        ],
+        "type": "object",
+        "properties": {
+          "partA": {
+            "type": "string"
+          },
+          "partB": {
+            "type": "string"
+          },
+          "partC": {
+            "type": "string"
+          },
+          "partD": {
+            "type": "string"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "issuedOn": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "PackagePassportRequest": {
+        "required": [
+          "examined",
+          "findings"
+        ],
+        "type": "object",
+        "properties": {
+          "examined": {
+            "type": "boolean"
+          },
+          "findings": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PackageRequest": {
+        "required": [
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsignmentLineRequest"
+            }
           }
         }
       },
@@ -11029,6 +11511,9 @@
     },
     {
       "name": "LabelEndpoints"
+    },
+    {
+      "name": "ConsignmentEndpoints"
     },
     {
       "name": "JobEndpoints"
