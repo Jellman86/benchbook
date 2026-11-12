@@ -21,7 +21,7 @@ internal static class ClearRecordsEndpoints
         "till_takings", "purchase_receipts", "purchase_lines", "purchases", "received_passports", "issued_passports",
         "count_adjustments", "event_lines", "events", "batch_photos", "containers", "batches",
         "plant_notes", "plant_photos", "plant_prices", "plants", "catalogue_entry_photos", "catalogue_changes",
-        "pot_sizes", "suppliers", "locations",
+        "jobs_done", "jobs", "pot_sizes", "suppliers", "locations",
     ];
 
     private static readonly string[] Numbering = ["batch_numbers", "container_numbers", "place_numbers"];

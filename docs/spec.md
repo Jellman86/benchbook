@@ -166,7 +166,7 @@ Not a priority: users preferred drop-down lists and one-press repeats. If it is 
 
 ## Other features
 
-Reminders, cuttings from mother plants, pest and disease notes with photos, reservations, availability lists, CSV import and export.
+Repeating jobs, such as watering, feeding and spraying rotas, are set up by the owner under Manage, Jobs: what, every so many days or weeks, the next date, optionally a place, and notes. Jobs due or late show on Record, and anyone ticks one off; it moves on by its interval to the next date after today, never leaving a backlog, and keeps who did it and when. Done twice on one day counts once. The owner also sees "Needs a look" on Record: the plant health authorisation renewal (from six weeks before the date set in Nursery details), overdue invoices, trays ready for over four weeks, trays sown without a count and not counted for three weeks, and jobs more than two days late. Each says why it is there, leads to where it's dealt with, and is worked out afresh, so it goes once it's dealt with. Cuttings from mother plants, pest and disease notes with photos, reservations, availability lists, CSV import and export.
 
 ## Architecture
 
@@ -195,11 +195,11 @@ AGPL-3.0-or-later. Dependencies and bundled fonts must use open-source licences 
 
 ## Roadmap
 
-**Done so far.** Stage 1 in full. From stage 2: purchases, invoices and credit notes, simple accounts, received and issued plant passports (one batch from one tray), and trace reports. Alongside them: correcting batches, sowing seed without a count, finding a tray without a label, supplier registration numbers, seed packet dates, labels on A4 sticker sheets, dates on all work, and work on many trays at once.
+**Done so far.** Stage 1 in full. From stage 2: purchases, invoices and credit notes, simple accounts, received and issued plant passports (one batch from one tray), and trace reports. Alongside them: correcting batches, sowing seed without a count, finding a tray without a label, supplier registration numbers, seed packet dates, labels on A4 sticker sheets, dates on all work, work on many trays at once, and repeating jobs with alerts.
 
 **Next, in order:**
 
-1. **Reminders and tasks.** Repeating jobs such as watering, feeding and spraying rotas; the yearly authorisation and inspection; overdue invoices; plants ready for a while. Alerts say why they appeared, such as a spray too close to a sale, and clear themselves when dealt with.
+1. **Spray and sale warnings.** An alert when a tray treated with a product is marked ready or sold within the product's harvest or re-entry interval, once products carry one.
 2. **Mother plants and cuttings.** Mother plants kept as records; cuttings numbered from them automatically; each mother lists every cutting taken, and each batch of cuttings leads back to its mother.
 3. **Consignments.** A sale or dispatch made up of packages, with passports that cover several batches, and GrowLog deciding whether a passport is needed.
 4. **A photo strip for each batch,** with the stage and day of each photo, and a way to remove a wrong one.

@@ -41,4 +41,7 @@ internal sealed class NurserySettings
 
     /// <summary>An ArcGIS Location Platform key for satellite pictures behind the places map. Optional.</summary>
     public string? MapImageryKey { get; set; }
+
+    /// <summary>When the nursery's plant health authorisation is next renewed, so the owner is reminded beforehand.</summary>
+    public DateOnly? AuthorisationRenewsOn { get; set; }
 }

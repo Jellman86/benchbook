@@ -2548,3 +2548,12 @@ button.danger:hover:not(:disabled) {
     bottom: 1rem;
   }
 }
+
+.alert-card {
+  border-color: var(--accent);
+  background: var(--accent-surface);
+}
+
+.alert-card .link-button {
+  align-self: flex-start;
+}

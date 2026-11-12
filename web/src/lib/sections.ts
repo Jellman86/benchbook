@@ -1,4 +1,5 @@
 import ChartColumn from "@lucide/svelte/icons/chart-column";
+import ClipboardList from "@lucide/svelte/icons/clipboard-list";
 import Contact from "@lucide/svelte/icons/contact";
 import FileText from "@lucide/svelte/icons/file-text";
 import Flower2 from "@lucide/svelte/icons/flower-2";
@@ -13,6 +14,7 @@ export type ManageSection =
   | "plants"
   | "places"
   | "trace"
+  | "jobs"
   | "figures"
   | "money"
   | "invoices"
@@ -33,6 +35,7 @@ export const manageGroups: { heading: string; items: ManageItem[] }[] = [
       { section: "plants", label: "Plants", icon: Flower2 },
       { section: "places", label: "Places", icon: MapPin },
       { section: "trace", label: "Trace a batch", icon: RouteIcon },
+      { section: "jobs", label: "Jobs", icon: ClipboardList },
     ],
   },
   {

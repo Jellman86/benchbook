@@ -988,6 +988,92 @@ namespace GrowLog.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.NurseryJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<int>("EveryDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("every_days");
+
+                    b.Property<Guid?>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
+                    b.Property<DateOnly>("NextDue")
+                        .HasColumnType("date")
+                        .HasColumnName("next_due");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id")
+                        .HasName("pk_jobs");
+
+                    b.HasIndex("LocationId")
+                        .HasDatabaseName("ix_jobs_location_id");
+
+                    b.ToTable("jobs", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_jobs_every_days", "every_days BETWEEN 1 AND 365");
+                        });
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.NurseryJobDone", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid>("DoneBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("done_by");
+
+                    b.Property<DateOnly>("DoneOn")
+                        .HasColumnType("date")
+                        .HasColumnName("done_on");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("job_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_jobs_done");
+
+                    b.HasIndex("DoneBy")
+                        .HasDatabaseName("ix_jobs_done_done_by");
+
+                    b.HasIndex("JobId", "DoneOn")
+                        .IsUnique()
+                        .HasDatabaseName("ix_jobs_done_job_id_done_on");
+
+                    b.ToTable("jobs_done", (string)null);
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.NurserySettings", b =>
                 {
                     b.Property<int>("Id")
@@ -997,6 +1083,10 @@ namespace GrowLog.Api.Data.Migrations
                     b.Property<string>("Address")
                         .HasColumnType("text")
                         .HasColumnName("address");
+
+                    b.Property<DateOnly?>("AuthorisationRenewsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("authorisation_renews_on");
 
                     b.Property<string>("Email")
                         .HasColumnType("text")
@@ -2263,6 +2353,32 @@ namespace GrowLog.Api.Data.Migrations
                         .HasForeignKey("ParentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_locations_locations_parent_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.NurseryJob", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Location", null)
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_jobs_locations_location_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.NurseryJobDone", b =>
+                {
+                    b.HasOne("GrowLog.Api.Accounts.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("DoneBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_jobs_done_asp_net_users_done_by");
+
+                    b.HasOne("GrowLog.Api.Data.NurseryJob", null)
+                        .WithMany()
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_jobs_done_jobs_job_id");
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.Plant", b =>
