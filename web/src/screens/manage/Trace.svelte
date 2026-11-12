@@ -17,6 +17,7 @@
   import { sowingWords } from "../../lib/sowing";
   import { attempt, type Schemas } from "../../lib/types";
   import PrintButton from "../PrintButton.svelte";
+  import BatchPhotos from "../work/BatchPhotos.svelte";
   import PassportCard from "../work/PassportCard.svelte";
   import { plantName } from "../../lib/work";
 
@@ -314,6 +315,9 @@
               {/each}
             </ol>
           {/if}
+
+          <h2>Photos</h2>
+          {#key trace.id}<BatchPhotos batchId={trace.id} />{/key}
 
           <h2>What was done to it</h2>
           <ol class="timeline">

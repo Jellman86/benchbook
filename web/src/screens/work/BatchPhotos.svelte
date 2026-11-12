@@ -2,22 +2,37 @@
   import Camera from "@lucide/svelte/icons/camera";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
+  import {
+    photoCaption,
+    photoKinds,
+    type BatchPhotoKind,
+  } from "../../lib/batchPhotos";
   import { shrinkPhoto } from "../../lib/photo";
   import type { Schemas } from "../../lib/types";
 
-  // A batch's photos. Where adding is allowed, a packet, label or packaging photo can be added at any time.
-  let { batchId, canAdd = false }: { batchId: string; canAdd?: boolean } =
-    $props();
+  // A batch's photos as a strip, oldest first, each with the day of the batch and the stage it had reached.
+  // The kinds offered can be added; a wrong photo can be removed by whoever took it, or the owner.
+  let {
+    batchId,
+    containerId = null,
+    kinds = [],
+  }: {
+    batchId: string;
+    containerId?: string | null;
+    kinds?: BatchPhotoKind[];
+  } = $props();
 
-  const choices: { kind: Schemas["BatchPhotoKind"]; label: string }[] = [
-    { kind: "Packet", label: "Seed packet" },
-    { kind: "Label", label: "Label" },
-    { kind: "Packaging", label: "Packaging" },
-  ];
+  type Photo = Schemas["BatchPhotoSummary"];
 
-  let photos = $state<Schemas["BatchPhotoSummary"][]>([]);
+  let photos = $state<Photo[]>([]);
+  let viewing = $state<Photo | null>(null);
   let adding = $state(false);
   let problem = $state("");
+  let dialog = $state<HTMLDialogElement>();
+
+  const choices = $derived(
+    photoKinds.filter((choice) => kinds.includes(choice.kind)),
+  );
 
   async function load() {
     photos =
@@ -36,7 +51,7 @@
     }
   });
 
-  async function add(event: Event, kind: Schemas["BatchPhotoKind"]) {
+  async function add(event: Event, kind: BatchPhotoKind) {
     const input = event.currentTarget as HTMLInputElement;
     const file = input.files?.[0];
 
@@ -48,8 +63,9 @@
     problem = "";
 
     try {
+      const at = containerId ? `&containerId=${containerId}` : "";
       const response = await fetch(
-        `/api/batches/${batchId}/photos?kind=${kind}`,
+        `/api/batches/${batchId}/photos?kind=${kind}${at}`,
         { method: "POST", body: await shrinkPhoto(file) },
       );
       problem = response.ok ? "" : "That photo couldn't be saved.";
@@ -61,24 +77,69 @@
       input.value = "";
     }
   }
+
+  function view(photo: Photo) {
+    viewing = photo;
+    dialog?.showModal();
+  }
+
+  function close() {
+    dialog?.close();
+    viewing = null;
+  }
+
+  async function remove(photo: Photo) {
+    if (!confirm("Remove this photo? It can't be brought back.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/batch-photos/${photo.id}`, {
+        method: "DELETE",
+      });
+      problem = response.ok ? "" : "That photo couldn't be removed.";
+      close();
+      await load();
+    } catch {
+      problem = "That photo couldn't be removed. Check the connection.";
+    }
+  }
 </script>
 
 {#if photos.length > 0}
-  <div class="row">
+  <ol class="photo-strip" aria-label="Photos of this batch">
     {#each photos as photo (photo.id)}
-      <a href="/api/batch-photos/{photo.id}" target="_blank" rel="noopener">
-        <img
-          class="plant-thumb"
-          src="/api/batch-photos/{photo.id}"
-          alt="{photo.kind} photo"
-          loading="lazy"
-        />
-      </a>
+      <li>
+        <button class="photo-strip-item" onclick={() => view(photo)}>
+          <img src="/api/batch-photos/{photo.id}" alt="" loading="lazy" />
+          <span>{photoCaption(photo)}</span>
+        </button>
+      </li>
     {/each}
-  </div>
+  </ol>
 {/if}
 
-{#if canAdd}
+<dialog
+  class="photo-viewer"
+  bind:this={dialog}
+  onclose={() => (viewing = null)}
+  aria-label="Photo"
+>
+  {#if viewing}
+    <img src="/api/batch-photos/{viewing.id}" alt={photoCaption(viewing)} />
+    <p><strong>{photoCaption(viewing)}</strong></p>
+    <div class="row">
+      <button onclick={close}>Close</button>
+      {#if viewing.canRemove}
+        <button class="secondary danger" onclick={() => remove(viewing!)}
+          >Remove this photo</button
+        >
+      {/if}
+    </div>
+  {/if}
+</dialog>
+
+{#if choices.length > 0}
   <fieldset class="stack tight batch-photo-add">
     <legend class="field-label">Add a photo</legend>
     <div class="card-grid">
@@ -96,6 +157,6 @@
       {/each}
     </div>
     {#if adding}<p class="muted" role="status">Saving the photo…</p>{/if}
-    {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   </fieldset>
 {/if}
+{#if problem}<p class="problem" role="alert">{problem}</p>{/if}

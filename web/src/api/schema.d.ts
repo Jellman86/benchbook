@@ -126,6 +126,7 @@ export interface paths {
             parameters: {
                 query: {
                     kind: components["schemas"]["BatchPhotoKind"];
+                    containerId?: string;
                 };
                 header?: never;
                 path: {
@@ -181,7 +182,26 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -6493,11 +6513,17 @@ export interface components {
             splitInto: number | string;
         };
         /** @enum {unknown} */
-        BatchPhotoKind: "Packet" | "Label" | "Packaging";
+        BatchPhotoKind: "Packet" | "Label" | "Packaging" | "Growing";
         BatchPhotoSummary: {
             /** Format: uuid */
             id: string;
             kind: components["schemas"]["BatchPhotoKind"];
+            /** Format: date-time */
+            takenAt: string;
+            /** Format: int32 */
+            day: null | number | string;
+            stage: null | components["schemas"]["ProductionStage"];
+            canRemove: boolean;
         };
         /** @enum {unknown} */
         BatchSource: "SeedLot" | "BoughtIn" | "Cuttings";

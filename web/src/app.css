@@ -2577,3 +2577,71 @@ button.danger:hover:not(:disabled) {
   display: grid;
   gap: 0.375rem;
 }
+
+/* A batch's photos in the order they were taken, scrolled sideways on a phone. */
+.photo-strip {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0 0 0.25rem;
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x proximity;
+}
+
+.photo-strip li {
+  flex: none;
+  scroll-snap-align: start;
+}
+
+.photo-strip-item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.25rem;
+  width: 6.5rem;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: left;
+  box-shadow: none;
+}
+
+.photo-strip-item:hover:not(:disabled) {
+  background: none;
+  color: var(--primary);
+}
+
+.photo-strip-item img {
+  width: 6.5rem;
+  height: 6.5rem;
+  border-radius: 0.5rem;
+  background: var(--line);
+  object-fit: cover;
+}
+
+.photo-viewer {
+  width: min(40rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.photo-viewer::backdrop {
+  background: rgb(0 0 0 / 60%);
+}
+
+.photo-viewer img {
+  display: block;
+  width: 100%;
+  max-height: 65dvh;
+  border-radius: 0.5rem;
+  object-fit: contain;
+}
