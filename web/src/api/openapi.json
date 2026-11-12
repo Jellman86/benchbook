@@ -638,6 +638,18 @@
         }
       }
     },
+    "/api/export": {
+      "get": {
+        "tags": [
+          "ExportEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/alerts": {
       "get": {
         "tags": [
@@ -4108,6 +4120,77 @@
         }
       }
     },
+    "/api/import/fields": {
+      "get": {
+        "tags": [
+          "GrowLog.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ImportKindFields"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/import/{kind}": {
+      "post": {
+        "tags": [
+          "ImportEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ImportKind"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/jobs": {
       "get": {
         "tags": [
@@ -6605,6 +6688,13 @@
           }
         }
       },
+      "FieldType": {
+        "enum": [
+          "Text",
+          "YesNo",
+          "Number"
+        ]
+      },
       "Figures": {
         "required": [
           "plants",
@@ -6785,6 +6875,170 @@
           },
           "undone": {
             "type": "boolean"
+          }
+        }
+      },
+      "ImportField": {
+        "required": [
+          "key",
+          "label",
+          "type",
+          "required",
+          "aliases"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/FieldType"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "longest": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32",
+            "default": 200
+          }
+        }
+      },
+      "ImportKind": {
+        "enum": [
+          "Plants",
+          "Suppliers",
+          "Customers"
+        ]
+      },
+      "ImportKindFields": {
+        "required": [
+          "kind",
+          "fields"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ImportKind"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportField"
+            }
+          }
+        }
+      },
+      "ImportProblem": {
+        "required": [
+          "row",
+          "problem"
+        ],
+        "type": "object",
+        "properties": {
+          "row": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "problem": {
+            "type": "string"
+          }
+        }
+      },
+      "ImportRequest": {
+        "required": [
+          "rows",
+          "save"
+        ],
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportRow"
+            }
+          },
+          "save": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ImportResult": {
+        "required": [
+          "adding",
+          "alreadyThere",
+          "problems",
+          "saved"
+        ],
+        "type": "object",
+        "properties": {
+          "adding": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "alreadyThere": {
+            "type": "array",
+            "items": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportProblem"
+            }
+          },
+          "saved": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ImportRow": {
+        "required": [
+          "row",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "row": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         }
       },
@@ -11528,6 +11782,9 @@
       "name": "PassportEndpoints"
     },
     {
+      "name": "ExportEndpoints"
+    },
+    {
       "name": "AlertEndpoints"
     },
     {
@@ -11574,6 +11831,9 @@
     },
     {
       "name": "ConsignmentEndpoints"
+    },
+    {
+      "name": "ImportEndpoints"
     },
     {
       "name": "JobEndpoints"

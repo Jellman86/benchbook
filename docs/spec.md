@@ -129,6 +129,12 @@ The sidebar holds everyday work: recording, new batches, production, and for the
 
 On a desk the settings list stays beside the page; on a phone it's a list, and each page has Back.
 
+## Bringing records in and taking them out
+
+Under Settings, Data and backups, the owner can download every record at once: a zip of spreadsheet (CSV) files, one each for plants, suppliers, customers, places, batches, what each tray holds now, every piece of work (one row for each tray and batch it touched, with who recorded it and whether it was undone), purchases, invoices, till takings, plant passports issued and received, consignments, jobs and mother plants. Text a spreadsheet would run as a formula is kept as text. Photos stay in the backups.
+
+Plants, suppliers and customers can be brought in from a spreadsheet saved as CSV (comma, semicolon or tab separated). The browser reads the file and matches its columns to GrowLog's by name or a usual other name ("Latin name" for botanical name, say); the owner checks the matches, with columns not found waiting behind "Match more columns". Every row is then checked, and each problem named by its spreadsheet row: an empty name, text too long, a yes-or-no column with something else in it, a number out of range, or the same entry twice. Nothing is saved while any row has a problem; the owner puts the spreadsheet right or leaves those rows out. Something already recorded (a plant by its name and variety, a supplier or customer by name) is left as it is, so the same spreadsheet can be brought in twice. Up to 2,000 rows go in at once, all together or not at all.
+
 ## Starting afresh
 
 While a deployment has example data switched on (`Demo:Enabled`), the owner can load example data and clear every record from Settings, Data and backups, to start afresh, after typing "clear everything". It empties plants, batches, trays, places, pot sizes, suppliers, purchases, till takings, plant passports, consignments, jobs, mother plants, customers and invoices, restarts the label numbering, and removes the made-up example people. Sign-ins, staff, bench devices, the nursery's details, logo and label designs are kept. Once example data is switched off for real records, records can no longer be cleared, because passport records must be kept for three years.
@@ -197,13 +203,12 @@ AGPL-3.0-or-later. Dependencies and bundled fonts must use open-source licences 
 
 ## Roadmap
 
-**Done so far.** Stage 1 in full. From stage 2: purchases, invoices and credit notes, simple accounts, received and issued plant passports, consignments with a passport for each package, and trace reports. Alongside them: correcting batches, sowing seed without a count, finding a tray without a label, supplier registration numbers, seed packet dates, labels on A4 sticker sheets, dates on all work, work on many trays at once, repeating jobs with alerts, mother plants, and a photo strip for each batch.
+**Done so far.** Stage 1 in full. From stage 2: purchases, invoices and credit notes, simple accounts, received and issued plant passports, consignments with a passport for each package, and trace reports. Alongside them: correcting batches, sowing seed without a count, finding a tray without a label, supplier registration numbers, seed packet dates, labels on A4 sticker sheets, dates on all work, work on many trays at once, repeating jobs with alerts, mother plants, a photo strip for each batch, and bringing records in from spreadsheets and taking everything out.
 
 **Next, in order:**
 
 1. **Spray and sale warnings.** An alert when a tray treated with a product is marked ready or sold within the product's harvest or re-entry interval, once products carry one.
-2. **Import and export.** Spreadsheets brought in with their columns matched and every problem row named before anything is saved; everything taken out in one download.
-3. **Greenhouse sensors.** Temperature and humidity sent in from Home Assistant or a small sensor, charted for each place.
+2. **Greenhouse sensors.** Temperature and humidity sent in from Home Assistant or a small sensor, charted for each place.
 
 **Smaller follow-ups:**
 

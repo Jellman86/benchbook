@@ -468,6 +468,34 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Back").click();
   await leaveManage(page);
 
+  // Plants come in from a spreadsheet: problem rows are named first, and everything comes out in one download.
+  await openSettings(page, "Data and backups");
+  await page.getByLabel("Spreadsheet (CSV)").setInputFiles({
+    name: "plants.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(
+      "Plant,Latin name,Xylella\r\nRosemary,Salvia rosmarinus,yes\r\nThyme,,perhaps\r\nLavender,,\r\n",
+    ),
+  });
+  await expect(chooser(page, "Botanical name")).toHaveValue("1");
+  await button(page, "Check the rows").click();
+  await expect(page.locator("li", { hasText: "Row 3:" })).toContainText(
+    "yes or no",
+  );
+  await page.screenshot({ path: "build/peek/import.png", fullPage: true });
+  await button(page, "Leave out those rows").click();
+  await button(page, "Bring in 2 plants").click();
+  await expect(page.getByRole("status")).toContainText(
+    "Brought in 2 plants from plants.csv",
+  );
+  const records = await page.request.get(
+    (await page
+      .getByRole("link", { name: "Download everything" })
+      .getAttribute("href"))!,
+  );
+  expect((await records.body()).subarray(0, 2).toString()).toBe("PK");
+  await button(page, "Back").click();
+
   // Sending plants to a business says a passport is needed, and there's nothing counted to send yet.
   await openManage(page, "Consignments");
   await expect(page.getByText("None yet.")).toBeVisible();
