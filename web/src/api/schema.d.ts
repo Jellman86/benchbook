@@ -816,6 +816,117 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sensor-readings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SensorReadingRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/climate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlaceClimate"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/climate/{locationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    days?: number | string;
+                };
+                header?: never;
+                path: {
+                    locationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlaceClimateHistory"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/alerts": {
         parameters: {
             query?: never;
@@ -5358,6 +5469,175 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sensors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SensorSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SensorRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SensorKey"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sensors/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SensorRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sensors/{id}/new-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SensorKey"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sensors/{id}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs": {
         parameters: {
             query?: never;
@@ -6696,6 +6976,36 @@ export interface components {
         ClearRecordsRequest: {
             confirmation: null | string;
         };
+        ClimateHour: {
+            /** Format: date-time */
+            hour: string;
+            /** Format: double */
+            temperature: null | number | string;
+            /** Format: double */
+            lowestTemperature: null | number | string;
+            /** Format: double */
+            highestTemperature: null | number | string;
+            /** Format: double */
+            humidity: null | number | string;
+        };
+        ClimateRange: {
+            /** Format: double */
+            lowestTemperature: null | number | string;
+            /** Format: double */
+            highestTemperature: null | number | string;
+            /** Format: double */
+            lowestHumidity: null | number | string;
+            /** Format: double */
+            highestHumidity: null | number | string;
+        };
+        ClimateReading: {
+            /** Format: date-time */
+            takenAt: string;
+            /** Format: double */
+            temperature: null | number | string;
+            /** Format: double */
+            humidity: null | number | string;
+        };
         CompleteInviteRequest: {
             /** Format: uuid */
             userId: string;
@@ -7452,6 +7762,21 @@ export interface components {
             /** Format: uuid */
             id: string;
         };
+        PlaceClimate: {
+            /** Format: uuid */
+            locationId: string;
+            place: string;
+            latest: null | components["schemas"]["ClimateReading"];
+            today: null | components["schemas"]["ClimateRange"];
+        };
+        PlaceClimateHistory: {
+            /** Format: uuid */
+            locationId: string;
+            place: string;
+            /** Format: date-time */
+            since: string;
+            hours: components["schemas"]["ClimateHour"][];
+        };
         PlaceMap: {
             imageryKey: null | string;
             outlines: components["schemas"]["PlaceOutline"][];
@@ -7749,6 +8074,33 @@ export interface components {
         };
         SaveRefused: {
             problem: string;
+        };
+        SensorKey: {
+            /** Format: uuid */
+            id: string;
+            key: string;
+        };
+        SensorReadingRequest: {
+            /** Format: double */
+            temperature: null | number | string;
+            /** Format: double */
+            humidity: null | number | string;
+            /** Format: date-time */
+            takenAt: null | string;
+        };
+        SensorRequest: {
+            name: string;
+            /** Format: uuid */
+            locationId: string;
+        };
+        SensorSummary: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: uuid */
+            locationId: string;
+            /** Format: date-time */
+            lastReadingAt: null | string;
         };
         SetOwnPasswordRequest: {
             currentPassword: null | string;

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { manageGroups, type ManageSection } from "../lib/sections";
   import type { BatchPrefill } from "../lib/work";
+  import Climate from "./manage/Climate.svelte";
   import Consignments from "./manage/Consignments.svelte";
   import Customers from "./manage/Customers.svelte";
   import Figures from "./manage/Figures.svelte";
@@ -51,6 +52,8 @@
   <Locations onBack={back} {onOpenTray} {onMoveTraysHere} />
 {:else if section === "mothers"}
   <MotherPlants onBack={back} {onTrace} />
+{:else if section === "climate"}
+  <Climate onBack={back} />
 {:else if section === "jobs"}
   <Jobs onBack={back} />
 {:else if section === "trace"}

@@ -9,6 +9,7 @@ import Package from "@lucide/svelte/icons/package";
 import Truck from "@lucide/svelte/icons/truck";
 import RouteIcon from "@lucide/svelte/icons/route";
 import Sprout from "@lucide/svelte/icons/sprout";
+import Thermometer from "@lucide/svelte/icons/thermometer";
 import Wallet from "@lucide/svelte/icons/wallet";
 
 // The owner's everyday work. Setting the nursery up lives under Settings (settings.ts).
@@ -18,6 +19,7 @@ export type ManageSection =
   | "trace"
   | "jobs"
   | "mothers"
+  | "climate"
   | "figures"
   | "money"
   | "invoices"
@@ -41,6 +43,7 @@ export const manageGroups: { heading: string; items: ManageItem[] }[] = [
       { section: "trace", label: "Trace a batch", icon: RouteIcon },
       { section: "mothers", label: "Mother plants", icon: Sprout },
       { section: "jobs", label: "Jobs", icon: ClipboardList },
+      { section: "climate", label: "Climate", icon: Thermometer },
     ],
   },
   {

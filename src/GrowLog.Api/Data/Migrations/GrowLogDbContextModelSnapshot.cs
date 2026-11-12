@@ -1792,6 +1792,100 @@ namespace GrowLog.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.Sensor", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<byte[]>("KeyHash")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("key_hash");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("citext")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sensors");
+
+                    b.HasIndex("KeyHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sensors_key_hash");
+
+                    b.HasIndex("LocationId")
+                        .HasDatabaseName("ix_sensors_location_id");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sensors_name");
+
+                    b.ToTable("sensors", (string)null);
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.SensorReading", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal?>("Humidity")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("humidity");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sensor_id");
+
+                    b.Property<DateTimeOffset>("TakenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("taken_at");
+
+                    b.Property<decimal?>("Temperature")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("temperature");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sensor_readings");
+
+                    b.HasIndex("LocationId", "TakenAt")
+                        .HasDatabaseName("ix_sensor_readings_location_id_taken_at");
+
+                    b.HasIndex("SensorId", "TakenAt")
+                        .HasDatabaseName("ix_sensor_readings_sensor_id_taken_at");
+
+                    b.ToTable("sensor_readings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_sensor_readings_humidity", "humidity BETWEEN 0 AND 100");
+
+                            t.HasCheckConstraint("ck_sensor_readings_something", "temperature IS NOT NULL OR humidity IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_sensor_readings_temperature", "temperature BETWEEN -50 AND 80");
+                        });
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.Species", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2785,6 +2879,33 @@ namespace GrowLog.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_received_passports_suppliers_supplier_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.Sensor", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Location", null)
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sensors_locations_location_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.SensorReading", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Location", null)
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sensor_readings_locations_location_id");
+
+                    b.HasOne("GrowLog.Api.Data.Sensor", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sensor_readings_sensors_sensor_id");
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.SpeciesDetails", b =>
