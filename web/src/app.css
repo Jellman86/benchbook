@@ -2511,3 +2511,40 @@ button.danger:hover:not(:disabled) {
   background: var(--accent-surface);
   color: var(--accent-text);
 }
+
+/* Several trays chosen in Production: the work for them all waits at the foot of the screen. */
+.production-row.chosen {
+  border-color: var(--accent);
+  background: var(--accent-surface);
+}
+
+.many-trays {
+  position: sticky;
+  /* Above the phone's bottom bar; at the foot of the page on a desk. */
+  bottom: calc(4.25rem + env(safe-area-inset-bottom));
+  z-index: 5;
+  box-shadow: var(--paper-edge);
+}
+
+.many-trays-head {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.many-trays-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .many-trays-actions {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .many-trays {
+    bottom: 1rem;
+  }
+}

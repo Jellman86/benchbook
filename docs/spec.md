@@ -133,7 +133,7 @@ While a deployment has example data switched on (`Demo:Enabled`), the owner can 
 
 ## Production view
 
-One screen lists everything growing, for all staff: each tray or pot group with its plant, quantity, place, pot size, current stage and how long it has been there. Tabs filter by stage (sown, cuttings, bought in, germinated, pricked out, potted on, ready) with live plant counts, alongside search and filters for place and supplier. The stage is worked out from recorded events, honouring undos and corrections. "Ready" is a one-press action on the container, recorded like any other event. Estimating when plants will come ready needs growing times per plant, which are not held yet.
+One screen lists everything growing, for all staff: each tray or pot group with its plant, quantity, place, pot size, current stage and how long it has been there. Tabs filter by stage (sown, cuttings, bought in, germinated, pricked out, potted on, ready) with live plant counts, alongside search and filters for place and supplier. The stage is worked out from recorded events, honouring undos and corrections. "Ready" is a one-press action on the container, recorded like any other event. Estimating when plants will come ready needs growing times per plant, which are not held yet. "Choose several" lets anyone tick trays in that list (one by one, or all shown after filtering by stage, place, supplier or search) and then mark them ready, move them to a place, record a treatment on them, or print their labels on A4. Each tray is recorded on its own, so each waits on the device without a signal, and one refused doesn't stop the others; the result says how many were done, how many are waiting and which couldn't be.
 
 ## Statistics
 
@@ -195,17 +195,16 @@ AGPL-3.0-or-later. Dependencies and bundled fonts must use open-source licences 
 
 ## Roadmap
 
-**Done so far.** Stage 1 in full. From stage 2: purchases, invoices and credit notes, simple accounts, received and issued plant passports (one batch from one tray), and trace reports. Alongside them: correcting batches, sowing seed without a count, finding a tray without a label, supplier registration numbers, seed packet dates, labels on A4 sticker sheets, and dates on all work.
+**Done so far.** Stage 1 in full. From stage 2: purchases, invoices and credit notes, simple accounts, received and issued plant passports (one batch from one tray), and trace reports. Alongside them: correcting batches, sowing seed without a count, finding a tray without a label, supplier registration numbers, seed packet dates, labels on A4 sticker sheets, dates on all work, and work on many trays at once.
 
 **Next, in order:**
 
-1. **Work on many trays at once.** Choose trays by place, stage or plant, then mark them ready, move, treat or print their labels together. Moving several trays is already there.
-2. **Reminders and tasks.** Repeating jobs such as watering, feeding and spraying rotas; the yearly authorisation and inspection; overdue invoices; plants ready for a while. Alerts say why they appeared, such as a spray too close to a sale, and clear themselves when dealt with.
-3. **Mother plants and cuttings.** Mother plants kept as records; cuttings numbered from them automatically; each mother lists every cutting taken, and each batch of cuttings leads back to its mother.
-4. **Consignments.** A sale or dispatch made up of packages, with passports that cover several batches, and GrowLog deciding whether a passport is needed.
-5. **A photo strip for each batch,** with the stage and day of each photo, and a way to remove a wrong one.
-6. **Import and export.** Spreadsheets brought in with their columns matched and every problem row named before anything is saved; everything taken out in one download.
-7. **Greenhouse sensors.** Temperature and humidity sent in from Home Assistant or a small sensor, charted for each place.
+1. **Reminders and tasks.** Repeating jobs such as watering, feeding and spraying rotas; the yearly authorisation and inspection; overdue invoices; plants ready for a while. Alerts say why they appeared, such as a spray too close to a sale, and clear themselves when dealt with.
+2. **Mother plants and cuttings.** Mother plants kept as records; cuttings numbered from them automatically; each mother lists every cutting taken, and each batch of cuttings leads back to its mother.
+3. **Consignments.** A sale or dispatch made up of packages, with passports that cover several batches, and GrowLog deciding whether a passport is needed.
+4. **A photo strip for each batch,** with the stage and day of each photo, and a way to remove a wrong one.
+5. **Import and export.** Spreadsheets brought in with their columns matched and every problem row named before anything is saved; everything taken out in one download.
+6. **Greenhouse sensors.** Temperature and humidity sent in from Home Assistant or a small sensor, charted for each place.
 
 **Smaller follow-ups:**
 

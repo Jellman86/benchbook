@@ -93,7 +93,7 @@
     | { name: "production" }
     | { name: "place"; id: string }
     | { name: "moveMany"; destination?: string | null }
-    | { name: "labelSheets" }
+    | { name: "labelSheets"; trays?: string[] }
     | { name: "plants" }
     | {
         name: "manage";
@@ -501,11 +501,15 @@
   {:else if view.name === "moveMany"}
     <MoveMany destination={view.destination} onFinished={goHome} />
   {:else if view.name === "labelSheets"}
-    <LabelSheets onBack={goHome} />
+    <LabelSheets onBack={goHome} trayLabels={view.trays ?? []} />
   {:else if view.name === "plants"}
     <Plants canManage={false} onBack={goHome} />
   {:else if view.name === "production"}
-    <Production onOpen={(code) => open(code, true)} onBack={goHome} />
+    <Production
+      onOpen={(code) => open(code, true)}
+      onBack={goHome}
+      onLabels={(trays) => (view = { name: "labelSheets", trays })}
+    />
   {:else if view.name === "settings"}
     <Settings
       {me}
