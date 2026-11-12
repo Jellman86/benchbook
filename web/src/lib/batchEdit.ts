@@ -41,7 +41,8 @@ export function batchChanges(
     return originCountries.find((item) => item.code === clean)?.name ?? clean;
   };
   const text = (value: string) => value.trim();
-  // As saved: cuttings have a mother plant, everything else a lot or reference.
+  // As it will be saved: cuttings have a mother plant, everything else a lot or reference.
+  // What is held now is shown as it is, so a clearing is always listed.
   const reference = (form: BatchForm) =>
     form.source === "Cuttings" ? "" : text(form.sourceReference);
   const mother = (form: BatchForm) =>
@@ -72,12 +73,12 @@ export function batchChanges(
     { name: "Supplier", before: supplier(before), after: supplier(after) },
     {
       name: "Lot or reference",
-      before: reference(before),
+      before: text(before.sourceReference),
       after: reference(after),
     },
     {
       name: "Mother plant",
-      before: mother(before),
+      before: text(before.motherPlant),
       after: mother(after),
     },
     {

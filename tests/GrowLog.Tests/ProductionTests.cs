@@ -8,6 +8,9 @@ namespace GrowLog.Tests;
 
 public sealed class ProductionTests(PostgresFixture database)
 {
+    private static async Task<Guid> SupplierAsync(HttpClient client) =>
+        Json(await PostForTextAsync(client, "/api/suppliers", new { name = $"Supplier {Guid.NewGuid():N}" })).GetProperty("id").GetGuid();
+
     private static async Task<JsonElement> StartAsync(HttpClient client, Guid plantId, string source = "SeedLot", int quantity = 40)
     {
         var body = new
@@ -17,6 +20,7 @@ public sealed class ProductionTests(PostgresFixture database)
             plantId,
             quantity,
             source,
+            supplierId = string.Equals(source, "BoughtIn", StringComparison.Ordinal) ? await SupplierAsync(client) : (Guid?)null,
             originCountry = "GB",
             containerKind = "Tray",
         };

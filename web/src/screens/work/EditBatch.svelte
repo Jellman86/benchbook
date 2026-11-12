@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { originCountries } from "../../lib/countries";
-  import { dayWords, isoDay, momentOn } from "../../lib/days";
+  import { isoDay, momentOn, onDay } from "../../lib/days";
   import { batchChanges, type BatchForm } from "../../lib/batchEdit";
   import { attempt, optional, type Schemas } from "../../lib/types";
   import DayPicker from "../DayPicker.svelte";
@@ -252,7 +252,10 @@
     {:else}
       <p class="muted">
         {#if details.startedAt}
-          Started {dayWords(isoDay(new Date(details.startedAt))).toLowerCase()}
+          Started {onDay(isoDay(new Date(details.startedAt))).replace(
+            /^on /,
+            "",
+          )}
           with {details.quantity}. Other work has been recorded on these plants
           since, so how they started, the day and the number can't be changed
           here. Use Count to correct the number.

@@ -240,6 +240,8 @@
     moving = true;
     problem = "";
     history.go(target - stage);
+    // In case the browser never says it moved.
+    setTimeout(() => (moving = false), 1000);
   }
 
   // The answers on "Where from?" must be complete, even if the browser's Forward skipped past it.
@@ -459,7 +461,8 @@
               plantId: savedPlantId,
               quantity,
               source,
-              sourceReference: optional(sourceReference),
+              sourceReference:
+                source === "Cuttings" ? null : optional(sourceReference),
               supplierId: source === "Cuttings" ? null : supplierId || null,
               parentBatchId: null,
               motherPlant: null,
@@ -675,7 +678,7 @@
         every batch its country of origin.
       </p>
     {/if}
-    <button disabled={busy || !whereFromDone} onclick={start}
+    <button disabled={busy || !whereFromDone || !picked} onclick={start}
       >Start batch</button
     >
   {/if}

@@ -40,13 +40,14 @@ public sealed class WorkApiTests(PostgresFixture database)
         return new Scene(nursery, plant, small, large, bench1, bench2);
     }
 
-    private static object StartBody(Scene scene, Guid eventId, string source = "SeedLot", int quantity = 40) => new
+    private static object StartBody(Scene scene, Guid eventId, string source = "SeedLot", int quantity = 40, Guid? supplierId = null) => new
     {
         eventId,
         occurredAt = Now,
         plantId = scene.Plant,
         quantity,
         source,
+        supplierId,
         originCountry = "gb",
         containerKind = "Tray",
         locationId = scene.Bench1,
@@ -121,9 +122,21 @@ public sealed class WorkApiTests(PostgresFixture database)
     {
         await using var scene = await CreateSceneAsync();
 
-        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(scene.Staff, "/api/batches", StartBody(scene, Guid.NewGuid(), source)));
+        Guid? supplier = string.Equals(source, "BoughtIn", StringComparison.Ordinal)
+            ? Json(await PostForTextAsync(scene.Staff, "/api/suppliers", new { name = "Hillside Plants" })).GetProperty("id").GetGuid()
+            : null;
+
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(scene.Staff, "/api/batches", StartBody(scene, Guid.NewGuid(), source, supplierId: supplier)));
 
         Assert.Equal(eventType, (await RecentAsync(scene.Staff))[0].GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public async Task Bought_in_plants_need_their_supplier()
+    {
+        await using var scene = await CreateSceneAsync();
+
+        Assert.Equal(HttpStatusCode.BadRequest, await PostStatusAsync(scene.Staff, "/api/batches", StartBody(scene, Guid.NewGuid(), "BoughtIn")));
     }
 
     [Fact]

@@ -116,7 +116,8 @@ internal static class WorkEndpoints
         EventStore store,
         CancellationToken cancellationToken)
     {
-        if (!IsValidQuantity(request.Quantity))
+        // Bought-in plants must say who supplied them, for the passport record.
+        if (!IsValidQuantity(request.Quantity) || (request.Source == BatchSource.BoughtIn && request.SupplierId is null))
         {
             return TypedResults.BadRequest();
         }

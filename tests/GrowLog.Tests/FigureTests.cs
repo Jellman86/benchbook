@@ -16,6 +16,9 @@ public sealed class FigureTests(PostgresFixture database)
         Json(await PostForTextAsync(owner, "/api/plants", new { commonName, variety = "Hidcote", xylellaHost = false, protectedVariety = false }))
             .GetProperty("id").GetGuid();
 
+    private static async Task<Guid> SupplierAsync(HttpClient client) =>
+        Json(await PostForTextAsync(client, "/api/suppliers", new { name = $"Supplier {Guid.NewGuid():N}" })).GetProperty("id").GetGuid();
+
     private static async Task<Started> StartAsync(HttpClient client, Guid plantId, int quantity, string source = "SeedLot")
     {
         var body = Json(await PostForTextAsync(client, "/api/batches", new
@@ -25,6 +28,7 @@ public sealed class FigureTests(PostgresFixture database)
             plantId,
             quantity,
             source,
+            supplierId = string.Equals(source, "BoughtIn", StringComparison.Ordinal) ? await SupplierAsync(client) : (Guid?)null,
             originCountry = "GB",
             containerKind = "Tray",
         }));

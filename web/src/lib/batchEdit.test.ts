@@ -19,6 +19,19 @@ const before: BatchForm = {
 };
 
 describe("batchChanges", () => {
+  it("lists a lot reference that saving clears, even when only the country changed", () => {
+    const cuttings = { ...before, source: "Cuttings" as const, supplierId: "" };
+
+    expect(
+      batchChanges(
+        cuttings,
+        { ...cuttings, originCountry: "NL" },
+        plants,
+        suppliers,
+      ).map((change) => change.name),
+    ).toEqual(["Lot or reference", "Country of origin"]);
+  });
+
   it("lists nothing when nothing changed, ignoring spaces and case", () => {
     expect(
       batchChanges(

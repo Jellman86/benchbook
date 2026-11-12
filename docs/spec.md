@@ -60,7 +60,7 @@ Partial potting-on creates a new container from the same batch, and no new batch
 
 ## Main flows
 
-1. **Start a batch.** Choose or add a plant, enter quantity, source, the day it was sown, arrived or had cuttings taken (today unless changed; a batch started from a purchase takes the purchase date), and greenhouse, then check everything on one page, where each answer can be changed, before the batch is started and its label printed.
+1. **Start a batch.** Choose or add a plant, enter quantity, source, the day it was sown, arrived or had cuttings taken (today unless changed; a batch started from a purchase takes the purchase date), and greenhouse, then check everything on one page, where each answer can be changed, before the batch is started and its label printed. Bought-in plants must name their supplier, for the passport record.
 2. **Record what happened.** Scan, choose an action, confirm, with an undo for the last action. Recent actions appear as one-press shortcuts, such as "another tray of Lavender 'Hidcote', Greenhouse 2".
 3. **Record losses.** Scan, Lost, how many, why: failed to germinate, damping off, pest, disease, frost, other.
 4. **Pot on.** Scan, how many, new pot size. Prints new container labels.
