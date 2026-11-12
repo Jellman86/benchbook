@@ -193,7 +193,35 @@ AGPL-3.0-or-later. Dependencies and bundled fonts must use open-source licences 
 2. **Buying and selling.** Purchases, sales, consignments, passport issue, invoices, simple accounts, reminders, trace reports. Trade sales follow once retail and online selling work.
 3. **Extras.** Native iPhone app, enrichment beyond names, online shop stock synchronisation, and voice if still wanted.
 
+## Roadmap
+
+**Done so far.** Stage 1 in full. From stage 2: purchases, invoices and credit notes, simple accounts, received and issued plant passports (one batch from one tray), and trace reports. Alongside them: correcting batches, sowing seed without a count, finding a tray without a label, supplier registration numbers and seed packet dates.
+
+**Next, in order:**
+
+1. **A sheet of labels on A4.** Choose trays, plants or places and print their labels together on A4 sticker sheets from an ordinary printer, for a nursery without a label printer.
+2. **Dates on all work.** Germinated, pricked out, potted on, losses, moves, counts and treatments take Today, Yesterday or another day, for work written up later and for backfilling.
+3. **Work on many trays at once.** Choose trays by place, stage or plant, then mark them ready, move, treat or print their labels together. Moving several trays is already there.
+4. **Reminders and tasks.** Repeating jobs such as watering, feeding and spraying rotas; the yearly authorisation and inspection; overdue invoices; plants ready for a while. Alerts say why they appeared, such as a spray too close to a sale, and clear themselves when dealt with.
+5. **Mother plants and cuttings.** Mother plants kept as records; cuttings numbered from them automatically; each mother lists every cutting taken, and each batch of cuttings leads back to its mother.
+6. **Consignments.** A sale or dispatch made up of packages, with passports that cover several batches, and GrowLog deciding whether a passport is needed.
+7. **A photo strip for each batch,** with the stage and day of each photo, and a way to remove a wrong one.
+8. **Import and export.** Spreadsheets brought in with their columns matched and every problem row named before anything is saved; everything taken out in one download.
+9. **Greenhouse sensors.** Temperature and humidity sent in from Home Assistant or a small sensor, charted for each place.
+
+**Smaller follow-ups:**
+
+- A rough germination count marked as rough, so pricking out still asks how many were taken and how many are left.
+- Production's stage totals counting trays not counted yet.
+- Seedlings per gram suggested from earlier counts, offered as a choice rather than filled in.
+- A tray recorded as all lost staying lost if a count timed earlier arrives later from a device that was offline.
+- Keeping a supplier's other registration numbers when an old cached app saves the supplier.
+- Losses by reason including trays lost before anyone counted them.
+
+Stage 3 stays as above.
+
 ## Open questions
 
+- A new name: "GrowLog" is already in use by another product, a grow log for home growers at growlog.space.
 - Label printer and stock.
 - Whether the nursery's inspector accepts the received-passport status values, the status values for issued passports, and any further records they expect.
