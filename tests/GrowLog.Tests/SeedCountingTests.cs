@@ -149,4 +149,54 @@ public sealed class SeedCountingTests(PostgresFixture database)
         var change = Assert.Single((await nursery.Owner.GetFromJsonAsync<JsonElement>(Route($"/api/batches/{batch}/trace"), Cancellation)).GetProperty("corrections").EnumerateArray());
         Assert.Equal(("Sown", "About 200 seeds", "1.5 g"), (change.GetProperty("field").GetString(), change.GetProperty("before").GetString(), change.GetProperty("after").GetString()));
     }
+
+    [Fact]
+    public async Task Germinated_with_no_count_gives_no_rate_and_undoing_the_first_count_makes_it_uncounted_again()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (plant, batch, tray, label) = await SowAsync(nursery);
+        await PostStatusAsync(nursery.Staff, $"/api/containers/{tray}/germinated", new { eventId = Guid.NewGuid(), occurredAt = Sown.AddDays(4) });
+
+        Assert.Equal(JsonValueKind.Null, (await PlantFiguresAsync(nursery.Owner, plant)).GetProperty("germinationRate").ValueKind);
+
+        var countId = Guid.NewGuid();
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Staff, $"/api/containers/{tray}/count", new { eventId = countId, occurredAt = Sown.AddDays(5), batchId = batch, counted = 120 }));
+        Assert.False((await LineAsync(nursery.Staff, label)).GetProperty("notCounted").GetBoolean());
+
+        using var undo = await PostAsync(nursery.Staff, $"/api/events/{countId}/correct", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow });
+        Assert.Equal(HttpStatusCode.Created, undo.StatusCode);
+        Assert.True((await LineAsync(nursery.Staff, label)).GetProperty("notCounted").GetBoolean());
+    }
+
+    [Fact]
+    public async Task A_resent_prick_out_is_recognised_and_late_losses_follow_the_count()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (_, batch, tray, label) = await SowAsync(nursery);
+        var body = new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow, type = "PrickedOut", batchId = batch, quantity = 30, containerKind = "Tray", leftInTray = 12, countEventId = Guid.NewGuid() };
+
+        using var first = await PostAsync(nursery.Staff, $"/api/containers/{tray}/transfer", body);
+        using var again = await PostAsync(nursery.Staff, $"/api/containers/{tray}/transfer", body);
+        Assert.Equal((HttpStatusCode.Created, HttpStatusCode.OK), (first.StatusCode, again.StatusCode));
+        Assert.Equal(12, (await LineAsync(nursery.Staff, label)).GetProperty("quantity").GetInt32());
+
+        // "Some" queued before the count arrived can't be a number now; "all" takes what's there.
+        using var some = await PostAsync(nursery.Staff, $"/api/containers/{tray}/losses", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow, batchId = batch, quantity = 0, reason = "Pest", all = false });
+        Assert.Equal("NowCounted", Json(await some.Content.ReadAsStringAsync(Cancellation)).GetProperty("problem").GetString());
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Staff, $"/api/containers/{tray}/losses", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow, batchId = batch, quantity = 0, reason = "Pest", all = true }));
+        Assert.Equal(0, await ContentsAsync(nursery.Staff, label));
+    }
+
+    [Theory]
+    [InlineData("About", "0")]
+    [InlineData("About", "12.5")]
+    [InlineData("Grams", "-1")]
+    public async Task Edit_batch_refuses_a_sowing_that_makes_no_sense(string sownAs, string amount)
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (plant, batch, _, _) = await SowAsync(nursery);
+
+        using var response = await nursery.Staff.PutAsJsonAsync(Route($"/api/batches/{batch}"), new { plantId = plant, source = "SeedLot", originCountry = "GB", sownAs, sownAmount = decimal.Parse(amount, System.Globalization.CultureInfo.InvariantCulture) }, Cancellation);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }

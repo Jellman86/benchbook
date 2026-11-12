@@ -141,7 +141,7 @@ internal static class WorkEndpoints
             OriginCountry = request.OriginCountry.Trim().ToUpperInvariant(),
             SowBy = request.Source == BatchSource.SeedLot ? request.SowBy : null,
             SownAs = sownAs,
-            SownAmount = sownAs is SownMeasure.About or SownMeasure.Grams or SownMeasure.Packet ? request.SownAmount : null,
+            SownAmount = sownAs is SownMeasure.About or SownMeasure.Grams ? request.SownAmount : null,
             PacketShare = sownAs == SownMeasure.Packet ? request.PacketShare : null,
             PacketSays = sownAs == SownMeasure.Packet ? Clean(request.PacketSays) : null,
         };
@@ -164,12 +164,15 @@ internal static class WorkEndpoints
             async () => await DescribeStartedBatchAsync(request.EventId, db, cancellationToken));
     }
 
+    private static bool IsSensibleSowing(StartBatchRequest request) =>
+        IsSensibleSowing(request.SownAs, request.SownAmount, request.PacketShare, request.PacketSays);
+
     /// <summary>A sowing's measure makes sense: about so many seeds is a whole number, grams are positive, a packet says how much.</summary>
-    private static bool IsSensibleSowing(StartBatchRequest request) => request.SownAs switch
+    internal static bool IsSensibleSowing(SownMeasure? sownAs, decimal? amount, PacketShare? share, string? says) => sownAs switch
     {
-        SownMeasure.About => request.SownAmount is > 0 and <= MaxQuantity && decimal.Truncate(request.SownAmount.Value) == request.SownAmount,
-        SownMeasure.Grams => request.SownAmount is > 0 and <= 10_000,
-        SownMeasure.Packet => request.PacketShare is not null && (request.PacketSays?.Length ?? 0) <= LongestShortText,
+        SownMeasure.About => amount is >= 1 and <= MaxQuantity && decimal.Truncate(amount.Value) == amount,
+        SownMeasure.Grams => amount is > 0 and <= 10_000,
+        SownMeasure.Packet => share is not null && (says?.Length ?? 0) <= LongestShortText,
         _ => true,
     };
 
@@ -269,6 +272,26 @@ internal static class WorkEndpoints
     /// </summary>
     private static async Task<IResult> RecordLossAsync(Guid id, LossRequest request, ClaimsPrincipal user, EventStore store, CancellationToken cancellationToken)
     {
+        // Sent as "all" or "some" from a tray that someone has counted since, as when work queued offline arrives late.
+        if (request.All is { } said && !await store.IsNotCountedAsync(id, request.BatchId, cancellationToken))
+        {
+            if (!said)
+            {
+                return Refused("NowCounted");
+            }
+
+            var here = (await store.GetContainerStateAsync(id, cancellationToken)).Contents.FirstOrDefault(line => line.BatchId == request.BatchId)?.Quantity ?? 0;
+
+            if (here <= 0)
+            {
+                return Refused("BelowZero");
+            }
+
+            var everyOne = NewEvent(request.EventId, EventType.Lost, request.OccurredAt, user, id, details: new { reason = request.Reason.ToString(), all = true });
+            AddLine(everyOne, id, request.BatchId, -here);
+            return await StoreSimpleAsync(store, everyOne, cancellationToken);
+        }
+
         if (await store.IsNotCountedAsync(id, request.BatchId, cancellationToken))
         {
             if (request.All is not { } all)
@@ -324,7 +347,9 @@ internal static class WorkEndpoints
         AddLine(work, target.Id, request.BatchId, request.Quantity);
 
         // From a tray nobody had counted: what's taken and what's left are the first count, just before the move.
-        var counting = await store.IsNotCountedAsync(id, request.BatchId, cancellationToken);
+        // Taken and left, when given, are a real count made as the plants were moved, so they stand even if someone
+        // counted the tray in the meantime.
+        var counting = request.LeftInTray is not null || await store.IsNotCountedAsync(id, request.BatchId, cancellationToken);
 
         if (counting && (request.LeftInTray is not ({ } left and >= 0 and <= MaxQuantity) || request.CountEventId is not { } countId))
         {

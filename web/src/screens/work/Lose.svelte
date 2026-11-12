@@ -72,6 +72,9 @@
             >Some of them</button
           >
         </div>
+        {#if all === null}
+          <p class="muted">Choose all or some, then why.</p>
+        {/if}
       {:else}
         <p>How many?</p>
         <Stepper

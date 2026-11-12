@@ -950,10 +950,6 @@ button.place-row:hover:not(:disabled) {
   grid-template-columns: repeat(2, 1fr);
 }
 
-.segmented.two {
-  grid-template-columns: repeat(2, 1fr);
-}
-
 .printing-tips summary {
   min-height: 2.5rem;
   font-family: var(--heading);

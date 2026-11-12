@@ -93,11 +93,23 @@ internal static class FigureEndpoints
                 && string.Equals(LossReasonOf(row.Event.Payload), nameof(LossReason.FailedToGerminate), StringComparison.Ordinal))
             .Select(row => row.Line.BatchId);
 
+        // "About so many" can only be measured once someone has counted what came up, or none did.
+        var settled = events.Values
+            .Where(e => e.Type == EventType.StockCounted && !reversed.Contains(e.Id) && EventStore.CountOf(e.Payload) is not null)
+            .Select(e => EventStore.CountOf(e.Payload)!.BatchId)
+            .Concat(noneCameUp)
+            .ToHashSet();
+
         return lines
             .Where(row => row.Type == EventType.Sown && germinatedContainers.Contains(row.Line.ContainerId))
             .Select(row => row.Line.BatchId)
             .Concat(noneCameUp)
-            .Where(id => batches[id].SownAs is null or SownMeasure.Counted or SownMeasure.About)
+            .Where(id => batches[id].SownAs switch
+            {
+                null or SownMeasure.Counted => true,
+                SownMeasure.About => settled.Contains(id),
+                _ => false,
+            })
             .ToHashSet();
     }
 
@@ -151,7 +163,7 @@ internal static class FigureEndpoints
 
     private static Measured Measure(List<Row> rows, HashSet<Guid> germinatedBatches)
     {
-        var started = rows.Where(row => StartingTypes.Contains(row.Type) || row.FirstCount).Sum(row => row.Line.QuantityChange);
+        var started = rows.Where(row => StartingTypes.Contains(row.Type)).Sum(row => row.Line.QuantityChange) + rows.Where(row => row.FirstCount).Sum(row => row.StartCount);
         var lost = -rows.Where(row => row.Type == EventType.Lost).Sum(row => row.Line.QuantityChange);
         var watched = rows.Where(row => germinatedBatches.Contains(row.Line.BatchId)).ToList();
 
@@ -164,12 +176,12 @@ internal static class FigureEndpoints
         // "About so many" sowings: seedlings at the first count against the seeds thought sown, so approximate.
         var about = watched
             .Where(row => row.SownAbout is not null)
-            .GroupBy(row => row.Line.BatchId)
-            .Select(group => (Seeds: group.First().SownAbout!.Value, Up: group.Where(row => row.FirstCount).Sum(row => row.Line.QuantityChange)))
+            .Select(row => (Seeds: row.SownAbout!.Value, Up: watched.Where(other => other.FirstCount && other.Line.BatchId == row.Line.BatchId).Sum(other => other.StartCount)))
             .ToList();
         var aboutSeeds = about.Sum(item => item.Seeds);
         var seeds = sown + aboutSeeds;
-        var up = sown - failed + about.Sum(item => item.Up);
+        // Each batch is capped at its own estimate, so one that beat it can't hide failures elsewhere.
+        var up = sown - failed + about.Sum(item => Math.Min(item.Up, item.Seeds));
 
         return new(
             started,
@@ -191,17 +203,20 @@ internal static class FigureEndpoints
             .Select(group => group.OrderBy(row => row.Event.OccurredAt).First())
             .ToHashSet();
 
+        // Only the sowing carries the seeds, so a tray pricked out elsewhere doesn't count them again.
         return rows.ConvertAll(row => row with
         {
             FirstCount = firsts.Contains(row),
-            SownAbout = batches[row.Line.BatchId] is { SownAs: SownMeasure.About, SownAmount: { } amount } ? (int)amount : null,
+            StartCount = firsts.Contains(row) ? EventStore.CountOf(row.Event.Payload)?.Counted ?? row.Line.QuantityChange : 0,
+            SownAbout = row.Type == EventType.Sown && batches[row.Line.BatchId] is { SownAs: SownMeasure.About, SownAmount: { } amount } ? (int)amount : null,
         });
     }
 
     private static PlantFigures ForPlant(BatchFacts batch, List<Row> rows, HashSet<Guid> germinatedBatches, int absorbed)
     {
         var measured = Measure(rows, germinatedBatches);
-        var adjusted = rows.Where(row => row.Type == EventType.StockCounted && !row.FirstCount).Sum(row => row.Line.QuantityChange) + absorbed;
+        // A first count's own line can differ from what it counted, if an earlier count was undone: the rest is adjustment.
+        var adjusted = rows.Where(row => row.Type == EventType.StockCounted).Sum(row => row.FirstCount ? row.Line.QuantityChange - row.StartCount : row.Line.QuantityChange) + absorbed;
 
         return new PlantFigures(
             batch.PlantId,
@@ -231,7 +246,8 @@ internal static class FigureEndpoints
 
     /// <param name="FirstCount">The first count of seed sown without one: where it starts, for the figures.</param>
     /// <param name="SownAbout">For "about so many" sowings, the seeds thought sown.</param>
-    private sealed record Row(EventLine Line, EventFacts Event, EventType Type, bool FirstCount = false, int? SownAbout = null);
+    /// <param name="StartCount">For a first count, the number it counted: where the batch starts.</param>
+    private sealed record Row(EventLine Line, EventFacts Event, EventType Type, bool FirstCount = false, int? SownAbout = null, int StartCount = 0);
 
     private sealed record Measured(int Started, int Lost, double? GerminationRate, bool Approximate, double? SurvivalRate);
 

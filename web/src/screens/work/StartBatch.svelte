@@ -559,7 +559,7 @@
           : Object.keys(photos).length;
 
         onDone(
-          `Started ${quantity} ${chosenName}. Label: ${outcome.labelCode}${failed > 0 ? `. ${failed} photo${failed === 1 ? "" : "s"} didn't save.` : ""}`,
+          `Started ${counting ? `${quantity} ` : ""}${chosenName}${counting ? "" : ", not counted yet"}. Label: ${outcome.labelCode}${failed > 0 ? `. ${failed} photo${failed === 1 ? "" : "s"} didn't save.` : ""}`,
           outcome.eventId,
           outcome.labelCode,
         );

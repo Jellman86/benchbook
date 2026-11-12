@@ -5,7 +5,7 @@
   import ActionFrame from "./ActionFrame.svelte";
   import Stepper from "./Stepper.svelte";
 
-  // Germinated, on a tray nobody has counted: a rough count now is welcome, but never needed.
+  // Germinated, on a tray nobody has counted: a count or best estimate now is welcome, but never needed.
   let {
     container,
     onDone,
@@ -21,7 +21,8 @@
   );
   const name = $derived(plantName(line.commonName, line.variety));
 
-  let up = $state(50);
+  // Starts empty: whatever is entered becomes the number in the tray.
+  let up = $state(0);
   let problem = $state("");
   let busy = $state(false);
 
@@ -53,7 +54,7 @@
     busy = false;
     onDone(
       withCount
-        ? `${container.labelCode} germinated: about ${up} ${name} up`
+        ? `${container.labelCode} germinated: ${up} ${name} up`
         : `${container.labelCode} germinated`,
       germinated.eventId,
     );
@@ -62,11 +63,13 @@
 
 <ActionFrame title="Germinated" {problem} {onCancel} {container}>
   <p>
-    Roughly how many are up? A guess is fine: you'll count properly when you
-    prick them out.
+    How many are up? Count them, or give your best estimate: it becomes the
+    number in the tray, and Count can correct it later.
   </p>
-  <Stepper bind:value={up} presets={[20, 50, 100, 200]} />
-  <button disabled={busy} onclick={() => record(true)}>Save</button>
+  <Stepper bind:value={up} min={0} presets={[20, 50, 100, 200]} />
+  <button disabled={busy || up < 1} onclick={() => record(true)}
+    >Save this number</button
+  >
   <button class="secondary" disabled={busy} onclick={() => record(false)}
     >Not sure yet</button
   >

@@ -141,9 +141,10 @@
 
   const traysOf = (plantId: string | null) =>
     plantId
-      ? byContainer(stock.filter((row) => row.plantId === plantId)).map(
-          (rows) => rows[0],
-        )
+      ? byContainer(
+          // A tray nobody has counted has nothing to take from yet.
+          stock.filter((row) => row.plantId === plantId && !row.notCounted),
+        ).map((rows) => rows[0])
       : [];
 
   function chooseTray(index: number, value: string) {

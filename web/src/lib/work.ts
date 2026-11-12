@@ -137,6 +137,10 @@ export function outcomeProblem(outcome: Outcome): string {
           return "That clashed with other work. Please record it again.";
         case "SoldByInvoice":
           return "A sale is cancelled with a credit note, under Invoices.";
+        case "NotCounted":
+          return "Nobody has counted this tray yet. Open it again and say how many you took and how many are left.";
+        case "NowCounted":
+          return "Someone has counted this tray since. Open it again and say how many were lost.";
         case "ExaminedForPassport":
           return "That examination belongs to a plant passport, so it stays.";
         default:
@@ -296,7 +300,14 @@ export function repeatOf(action: Schemas["RecentAction"]): WorkRequest | null {
     });
   }
 
-  if (action.type === "Lost" && line && action.containerId && details) {
+  // A loss from a tray nobody had counted has no number to repeat.
+  if (
+    action.type === "Lost" &&
+    line &&
+    Number(line.quantityChange) !== 0 &&
+    action.containerId &&
+    details
+  ) {
     return work.lose(action.containerId, {
       batchId: line.batchId,
       quantity: Math.abs(Number(line.quantityChange)),

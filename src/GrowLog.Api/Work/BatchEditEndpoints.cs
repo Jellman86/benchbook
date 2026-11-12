@@ -147,7 +147,9 @@ internal static class BatchEditEndpoints
         var startFits = request.Quantity is null or (> 0 and <= 1_000_000)
             && (request.StartedAt is null || request.StartedAt <= clock.GetUtcNow() + DeviceClock.Tolerance);
 
-        if (country.Length != 2 || !country.All(char.IsAsciiLetter) || !textFits || !startFits || !Enum.IsDefined(request.Source))
+        var sowingFits = request.Source != BatchSource.SeedLot || WorkEndpoints.IsSensibleSowing(request.SownAs, request.SownAmount, request.PacketShare, request.PacketSays);
+
+        if (country.Length != 2 || !country.All(char.IsAsciiLetter) || !textFits || !startFits || !sowingFits || !Enum.IsDefined(request.Source))
         {
             return false;
         }

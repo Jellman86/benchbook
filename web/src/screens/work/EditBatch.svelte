@@ -137,10 +137,23 @@
       .join(" ");
   });
 
+  // Like the server: about so many is a whole number of seeds, grams are more than nothing.
+  const sowingValid = $derived(
+    !form ||
+      !uncounted ||
+      (form.sownAs === "About"
+        ? Number.isInteger(Number(form.sownAmount)) &&
+          Number(form.sownAmount) >= 1
+        : form.sownAs === "Grams"
+          ? Number(form.sownAmount) > 0 && Number(form.sownAmount) <= 10_000
+          : true),
+  );
+
   const ready = $derived(
     !!form &&
       form.originCountry.trim().length === 2 &&
-      (form.source !== "BoughtIn" || !!form.supplierId),
+      (form.source !== "BoughtIn" || !!form.supplierId) &&
+      sowingValid,
   );
 
   /** The new start keeps its time of day, but never lands in the future. */
@@ -334,8 +347,8 @@
         >
       {/if}
       <p class="muted">
-        Not counted yet: the number comes from a count, when it germinates or is
-        pricked out.
+        Sown without a count: the number comes from counting them, when they
+        germinate or are pricked out.
       </p>
     {/if}
 
