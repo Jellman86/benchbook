@@ -71,4 +71,18 @@ public sealed class BackupStatusTests(PostgresFixture database)
         Assert.Equal(HttpStatusCode.Forbidden, await GetStatusAsync(nursery.Staff, "/api/backups/status"));
         Assert.Equal(HttpStatusCode.Unauthorized, await GetStatusAsync(stranger, "/api/backups/status"));
     }
+
+    [Fact]
+    public async Task Backups_that_have_never_reported_warn_after_a_day()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        await using var scope = nursery.App.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<GrowLogDbContext>();
+        await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ExecuteUpdateAsync(db.Users,
+            setters => setters.SetProperty(person => person.CreatedAt, DateTimeOffset.UtcNow.AddDays(-2)), Cancellation);
+        var status = await StatusAsync(nursery.Owner);
+        Assert.False(status.GetProperty("known").GetBoolean());
+        Assert.False(status.GetProperty("healthy").GetBoolean());
+    }
+
 }
