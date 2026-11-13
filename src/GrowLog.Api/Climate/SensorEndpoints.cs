@@ -30,7 +30,7 @@ internal static class SensorEndpoints
         sensors.MapPost("/{id:guid}/new-key", NewKeyAsync).Produces<SensorKey>();
         sensors.MapPost("/{id:guid}/stop", StopAsync);
 
-        app.MapPost("/api/sensor-readings", ReceiveAsync).AllowAnonymous().RequireFeature(NurseryFeature.Climate);
+        app.MapPost("/api/sensor-readings", ReceiveAsync).AllowAnonymous();
     }
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -147,6 +147,12 @@ internal static class SensorEndpoints
         if (await db.Sensors.AsNoTracking().FirstOrDefaultAsync(sensor => sensor.KeyHash == hash && sensor.ArchivedAt == null, cancellationToken) is not { } sensor)
         {
             return TypedResults.Unauthorized();
+        }
+
+        // Checked after the key, so nobody without one learns whether climate is on.
+        if (!await db.IsOnAsync(NurseryFeature.Climate, cancellationToken))
+        {
+            return TypedResults.NotFound();
         }
 
         var now = clock.GetUtcNow();

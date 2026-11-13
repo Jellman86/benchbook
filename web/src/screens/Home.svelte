@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { loadFeatures } from "../lib/features.svelte";
+  import { loadFeatures, watchFeatures } from "../lib/features.svelte";
   import CircleCheck from "@lucide/svelte/icons/circle-check";
   import { onMount, tick } from "svelte";
   import { focusHeading } from "../lib/steps";
@@ -439,6 +439,9 @@
     await api.POST("/api/account/sign-out");
     onSignedOut();
   }
+
+  // A change the owner makes to Settings, Features reaches this device when the app comes back into view.
+  onMount(watchFeatures);
 
   onMount(() => {
     void loadFeatures();

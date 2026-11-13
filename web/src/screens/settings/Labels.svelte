@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isOn } from "../../lib/features.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import {
@@ -177,7 +178,7 @@
 
   <section class="stack">
     <div class="segmented four" role="group" aria-label="Which label">
-      {#each kindsOfLabel as item (item.kind)}
+      {#each kindsOfLabel.filter((item) => item.kind !== "PlantPassport" || isOn("Passports")) as item (item.kind)}
         <button
           class:secondary={kind !== item.kind}
           aria-pressed={kind === item.kind}

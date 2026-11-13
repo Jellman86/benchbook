@@ -24,6 +24,12 @@ export interface BatchForm {
   packetSays: string;
 }
 
+/** How many it started with, in words: seed measured another way than a count has no number until it's counted. */
+export const startWords = (form: BatchForm) =>
+  form.source === "SeedLot" && !!form.sownAs && form.sownAs !== "Counted"
+    ? "Not counted"
+    : String(form.quantity);
+
 export const sourceWords: Record<Schemas["BatchSource"], string> = {
   SeedLot: "Seed",
   BoughtIn: "Bought in",
@@ -76,8 +82,8 @@ export function batchChanges(
     },
     {
       name: "How many",
-      before: String(before.quantity),
-      after: String(after.quantity),
+      before: startWords(before),
+      after: startWords(after),
     },
     { name: "Supplier", before: supplier(before), after: supplier(after) },
     {

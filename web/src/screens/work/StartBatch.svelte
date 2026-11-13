@@ -558,6 +558,11 @@
     let failed = 0;
 
     for (const [kind, photo] of Object.entries(photos)) {
+      // With batch photos turned off only the plant's own picture is kept.
+      if (kind !== "Plant" && !isOn("BatchPhotos")) {
+        continue;
+      }
+
       const address =
         kind === "Plant"
           ? `/api/plants/${savedPlantId}/photo`
@@ -878,7 +883,7 @@
   {:else if stage === 4}
     <p class="muted">Take a photo of anything worth keeping. All optional.</p>
     <div class="card-grid">
-      {#each photoChoices as choice (choice.kind)}
+      {#each photoChoices.filter((choice) => choice.kind === "Plant" || isOn("BatchPhotos")) as choice (choice.kind)}
         <label class="photo-choice">
           {#if photos[choice.kind]}
             <img class="plant-thumb" src={photos[choice.kind]?.url} alt="" />

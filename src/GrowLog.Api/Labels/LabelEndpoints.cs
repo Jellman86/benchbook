@@ -3,6 +3,7 @@ using System.Text.Json;
 using GrowLog.Api.Accounts;
 using GrowLog.Api.Catalogue;
 using GrowLog.Api.Data;
+using GrowLog.Api.Settings;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,7 @@ internal static class LabelEndpoints
         labels.MapGet("/plants/{id:guid}", PrintPlantLabelAsync).ProducesPdf();
         labels.MapGet("/bench-cards/{id:guid}", PrintBenchCardAsync).ProducesPdf();
         labels.MapGet("/places/{id:guid}", PrintPlaceLabelAsync).ProducesPdf();
-        labels.MapGet("/passports/{id:guid}", PrintPassportAsync).ProducesPdf();
+        labels.MapGet("/passports/{id:guid}", PrintPassportAsync).ProducesPdf().RequireFeature(NurseryFeature.Passports);
         labels.MapGet("/sheet-layouts", ListSheetLayouts);
         labels.MapPost("/sheets", PrintSheetAsync).ProducesPdf().Produces(StatusCodes.Status200OK, contentType: "image/png");
         labels.MapPost("/sheets/print", PrintSheetFromFormAsync).ProducesPdf().ExcludeFromDescription();

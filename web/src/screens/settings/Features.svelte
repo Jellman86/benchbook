@@ -17,18 +17,20 @@
 
   onMount(() => void loadFeatures());
 
-  async function toggle(feature: Feature, on: boolean) {
+  async function toggle(input: HTMLInputElement, feature: Feature) {
     busy = feature;
     problem = "";
 
     try {
-      if (!(await setFeature(feature, on))) {
+      if (!(await setFeature(feature, input.checked))) {
         problem = "That couldn't be changed. Please try again.";
       }
     } catch {
       problem = "Can't reach GrowLog. Check the connection and try again.";
     } finally {
       busy = null;
+      // Shows what's really saved, whether or not the change went through.
+      input.checked = isOn(feature);
     }
   }
 </script>
@@ -51,13 +53,13 @@
             type="checkbox"
             role="switch"
             checked={on}
-            disabled={busy === item.feature}
-            onchange={(event) =>
-              toggle(item.feature, event.currentTarget.checked)}
+            aria-describedby="feature-{item.feature}"
+            disabled={busy !== null}
+            onchange={(event) => toggle(event.currentTarget, item.feature)}
           />
           <span class="stack tight">
             <strong>{item.label}</strong>
-            <span class="muted"
+            <span class="muted" id="feature-{item.feature}"
               >{on ? "On. Turning it off hides:" : "Off, so hidden:"}
               {item.hides}</span
             >

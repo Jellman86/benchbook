@@ -71,4 +71,22 @@ public sealed class SowingEditTests(PostgresFixture database)
         Assert.Equal("CountInstead", Json(await refused.Content.ReadAsStringAsync(Cancellation)).GetProperty("problem").GetString());
         Assert.Equal(26, (await LineAsync(nursery.Staff, label)).GetProperty("quantity").GetInt32());
     }
+
+    [Fact]
+    public async Task Editing_older_seed_batches_records_no_change_to_how_they_were_sown()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (plant, batch, _, _) = await SowCountedAsync(nursery);
+
+        using var edited = await nursery.Staff.PutAsJsonAsync(
+            Route($"/api/batches/{batch}"),
+            new { plantId = plant, source = "SeedLot", originCountry = "GB", sourceReference = "Lot 9", sownAs = "Counted" },
+            Cancellation);
+        Assert.Equal(HttpStatusCode.NoContent, edited.StatusCode);
+
+        var trace = await nursery.Owner.GetFromJsonAsync<JsonElement>(Route($"/api/batches/{batch}/trace"), Cancellation);
+        var fields = trace.GetProperty("corrections").EnumerateArray().Select(change => change.GetProperty("field").GetString()).ToList();
+        Assert.DoesNotContain("Sown", fields, StringComparer.Ordinal);
+        Assert.Contains("Lot or reference", fields, StringComparer.Ordinal);
+    }
 }

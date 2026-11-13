@@ -8,7 +8,8 @@ const storageKey = "growlog.featuresOff";
 
 function remembered(): Feature[] {
   try {
-    return JSON.parse(localStorage.getItem(storageKey) ?? "[]") as Feature[];
+    const kept: unknown = JSON.parse(localStorage.getItem(storageKey) ?? "[]");
+    return Array.isArray(kept) ? (kept as Feature[]) : [];
   } catch {
     return [];
   }
@@ -45,6 +46,18 @@ export async function loadFeatures() {
   }
 }
 
+/** Reloads the switches whenever the app comes back into view, so a change the owner made reaches every device. */
+export function watchFeatures() {
+  const visible = () => {
+    if (document.visibilityState === "visible") {
+      void loadFeatures();
+    }
+  };
+
+  document.addEventListener("visibilitychange", visible);
+  return () => document.removeEventListener("visibilitychange", visible);
+}
+
 /** Turns a part on or off for everyone. Only the owner can. */
 export async function setFeature(feature: Feature, on: boolean) {
   const { response } = await api.PUT("/api/settings/features/{feature}", {
@@ -52,14 +65,16 @@ export async function setFeature(feature: Feature, on: boolean) {
     body: { on },
   });
 
+  // Shown straight away, then what the server now holds, including any switch someone else turned meanwhile.
   if (response.ok) {
     keep(
       on
         ? state.off.filter((item) => item !== feature)
-        : [...state.off, feature],
+        : [...state.off.filter((item) => item !== feature), feature],
     );
   }
 
+  await loadFeatures();
   return response.ok;
 }
 
@@ -88,7 +103,7 @@ export const featureInfo: FeatureInfo[] = [
     feature: "MotherPlants",
     label: "Mother plants",
     hides:
-      "Manage, Mother plants and choosing a mother for cuttings in New batch and Edit batch.",
+      "Manage, Mother plants and choosing a mother for cuttings in New batch. Mothers already recorded still show on their batches.",
   },
   {
     feature: "Jobs",

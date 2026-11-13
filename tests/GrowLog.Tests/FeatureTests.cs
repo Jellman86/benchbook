@@ -32,6 +32,7 @@ public sealed class FeatureTests(PostgresFixture database)
         Assert.Equal(HttpStatusCode.Forbidden, await SetAsync(nursery.Staff, "Climate", on: false));
         Assert.Equal(HttpStatusCode.NoContent, await SetAsync(nursery.Owner, "Climate", on: false));
         Assert.Equal(HttpStatusCode.NoContent, await SetAsync(nursery.Owner, "Climate", on: false));
+        Assert.Equal(HttpStatusCode.NotFound, await SetAsync(nursery.Owner, "99", on: false));
 
         features = await FeaturesAsync(nursery.Staff);
         Assert.False(features["Climate"]);
@@ -51,6 +52,13 @@ public sealed class FeatureTests(PostgresFixture database)
         Assert.Equal(HttpStatusCode.NotFound, await GetStatusAsync(nursery.Owner, "/api/sensors"));
 
         using var anyone = Client(nursery.App);
+
+        // Without a key nobody learns that climate is off.
+        using (var keyless = await anyone.PostAsJsonAsync(Route("/api/sensor-readings"), new { temperature = 12 }, Cancellation))
+        {
+            Assert.Equal(HttpStatusCode.Unauthorized, keyless.StatusCode);
+        }
+
         using (var reading = new HttpRequestMessage(HttpMethod.Post, Route("/api/sensor-readings")) { Content = JsonContent.Create(new { temperature = 12 }) })
         {
             reading.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
@@ -69,6 +77,8 @@ public sealed class FeatureTests(PostgresFixture database)
     [Theory]
     [InlineData("PlacesMap", "/api/locations/map")]
     [InlineData("Passports", "/api/consignments")]
+    [InlineData("Passports", "/api/passports?batchId=0193a6f0-0000-7000-8000-000000000001")]
+    [InlineData("Passports", "/api/received-passports?batchId=0193a6f0-0000-7000-8000-000000000001")]
     [InlineData("MotherPlants", "/api/mother-plants")]
     [InlineData("Jobs", "/api/jobs")]
     [InlineData("Invoices", "/api/invoices")]
@@ -94,5 +104,19 @@ public sealed class FeatureTests(PostgresFixture database)
         Assert.Contains("JobsLate", await KindsAsync(), StringComparer.Ordinal);
         Assert.Equal(HttpStatusCode.NoContent, await SetAsync(nursery.Owner, "Jobs", on: false));
         Assert.DoesNotContain("JobsLate", await KindsAsync(), StringComparer.Ordinal);
+    }
+
+    [Fact]
+    public async Task Switches_turned_at_the_same_moment_all_stick()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        string[] features = ["Climate", "Jobs", "Purchases", "BatchPhotos", "PlacesMap"];
+
+        var results = await Task.WhenAll(features.Select(feature => SetAsync(nursery.Owner, feature, on: false)));
+
+        Assert.All(results, status => Assert.Equal(HttpStatusCode.NoContent, status));
+        var now = await FeaturesAsync(nursery.Owner);
+        Assert.All(features, feature => Assert.False(now[feature]));
+        Assert.True(now["Passports"]);
     }
 }

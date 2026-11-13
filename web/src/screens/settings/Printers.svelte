@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isOn } from "../../lib/features.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import {
@@ -215,7 +216,7 @@
         <fieldset class="stack tight">
           <legend class="field-label">Prints</legend>
           <div class="tick-row">
-            {#each printableKinds as item (item.kind)}
+            {#each printableKinds.filter((item) => item.kind !== "PlantPassport" || isOn("Passports")) as item (item.kind)}
               <label class="tick">
                 <input
                   type="checkbox"
