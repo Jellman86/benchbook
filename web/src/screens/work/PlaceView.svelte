@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PlaceMiniMap from "../manage/PlaceMiniMap.svelte";
   import { crumbs } from "../../lib/crumbs.svelte";
   import { isOn } from "../../lib/features.svelte";
   import { lineAmount } from "../../lib/sowing";
@@ -235,13 +236,37 @@
 
     <div class="plant-layout">
       <aside class="plant-side">
-        <EntryPhotos
-          entry="Location"
-          id={place.id}
-          photoIds={place.photoIds as string[]}
-          onChanged={load}
-          onProblem={setProblem}
-        />
+        {#if canManage && isOn("PlacesMap")}
+          {#key place.id}
+            <PlaceMiniMap
+              {place}
+              {places}
+              onDraw={onDrawOnMap
+                ? () =>
+                    onDrawOnMap({
+                      id: place!.id,
+                      name: place!.name,
+                      kind: place!.kind,
+                      parentId: place!.parentId ?? null,
+                    })
+                : undefined}
+            />
+          {/key}
+        {/if}
+
+        <section class="stack tight" aria-label="Photos">
+          {#if place.photoIds.length > 0}
+            <h2 class="form-heading">Photos</h2>
+          {/if}
+          <EntryPhotos
+            entry="Location"
+            id={place.id}
+            photoIds={place.photoIds as string[]}
+            gallery
+            onChanged={load}
+            onProblem={setProblem}
+          />
+        </section>
 
         <dl class="facts card">
           <dt>Trays and pots</dt>
@@ -308,18 +333,6 @@
             <button class="secondary" onclick={() => (task = "add")}
               >Add inside</button
             >
-            {#if onDrawOnMap && isOn("PlacesMap")}
-              <button
-                class="secondary"
-                onclick={() =>
-                  onDrawOnMap({
-                    id: place!.id,
-                    name: place!.name,
-                    kind: place!.kind,
-                    parentId: place!.parentId ?? null,
-                  })}>On the map</button
-              >
-            {/if}
             <button class="secondary" onclick={retire}>No longer used</button>
           </div>
           {#if task === "rename"}

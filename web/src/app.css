@@ -3313,3 +3313,51 @@ button.danger:hover:not(:disabled) {
   text-align: left;
   cursor: pointer;
 }
+
+/* A place's page: its outline on the map, and its photos large enough to see. */
+.place-mini-map {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.place-mini-map-canvas {
+  height: 14rem;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--line);
+}
+
+.entry-photos.gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.entry-photos.gallery .entry-photo,
+.entry-photos.gallery .entry-photo a {
+  display: block;
+}
+
+.entry-photos.gallery .plant-thumb {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.entry-photos.gallery .photo-remove {
+  top: 0.3rem;
+  right: 0.3rem;
+}
+
+.entry-photos.gallery .photo-add {
+  min-height: 6rem;
+}
+
+@media (min-width: 900px) {
+  .place-mini-map-canvas {
+    height: 18rem;
+  }
+}

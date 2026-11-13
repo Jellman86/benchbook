@@ -235,7 +235,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await crumbs.getByRole("link", { name: "Places" }).click();
   await expect(page.getByRole("heading", { name: "Places" })).toBeVisible();
   await page.locator(".place-row", { hasText: "Greenhouse 2" }).click();
-  await button(page, "On the map").click();
+  await button(page, "Change it on the map").click();
   await expect(
     page.getByRole("heading", { name: "Where is Greenhouse 2?" }),
   ).toBeVisible();

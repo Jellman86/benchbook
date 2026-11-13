@@ -6,13 +6,13 @@
     alwaysNamed,
     corners,
     geocodeAddress,
-    imagery,
     outlineStyle,
     postcodeIn,
     type Point,
   } from "../../lib/placeMap";
   import { kindLabel, type Place, type PlaceKind } from "../../lib/places";
   import { attempt } from "../../lib/types";
+  import { loadLeaflet, openPlaceMap } from "../../lib/placeMapView";
 
   // One place's outline on a satellite picture, or on the nursery's own picture of itself: find the address, then
   // tap the place's corners. The places already drawn show faintly around it, so a greenhouse can be put beside the
@@ -46,21 +46,10 @@
   let ready = $state(false);
   let satellite = $state(true);
   let key = $state<string | null>(null);
-  // On the nursery's own picture, points are kept as fractions of its height and width; on the map, in degrees.
   let onPicture = $state(false);
-  let pictureSize: { height: number; width: number } | null = null;
-
-  /** From what's kept to where it is on the screen's map. */
-  const toMap = (point: Point): Point =>
-    pictureSize
-      ? [pictureSize.height * (1 - point[0]), pictureSize.width * point[1]]
-      : point;
-
-  /** From where it is on the screen's map to what's kept. */
-  const fromMap = (point: Point): Point =>
-    pictureSize
-      ? [1 - point[0] / pictureSize.height, point[1] / pictureSize.width]
-      : point;
+  // Converts between what's kept and the screen's map; the same until a picture is shown.
+  let toMap = (point: Point): Point => point;
+  let fromMap = (point: Point): Point => point;
 
   let L: typeof Leaflet;
   let map: Leaflet.Map | null = null;
@@ -212,58 +201,11 @@
     }
   }
 
-  /** The satellite or street map, in degrees. */
-  function showMap(into: HTMLDivElement) {
-    map = L.map(into, { zoomControl: true, maxZoom: 22 }).setView(
-      [54.4, -2.6],
-      6,
-    );
-    const tiles = imagery(key);
-    satellite = tiles.satellite;
-    L.tileLayer(tiles.url, {
-      attribution: tiles.attribution,
-      maxNativeZoom: tiles.maxNativeZoom,
-      maxZoom: 22,
-    })
-      .addTo(map)
-      .bringToBack();
-  }
-
-  /** The nursery's own picture, measured in its pixels, to draw on instead of the earth. */
-  async function showPicture(into: HTMLDivElement, changedAt: string) {
-    const url = `/api/settings/map/picture?v=${encodeURIComponent(changedAt)}`;
-    const image = new Image();
-    image.src = url;
-    await image.decode();
-    pictureSize = { height: image.naturalHeight, width: image.naturalWidth };
-    const bounds: Leaflet.LatLngBoundsExpression = [
-      [0, 0],
-      [pictureSize.height, pictureSize.width],
-    ];
-    map = L.map(into, {
-      crs: L.CRS.Simple,
-      zoomControl: true,
-      minZoom: -6,
-      maxZoom: 4,
-      zoomSnap: 0.25,
-      attributionControl: false,
-    });
-    L.imageOverlay(url, bounds).addTo(map);
-    map.fitBounds(bounds);
-    map.setMaxBounds(L.latLngBounds(bounds).pad(0.25));
-  }
-
   onMount(() => {
     let stopped = false;
 
     void attempt(async () => {
-      const leaflet = await import("leaflet");
-      await import("leaflet/dist/leaflet.css");
-      L = leaflet.default;
-      // Geoman adds itself to the Leaflet it finds on the page.
-      (window as unknown as { L: typeof Leaflet }).L = L;
-      await import("@geoman-io/leaflet-geoman-free");
-      await import("@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css");
+      L = await loadLeaflet(true);
 
       if (stopped || !box) {
         return;
@@ -277,15 +219,14 @@
         ]),
       );
       key = data?.imageryKey ?? null;
-      onPicture = !!data?.onPicture;
+      const view = await openPlaceMap(L, box, data ?? {});
+      map = view.map;
+      onPicture = view.onPicture;
+      satellite = view.satellite;
+      toMap = view.toMap;
+      fromMap = view.fromMap;
 
-      if (onPicture && data?.pictureChangedAt) {
-        await showPicture(box, data.pictureChangedAt);
-      } else {
-        showMap(box);
-      }
-
-      if (stopped || !map) {
+      if (stopped) {
         return;
       }
 

@@ -55,7 +55,7 @@ test("a place is drawn on the nursery's own picture", async ({ page }) => {
       "/api/locations": [site],
       "/api/locations/map": {
         imageryKey: null,
-        outlines: [],
+        outlines: saved ? [{ id: "site", points: saved.points }] : [],
         onPicture: true,
         pictureChangedAt: "2026-11-13T10:00:00Z",
       },
@@ -71,7 +71,8 @@ test("a place is drawn on the nursery's own picture", async ({ page }) => {
     .getByRole("button", { name: "Places" })
     .click();
   await page.locator(".place-row", { hasText: "Croft" }).click();
-  await page.getByRole("button", { name: "On the map" }).click();
+  await expect(page.getByText("Croft isn't on the map yet.")).toBeVisible();
+  await page.getByRole("button", { name: "Draw it on the map" }).click();
   await expect(
     page.getByRole("heading", { name: "Where is Croft?" }),
   ).toBeVisible();
@@ -94,6 +95,13 @@ test("a place is drawn on the nursery's own picture", async ({ page }) => {
   await page.getByRole("button", { name: "Save the outline" }).click();
 
   await expect.poll(() => saved).not.toBeNull();
+  await expect(page.getByRole("heading", { name: "Croft" })).toBeVisible();
+  // Back on the place's page, its outline shows on the picture.
+  await expect(page.locator(".place-mini-map-canvas")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Change it on the map" }),
+  ).toBeVisible();
+  await page.screenshot({ path: "build/peek/place-page.png" });
   expect(saved!.onPicture).toBe(true);
   for (const [down, across] of saved!.points) {
     expect(down).toBeGreaterThan(0);
