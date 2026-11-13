@@ -70,7 +70,7 @@ export async function setFeature(feature: Feature, on: boolean) {
     keep(
       on
         ? state.off.filter((item) => item !== feature)
-        : [...new Set([...state.off, feature])],
+        : [...state.off.filter((item) => item !== feature), feature],
     );
   }
 
