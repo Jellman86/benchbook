@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isOn } from "../../lib/features.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import type { Me } from "../../lib/boot";
@@ -186,18 +187,20 @@
           : "Add a passkey on this device"}</button
       >
 
-      <form class="stack" onsubmit={savePin}>
-        <label>
-          {settings.hasPin ? "New bench PIN" : "Bench PIN"} (4 to 6 digits)
-          <input
-            bind:value={pin}
-            inputmode="numeric"
-            autocomplete="off"
-            required
-          />
-        </label>
-        <button type="submit" class="secondary">Save PIN</button>
-      </form>
+      {#if isOn("BenchStations")}
+        <form class="stack" onsubmit={savePin}>
+          <label>
+            {settings.hasPin ? "New bench PIN" : "Bench PIN"} (4 to 6 digits)
+            <input
+              bind:value={pin}
+              inputmode="numeric"
+              autocomplete="off"
+              required
+            />
+          </label>
+          <button type="submit" class="secondary">Save PIN</button>
+        </form>
+      {/if}
     {/if}
   </div>
 

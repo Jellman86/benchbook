@@ -29,4 +29,7 @@ internal enum NurseryFeature
 
     /// <summary>The strip of photos on each batch.</summary>
     BatchPhotos,
+
+    /// <summary>Shared devices at a bench, where staff tap their name and type a PIN.</summary>
+    BenchStations,
 }

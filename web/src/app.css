@@ -1114,6 +1114,28 @@ button.sort-button:hover:not(:disabled) {
   font-size: 0.7em;
 }
 
+/* Choosing several rows: the whole row chooses, and a chosen row stands out. */
+.data-table tr.choosing {
+  cursor: pointer;
+}
+
+.data-table tr.chosen td {
+  background: var(--accent-surface);
+}
+
+.data-table td.choose-cell {
+  width: 3rem;
+}
+
+.data-table td.choose-cell input {
+  width: 1.25rem;
+  height: 1.25rem;
+  min-height: 0;
+  padding: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .data-table td button.link-button {
   min-height: 0;
 }

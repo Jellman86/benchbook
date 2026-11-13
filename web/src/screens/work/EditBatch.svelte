@@ -1,4 +1,5 @@
 <script lang="ts">
+  import BatchWhere from "./BatchWhere.svelte";
   import { isOn } from "../../lib/features.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
@@ -320,6 +321,8 @@
       <BatchPhotos {batchId} kinds={["Packet", "Label", "Packaging"]} />
       <p class="muted">Photos are saved as soon as they're taken.</p>
     {/if}
+
+    <BatchWhere {batchId} />
 
     <label>
       Plant

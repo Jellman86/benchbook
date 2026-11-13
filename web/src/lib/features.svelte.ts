@@ -126,4 +126,10 @@ export const featureInfo: FeatureInfo[] = [
     label: "Batch photos",
     hides: "The strip of photos on trays, Edit batch and the trace report.",
   },
+  {
+    feature: "BenchStations",
+    label: "Bench stations",
+    hides:
+      "Settings, Bench stations and the bench PINs in My account and Staff. A device already made a bench station shows the ordinary sign-in instead.",
+  },
 ];

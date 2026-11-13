@@ -26,7 +26,7 @@ public sealed class FeatureTests(PostgresFixture database)
         await using var nursery = await TwoPersonNursery.CreateAsync(database);
 
         var features = await FeaturesAsync(nursery.Staff);
-        Assert.Equal(8, features.Count);
+        Assert.Equal(9, features.Count);
         Assert.All(features.Values, Assert.True);
 
         Assert.Equal(HttpStatusCode.Forbidden, await SetAsync(nursery.Staff, "Climate", on: false));
@@ -83,6 +83,7 @@ public sealed class FeatureTests(PostgresFixture database)
     [InlineData("Jobs", "/api/jobs")]
     [InlineData("Invoices", "/api/invoices")]
     [InlineData("Purchases", "/api/purchases")]
+    [InlineData("BenchStations", "/api/bench/stations")]
     public async Task Each_part_refuses_its_requests_while_off(string feature, string path)
     {
         await using var nursery = await TwoPersonNursery.CreateAsync(database);

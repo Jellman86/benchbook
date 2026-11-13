@@ -716,12 +716,36 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(page.getByRole("status")).toContainText("corrected");
   await button(page, "Back").click();
 
+  // A batch can be moved from Edit batch too, straight away, and back again.
+  await scan(label);
+  await button(page, "Edit batch").click();
+  const where = page.getByRole("region", { name: "Where it is" });
+  await expect(where).toContainText(label);
+  await where.getByRole("button", { name: "Move", exact: true }).click();
+  await where.getByLabel("Move to").selectOption({ index: 1 });
+  await where.getByRole("button", { name: "Move it" }).click();
+  await expect(where.getByRole("status")).toContainText(`Moved ${label} to`);
+  await where.getByRole("button", { name: "Move", exact: true }).click();
+  await where
+    .getByLabel("Move to")
+    .selectOption({ label: "Greenhouse 2, Bench 1" });
+  await where.getByRole("button", { name: "Move it" }).click();
+  await expect(where.getByRole("status")).toContainText(
+    `Moved ${label} to Greenhouse 2, Bench 1`,
+  );
+  // Back to the tray, then back to Record.
+  await button(page, "Back").click();
+  await button(page, "Back").click();
+
   // Scan, Lost, how many, why. Then undo it.
   await scan(label);
   await expect(page.getByRole("heading", { name: label })).toBeVisible();
   await expect(page.getByText("40 Lavender 'Munstead'")).toBeVisible();
   await expect(
-    page.getByText("Greenhouse 2, Bench 1").or(page.getByText("Bench 1, 9cm")),
+    page
+      .getByText("Greenhouse 2, Bench 1")
+      .or(page.getByText("Bench 1, 9cm"))
+      .first(),
   ).toBeVisible();
   await button(page, "Lost").click();
   await button(page, "+1").click();

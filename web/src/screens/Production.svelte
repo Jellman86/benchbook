@@ -87,14 +87,6 @@
       : null;
 
   const columns: Column<ProductionRow>[] = $derived([
-    ...(choosing
-      ? [
-          {
-            label: "Chosen",
-            value: (row: ProductionRow) => (chosen[row.containerId] ? "✓" : ""),
-          },
-        ]
-      : []),
     { label: "Label", value: (row) => row.labelCode },
     { label: "Plant", value: (row) => plantName(row.commonName, row.variety) },
     {
@@ -171,7 +163,8 @@
   </div>
   {#if choosing}
     <p class="muted">
-      Tap trays to choose them, then pick what to do with them all below.
+      Tap or click trays to choose them, then pick what to do with them all
+      below.
     </p>
   {/if}
 
@@ -240,6 +233,7 @@
         key={(row) => `${row.containerId}/${row.batchId}`}
         caption="Everything growing"
         onSelect={tap}
+        chosen={choosing ? (row) => !!chosen[row.containerId] : undefined}
       />
     </div>
   {/if}
