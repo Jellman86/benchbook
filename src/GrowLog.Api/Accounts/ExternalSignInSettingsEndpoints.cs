@@ -28,7 +28,7 @@ internal static class ExternalSignInSettingsEndpoints
     private static string? WithoutSlash(string? address) => address?.TrimEnd('/');
 
     private static bool SameProvider(string? first, string? second) =>
-        string.Equals(WithoutSlash(first), WithoutSlash(second), StringComparison.OrdinalIgnoreCase);
+        string.Equals(WithoutSlash(first), WithoutSlash(second), StringComparison.Ordinal);
 
     private static ExternalSignInSettings Get(ExternalSignInStore store, IConfiguration configuration)
     {
@@ -88,7 +88,7 @@ internal static class ExternalSignInSettingsEndpoints
         saved.OwnerGroup = Clean(request.OwnerGroup);
         await db.SaveChangesAsync(cancellationToken);
 
-        if (before.IsOn && !SameProvider(before.Authority, authority))
+        if (!SameProvider(before.Authority, authority))
         {
             await db.UserLogins.Where(login => login.LoginProvider == AccountServices.OidcScheme).ExecuteDeleteAsync(cancellationToken);
         }

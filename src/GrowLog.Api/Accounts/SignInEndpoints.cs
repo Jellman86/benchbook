@@ -76,7 +76,7 @@ internal static class SignInEndpoints
             return TypedResults.Unauthorized();
         }
 
-        await signIn.SignInAsync(person, isPersistent: true);
+        await AccountServices.SignInAsync(signIn, person, "name");
         return TypedResults.NoContent();
     }
 
@@ -105,7 +105,7 @@ internal static class SignInEndpoints
             }
         }
 
-        await signIn.SignInAsync(team, isPersistent: true);
+        await AccountServices.SignInAsync(signIn, team, "team");
         return TypedResults.NoContent();
     }
 
@@ -132,7 +132,7 @@ internal static class SignInEndpoints
             return TypedResults.Unauthorized();
         }
 
-        await signIn.SignInAsync(person, isPersistent: true);
+        await AccountServices.SignInAsync(signIn, person, "password");
         return TypedResults.NoContent();
     }
 
@@ -178,7 +178,7 @@ internal static class SignInEndpoints
         }
 
         // The change ends other sessions. This one carries on.
-        await signIn.RefreshSignInAsync(me);
+        await AccountServices.SignInAsync(signIn, me, "password");
         return TypedResults.NoContent();
     }
 
@@ -245,6 +245,7 @@ internal static class SignInEndpoints
         me.NameOnlySignIn = false;
         await users.AddOrUpdatePasskeyAsync(me, attestation.Passkey);
         await users.UpdateAsync(me);
+        await AccountServices.SignInAsync(signIn, me, "passkey");
         return TypedResults.NoContent();
     }
 

@@ -528,4 +528,23 @@ public sealed class ExternalSignInTests(PostgresFixture database)
         Assert.Equal("https://localhost/signin-oidc", shown.GetProperty("redirectUri").GetString());
         Assert.True(shown.GetProperty("fromDeployment").GetBoolean());
     }
+
+    [Fact]
+    public async Task Changing_the_provider_while_disabled_clears_old_associations()
+    {
+        var provider = new Provider();
+        await using var app = await CreateAsync(database, provider);
+        using var owner = Browser(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+        using var staff = Browser(app);
+        Assert.Equal("/", await GoThroughProviderAsync(staff, provider));
+        using var disabled = await SaveAsync(owner, Settings(enabled: false));
+        Assert.Equal(HttpStatusCode.NoContent, disabled.StatusCode);
+        using var changed = await SaveAsync(owner, Settings(enabled: false, authority: "https://another-provider.test/"));
+        Assert.Equal(HttpStatusCode.NoContent, changed.StatusCode);
+        using var scope = app.Services.CreateScope();
+        Assert.Empty(scope.ServiceProvider.GetRequiredService<GrowLog.Api.Data.GrowLogDbContext>().UserLogins);
+    }
+
 }

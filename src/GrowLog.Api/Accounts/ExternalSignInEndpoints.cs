@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using GrowLog.Api.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
@@ -77,6 +78,15 @@ internal static class ExternalSignInEndpoints
         }
 
         await context.SignOutAsync(IdentityConstants.ExternalScheme);
+        var subject = info.Principal.FindFirst("sub") ?? info.Principal.FindFirst(ClaimTypes.NameIdentifier);
+        if (subject is null || !string.Equals(subject.Issuer.TrimEnd('/'), store.Current.Authority?.TrimEnd('/'), StringComparison.Ordinal))
+        {
+            return Back("failed");
+        }
+        info = new ExternalLoginInfo(info.Principal, info.LoginProvider, RequestFingerprint.For(new { subject.Issuer, Subject = subject.Value }), info.ProviderDisplayName ?? AccountServices.OidcScheme)
+        {
+            AuthenticationProperties = info.AuthenticationProperties,
+        };
 
         if (info.AuthenticationProperties?.Items.TryGetValue(LinkItem, out var linkUser) == true && linkUser is not null)
         {
@@ -103,7 +113,7 @@ internal static class ExternalSignInEndpoints
         }
 
         await MatchOwnerRoleAsync(person, info, users, roles, store);
-        await signIn.SignInAsync(person, isPersistent: true);
+        await AccountServices.SignInAsync(signIn, person, "oidc");
         return TypedResults.Redirect("/");
     }
 

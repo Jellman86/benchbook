@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using GrowLog.Api.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -19,6 +20,11 @@ internal static class AccountServices
 
     /// <summary>Marks a session started with a PIN at a bench station, which never carries the owner's powers.</summary>
     public const string BenchSessionClaim = "growlog:bench_session";
+    public const string SignInMethodClaim = "growlog:sign_in_method";
+
+    public static Task SignInAsync(SignInManager<AppUser> signIn, AppUser person, string method) =>
+        signIn.SignInWithClaimsAsync(person, isPersistent: true, [new Claim(SignInMethodClaim, method)]);
+
     public const string OidcScheme = "Oidc";
 
     /// <summary>The address people use, which this application can't tell from behind the proxy.</summary>
@@ -58,9 +64,9 @@ internal static class AccountServices
         // A bench session stays a bench session when its cookie is renewed.
         options.OnRefreshingPrincipal = context =>
         {
-            if (context.CurrentPrincipal?.FindFirst(BenchSessionClaim) is { } bench)
+            foreach (var claim in context.CurrentPrincipal?.Claims.Where(claim => claim.Type is BenchSessionClaim or SignInMethodClaim) ?? [])
             {
-                context.NewPrincipal?.Identities.First().AddClaim(new System.Security.Claims.Claim(bench.Type, bench.Value));
+                context.NewPrincipal?.Identities.First().AddClaim(new Claim(claim.Type, claim.Value));
             }
 
             return Task.CompletedTask;
@@ -96,6 +102,7 @@ internal static class AccountServices
             options.ExpireTimeSpan = TimeSpan.FromDays(30);
             options.SlidingExpiration = true;
             AnswerWithStatusCodes(options);
+            options.Events.OnValidatePrincipal = ValidateSessionAsync;
         });
 
         services.AddAuthorizationBuilder()
@@ -125,6 +132,32 @@ internal static class AccountServices
         });
 
         return services;
+    }
+
+    private static async Task ValidateSessionAsync(CookieValidatePrincipalContext context)
+    {
+        await SecurityStampValidator.ValidatePrincipalAsync(context);
+        if (context.Principal is not { } principal)
+        {
+            return;
+        }
+        var method = principal.FindFirst(SignInMethodClaim)?.Value;
+        if (method is not null && !string.Equals(method, "name", StringComparison.Ordinal) || principal.FindFirst(BenchSessionClaim) is not null)
+        {
+            return;
+        }
+        var db = context.HttpContext.RequestServices.GetRequiredService<GrowLogDbContext>();
+        var users = context.HttpContext.RequestServices.GetRequiredService<UserManager<AppUser>>();
+        var person = await users.GetUserAsync(principal);
+        var level = (await db.GetNurserySettingsAsync(context.HttpContext.RequestAborted)).SignInLevel;
+        var isOwner = person is not null && await users.IsInRoleAsync(person, OwnerRole);
+        var refused = method is null ? level == SignInLevel.Strict && !isOwner
+            : person is null || !SignInRules.CanTapName(level, person.NameOnlySignIn, isOwner);
+        if (refused)
+        {
+            context.RejectPrincipal();
+            await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+        }
     }
 
     /// <summary>Always registered, because the owner can turn it on at any time. It does nothing until they do.</summary>

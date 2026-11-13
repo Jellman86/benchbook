@@ -375,4 +375,23 @@ public sealed class SignInOptionsTests(PostgresFixture database)
         using var phone = Client(app);
         Assert.Equal(HttpStatusCode.NoContent, await ByPasswordAsync(phone, id));
     }
+
+    [Fact]
+    public async Task Strict_ends_a_name_tap_session_even_when_the_person_has_a_password()
+    {
+        await using var app = await CreateAppAsync(database);
+        using var owner = Client(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+        var id = await AddWithPasswordAsync(owner);
+        await SetSignInLevelAsync(owner, "Names");
+        using var staff = Client(app);
+        Assert.Equal(HttpStatusCode.NoContent, await ByNameAsync(staff, id));
+        Assert.Equal(HttpStatusCode.OK, await MeStatusAsync(staff));
+        await SetSignInLevelAsync(owner, "Strict");
+        Assert.Equal(HttpStatusCode.Unauthorized, await MeStatusAsync(staff));
+        Assert.Equal(HttpStatusCode.NoContent, await ByPasswordAsync(staff, id));
+        Assert.Equal(HttpStatusCode.OK, await MeStatusAsync(staff));
+    }
+
 }

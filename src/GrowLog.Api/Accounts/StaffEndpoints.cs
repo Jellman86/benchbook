@@ -328,7 +328,7 @@ internal static class StaffEndpoints
             return TypedResults.BadRequest();
         }
 
-        await signIn.SignInAsync(member, isPersistent: true);
+        await AccountServices.SignInAsync(signIn, member, "password");
         return TypedResults.NoContent();
     }
 
@@ -355,7 +355,7 @@ internal static class StaffEndpoints
 
         // Changing the stamp makes the invitation single use.
         await users.UpdateSecurityStampAsync(member);
-        await signIn.SignInAsync(member, isPersistent: true);
+        await AccountServices.SignInAsync(signIn, member, "passkey");
         return TypedResults.NoContent();
     }
 
