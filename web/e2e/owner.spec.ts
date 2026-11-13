@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { type Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 /** Gives this browser context a built-in passkey that approves requests by itself. */
 async function addPasskeySupport(page: Page) {

@@ -20,17 +20,15 @@ internal static class AssistantTools
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    /// <summary>The tools, as OpenRouter's function definitions, less those for parts of GrowLog that are turned off.</summary>
-    public static JsonArray Definitions(IReadOnlyCollection<NurseryFeature> off)
+    /// <summary>The tools, as OpenRouter's function definitions, less those this person may not use.</summary>
+    public static JsonArray Definitions(ToolContext context)
     {
         var all = JsonNode.Parse(DefinitionsJson)!.AsArray();
         var keep = new JsonArray();
 
         foreach (var tool in all.ToList())
         {
-            var name = tool!["function"]!["name"]!.GetValue<string>();
-
-            if ((string.Equals(name, "climate", StringComparison.Ordinal) && off.Contains(NurseryFeature.Climate)) || (string.Equals(name, "jobs", StringComparison.Ordinal) && off.Contains(NurseryFeature.Jobs)))
+            if (!Allowed(tool!["function"]!["name"]!.GetValue<string>(), context))
             {
                 continue;
             }
@@ -42,8 +40,22 @@ internal static class AssistantTools
         return keep;
     }
 
+    /// <summary>Climate and jobs only while they're on; "Needs a look" only for the owner, as on Record.</summary>
+    private static bool Allowed(string name, ToolContext context) => name switch
+    {
+        "climate" => !context.FeaturesOff.Contains(NurseryFeature.Climate),
+        "jobs" => !context.FeaturesOff.Contains(NurseryFeature.Jobs),
+        "needs_a_look" => context.IsOwner,
+        _ => true,
+    };
+
     public static async Task<string> RunAsync(string name, JsonNode? arguments, ToolContext context)
     {
+        if (!Allowed(name, context))
+        {
+            return JsonSerializer.Serialize(new { problem = $"{name} isn't available here." }, Json);
+        }
+
         object result = name switch
         {
             "places" => await PlacesAsync(context),
@@ -73,16 +85,18 @@ internal static class AssistantTools
             .Select(place => new { place.Id, place.Name, place.Kind, place.ParentId, place.LabelCode })
             .ToListAsync(context.Cancellation);
 
-        return places.ConvertAll(place =>
-        {
-            context.Saw("place", place.Id.ToString(), place.Name);
-            return new { id = place.Id, name = place.Name, kind = place.Kind.ToString(), insideId = place.ParentId, label = place.LabelCode };
-        });
+        // Listing every place isn't looking at any one of them, so none is noted as a source.
+        return places.ConvertAll(place => new { id = place.Id, name = place.Name, kind = place.Kind.ToString(), insideId = place.ParentId, label = place.LabelCode });
     }
 
     private static async Task<object> FindPlantsAsync(string query, ToolContext context)
     {
-        var pattern = $"%{query.Replace("%", string.Empty, StringComparison.Ordinal)}%";
+        // The search is taken literally: a backslash, % and _ mean themselves.
+        var literal = query
+            .Replace(@"\", @"\\", StringComparison.Ordinal)
+            .Replace("%", @"\%", StringComparison.Ordinal)
+            .Replace("_", @"\_", StringComparison.Ordinal);
+        var pattern = $"%{literal}%";
         var plants = await context.Db.Plants.AsNoTracking()
             .Where(plant => plant.ArchivedAt == null
                 && (EF.Functions.ILike(plant.CommonName, pattern)

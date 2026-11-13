@@ -200,7 +200,7 @@ Ask GrowLog is an optional AI assistant. It answers questions about plants and a
   - The key is kept encrypted on the server and never sent back to any screen. The settings show only that there is one, and what it has spent of its limit as OpenRouter reports it.
   - The models offered are OpenRouter's that can use GrowLog's lookups. Each shows its rough price per question and whether it reads photos.
   - The owner pays OpenRouter directly. A spending limit is set on the key at openrouter.ai.
-- **Who can ask:** the owner, and staff too if the owner ticks "Staff can ask". Each person can ask up to 40 questions an hour.
+- **Who can ask:** the owner, and staff too if the owner ticks "Staff can ask"; the owner signed in at a bench by PIN counts as staff. Each person can ask up to 40 questions an hour, a guard that resets when GrowLog restarts; the real cap on spending is the limit on the OpenRouter key.
 - **Where it's offered:**
   - From the sidebar on a desk, and from a card on Record work on a phone.
   - "Ask about this tray" on a tray, "Ask about this plant" on a plant card, and "Ask about this photo" on a batch photo. These start the conversation with that tray, plant or photo.
@@ -208,14 +208,15 @@ Ask GrowLog is an optional AI assistant. It answers questions about plants and a
   - On a phone, the question box stays in reach at the foot of the screen, with a camera button when the model reads photos, up to four at a time.
   - On a desk, the conversation sits beside the records the answers looked at, suggested questions, and what is sent.
   - Answers are shown as plain text, with paragraphs and lists, and are never treated as markup. Each lists the records it looked at; a tray or place can be opened from there. Each shows roughly what it cost.
-  - The conversation stays on the device for the session and can be started again. Nothing asked is kept on GrowLog's server.
+  - The conversation stays on the device for the session and can be started again. Only its latest lines are sent with each question, so a long one keeps working. Nothing asked is kept on GrowLog's server.
 - **What the model reads:**
-  - It looks the nursery's records up through read-only tools: places, plants and their care notes, what's growing by stage, place or plant, a tray and its history, recent losses and treatments, the sensors' climate, the "Needs a look" list, and jobs.
+  - It looks the nursery's records up through read-only tools: places, plants and their care notes, what's growing by stage, place or plant, a tray and its history, recent losses and treatments, the sensors' climate, the "Needs a look" list (for the owner only, as on Record), and jobs.
   - It can't record or change anything. When something should be done, it says what, and a person does it.
   - Tools for parts turned off under Settings, Features aren't offered.
 - **What is sent:**
   - Requests ask OpenRouter only for providers that don't keep or train on what they're sent.
-  - Never customers, money, overdue invoices, or who did a piece of work.
+  - Never customers, money, overdue invoices, or who recorded a piece of work. Notes people have typed, such as on work, treatments and jobs, are sent as written.
+  - What comes from the records is given to the model as data, never as instructions, so a note can't change what it does.
   - A photo is sent only when the person adds it or asks about it.
 - **Photos and plant health:**
   - For a photo of plants, it describes what it sees and gives the likely causes, how sure it is, and what to check. It is never a diagnosis.

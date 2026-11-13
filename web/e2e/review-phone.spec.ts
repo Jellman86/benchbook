@@ -1,4 +1,5 @@
-import { expect, test, type Route } from "@playwright/test";
+import { type Route } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("phone edits open the customer form and slow climate replies cannot replace the current span", async ({
   page,

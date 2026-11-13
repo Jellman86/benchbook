@@ -37,6 +37,7 @@
   };
 
   const storageKey = $derived(`growlog.ask.${me.id}`);
+  const finePointer = matchMedia("(pointer: fine)").matches;
   const mostPhotos = 4;
 
   let lines = $state<Line[]>(remembered());
@@ -142,7 +143,11 @@
     try {
       const { data, response, error } = await api.POST("/api/assistant/ask", {
         body: {
-          messages: lines.map((line) => ({ role: line.role, text: line.text })),
+          // The latest lines are enough for the model to follow, and keep a long conversation working.
+          messages: lines.slice(-12).map((line) => ({
+            role: line.role,
+            text: line.text.slice(0, 4000),
+          })),
           images: sent.length > 0 ? sent : null,
           about: context
             ? {
@@ -186,7 +191,11 @@
     } finally {
       busy = false;
       await scrollDown();
-      box?.focus();
+
+      // On a phone, focusing would bring the keyboard back over the answer.
+      if (finePointer) {
+        box?.focus();
+      }
     }
   }
 
@@ -353,7 +362,6 @@
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 multiple
                 onchange={addPhoto}
               />
@@ -370,7 +378,13 @@
                 ? "What would you like to know about the photo?"
                 : "Ask about plants or the nursery…"}
               onkeydown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
+                // On a desk Enter asks; on a phone it starts a new line, and the button asks.
+                if (
+                  event.key === "Enter" &&
+                  !event.shiftKey &&
+                  !event.isComposing &&
+                  finePointer
+                ) {
                   event.preventDefault();
                   void ask();
                 }
@@ -405,10 +419,11 @@
       <div class="card stack tight">
         <h2 class="form-heading">What it's sent</h2>
         <p class="muted">
-          Plants, places, trays, work, losses, treatments, climate and the
-          photos you add, to the model the owner chose through OpenRouter,
-          asking for providers that keep nothing. Never customers, money or who
-          did the work. Nothing is kept on GrowLog's server.
+          Plants, places, trays, work, losses, treatments, climate, notes as
+          they were typed, and the photos you add, to the model the owner chose
+          through OpenRouter, asking for providers that keep nothing. Never
+          customers, money or who recorded the work. Nothing is kept on
+          GrowLog's server.
         </p>
       </div>
     </aside>

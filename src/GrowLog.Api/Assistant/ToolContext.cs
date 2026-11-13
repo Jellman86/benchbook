@@ -19,6 +19,12 @@ internal sealed class ToolContext(GrowLogDbContext db, EventStore store, TimePro
 
     public IReadOnlyList<AskSource> Sources => seen;
 
+    /// <summary>Whether the owner is asking: some of the records, such as "Needs a look", are only theirs.</summary>
+    public bool IsOwner { get; init; }
+
+    /// <summary>The parts of GrowLog turned off, whose tools aren't offered or run.</summary>
+    public IReadOnlyCollection<NurseryFeature> FeaturesOff { get; init; } = [];
+
     /// <summary>Notes a record a tool returned. Kinds are "tray" (by label), "plant" and "place" (by id).</summary>
     public void Saw(string kind, string key, string label)
     {

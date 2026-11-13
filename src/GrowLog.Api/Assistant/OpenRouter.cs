@@ -20,6 +20,7 @@ internal static class OpenRouter
 
     private static readonly Lock CacheLock = new();
     private static (DateTimeOffset At, List<ModelChoice> Models)? cache;
+    private static DateTimeOffset? failedAt;
 
     /// <summary>The models that can use GrowLog's tools, cheapest first, kept for an hour.</summary>
     public static async Task<List<ModelChoice>> ModelsAsync(HttpClient client, TimeProvider clock, CancellationToken cancellationToken)
@@ -47,6 +48,39 @@ internal static class OpenRouter
         }
 
         return models;
+    }
+
+    /// <summary>
+    /// The models, or null if OpenRouter can't be reached quickly. A failure is remembered for five minutes, so a screen
+    /// asking again and again doesn't wait each time.
+    /// </summary>
+    public static async Task<List<ModelChoice>?> TryModelsAsync(HttpClient client, TimeProvider clock, CancellationToken cancellationToken)
+    {
+        lock (CacheLock)
+        {
+            if (failedAt is { } failed && clock.GetUtcNow() - failed < TimeSpan.FromMinutes(5))
+            {
+                return null;
+            }
+        }
+
+        using var quickly = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        quickly.CancelAfter(TimeSpan.FromSeconds(6));
+
+        try
+        {
+            return await ModelsAsync(client, clock, quickly.Token);
+        }
+        catch (Exception problem) when (problem is HttpRequestException or JsonException or InvalidOperationException
+            || (problem is OperationCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            lock (CacheLock)
+            {
+                failedAt = clock.GetUtcNow();
+            }
+
+            return null;
+        }
     }
 
     /// <summary>What the key has spent and its limit, in US dollars as OpenRouter reports them, or null if unknown.</summary>

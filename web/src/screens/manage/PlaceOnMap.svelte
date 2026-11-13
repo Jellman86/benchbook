@@ -283,6 +283,9 @@
 
     return () => {
       stopped = true;
+      // Stopped first: removing a map mid-animation makes Leaflet throw.
+      map?.stop();
+      map?.off();
       map?.remove();
       map = null;
     };

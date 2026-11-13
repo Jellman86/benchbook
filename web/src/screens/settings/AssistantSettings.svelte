@@ -164,9 +164,10 @@
           only you
         </label>
         <p class="muted">
-          Each person can ask up to 40 questions an hour. It never sees
-          customers, money or who did the work, and nothing asked is kept on
-          GrowLog's server.
+          Each person can ask up to 40 questions an hour. The real cap on
+          spending is the limit you set on the key at openrouter.ai. It never
+          sees customers, money or who recorded the work, though notes are sent
+          as typed, and nothing asked is kept on GrowLog's server.
         </p>
       </div>
       <button type="submit">Save</button>

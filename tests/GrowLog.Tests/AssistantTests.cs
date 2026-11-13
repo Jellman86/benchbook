@@ -15,10 +15,15 @@ public sealed class AssistantTests(PostgresFixture database)
 
     private static readonly string[] NotPhotos = ["https://example.com/a.jpg"];
 
+    private static readonly string[] Svg = ["data:image/svg+xml;base64,PHN2Zz48L3N2Zz4="];
+
     /// <summary>Answers like OpenRouter: a model list, a key's spend, and a model that looks up stock before answering.</summary>
     private sealed class PretendOpenRouter : HttpMessageHandler
     {
         public List<(string Authorization, string Body)> Questions { get; } = [];
+
+        /// <summary>How it answers: "normal"; "parts" (arguments as an object, content as parts); "garbage"; "empty".</summary>
+        public string Mode { get; set; } = "normal";
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -37,6 +42,18 @@ public sealed class AssistantTests(PostgresFixture database)
             var body = await request.Content!.ReadAsStringAsync(cancellationToken);
             Questions.Add((request.Headers.Authorization?.ToString() ?? string.Empty, body));
             var askedForTools = JsonNode.Parse(body)!["messages"]!.AsArray().Any(message => string.Equals(message?["role"]?.GetValue<string>(), "tool", StringComparison.Ordinal));
+
+            switch (Mode)
+            {
+                case "garbage":
+                    return Reply("this is not json");
+                case "empty":
+                    return Reply("""{"choices":[]}""");
+                case "parts":
+                    return askedForTools
+                        ? Reply("""{"choices":[{"message":{"role":"assistant","content":[{"type":"text","text":"Lavender is growing."}]}}]}""")
+                        : Reply("""{"choices":[{"message":{"role":"assistant","content":null,"tool_calls":[{"id":"call-1","type":"function","function":{"name":"find_plants","arguments":{"query":"lav_end%"}}}]}}]}""");
+            }
 
             return askedForTools
                 ? Reply("""{"choices":[{"message":{"role":"assistant","content":"You have 40 Lavender growing."}}],"usage":{"cost":0.002}}""")
@@ -135,5 +152,75 @@ public sealed class AssistantTests(PostgresFixture database)
         }
 
         Assert.Equal(HttpStatusCode.NotFound, await GetStatusAsync(nursery.Owner, "/api/assistant/status"));
+    }
+
+    private static async Task<PretendOpenRouter> SetUpAsync(TwoPersonNursery nursery, PretendOpenRouter openRouter, bool forStaff = false)
+    {
+        using var saved = await nursery.Owner.PutAsJsonAsync(Route("/api/assistant/settings"), new { key = Key, model = "test/model", forStaff }, Cancellation);
+        Assert.Equal(HttpStatusCode.NoContent, saved.StatusCode);
+        return openRouter;
+    }
+
+    [Fact]
+    public async Task A_long_conversation_keeps_working_with_only_its_latest_lines_sent()
+    {
+        var openRouter = new PretendOpenRouter();
+        await using var nursery = await TwoPersonNursery.CreateAsync(database, outsideWorld: openRouter);
+        await SetUpAsync(nursery, openRouter);
+        var lines = Enumerable.Range(0, 41)
+            .Select(index => new { role = index % 2 == 0 ? "user" : "assistant", text = index == 1 ? new string('a', 9000) : $"Line {index}" })
+            .ToArray();
+
+        using var answered = await nursery.Owner.PostAsJsonAsync(Route("/api/assistant/ask"), new { messages = lines }, Cancellation);
+        Assert.Equal(HttpStatusCode.OK, answered.StatusCode);
+        var sent = JsonNode.Parse(openRouter.Questions[0].Body)!["messages"]!.AsArray();
+        Assert.DoesNotContain(sent, message => message?["content"]?.ToString().Contains("Line 0", StringComparison.Ordinal) == true);
+        Assert.Contains(sent, message => string.Equals(message?["content"]?.ToString(), "Line 40", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Unusual_replies_are_read_and_broken_ones_are_refused_politely()
+    {
+        var openRouter = new PretendOpenRouter { Mode = "parts" };
+        await using var nursery = await TwoPersonNursery.CreateAsync(database, outsideWorld: openRouter);
+        await SetUpAsync(nursery, openRouter);
+
+        using (var parts = await AskAsync(nursery.Owner, "Is lavender growing?"))
+        {
+            Assert.Equal(HttpStatusCode.OK, parts.StatusCode);
+            Assert.Equal("Lavender is growing.", Json(await parts.Content.ReadAsStringAsync(Cancellation)).GetProperty("answer").GetString());
+        }
+
+        foreach (var mode in new[] { "garbage", "empty" })
+        {
+            openRouter.Mode = mode;
+            using var broken = await AskAsync(nursery.Owner, "Anything?");
+            var body = await broken.Content.ReadAsStringAsync(Cancellation);
+            Assert.True(broken.StatusCode is HttpStatusCode.OK or HttpStatusCode.Conflict, $"{mode}: {broken.StatusCode}");
+            Assert.DoesNotContain(Key, body, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public async Task Odd_requests_are_turned_away_and_staff_are_not_offered_the_owners_reminders()
+    {
+        var openRouter = new PretendOpenRouter();
+        await using var nursery = await TwoPersonNursery.CreateAsync(database, outsideWorld: openRouter);
+        await SetUpAsync(nursery, openRouter, forStaff: true);
+
+        async Task<HttpStatusCode> SendAsync(object body)
+        {
+            using var response = await nursery.Owner.PostAsJsonAsync(Route("/api/assistant/ask"), body, Cancellation);
+            return response.StatusCode;
+        }
+
+        Assert.Equal(HttpStatusCode.BadRequest, await SendAsync(new { messages = new object?[] { null } }));
+        Assert.Equal(HttpStatusCode.BadRequest, await SendAsync(new { messages = new[] { new { role = "user", text = (string?)null } } }));
+        Assert.Equal(HttpStatusCode.BadRequest, await SendAsync(new { messages = new[] { new { role = "user", text = "Tray?" } }, about = new { trayLabel = new string('C', 5000) } }));
+        Assert.Equal(HttpStatusCode.BadRequest, await SendAsync(new { messages = new[] { new { role = "user", text = "This?" } }, images = Svg }));
+
+        using var asked = await AskAsync(nursery.Staff, "What needs a look?");
+        Assert.Equal(HttpStatusCode.OK, asked.StatusCode);
+        Assert.DoesNotContain("needs_a_look", openRouter.Questions[0].Body, StringComparison.Ordinal);
     }
 }

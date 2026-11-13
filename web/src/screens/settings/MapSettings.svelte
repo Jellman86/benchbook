@@ -38,6 +38,15 @@
         return;
       }
 
+      if (
+        pictureChangedAt &&
+        !confirm(
+          "Replace the picture? Places drawn on it keep their outlines, so if the new one shows the nursery differently, redraw them.",
+        )
+      ) {
+        return;
+      }
+
       busy = true;
 
       try {

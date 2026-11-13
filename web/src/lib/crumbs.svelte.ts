@@ -1,4 +1,4 @@
-import { getContext, setContext } from "svelte";
+import { getContext, setContext, untrack } from "svelte";
 
 // The breadcrumb trail above every screen. Each screen adds its own part while it's shown, below the screens it sits
 // in, so the trail always reads from the top level down to where the person is.
@@ -20,22 +20,28 @@ export function crumbs(get: () => Crumb[]) {
   const id = nextId++;
 
   $effect(() => {
+    // Only what the screen's crumbs depend on is tracked; the trail itself is written untracked, or each write would
+    // re-run this effect.
     const part = { id, depth, crumbs: get() };
-    const index = parts.findIndex((item) => item.id === id);
 
-    if (index >= 0) {
-      parts[index] = part;
-    } else {
-      parts.push(part);
-    }
+    untrack(() => {
+      const index = parts.findIndex((item) => item.id === id);
 
-    return () => {
-      const at = parts.findIndex((item) => item.id === id);
-
-      if (at >= 0) {
-        parts.splice(at, 1);
+      if (index >= 0) {
+        parts[index] = part;
+      } else {
+        parts.push(part);
       }
-    };
+    });
+
+    return () =>
+      untrack(() => {
+        const at = parts.findIndex((item) => item.id === id);
+
+        if (at >= 0) {
+          parts.splice(at, 1);
+        }
+      });
   });
 }
 

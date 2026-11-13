@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 // Without a satellite key, places are drawn on the nursery's own picture: no address search, and the outline is kept
 // as fractions of the picture.

@@ -3095,6 +3095,12 @@ button.danger:hover:not(:disabled) {
   list-style: none;
 }
 
+/* Scrolled to, a line stops clear of the question box and the bar below it. */
+.ask-line,
+.ask-conversation > .problem {
+  scroll-margin-bottom: 15rem;
+}
+
 .ask-line.user {
   align-self: flex-end;
   max-width: 85%;

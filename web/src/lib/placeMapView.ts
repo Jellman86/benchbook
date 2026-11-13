@@ -20,6 +20,9 @@ export type PlaceMapView = {
   satellite: boolean;
 };
 
+// A point on the picture may sit a little beyond its edges, never further.
+const within = (fraction: number) => Math.min(1.1, Math.max(-0.1, fraction));
+
 /** Leaflet, with Geoman for drawing when asked for. Loaded only when a map is shown. */
 export async function loadLeaflet(drawing: boolean): Promise<typeof Leaflet> {
   const leaflet = await import("leaflet");
@@ -56,6 +59,8 @@ export async function openPlaceMap(
     const map = L.map(into, {
       crs: L.CRS.Simple,
       zoomControl: !options.quiet,
+      zoomAnimation: !options.quiet,
+      fadeAnimation: !options.quiet,
       minZoom: -6,
       maxZoom: 4,
       zoomSnap: 0.25,
@@ -63,13 +68,17 @@ export async function openPlaceMap(
     });
     L.imageOverlay(url, bounds).addTo(map);
     map.fitBounds(bounds);
-    map.setMaxBounds(L.latLngBounds(bounds).pad(0.25));
+    // A little room beyond the picture's edges, as much as the server accepts for an outline.
+    map.setMaxBounds(L.latLngBounds(bounds).pad(0.1));
 
     return {
       L,
       map,
       toMap: (point) => [height * (1 - point[0]), width * point[1]],
-      fromMap: (point) => [1 - point[0] / height, point[1] / width],
+      fromMap: (point) => [
+        within(1 - point[0] / height),
+        within(point[1] / width),
+      ],
       onPicture: true,
       satellite: false,
     };
@@ -77,6 +86,8 @@ export async function openPlaceMap(
 
   const map = L.map(into, {
     zoomControl: !options.quiet,
+    zoomAnimation: !options.quiet,
+    fadeAnimation: !options.quiet,
     maxZoom: 22,
   }).setView([54.4, -2.6], 6);
   const tiles = imagery(source.imageryKey);

@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { type Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 // Ask GrowLog against a pretend server: offered on Record and in the sidebar, answers shown as plain text with the
 // records they looked at, and a desk using its width for them.
