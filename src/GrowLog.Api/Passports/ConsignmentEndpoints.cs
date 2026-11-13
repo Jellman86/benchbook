@@ -90,6 +90,15 @@ internal static class ConsignmentEndpoints
 
         var (needed, why) = PassportNeeded(consignment.Kind);
 
+        var propagating = new HashSet<(Guid BatchId, Guid ContainerId)>();
+        foreach (var line in consignment.Packages.SelectMany(package => package.Lines))
+        {
+            var batch = await db.Batches.AsNoTracking().SingleAsync(batch => batch.Id == line.BatchId, cancellationToken);
+            if (await PassportEndpoints.PropagatingAsync(batch, line.ContainerId, db, cancellationToken))
+            {
+                propagating.Add((line.BatchId, line.ContainerId));
+            }
+        }
         return new ConsignmentDetails(
             consignment.Id,
             consignment.Number,
@@ -108,7 +117,8 @@ internal static class ConsignmentEndpoints
                     batches[line.BatchId].Variety is { } variety ? $"{batches[line.BatchId].CommonName} '{variety}'" : batches[line.BatchId].CommonName,
                     labels[line.ContainerId],
                     line.Quantity,
-                    line.InvoiceLineId is { } invoiceLine ? invoiceNumbers.GetValueOrDefault(invoiceLine) : null))],
+                    line.InvoiceLineId is { } invoiceLine ? invoiceNumbers.GetValueOrDefault(invoiceLine) : null,
+                    propagating.Contains((line.BatchId, line.ContainerId))))],
                 Combined(passports.Where(passport => passport.PackageId == package.Id).ToList())))]);
     }
 
@@ -130,10 +140,14 @@ internal static class ConsignmentEndpoints
 
     private static async Task<IResult> AddAsync(ConsignmentRequest request, ClaimsPrincipal user, GrowLogDbContext db, EventStore store, TimeProvider clock, CancellationToken cancellationToken)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await store.LockRequestAsync(request.Id ?? Guid.CreateVersion7(), cancellationToken);
         // Sent again after a reply was lost: the consignment made the first time.
         if (request.Id is { } given && await db.Consignments.AsNoTracking().FirstOrDefaultAsync(item => item.Id == given, cancellationToken) is { } already)
         {
-            return TypedResults.Created($"/api/consignments/{already.Id}", new ConsignmentAdded(already.Id, already.Number));
+            return already.CreatedBy == Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!)
+                && string.Equals(already.RequestFingerprint, RequestFingerprint.For(request), StringComparison.Ordinal)
+                ? TypedResults.Ok(new ConsignmentAdded(already.Id, already.Number)) : TypedResults.Conflict(new PassportRefused("IdInUse"));
         }
 
         var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
@@ -157,7 +171,6 @@ internal static class ConsignmentEndpoints
             return TypedResults.Conflict(new PassportRefused("TooMany"));
         }
 
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await db.Database.ExecuteSqlRawAsync("LOCK TABLE consignments IN EXCLUSIVE MODE", cancellationToken);
         var number = (await db.Consignments.MaxAsync(item => (int?)item.Number, cancellationToken) ?? 0) + 1;
 
@@ -169,6 +182,7 @@ internal static class ConsignmentEndpoints
         var consignment = new Consignment
         {
             Id = request.Id ?? Guid.CreateVersion7(),
+            RequestFingerprint = RequestFingerprint.For(request),
             Number = number,
             Kind = request.Kind,
             SentTo = sentTo,
@@ -357,12 +371,17 @@ internal static class ConsignmentEndpoints
             return TypedResults.NotFound();
         }
 
-        if (await db.IssuedPassports.AnyAsync(passport => passport.PackageId == packageId, cancellationToken))
+        var issued = await db.IssuedPassports.Where(passport => passport.PackageId == packageId).ToListAsync(cancellationToken);
+        if (issued.Count > 0)
         {
-            return TypedResults.Ok();
+            return issued.All(passport => passport.IssuedBy == Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!)
+                && string.Equals(passport.RequestFingerprint, RequestFingerprint.For(request), StringComparison.Ordinal))
+                ? TypedResults.Ok() : TypedResults.Conflict(new PassportRefused("IdInUse"));
         }
+        await LockInvoicesAsync(package, db, cancellationToken);
+        await store.LockAsync(package.Lines.Select(line => line.ContainerId), cancellationToken);
 
-        var (drafts, refused) = await DraftAllAsync(package, db, store, clock, cancellationToken);
+        var (drafts, refused) = await DraftAllAsync(package, request.ActiveGrowthConfirmed, db, store, clock, cancellationToken);
 
         if (refused is not null)
         {
@@ -378,15 +397,17 @@ internal static class ConsignmentEndpoints
         }
 
         var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
-        db.IssuedPassports.AddRange(drafts.Select(item => PassportLine(item.Line, item.Draft, consignment, packageId, today, examinations[item.Line.Id], userId)));
+        db.IssuedPassports.AddRange(drafts.Select(item => PassportLine(item.Line, item.Draft, consignment, packageId, today, examinations[item.Line.Id], userId, request)));
 
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return TypedResults.Created($"/api/consignments/{id}", new { packageId });
     }
 
-    private static IssuedPassport PassportLine(PackageLine line, PassportEndpoints.IssueDraft draft, Consignment consignment, Guid packageId, DateOnly today, Guid examinationId, Guid userId) => new()
+    private static IssuedPassport PassportLine(PackageLine line, PassportEndpoints.IssueDraft draft, Consignment consignment, Guid packageId, DateOnly today, Guid examinationId, Guid userId, PackagePassportRequest request) => new()
     {
+        RequestFingerprint = RequestFingerprint.For(request),
+        ActiveGrowthConfirmed = request.ActiveGrowthConfirmed,
         BatchId = line.BatchId,
         ContainerId = line.ContainerId,
         Quantity = line.Quantity,
@@ -403,9 +424,17 @@ internal static class ConsignmentEndpoints
         IssuedBy = userId,
     };
 
+    private static async Task LockInvoicesAsync(ConsignmentPackage package, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        var lineIds = package.Lines.Select(line => line.InvoiceLineId).OfType<Guid>().ToList();
+        var invoiceIds = await db.InvoiceLines.Where(line => lineIds.Contains(line.Id)).Select(line => line.InvoiceId).Distinct().ToArrayAsync(cancellationToken);
+        await db.Database.ExecuteSqlRawAsync("SELECT 1 FROM invoices WHERE id = ANY({0}) ORDER BY id FOR UPDATE", [invoiceIds], cancellationToken);
+    }
+
     /// <summary>Each line's passport as it would be issued now, or why the package can't have one.</summary>
     private static async Task<(List<(PackageLine Line, PassportEndpoints.IssueDraft Draft)> Drafts, string? Refused)> DraftAllAsync(
         ConsignmentPackage package,
+        bool activeGrowthConfirmed,
         GrowLogDbContext db,
         EventStore store,
         TimeProvider clock,
@@ -413,12 +442,17 @@ internal static class ConsignmentEndpoints
     {
         var drafts = new List<(PackageLine Line, PassportEndpoints.IssueDraft Draft)>();
 
+        var invoiceIds = package.Lines.Where(line => line.InvoiceLineId != null).Select(line => line.InvoiceLineId!.Value).Distinct().ToList();
+        if (await Consignable(db).CountAsync(line => invoiceIds.Contains(line.Id), cancellationToken) != invoiceIds.Count)
+        {
+            return ([], "InvoiceCancelled");
+        }
         foreach (var line in package.Lines)
         {
             var sold = line.InvoiceLineId is not null;
-            var draft = await PassportEndpoints.MakeDraftAsync(line.BatchId, line.ContainerId, db, store, clock, cancellationToken, sold);
+            var draft = await PassportEndpoints.MakeDraftAsync(line.BatchId, line.ContainerId, db, store, clock, cancellationToken, sold, activeGrowthConfirmed);
 
-            if (draft is null || draft.Problems.Count > 0 || (!sold && draft.Available < line.Quantity))
+            if (draft is null || draft.Problems.Count > 0 || (!sold && draft.Available < package.Lines.Where(other => other.InvoiceLineId == null && other.BatchId == line.BatchId && other.ContainerId == line.ContainerId).Sum(other => other.Quantity)))
             {
                 return ([], draft is { Problems.Count: 0 } ? "TooMany" : "CannotIssue");
             }
@@ -489,14 +523,14 @@ internal static class ConsignmentEndpoints
 
     internal sealed record ConsignmentAdded(Guid Id, int Number);
 
-    internal sealed record PackagePassportRequest(bool Examined, string? Findings);
+    internal sealed record PackagePassportRequest(bool Examined, string? Findings, bool ActiveGrowthConfirmed = false);
 
     internal sealed record PassportRefused(string Problem);
 
     internal sealed record ConsignmentSummary(Guid Id, int Number, ConsignmentKind Kind, string SentTo, DateOnly SentOn, int Packages, bool PassportNeeded, int PackagesPassported);
 
     /// <param name="InvoiceNumber">The invoice the plants were sold on, when they'd left the tray before going.</param>
-    internal sealed record PackageLineDetails(Guid BatchId, string TraceabilityCode, string PlantName, string LabelCode, int Quantity, int? InvoiceNumber = null);
+    internal sealed record PackageLineDetails(Guid BatchId, string TraceabilityCode, string PlantName, string LabelCode, int Quantity, int? InvoiceNumber = null, bool PropagatingMaterial = false);
 
     /// <param name="Rules">How each batch's country of origin was worked out.</param>
     internal sealed record PackagePassportLine(string PartA, string PartC, string PartD, string Rule, int Quantity);

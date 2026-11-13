@@ -266,4 +266,23 @@ public sealed class PurchaseTests(PostgresFixture database)
         Assert.Equal(HttpStatusCode.Forbidden, await PostStatusAsync(nursery.Staff, "/api/purchases", Body(supplier)));
         Assert.Equal(HttpStatusCode.Unauthorized, await GetStatusAsync(stranger, "/api/purchases"));
     }
+
+    [Fact]
+    public async Task Purchase_retries_are_once_only_and_changed_lines_are_refused()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var supplier = await AddSupplierAsync(nursery.Owner);
+        var id = Guid.NewGuid();
+        var body = new { id, supplierId = supplier, purchasedOn = Today, lines = new[] { new { description = "Compost", netCost = 15m, vat = 3m } } };
+        var replies = await Task.WhenAll(PostAsync(nursery.Owner, "/api/purchases", body), PostAsync(nursery.Owner, "/api/purchases", body));
+        foreach (var reply in replies)
+        {
+            Assert.True(reply.IsSuccessStatusCode);
+            reply.Dispose();
+        }
+        using var changed = await PostAsync(nursery.Owner, "/api/purchases", new { id, supplierId = supplier, purchasedOn = Today, lines = new[] { new { description = "Compost", netCost = 16m, vat = 3m } } });
+        Assert.Equal(HttpStatusCode.Conflict, changed.StatusCode);
+        Assert.Single((await ListAsync(nursery.Owner)).EnumerateArray());
+    }
+
 }

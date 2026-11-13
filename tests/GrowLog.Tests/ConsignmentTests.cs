@@ -106,4 +106,51 @@ public sealed class ConsignmentTests(PostgresFixture database)
         Assert.Equal(1, package.GetProperty("lines")[0].GetProperty("invoiceNumber").GetInt32());
         Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Owner, $"/api/consignments/{id}/packages/{package.GetProperty("id").GetGuid()}/passport", new { examined = true }));
     }
+
+    [Fact]
+    public async Task Package_quantities_are_grouped_again_when_the_passport_is_issued()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        using var settings = await nursery.Owner.PutAsJsonAsync(Route("/api/settings/nursery"), new { registrationNumber = "123456" }, Cancellation);
+        var (batch, tray) = await SowAsync(nursery, "Lavender", "Lavandula angustifolia");
+        var id = await AddAsync(nursery.Owner, "/api/consignments", new { kind = "TradeSale", sentTo = "Hilltop", packages = new[] { new { lines = new[] { Line(tray, batch, 15), Line(tray, batch, 15) } } } });
+        await PostForTextAsync(nursery.Staff, $"/api/containers/{tray}/count", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow, batchId = batch, counted = 20 });
+        var package = (await nursery.Owner.GetFromJsonAsync<JsonElement>(Route($"/api/consignments/{id}"), Cancellation)).GetProperty("packages")[0].GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.Conflict, await PostStatusAsync(nursery.Owner, $"/api/consignments/{id}/packages/{package}/passport", new { examined = true }));
+    }
+
+    [Fact]
+    public async Task A_cancelled_invoice_cannot_back_a_package_passport()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        using var settings = await nursery.Owner.PutAsJsonAsync(Route("/api/settings/nursery"), new { registrationNumber = "123456" }, Cancellation);
+        var (batch, tray) = await SowAsync(nursery, "Lavender", "Lavandula angustifolia");
+        var customer = await AddAsync(nursery.Owner, "/api/customers", new { name = "Hilltop" });
+        var invoice = Json(await PostForTextAsync(nursery.Owner, "/api/invoices", new { customerId = customer, lines = new[] { new { description = "Lavender", quantity = 10, unitPrice = 3m, vatRate = 0m, containerId = tray, batchId = batch } } })).GetProperty("id").GetGuid();
+        var waiting = (await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/consignments/invoiced"), Cancellation))[0];
+        var id = await AddAsync(nursery.Owner, "/api/consignments", new { kind = "TradeSale", customerId = customer, packages = new[] { new { lines = new[] { new { containerId = tray, batchId = batch, quantity = 10, invoiceLineId = waiting.GetProperty("invoiceLineId").GetGuid() } } } } });
+        await PostForTextAsync(nursery.Owner, $"/api/invoices/{invoice}/credit");
+        var package = (await nursery.Owner.GetFromJsonAsync<JsonElement>(Route($"/api/consignments/{id}"), Cancellation)).GetProperty("packages")[0].GetProperty("id").GetGuid();
+        using var reply = await PostAsync(nursery.Owner, $"/api/consignments/{id}/packages/{package}/passport", new { examined = true });
+        Assert.Equal(HttpStatusCode.Conflict, reply.StatusCode);
+        Assert.Contains("InvoiceCancelled", await reply.Content.ReadAsStringAsync(Cancellation), StringComparison.Ordinal);
+    }
+
+
+    [Fact]
+    public async Task Consignment_and_package_retries_refuse_changed_content()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        using var settings = await nursery.Owner.PutAsJsonAsync(Route("/api/settings/nursery"), new { registrationNumber = "123456" }, Cancellation);
+        var (batch, tray) = await SowAsync(nursery, "Lavender", "Lavandula angustifolia");
+        var id = Guid.NewGuid();
+        var body = new { id, kind = "TradeSale", sentTo = "Hilltop", packages = new[] { new { lines = new[] { Line(tray, batch, 10) } } } };
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Owner, "/api/consignments", body));
+        Assert.Equal(HttpStatusCode.OK, await PostStatusAsync(nursery.Owner, "/api/consignments", body));
+        using var changed = await PostAsync(nursery.Owner, "/api/consignments", new { id, kind = "TradeSale", sentTo = "Hilltop", packages = new[] { new { lines = new[] { Line(tray, batch, 11) } } } });
+        Assert.Equal(HttpStatusCode.Conflict, changed.StatusCode);
+        var package = (await nursery.Owner.GetFromJsonAsync<JsonElement>(Route($"/api/consignments/{id}"), Cancellation)).GetProperty("packages")[0].GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(nursery.Owner, $"/api/consignments/{id}/packages/{package}/passport", new { examined = true, findings = "Healthy" }));
+        Assert.Equal(HttpStatusCode.Conflict, await PostStatusAsync(nursery.Owner, $"/api/consignments/{id}/packages/{package}/passport", new { examined = true, findings = "Different" }));
+    }
 }

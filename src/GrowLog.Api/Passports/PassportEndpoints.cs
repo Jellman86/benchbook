@@ -16,6 +16,7 @@ internal static class PassportEndpoints
 {
     private const int LongestText = 200;
 
+    private static readonly string[] PropagatingWords = ["plug", "liner", "seed", "cutting", "rootstock"];
     private static readonly EventType[] ChangesThePlants = [EventType.PottedOn, EventType.PrickedOut, EventType.Split];
     private static readonly LocationKind[] Covered = [LocationKind.Greenhouse, LocationKind.Polytunnel, LocationKind.ColdFrame];
     private static readonly Regex GbPrefix = new(@"^\s*GB[\s\-]*", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
@@ -41,7 +42,7 @@ internal static class PassportEndpoints
     }
 
     /// <param name="sold">Plants already invoiced from the tray: their passport comes from the tray's history, though they've left it.</param>
-    internal static async Task<IssueDraft?> MakeDraftAsync(Guid id, Guid containerId, GrowLogDbContext db, EventStore store, TimeProvider clock, CancellationToken cancellationToken, bool sold = false)
+    internal static async Task<IssueDraft?> MakeDraftAsync(Guid id, Guid containerId, GrowLogDbContext db, EventStore store, TimeProvider clock, CancellationToken cancellationToken, bool sold = false, bool activeGrowthConfirmed = false)
     {
         var found = await db.Batches
             .AsNoTracking()
@@ -57,17 +58,21 @@ internal static class PassportEndpoints
         var settings = await db.GetNurserySettingsAsync(cancellationToken);
         var here = (await store.GetContainerStateAsync(containerId, cancellationToken)).Contents.FirstOrDefault(line => line.BatchId == id);
         var available = here?.Quantity ?? 0;
-        var origin = PassportOrigin.Decide(await FactsAsync(found.Batch, found.BotanicalName, found.XylellaHost, containerId, db, clock, cancellationToken));
+        var origin = PassportOrigin.Decide((await FactsAsync(found.Batch, found.BotanicalName, found.XylellaHost, containerId, db, clock, cancellationToken)) with { ActiveGrowthConfirmed = activeGrowthConfirmed });
         var partA = found.BotanicalName?.Trim();
         var partB = PartB(settings.RegistrationNumber);
 
         var problems = new List<string>();
 
-        if (string.IsNullOrEmpty(partA))
+        if (!PassportParts.Botanical(partA))
         {
-            problems.Add("The plant has no botanical name for part A. Add it under Plants.");
+            problems.Add("Part A needs a botanical name with genus and species, or genus followed by sp. Add it under Plants.");
         }
 
+        if (!PassportParts.Country(origin.Country))
+        {
+            problems.Add("Part D needs a recognised two-letter ISO country code. Correct the batch's country of origin.");
+        }
         if (partB is null)
         {
             problems.Add("The nursery's plant health registration number, for part B, isn't set. The owner adds it under Settings, Nursery details.");
@@ -86,7 +91,20 @@ internal static class PassportEndpoints
             problems.Add("None of these plants are in this tray.");
         }
 
-        return new IssueDraft(partA, partB, found.Batch.TraceabilityCode, origin.Country, origin.Rule, available, found.XylellaHost, problems);
+        return new IssueDraft(partA, partB, found.Batch.TraceabilityCode, origin.Country, origin.Rule, available, found.XylellaHost, problems, origin.NeedsActiveGrowthConfirmation, await PropagatingAsync(found.Batch, containerId, db, cancellationToken));
+    }
+
+    internal static async Task<bool> PropagatingAsync(Batch batch, Guid containerId, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        var potted = await db.Events.AnyAsync(e => e.ContainerId == containerId && !db.Events.Any(c => c.CorrectsEventId == e.Id)
+            && (e.Type == EventType.PottedOn || e.Type == EventType.Ready), cancellationToken);
+        if (batch.Source is BatchSource.SeedLot or BatchSource.Cuttings && !potted)
+        {
+            return true;
+        }
+        var sizeNames = await db.Events.Where(e => e.ContainerId == containerId && e.PotSizeId != null)
+            .Join(db.PotSizes, e => e.PotSizeId, size => size.Id, (e, size) => size.Name).ToListAsync(cancellationToken);
+        return sizeNames.Any(name => PropagatingWords.Any(word => name.Contains(word, StringComparison.OrdinalIgnoreCase)));
     }
 
     private static async Task<PassportOrigin.Facts> FactsAsync(Batch batch, string? botanical, bool? xylellaHost, Guid containerId, GrowLogDbContext db, TimeProvider clock, CancellationToken cancellationToken)
@@ -114,11 +132,12 @@ internal static class PassportEndpoints
             changed,
             await UnderCoverSinceAsync(containerId, db, cancellationToken),
             xylellaHost,
-            CeratocystisHost: botanical?.TrimStart().StartsWith("Platanus", StringComparison.OrdinalIgnoreCase) == true);
+            CeratocystisHost: botanical?.TrimStart().StartsWith("Platanus", StringComparison.OrdinalIgnoreCase) == true,
+            OutsideSince: await UnderCoverSinceAsync(containerId, db, cancellationToken, underCover: false));
     }
 
     /// <summary>Since when the tray has been under cover without a break, going back from where it is now; null if it isn't.</summary>
-    private static async Task<DateTimeOffset?> UnderCoverSinceAsync(Guid containerId, GrowLogDbContext db, CancellationToken cancellationToken)
+    private static async Task<DateTimeOffset?> UnderCoverSinceAsync(Guid containerId, GrowLogDbContext db, CancellationToken cancellationToken, bool underCover = true)
     {
         var placings = await db.Events
             .AsNoTracking()
@@ -134,7 +153,7 @@ internal static class PassportEndpoints
         var places = await db.Locations.AsNoTracking().ToDictionaryAsync(place => place.Id, cancellationToken);
         DateTimeOffset? since = null;
 
-        for (var index = placings.Count - 1; index >= 0 && IsCovered(placings[index].LocationId, places); index--)
+        for (var index = placings.Count - 1; index >= 0 && IsCovered(placings[index].LocationId, places) == underCover; index--)
         {
             since = placings[index].At;
         }
@@ -173,10 +192,15 @@ internal static class PassportEndpoints
         TimeProvider clock,
         CancellationToken cancellationToken)
     {
-        if (await db.IssuedPassports.AnyAsync(passport => passport.Id == request.PassportId, cancellationToken))
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await store.LockRequestAsync(request.PassportId, cancellationToken);
+        if (await db.IssuedPassports.AsNoTracking().FirstOrDefaultAsync(passport => passport.Id == request.PassportId, cancellationToken) is { } stored)
         {
-            return TypedResults.Ok(new PassportIssued(request.PassportId));
+            return stored.IssuedBy == Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!)
+                && string.Equals(stored.RequestFingerprint, RequestFingerprint.For(request), StringComparison.Ordinal)
+                ? TypedResults.Ok(new PassportIssued(request.PassportId)) : TypedResults.Conflict(new PassportRefused("IdInUse"));
         }
+        await store.LockAsync([request.ContainerId], cancellationToken);
 
         var issuedTo = await RecipientAsync(request, user, db, cancellationToken);
 
@@ -191,9 +215,7 @@ internal static class PassportEndpoints
             return TypedResults.Conflict(new PassportRefused("NotExamined"));
         }
 
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-
-        if (await MakeDraftAsync(request.BatchId, request.ContainerId, db, store, clock, cancellationToken) is not { } draft)
+        if (await MakeDraftAsync(request.BatchId, request.ContainerId, db, store, clock, cancellationToken, activeGrowthConfirmed: request.ActiveGrowthConfirmed) is not { } draft)
         {
             return TypedResults.NotFound();
         }
@@ -221,7 +243,7 @@ internal static class PassportEndpoints
         catch (DbUpdateException exception) when (exception.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
         {
             // The same passport arrived twice at once, and the other one was kept.
-            return TypedResults.Ok(new PassportIssued(request.PassportId));
+            return TypedResults.Conflict(new PassportRefused("IdInUse"));
         }
 
         return TypedResults.Created($"/api/passports/{request.PassportId}", new PassportIssued(request.PassportId));
@@ -236,6 +258,8 @@ internal static class PassportEndpoints
     private static IssuedPassport Passport(IssuePassportRequest request, IssueDraft draft, string issuedTo, Guid examinationId, Guid userId, TimeProvider clock) => new()
     {
         Id = request.PassportId,
+        RequestFingerprint = RequestFingerprint.For(request),
+        ActiveGrowthConfirmed = request.ActiveGrowthConfirmed,
         BatchId = request.BatchId,
         ContainerId = request.ContainerId,
         Quantity = request.Quantity,
@@ -317,7 +341,9 @@ internal static class PassportEndpoints
         string OriginRule,
         int Available,
         bool? XylellaHost,
-        IReadOnlyList<string> Problems);
+        IReadOnlyList<string> Problems,
+        bool NeedsActiveGrowthConfirmation = false,
+        bool PropagatingMaterial = false);
 
     /// <param name="Examined">That the plants were examined just now and found fit to move.</param>
     /// <param name="Findings">What the examination found, if more than "no pests or diseases seen".</param>
@@ -332,7 +358,8 @@ internal static class PassportEndpoints
         string? IssuedTo,
         bool Examined,
         string? Findings,
-        string? ExpectedPartD = null);
+        string? ExpectedPartD = null,
+        bool ActiveGrowthConfirmed = false);
 
     internal sealed record PassportIssued(Guid Id);
 

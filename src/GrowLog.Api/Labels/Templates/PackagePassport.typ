@@ -8,7 +8,7 @@
 #set page(
   width: width,
   height: height,
-  margin: (x: border + 3mm, top: border + 17mm, bottom: border + 6mm),
+  margin: (x: border + 3mm, top: border + 22mm, bottom: border + 6mm),
   background: place(top + left, dx: border, dy: border, rect(width: width - 2 * border, height: height - 2 * border, stroke: rule)),
   header-ascent: 0pt,
   header: context [
@@ -18,11 +18,24 @@
     #if counter(page).final().first() > 1 [#text(size: 8pt)[Page #counter(page).display()#if data.copies == 1 [ of #counter(page).final().first()]]]
     #v(1mm)
     #grid(columns: (auto, 1fr), column-gutter: 2mm, text(weight: "bold", font: mono)[B], text(font: mono, item.partB))
+    #grid(columns: (auto, 1fr), column-gutter: 2mm, text(weight: "bold", font: mono)[E], [])
   ],
   footer-descent: 0pt,
   footer: align(right, text(size: 7pt, item.package)),
 )
 #set text(font: serif, lang: "en", region: "GB", hyphenate: false, fill: black, size: 9pt)
+
+#context {
+  let room = width - 2 * border - 6mm
+  if room < 45mm or height < 65mm or not words-fit(item.partB, room - 5mm, words => text(font: mono, words)) {
+    panic("The label stock is too small for this passport. Choose a larger label.")
+  }
+  for line in item.lines {
+    if not words-fit(line.partA, room * 0.5, words => text(style: "italic", words)) or not words-fit(line.partC, room * 0.25, words => text(font: mono, words)) {
+      panic("The label stock is too small for this passport. Choose a larger label.")
+    }
+  }
+}
 
 #for copy in range(data.copies) {
   if copy > 0 { pagebreak() }

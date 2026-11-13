@@ -4,6 +4,41 @@
  */
 
 export interface paths {
+    "/api/health/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HealthResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -28,6 +63,13 @@ export interface paths {
                     content: {
                         "application/json": components["schemas"]["HealthResponse"];
                     };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -7379,6 +7421,14 @@ export interface components {
             eventId: string;
             /** Format: date-time */
             occurredAt: string;
+            /** Format: uuid */
+            countEventId?: null | string;
+            /** Format: uuid */
+            batchId?: null | string;
+            /** Format: int32 */
+            counted?: null | number | string;
+            /** @default false */
+            rough: boolean;
         };
         GroupFigures: {
             name: string;
@@ -7515,6 +7565,8 @@ export interface components {
             issuedOn: null | string;
             notes: null | string;
             lines: components["schemas"]["InvoiceLineRequest"][];
+            /** Format: uuid */
+            id?: null | string;
         };
         InvoiceSummary: {
             /** Format: uuid */
@@ -7545,6 +7597,10 @@ export interface components {
             available: number | string;
             xylellaHost: null | boolean;
             problems: string[];
+            /** @default false */
+            needsActiveGrowthConfirmation: boolean;
+            /** @default false */
+            propagatingMaterial: boolean;
         };
         IssuePassportRequest: {
             /** Format: uuid */
@@ -7561,6 +7617,8 @@ export interface components {
             examined: boolean;
             findings: null | string;
             expectedPartD?: null | string;
+            /** @default false */
+            activeGrowthConfirmed: boolean;
         };
         IssueRefused: {
             problem: string;
@@ -7828,6 +7886,8 @@ export interface components {
             quantity: number | string;
             /** Format: int32 */
             invoiceNumber?: null | number | string;
+            /** @default false */
+            propagatingMaterial: boolean;
         };
         PackagePassport: {
             partB: string;
@@ -7846,6 +7906,8 @@ export interface components {
         PackagePassportRequest: {
             examined: boolean;
             findings: null | string;
+            /** @default false */
+            activeGrowthConfirmed: boolean;
         };
         PackageRequest: {
             lines: components["schemas"]["ConsignmentLineRequest"][];
@@ -8164,6 +8226,8 @@ export interface components {
             reference: null | string;
             notes: null | string;
             lines: components["schemas"]["LineRequest"][];
+            /** Format: uuid */
+            id?: null | string;
         };
         PurchaseResponse: {
             /** Format: uuid */
@@ -8235,6 +8299,9 @@ export interface components {
             /** Format: uuid */
             supplierId: null | string;
             originCountry: string;
+            /** Format: uuid */
+            motherPlantId?: null | string;
+            motherPlant?: null | string;
         };
         RegisterStationRequest: {
             name: string;

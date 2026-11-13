@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isoDay } from "../../lib/days";
   import DayPicker from "../DayPicker.svelte";
   import FormPanel from "../FormPanel.svelte";
   import { onMount } from "svelte";
@@ -17,7 +18,7 @@
     onStartBatch: (prefill: BatchPrefill) => void;
   } = $props();
 
-  const today = () => new Date().toISOString().slice(0, 10);
+  const today = () => isoDay(new Date());
   const emptyLine = () => ({
     description: "",
     quantity: "",
@@ -32,6 +33,8 @@
   let purchasedOn = $state(today());
   let reference = $state("");
   let lines = $state([emptyLine()]);
+  let requestId = crypto.randomUUID();
+  let busy = $state(false);
   let reading = $state(false);
   let readNote = $state("");
 
@@ -111,30 +114,38 @@
   const save = (event: SubmitEvent) => {
     event.preventDefault();
 
+    if (busy) return;
     return attempt(async () => {
-      const { response } = await api.POST("/api/purchases", {
-        body: {
-          supplierId,
-          purchasedOn,
-          reference: optional(reference),
-          notes: null,
-          lines: lines.map((line) => ({
-            description: line.description,
-            quantity:
-              line.quantity.trim() === "" ? null : Number(line.quantity),
-            netCost: Number(line.net),
-            vat: Number(line.vat || 0),
-            isPlants: line.isPlants,
-          })),
-        },
-      });
+      busy = true;
+      try {
+        const { response } = await api.POST("/api/purchases", {
+          body: {
+            id: requestId,
+            supplierId,
+            purchasedOn,
+            reference: optional(reference),
+            notes: null,
+            lines: lines.map((line) => ({
+              description: line.description,
+              quantity:
+                line.quantity.trim() === "" ? null : Number(line.quantity),
+              netCost: Number(line.net),
+              vat: Number(line.vat || 0),
+              isPlants: line.isPlants,
+            })),
+          },
+        });
 
-      if (response.ok) {
-        reference = "";
-        lines = [emptyLine()];
-        await load();
-      } else {
-        problem = "Please check the supplier, date and amounts.";
+        if (response.ok) {
+          requestId = crypto.randomUUID();
+          reference = "";
+          lines = [emptyLine()];
+          await load();
+        } else {
+          problem = "Please check the supplier, date and amounts.";
+        }
+      } finally {
+        busy = false;
       }
     }, setProblem);
   };
@@ -268,7 +279,7 @@
             class="secondary"
             onclick={() => lines.push(emptyLine())}>Add another item</button
           >
-          <button type="submit">Save purchase</button>
+          <button type="submit" disabled={busy}>Save purchase</button>
         </form>
       </FormPanel>
     </section>

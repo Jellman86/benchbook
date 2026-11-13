@@ -70,15 +70,26 @@ internal static class PurchaseEndpoints
             receipts[purchase.Id].ToList()));
     }
 
-    private static async Task<IResult> AddAsync(PurchaseRequest request, ClaimsPrincipal user, GrowLogDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> AddAsync(PurchaseRequest request, ClaimsPrincipal user, GrowLogDbContext db, EventStore store, CancellationToken cancellationToken)
     {
-        if (request.Lines.Count == 0 || !request.Lines.All(IsValid) || request.PurchasedOn > LatestAllowedDate)
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var id = request.Id ?? Guid.CreateVersion7();
+        await store.LockRequestAsync(id, cancellationToken);
+        var person = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (await db.Purchases.AsNoTracking().FirstOrDefaultAsync(purchase => purchase.Id == id, cancellationToken) is { } stored)
+        {
+            return stored.RecordedBy == person && string.Equals(stored.RequestFingerprint, RequestFingerprint.For(request), StringComparison.Ordinal)
+                ? TypedResults.Ok(new PurchaseCreated(stored.Id)) : TypedResults.Conflict();
+        }
+        if (id == Guid.Empty || request.Lines.Count == 0 || !request.Lines.All(IsValid) || request.PurchasedOn > LatestAllowedDate)
         {
             return TypedResults.BadRequest();
         }
 
         var purchase = new Purchase
         {
+            Id = id,
+            RequestFingerprint = RequestFingerprint.For(request),
             SupplierId = request.SupplierId,
             PurchasedOn = request.PurchasedOn,
             Reference = Clean(request.Reference),
@@ -96,6 +107,7 @@ internal static class PurchaseEndpoints
         try
         {
             await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
             return TypedResults.Created($"/api/purchases/{purchase.Id}", new PurchaseCreated(purchase.Id));
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation })
@@ -226,7 +238,7 @@ internal static class PurchaseEndpoints
 
     internal sealed record LineRequest(string Description, int? Quantity, decimal NetCost, decimal Vat, bool? IsPlants = null);
 
-    internal sealed record PurchaseRequest(Guid SupplierId, DateOnly PurchasedOn, string? Reference, string? Notes, IReadOnlyList<LineRequest> Lines);
+    internal sealed record PurchaseRequest(Guid SupplierId, DateOnly PurchasedOn, string? Reference, string? Notes, IReadOnlyList<LineRequest> Lines, Guid? Id = null);
 
     internal sealed record PurchaseCreated(Guid Id);
 
