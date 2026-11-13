@@ -65,7 +65,15 @@ export async function setFeature(feature: Feature, on: boolean) {
     body: { on },
   });
 
-  // What the server now holds, including any switch someone else turned meanwhile.
+  // Shown straight away, then what the server now holds, including any switch someone else turned meanwhile.
+  if (response.ok) {
+    keep(
+      on
+        ? state.off.filter((item) => item !== feature)
+        : [...new Set([...state.off, feature])],
+    );
+  }
+
   await loadFeatures();
   return response.ok;
 }
