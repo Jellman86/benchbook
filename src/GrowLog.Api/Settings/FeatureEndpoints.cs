@@ -22,6 +22,14 @@ internal static class FeatureEndpoints
 
     private static async Task<IResult> SetAsync(NurseryFeature feature, FeatureChange change, GrowLogDbContext db, CancellationToken cancellationToken)
     {
+        if (!Enum.IsDefined(feature))
+        {
+            return TypedResults.NotFound();
+        }
+
+        // One change at a time, so two switches turned at once both stick.
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(hashtextextended('nursery-features', 0))", cancellationToken);
         var settings = await db.NurserySettings.FirstOrDefaultAsync(cancellationToken);
 
         if (settings is null)
@@ -39,6 +47,7 @@ internal static class FeatureEndpoints
 
         settings.FeaturesOff = [.. off.Order()];
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return TypedResults.NoContent();
     }
 

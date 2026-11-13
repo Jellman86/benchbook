@@ -24,7 +24,7 @@ internal static class PassportEndpoints
 
     public static void MapPassportEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/batches/{id:guid}/passport-draft", DraftAsync).Produces<IssueDraft>();
+        app.MapGet("/api/batches/{id:guid}/passport-draft", DraftAsync).Produces<IssueDraft>().RequireFeature(NurseryFeature.Passports);
 
         var passports = app.MapGroup("/api/passports").RequireFeature(NurseryFeature.Passports);
         passports.MapGet("/", ListAsync);

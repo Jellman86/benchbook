@@ -73,7 +73,7 @@
     />
   {/key}
 {:else}
-  <main class:wide-map={showing === "map"}>
+  <main class:wide-map={showing === "map" && isOn("PlacesMap")}>
     <div class="title-row">
       <h1>Places</h1>
       {#if isOn("PlacesMap")}

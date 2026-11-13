@@ -158,7 +158,7 @@
   // Like the server: about so many is a whole number of seeds, grams are more than nothing.
   const sowingValid = $derived(
     !form ||
-      !uncounted ||
+      !measuredOtherwise ||
       (form.sownAs === "About"
         ? Number.isInteger(Number(form.sownAmount)) &&
           Number(form.sownAmount) >= 1
@@ -249,7 +249,9 @@
         ) {
           checking = false;
           problem =
-            "Other work has been recorded on this tray since it was sown, so it can't change between counted and not. Use Count on the tray to give it a number.";
+            form.source === "SeedLot"
+              ? "Other work has been recorded on this tray since it was sown, so it can't change between counted and not. Use Count on the tray to give it a number."
+              : "Say how many it started with.";
         } else if (
           (error as { problem?: string } | undefined)?.problem === "StartLocked"
         ) {

@@ -83,3 +83,23 @@ describe("batchChanges", () => {
     ]);
   });
 });
+
+describe("seed measured another way", () => {
+  it("shows the number going when counted seed is recorded by weight", () => {
+    const counted: BatchForm = { ...before, sownAs: "Counted", quantity: 26 };
+    const weighed: BatchForm = {
+      ...counted,
+      sownAs: "Grams",
+      sownAmount: "2.5",
+      quantity: 30,
+    };
+    const howMany = batchChanges(counted, weighed, plants, suppliers).find(
+      (change) => change.name === "How many",
+    );
+    expect(howMany).toEqual({
+      name: "How many",
+      before: "26",
+      after: "Not counted",
+    });
+  });
+});

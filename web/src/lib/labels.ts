@@ -93,7 +93,7 @@ export const kindsOfLabel: {
   {
     kind: "PlantPassport",
     label: "Plant passport",
-    use: "A UK plant passport the nursery issues: parts A to D in their own border, kept apart from everything else on the plants.",
+    use: "A UK plant passport the nursery issues: parts A to E in their own border, kept apart from everything else on the plants.",
     sizes: [
       { width: 50, height: 25 },
       { width: 57, height: 32 },

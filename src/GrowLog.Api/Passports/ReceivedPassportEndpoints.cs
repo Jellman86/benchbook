@@ -13,7 +13,7 @@ internal static class ReceivedPassportEndpoints
 
     public static void MapReceivedPassportEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/batches/{id:guid}/received-passport-draft", GetDraftAsync).Produces<PassportDraft>();
+        app.MapGet("/api/batches/{id:guid}/received-passport-draft", GetDraftAsync).Produces<PassportDraft>().RequireFeature(NurseryFeature.Passports);
 
         var passports = app.MapGroup("/api/received-passports").RequireFeature(NurseryFeature.Passports);
         passports.MapGet("/", ListAsync);

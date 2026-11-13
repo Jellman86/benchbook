@@ -204,7 +204,8 @@ internal static class BatchEditEndpoints
         Compare("Lot or reference", batch.SourceReference, wanted.SourceReference);
         Compare("Mother plant", batch.MotherPlant, wanted.MotherPlant);
         Compare("Country of origin", batch.OriginCountry, wanted.OriginCountry);
-        Compare("Sown", SowingWords(batch.SownAs, batch.SownAmount, batch.PacketShare, batch.PacketSays), SowingWords(wanted.SownAs, wanted.SownAmount, wanted.PacketShare, wanted.PacketSays));
+        // Seed recorded before there were ways of measuring it was counted.
+        Compare("Sown", SowingWords(batch.SownAs ?? (batch.Source == BatchSource.SeedLot ? SownMeasure.Counted : null), batch.SownAmount, batch.PacketShare, batch.PacketSays), SowingWords(wanted.SownAs ?? (wanted.Source == BatchSource.SeedLot ? SownMeasure.Counted : null), wanted.SownAmount, wanted.PacketShare, wanted.PacketSays));
         Compare("Sow by", batch.SowBy?.ToString("yyyy-MM", CultureInfo.InvariantCulture), wanted.SowBy?.ToString("yyyy-MM", CultureInfo.InvariantCulture));
         return changes;
     }
@@ -328,7 +329,6 @@ internal static class BatchEditEndpoints
         return first;
     }
 
-    /// <summary>Only while nothing else has been recorded on the batch or its first container.</summary>
     /// <summary>
     /// The number the start should have, or null when it can't be had. Seed can move between counted and measured
     /// another way (a weight, a packet, about so many) only while nothing has been recorded since it was sown; after
@@ -353,6 +353,7 @@ internal static class BatchEditEndpoints
         return uncounted ? 0 : quantity ?? start.Quantity;
     }
 
+    /// <summary>Only while nothing else has been recorded on the batch or its first container.</summary>
     private static async Task<bool> StartCanChangeAsync(GrowLogDbContext db, Guid id, Start start, CancellationToken cancellationToken)
     {
         // An undo is not work; a correction that replaced work is.
