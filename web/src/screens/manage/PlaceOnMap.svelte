@@ -14,9 +14,9 @@
   import { kindLabel, type Place, type PlaceKind } from "../../lib/places";
   import { attempt } from "../../lib/types";
 
-  // One place's outline on a satellite picture: find the address, then tap the place's corners. The places already
-  // drawn show faintly around it, so a greenhouse can be put beside the others. Used when adding a place and from
-  // the place itself.
+  // One place's outline on a satellite picture, or on the nursery's own picture of itself: find the address, then
+  // tap the place's corners. The places already drawn show faintly around it, so a greenhouse can be put beside the
+  // others. Used when adding a place and from the place itself.
   let {
     place,
     places,
@@ -46,6 +46,21 @@
   let ready = $state(false);
   let satellite = $state(true);
   let key = $state<string | null>(null);
+  // On the nursery's own picture, points are kept as fractions of its height and width; on the map, in degrees.
+  let onPicture = $state(false);
+  let pictureSize: { height: number; width: number } | null = null;
+
+  /** From what's kept to where it is on the screen's map. */
+  const toMap = (point: Point): Point =>
+    pictureSize
+      ? [pictureSize.height * (1 - point[0]), pictureSize.width * point[1]]
+      : point;
+
+  /** From where it is on the screen's map to what's kept. */
+  const fromMap = (point: Point): Point =>
+    pictureSize
+      ? [1 - point[0] / pictureSize.height, point[1] / pictureSize.width]
+      : point;
 
   let L: typeof Leaflet;
   let map: Leaflet.Map | null = null;
@@ -102,13 +117,13 @@
       shape.pm.disable();
       const points = corners(
         (shape.getLatLngs() as Leaflet.LatLng[][])[0] ?? [],
-      );
+      ).map(fromMap);
       busy = true;
 
       try {
         const { response } = await api.PUT("/api/locations/{id}/outline", {
           params: { path: { id: place.id } },
-          body: { points },
+          body: { points, onPicture },
         });
 
         if (response.ok) {
@@ -180,7 +195,7 @@
         continue;
       }
 
-      const layer = L.polygon(points, {
+      const layer = L.polygon(points.map(toMap), {
         ...outlineStyle(other.kind),
         interactive: false,
         fillOpacity: 0.08,
@@ -195,6 +210,47 @@
       });
       layer.addTo(others!);
     }
+  }
+
+  /** The satellite or street map, in degrees. */
+  function showMap(into: HTMLDivElement) {
+    map = L.map(into, { zoomControl: true, maxZoom: 22 }).setView(
+      [54.4, -2.6],
+      6,
+    );
+    const tiles = imagery(key);
+    satellite = tiles.satellite;
+    L.tileLayer(tiles.url, {
+      attribution: tiles.attribution,
+      maxNativeZoom: tiles.maxNativeZoom,
+      maxZoom: 22,
+    })
+      .addTo(map)
+      .bringToBack();
+  }
+
+  /** The nursery's own picture, measured in its pixels, to draw on instead of the earth. */
+  async function showPicture(into: HTMLDivElement, changedAt: string) {
+    const url = `/api/settings/map/picture?v=${encodeURIComponent(changedAt)}`;
+    const image = new Image();
+    image.src = url;
+    await image.decode();
+    pictureSize = { height: image.naturalHeight, width: image.naturalWidth };
+    const bounds: Leaflet.LatLngBoundsExpression = [
+      [0, 0],
+      [pictureSize.height, pictureSize.width],
+    ];
+    map = L.map(into, {
+      crs: L.CRS.Simple,
+      zoomControl: true,
+      minZoom: -6,
+      maxZoom: 4,
+      zoomSnap: 0.25,
+      attributionControl: false,
+    });
+    L.imageOverlay(url, bounds).addTo(map);
+    map.fitBounds(bounds);
+    map.setMaxBounds(L.latLngBounds(bounds).pad(0.25));
   }
 
   onMount(() => {
@@ -213,12 +269,6 @@
         return;
       }
 
-      map = L.map(box, { zoomControl: true, maxZoom: 22 }).setView(
-        [54.4, -2.6],
-        6,
-      );
-      others = L.featureGroup().addTo(map);
-
       const { data } = await api.GET("/api/locations/map");
       const outlines: Record<string, Point[]> = Object.fromEntries(
         (data?.outlines ?? []).map((outline) => [
@@ -227,15 +277,19 @@
         ]),
       );
       key = data?.imageryKey ?? null;
-      const tiles = imagery(key);
-      satellite = tiles.satellite;
-      L.tileLayer(tiles.url, {
-        attribution: tiles.attribution,
-        maxNativeZoom: tiles.maxNativeZoom,
-        maxZoom: 22,
-      })
-        .addTo(map)
-        .bringToBack();
+      onPicture = !!data?.onPicture;
+
+      if (onPicture && data?.pictureChangedAt) {
+        await showPicture(box, data.pictureChangedAt);
+      } else {
+        showMap(box);
+      }
+
+      if (stopped || !map) {
+        return;
+      }
+
+      others = L.featureGroup().addTo(map);
       drawOthers(outlines);
 
       map.on("locationerror", () => {
@@ -255,14 +309,18 @@
       const around = place.parentId ? outlines[place.parentId] : undefined;
 
       if (own) {
-        shape = L.polygon(own, outlineStyle(place.kind, true)).addTo(map);
+        shape = L.polygon(own.map(toMap), outlineStyle(place.kind, true)).addTo(
+          map,
+        );
         map.fitBounds(shape.getBounds(), { padding: [48, 48], maxZoom: 21 });
         mode = "drawn";
       } else if (around) {
-        map.fitBounds(L.polygon(around).getBounds(), {
+        map.fitBounds(L.polygon(around.map(toMap)).getBounds(), {
           padding: [24, 24],
           maxZoom: 20,
         });
+      } else if (onPicture) {
+        // The whole picture is already in view.
       } else if (others.getLayers().length > 0) {
         map.fitBounds(others.getBounds(), { padding: [24, 24], maxZoom: 20 });
       } else {
@@ -304,14 +362,18 @@
       <p class="muted">{kindLabel(place.kind)}</p>
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
-      <form class="row" onsubmit={find}>
-        <label class="grow"
-          >{key ? "Find the address or postcode" : "Find a postcode"}
-          <input bind:value={search} autocomplete="street-address" /></label
-        >
-        <button type="submit" class="secondary">Go</button>
-      </form>
-      <button class="secondary" onclick={whereIAm}>Where I am</button>
+      {#if onPicture}
+        <p class="muted">On the nursery's own picture.</p>
+      {:else}
+        <form class="row" onsubmit={find}>
+          <label class="grow"
+            >{key ? "Find the address or postcode" : "Find a postcode"}
+            <input bind:value={search} autocomplete="street-address" /></label
+          >
+          <button type="submit" class="secondary">Go</button>
+        </form>
+        <button class="secondary" onclick={whereIAm}>Where I am</button>
+      {/if}
 
       {#if mode === "drawing"}
         <p>
@@ -345,10 +407,10 @@
       <button class="link-button" onclick={onSkip}>{skipLabel}</button>
     </div>
 
-    {#if !satellite}
+    {#if !satellite && !onPicture}
       <p class="muted">
         This is a street map. For satellite pictures, add an Esri key under
-        Settings, Map.
+        Settings, Map, or upload your own picture of the nursery there.
       </p>
     {/if}
   </aside>

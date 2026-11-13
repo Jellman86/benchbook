@@ -3399,6 +3399,60 @@
         }
       }
     },
+    "/api/settings/map/picture": {
+      "get": {
+        "tags": [
+          "MapPictureEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "MapPictureEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "MapPictureEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/settings/map/use-picture": {
+      "put": {
+        "tags": [
+          "MapPictureEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsePictureRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/printers": {
       "get": {
         "tags": [
@@ -9094,6 +9148,10 @@
                 "format": "double"
               }
             }
+          },
+          "onPicture": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -9693,7 +9751,9 @@
       "PlaceMap": {
         "required": [
           "imageryKey",
-          "outlines"
+          "outlines",
+          "onPicture",
+          "pictureChangedAt"
         ],
         "type": "object",
         "properties": {
@@ -9708,6 +9768,16 @@
             "items": {
               "$ref": "#/components/schemas/PlaceOutline"
             }
+          },
+          "onPicture": {
+            "type": "boolean"
+          },
+          "pictureChangedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -12708,6 +12778,17 @@
           }
         }
       },
+      "UsePictureRequest": {
+        "required": [
+          "use"
+        ],
+        "type": "object",
+        "properties": {
+          "use": {
+            "type": "boolean"
+          }
+        }
+      },
       "WorkRecorded": {
         "required": [
           "eventId"
@@ -12830,6 +12911,9 @@
     },
     {
       "name": "PlaceEndpoints"
+    },
+    {
+      "name": "MapPictureEndpoints"
     },
     {
       "name": "PrinterEndpoints"

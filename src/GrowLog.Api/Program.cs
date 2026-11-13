@@ -120,6 +120,7 @@ app.MapSeedlingGuessEndpoints();
 app.MapContainerHistoryEndpoints();
 app.MapPlaceEndpoints();
 app.MapPlaceMapEndpoints();
+app.MapMapPictureEndpoints();
 app.MapPrinterEndpoints();
 app.MapNurserySettingsEndpoints();
 app.MapFeatureEndpoints();

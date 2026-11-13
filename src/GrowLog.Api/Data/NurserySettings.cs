@@ -45,6 +45,9 @@ internal sealed class NurserySettings
     /// <summary>When the nursery's plant health authorisation is next renewed, so the owner is reminded beforehand.</summary>
     public DateOnly? AuthorisationRenewsOn { get; set; }
 
+    /// <summary>Whether places are drawn on the nursery's own map picture rather than the satellite or street map.</summary>
+    public bool MapUsesPicture { get; set; }
+
     /// <summary>The parts of GrowLog the owner has turned off. Everything else is on.</summary>
     public List<NurseryFeature> FeaturesOff { get; set; } = [];
 }

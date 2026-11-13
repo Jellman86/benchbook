@@ -1147,6 +1147,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("parent_id");
 
+                    b.Property<string>("PictureOutline")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("picture_outline");
+
                     b.HasKey("Id")
                         .HasName("pk_locations");
 
@@ -1165,6 +1169,35 @@ namespace GrowLog.Api.Data.Migrations
                             t.HasCheckConstraint("ck_locations_kind", "kind IN ('Site', 'Greenhouse', 'Polytunnel', 'Bench', 'Bay', 'StandingBed', 'ColdFrame', 'SalesArea', 'Area')");
 
                             t.HasCheckConstraint("ck_locations_parent", "(kind = 'Site') = (parent_id IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.MapPicture", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("content");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_map_pictures");
+
+                    b.ToTable("map_pictures", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_map_pictures_single", "id = 1");
                         });
                 });
 
@@ -1344,6 +1377,10 @@ namespace GrowLog.Api.Data.Migrations
                     b.Property<string>("MapImageryKey")
                         .HasColumnType("text")
                         .HasColumnName("map_imagery_key");
+
+                    b.Property<bool>("MapUsesPicture")
+                        .HasColumnType("boolean")
+                        .HasColumnName("map_uses_picture");
 
                     b.Property<string>("NurseryName")
                         .HasColumnType("text")

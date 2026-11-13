@@ -2951,3 +2951,13 @@ button.danger:hover:not(:disabled) {
 .feature-switch input[role="switch"]:disabled {
   opacity: 0.6;
 }
+
+/* Settings, Map: the nursery's own picture, small enough to check at a glance. */
+.map-picture-preview {
+  width: 100%;
+  max-height: 16rem;
+  object-fit: contain;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}

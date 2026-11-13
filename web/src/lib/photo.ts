@@ -12,14 +12,17 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 }
 
 /** Scales a photo down for upload. If the browser can't, the server still checks the original. */
-export async function shrinkPhoto(file: File): Promise<Blob> {
+export async function shrinkPhoto(
+  file: File,
+  longest = longestSide,
+): Promise<Blob> {
   const url = URL.createObjectURL(file);
 
   try {
     const image = await loadImage(url);
     const scale = Math.min(
       1,
-      longestSide / Math.max(image.naturalWidth, image.naturalHeight),
+      longest / Math.max(image.naturalWidth, image.naturalHeight),
     );
     const canvas = document.createElement("canvas");
     canvas.width = Math.round(image.naturalWidth * scale);
