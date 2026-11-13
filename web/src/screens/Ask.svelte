@@ -1,5 +1,6 @@
 <script lang="ts">
   import Camera from "@lucide/svelte/icons/camera";
+  import Coins from "@lucide/svelte/icons/coins";
   import SendHorizontal from "@lucide/svelte/icons/send-horizontal";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import X from "@lucide/svelte/icons/x";
@@ -8,6 +9,7 @@
   import {
     answerBlocks,
     assistant,
+    dollars,
     type AskAbout,
     type AskSource,
   } from "../lib/assistant.svelte";
@@ -15,7 +17,7 @@
   import { shrinkPhoto } from "../lib/photo";
 
   // Ask GrowLog: questions about plants, the nursery's records and photos of plants. The conversation stays on this
-  // device for the session; the server keeps none of it.
+  // device for the session; the server keeps only what each question cost, who asked and when.
   let {
     me,
     about = null,
@@ -171,6 +173,8 @@
             cost: Number(data.cost),
           },
         ];
+        assistant.spentThisMonth = Number(data.spentThisMonth ?? 0);
+        assistant.spentInAll = Number(data.spentInAll ?? 0);
         context = null;
         keep();
       } else {
@@ -224,9 +228,37 @@
     }
   }
 
-  const money = (cost: number) =>
-    cost < 0.01 ? "under 1 cent" : `about $${cost.toFixed(2)}`;
+  const money = (cost: number) => dollars(cost);
 </script>
+
+<!-- What this person's questions have cost: the nursery pays for every one, so it's always in view. -->
+{#snippet spend(compact: boolean)}
+  {#if assistant.spentThisMonth !== null}
+    {#if compact}
+      <p class="ask-spend" role="status">
+        <Coins size={16} aria-hidden="true" />
+        <span
+          >Your questions this month: <strong
+            >{dollars(assistant.spentThisMonth)}</strong
+          >, paid for by the nursery</span
+        >
+      </p>
+    {:else}
+      <div class="card stack tight ask-spend-card">
+        <h2 class="form-heading">What your questions cost</h2>
+        <p>
+          This month <strong>{dollars(assistant.spentThisMonth)}</strong>, in
+          all <strong>{dollars(assistant.spentInAll ?? 0)}</strong>.
+        </p>
+        <p class="muted">
+          The nursery pays for every question, and the owner can see this total
+          too. Photos, long conversations and questions that need a lot looked
+          up cost more.
+        </p>
+      </div>
+    {/if}
+  {/if}
+{/snippet}
 
 {#snippet sourceList(sources: AskSource[])}
   <ul class="ask-sources">
@@ -253,6 +285,9 @@
           <button class="link-button" onclick={startAgain}>Start again</button>
         {/if}
       </div>
+      {#if assistant.spentThisMonth !== null}
+        <div class="mobile-only">{@render spend(true)}</div>
+      {/if}
 
       {#if lines.length === 0}
         <p class="muted">
@@ -403,6 +438,7 @@
     </section>
 
     <aside class="ask-side desktop-only">
+      {@render spend(false)}
       {#if seen.length > 0}
         <div class="card stack tight">
           <h2 class="form-heading">Looked at</h2>
@@ -424,8 +460,8 @@
           Plants, places, trays, work, losses, treatments, climate, notes as
           they were typed, and the photos you add, to the model the owner chose
           through OpenRouter, asking for providers that keep nothing. Never
-          customers, money or who recorded the work. Nothing is kept on
-          GrowLog's server.
+          customers, money or who recorded the work. GrowLog's server keeps what
+          each question cost, who asked and when, not what was asked.
         </p>
       </div>
     </aside>

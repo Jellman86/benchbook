@@ -7,7 +7,8 @@ namespace GrowLog.Api.Settings;
 /// <summary>
 /// Lets the owner empty the nursery's records and start afresh after trying GrowLog out. Only while Demo:Enabled is set,
 /// because real plant passport records must be kept for three years. Sign-ins, staff, bench devices, nursery details,
-/// label styles and the plant lookup cache are kept.
+/// label styles, the plant lookup cache and what Ask GrowLog has cost (real money, matching the
+/// key's own total) are kept.
 /// </summary>
 internal static class ClearRecordsEndpoints
 {

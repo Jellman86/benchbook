@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { api } from "../../api/client";
-  import { loadAssistant } from "../../lib/assistant.svelte";
+  import { dollars, loadAssistant } from "../../lib/assistant.svelte";
   import { attempt, type Schemas } from "../../lib/types";
 
   // Ask GrowLog's set-up: the owner's OpenRouter key, kept encrypted on the server and never shown again, the model it
@@ -167,10 +167,39 @@
           Each person can ask up to 40 questions an hour. The real cap on
           spending is the limit you set on the key at openrouter.ai. It never
           sees customers, money or who recorded the work, though notes are sent
-          as typed, and nothing asked is kept on GrowLog's server.
+          as typed. GrowLog keeps what each question cost, who asked and when,
+          not what was asked.
         </p>
       </div>
       <button type="submit">Save</button>
+
+      <section class="form-card stack" aria-labelledby="spend-heading">
+        <h2 class="form-heading" id="spend-heading">Spent by each person</h2>
+        {#if settings && settings.people.length > 0}
+          <ul class="spend-list">
+            {#each settings.people as person, index (index)}
+              <li>
+                <strong>{person.name}</strong>
+                <span
+                  >{dollars(Number(person.thisMonth))} this month{Number(
+                    person.thisMonthQuestions,
+                  ) > 0
+                    ? `, ${person.thisMonthQuestions} ${Number(person.thisMonthQuestions) === 1 ? "question" : "questions"}`
+                    : ""}</span
+                >
+                <span class="muted">{dollars(Number(person.inAll))} in all</span
+                >
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <p class="note-empty muted">Nobody has asked anything yet.</p>
+        {/if}
+        <p class="muted">
+          In US dollars, as OpenRouter charges. Everyone who can ask sees what
+          their own questions have cost.
+        </p>
+      </section>
     </section>
 
     <section class="form-card stack">

@@ -3942,3 +3942,53 @@ select:not([multiple]) {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
   }
 }
+
+/* What Ask GrowLog's questions have cost: a quiet line on a phone, and each person's spend in Settings. */
+.ask-spend {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: -0.25rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.ask-spend strong {
+  color: var(--text);
+}
+
+.ask-spend svg {
+  flex: none;
+}
+
+.spend-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.spend-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 1rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.spend-list li:first-child {
+  border-top: 0;
+}
+
+.spend-list li strong {
+  grid-row: span 2;
+  align-self: center;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.spend-list li span {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

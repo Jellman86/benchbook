@@ -17,6 +17,8 @@ async function pretend(page: Page, asked: unknown[]) {
             { kind: "tray", key: "C000012", label: "C000012 Lavender" },
           ],
           cost: 0.0021,
+          spentThisMonth: 0.4221,
+          spentInAll: 1.5021,
         },
       });
       return;
@@ -35,6 +37,7 @@ async function pretend(page: Page, asked: unknown[]) {
         canAsk: true,
         setUp: true,
         readsImages: true,
+        spent: { thisMonth: 0.42, inAll: 1.5 },
       },
     };
     await route.fulfill({
@@ -55,6 +58,8 @@ test("Ask GrowLog answers on a phone, and lays out on a desk", async ({
   await expect(
     page.getByRole("heading", { name: "Ask GrowLog" }),
   ).toBeVisible();
+  // The nursery pays for every question, so each person sees what theirs have cost.
+  await expect(page.locator(".ask-spend")).toContainText("$0.42");
   const crumbs = page.getByRole("navigation", { name: "Breadcrumb" });
   await expect(crumbs.locator("[aria-current=page]")).toHaveText("Ask GrowLog");
 
@@ -77,6 +82,10 @@ test("Ask GrowLog answers on a phone, and lays out on a desk", async ({
 
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect(page.getByRole("heading", { name: "Looked at" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "What your questions cost" }),
+  ).toBeVisible();
+  await expect(page.locator(".ask-spend-card")).toContainText("$1.50");
   await page.screenshot({ path: "build/peek/ask-desk.png" });
   expect(
     await page.evaluate(

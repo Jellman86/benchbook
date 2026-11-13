@@ -67,6 +67,12 @@ public sealed class AssistantTests(PostgresFixture database)
                         : Reply("""{"choices":[{"message":{"role":"assistant","content":null,"tool_calls":[{"id":"call-1","type":"function","function":{"name":"find_plants","arguments":{"query":"lav_end%"}}}]}}]}""");
             }
 
+            // "fails after a look": the first turn looks something up and is charged; the next fails.
+            if (askedForTools && string.Equals(Mode, "fails after a look", StringComparison.Ordinal))
+            {
+                return new HttpResponseMessage(HttpStatusCode.BadGateway) { Content = new StringContent("""{"error":{"message":"Upstream failed"}}""", Encoding.UTF8, "application/json") };
+            }
+
             return askedForTools
                 ? Reply("""{"choices":[{"message":{"role":"assistant","content":"You have 40 Lavender growing."}}],"usage":{"cost":0.002}}""")
                 : Reply("""{"choices":[{"message":{"role":"assistant","content":null,"tool_calls":[{"id":"call-1","type":"function","function":{"name":"stock","arguments":"{}"}}]}}],"usage":{"cost":0.001}}""");
@@ -281,5 +287,64 @@ public sealed class AssistantTests(PostgresFixture database)
         using var refused = await AskAsync(nursery.Owner, "What's growing?");
         Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
         Assert.Equal("ModelUnavailable", Json(await refused.Content.ReadAsStringAsync(Cancellation)).GetProperty("problem").GetString());
+    }
+
+    [Fact]
+    public async Task Each_person_sees_what_their_questions_cost_and_the_owner_sees_everyone()
+    {
+        var openRouter = new PretendOpenRouter();
+        await using var nursery = await TwoPersonNursery.CreateAsync(database, outsideWorld: openRouter);
+        await SetUpAsync(nursery, openRouter, forStaff: true);
+
+        // Before asking, nothing has been spent.
+        var before = (await nursery.Staff.GetFromJsonAsync<JsonElement>(Route("/api/assistant/status"), Cancellation)).GetProperty("spent");
+        Assert.Equal(0m, before.GetProperty("thisMonth").GetDecimal());
+
+        using (var answered = await AskAsync(nursery.Owner, "What's growing?"))
+        {
+            Assert.Equal(0.003m, Json(await answered.Content.ReadAsStringAsync(Cancellation)).GetProperty("spentThisMonth").GetDecimal());
+        }
+
+        var ownerSpent = (await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/assistant/status"), Cancellation)).GetProperty("spent");
+        Assert.Equal(0.003m, ownerSpent.GetProperty("thisMonth").GetDecimal());
+        Assert.Equal(0.003m, ownerSpent.GetProperty("inAll").GetDecimal());
+
+        // Staff see only their own spend, not the owner's.
+        using (var staffAsked = await AskAsync(nursery.Staff, "What's growing?"))
+        {
+            Assert.Equal(HttpStatusCode.OK, staffAsked.StatusCode);
+        }
+
+        using (var again = await AskAsync(nursery.Staff, "And now?"))
+        {
+            Assert.Equal(HttpStatusCode.OK, again.StatusCode);
+        }
+
+        var staffSpent = (await nursery.Staff.GetFromJsonAsync<JsonElement>(Route("/api/assistant/status"), Cancellation)).GetProperty("spent");
+        Assert.Equal(0.006m, staffSpent.GetProperty("thisMonth").GetDecimal());
+
+        var people = (await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/assistant/settings"), Cancellation)).GetProperty("people").EnumerateArray().ToList();
+        Assert.Equal(2, people.Count);
+        Assert.Equal(0.006m, people[0].GetProperty("thisMonth").GetDecimal());
+        Assert.Equal(2, people[0].GetProperty("thisMonthQuestions").GetInt32());
+        Assert.Equal(0.003m, people[1].GetProperty("inAll").GetDecimal());
+        Assert.Equal(HttpStatusCode.Forbidden, await GetStatusAsync(nursery.Staff, "/api/assistant/settings"));
+    }
+
+    [Fact]
+    public async Task What_a_failed_answer_had_already_cost_is_still_counted()
+    {
+        var openRouter = new PretendOpenRouter { Mode = "fails after a look" };
+        await using var nursery = await TwoPersonNursery.CreateAsync(database, outsideWorld: openRouter);
+        await SetUpAsync(nursery, openRouter);
+
+        using (var failed = await AskAsync(nursery.Owner, "What's growing?"))
+        {
+            Assert.Equal(HttpStatusCode.Conflict, failed.StatusCode);
+            Assert.Equal("Unavailable", Json(await failed.Content.ReadAsStringAsync(Cancellation)).GetProperty("problem").GetString());
+        }
+
+        var spent = (await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/assistant/status"), Cancellation)).GetProperty("spent");
+        Assert.Equal(0.001m, spent.GetProperty("thisMonth").GetDecimal());
     }
 }

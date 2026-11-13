@@ -160,6 +160,34 @@ namespace GrowLog.Api.Data.Migrations
                     b.ToTable("bench_stations", (string)null);
                 });
 
+            modelBuilder.Entity("GrowLog.Api.Data.AssistantSpend", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("AskedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("asked_at");
+
+                    b.Property<Guid>("AskedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("asked_by");
+
+                    b.Property<decimal>("Cost")
+                        .HasPrecision(12, 6)
+                        .HasColumnType("numeric(12,6)")
+                        .HasColumnName("cost");
+
+                    b.HasKey("Id")
+                        .HasName("pk_assistant_spend");
+
+                    b.HasIndex("AskedBy", "AskedAt")
+                        .HasDatabaseName("ix_assistant_spend_asked_by_asked_at");
+
+                    b.ToTable("assistant_spend", (string)null);
+                });
+
             modelBuilder.Entity("GrowLog.Api.Data.BackupStatus", b =>
                 {
                     b.Property<int>("Id")
@@ -2550,6 +2578,16 @@ namespace GrowLog.Api.Data.Migrations
                         .HasName("pk_asp_net_user_tokens");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.AssistantSpend", b =>
+                {
+                    b.HasOne("GrowLog.Api.Accounts.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("AskedBy")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_assistant_spend_asp_net_users_asked_by");
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.Batch", b =>

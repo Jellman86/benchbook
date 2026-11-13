@@ -5952,6 +5952,22 @@
               "string"
             ],
             "format": "double"
+          },
+          "spentThisMonth": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "spentInAll": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
           }
         }
       },
@@ -6041,7 +6057,8 @@
           "model",
           "forStaff",
           "spent",
-          "limit"
+          "limit",
+          "people"
         ],
         "type": "object",
         "properties": {
@@ -6074,6 +6091,12 @@
               "string"
             ],
             "format": "double"
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonSpending"
+            }
           }
         }
       },
@@ -6110,7 +6133,8 @@
         "required": [
           "canAsk",
           "setUp",
-          "readsImages"
+          "readsImages",
+          "spent"
         ],
         "type": "object",
         "properties": {
@@ -6122,6 +6146,16 @@
           },
           "readsImages": {
             "type": "boolean"
+          },
+          "spent": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/YourSpend"
+              }
+            ]
           }
         }
       },
@@ -10063,6 +10097,44 @@
           }
         }
       },
+      "PersonSpending": {
+        "required": [
+          "name",
+          "thisMonth",
+          "thisMonthQuestions",
+          "inAll"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "thisMonth": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "thisMonthQuestions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "inAll": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
       "PhotoAdded": {
         "required": [
           "id"
@@ -13206,6 +13278,31 @@
         "properties": {
           "problem": {
             "type": "string"
+          }
+        }
+      },
+      "YourSpend": {
+        "required": [
+          "thisMonth",
+          "inAll"
+        ],
+        "type": "object",
+        "properties": {
+          "thisMonth": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "inAll": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
           }
         }
       }
