@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isOn } from "../../lib/features.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import {
@@ -91,7 +92,10 @@
   const start = () =>
     attempt(async () => {
       stock = (await api.GET("/api/production")).data ?? [];
-      invoiced = (await api.GET("/api/consignments/invoiced")).data ?? [];
+      // Invoiced plants are offered only while trade invoices are on.
+      invoiced = isOn("Invoices")
+        ? ((await api.GET("/api/consignments/invoiced")).data ?? [])
+        : [];
       writing = true;
       problem = "";
       kind = "TradeSale";

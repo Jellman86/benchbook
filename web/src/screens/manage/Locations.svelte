@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isOn } from "../../lib/features.svelte";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import FormPanel from "../FormPanel.svelte";
   import { onMount } from "svelte";
@@ -75,21 +76,23 @@
   <main class:wide-map={showing === "map"}>
     <div class="title-row">
       <h1>Places</h1>
-      <div class="segmented two" role="group" aria-label="Show places as">
-        <button
-          class:secondary={showing !== "list"}
-          aria-pressed={showing === "list"}
-          onclick={() => show("list")}>List</button
-        >
-        <button
-          class:secondary={showing !== "map"}
-          aria-pressed={showing === "map"}
-          onclick={() => show("map")}>Map</button
-        >
-      </div>
+      {#if isOn("PlacesMap")}
+        <div class="segmented two" role="group" aria-label="Show places as">
+          <button
+            class:secondary={showing !== "list"}
+            aria-pressed={showing === "list"}
+            onclick={() => show("list")}>List</button
+          >
+          <button
+            class:secondary={showing !== "map"}
+            aria-pressed={showing === "map"}
+            onclick={() => show("map")}>Map</button
+          >
+        </div>
+      {/if}
     </div>
 
-    {#if showing === "map"}
+    {#if showing === "map" && isOn("PlacesMap")}
       <PlaceMap {places} onOpen={(id) => (openId = id)} />
     {:else}
       <div class="split">

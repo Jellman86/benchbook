@@ -11,7 +11,7 @@
   import Sprout from "@lucide/svelte/icons/sprout";
   import Sun from "@lucide/svelte/icons/sun";
   import type { Me } from "../lib/boot";
-  import { manageGroups, type ManageSection } from "../lib/sections";
+  import { visibleManageGroups, type ManageSection } from "../lib/sections";
   import { themes, type Theme } from "../lib/theme";
 
   // Only shown on wide screens: phones get the bottom bar instead.
@@ -112,7 +112,7 @@
     {/if}
 
     {#if me.isOwner}
-      {#each manageGroups as group (group.heading)}
+      {#each visibleManageGroups() as group (group.heading)}
         <p class="nav-heading nav-text">{group.heading}</p>
         <hr class="nav-rule" />
         {#each group.items as item (item.section)}

@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using GrowLog.Api.Accounts;
 using GrowLog.Api.Data;
+using GrowLog.Api.Settings;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -22,14 +23,14 @@ internal static class SensorEndpoints
 
     public static void MapSensorEndpoints(this IEndpointRouteBuilder app)
     {
-        var sensors = app.MapGroup("/api/sensors").RequireAuthorization(AccountServices.OwnerPolicy);
+        var sensors = app.MapGroup("/api/sensors").RequireAuthorization(AccountServices.OwnerPolicy).RequireFeature(NurseryFeature.Climate);
         sensors.MapGet("/", ListAsync);
         sensors.MapPost("/", AddAsync).Produces<SensorKey>(StatusCodes.Status201Created);
         sensors.MapPut("/{id:guid}", ChangeAsync);
         sensors.MapPost("/{id:guid}/new-key", NewKeyAsync).Produces<SensorKey>();
         sensors.MapPost("/{id:guid}/stop", StopAsync);
 
-        app.MapPost("/api/sensor-readings", ReceiveAsync).AllowAnonymous();
+        app.MapPost("/api/sensor-readings", ReceiveAsync).AllowAnonymous().RequireFeature(NurseryFeature.Climate);
     }
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

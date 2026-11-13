@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using GrowLog.Api.Accounts;
 using GrowLog.Api.Data;
+using GrowLog.Api.Settings;
 using Microsoft.EntityFrameworkCore;
 
 namespace GrowLog.Api.Passports;
@@ -22,7 +23,7 @@ internal static class ConsignmentEndpoints
 
     public static void MapConsignmentEndpoints(this IEndpointRouteBuilder app)
     {
-        var consignments = app.MapGroup("/api/consignments").RequireAuthorization(AccountServices.OwnerPolicy);
+        var consignments = app.MapGroup("/api/consignments").RequireAuthorization(AccountServices.OwnerPolicy).RequireFeature(NurseryFeature.Passports);
         consignments.MapGet("/", ListAsync);
         consignments.MapGet("/invoiced", InvoicedAsync);
         consignments.MapGet("/{id:guid}", GetAsync).Produces<ConsignmentDetails>();

@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { dayLabel } from "../../lib/dates";
+  import { isOn } from "../../lib/features.svelte";
   import type { Schemas } from "../../lib/types";
 
   // Jobs due today or late, to tick off; and for the owner, anything in the records that wants a look, with why.
@@ -20,11 +21,12 @@
   // The job last ticked off here, so a tap by mistake can be taken back.
   let lastDone = $state<{ id: string; title: string } | null>(null);
 
-  const due = $derived(jobs.filter((job) => job.due));
+  const due = $derived(isOn("Jobs") ? jobs.filter((job) => job.due) : []);
 
   async function load() {
     try {
-      jobs = (await api.GET("/api/jobs")).data ?? [];
+      // With jobs turned off only the owner's reminders show here.
+      jobs = isOn("Jobs") ? ((await api.GET("/api/jobs")).data ?? []) : [];
 
       if (isOwner) {
         alerts = (await api.GET("/api/alerts")).data ?? [];

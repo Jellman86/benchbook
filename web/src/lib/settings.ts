@@ -8,13 +8,16 @@ import Store from "@lucide/svelte/icons/store";
 import Tablet from "@lucide/svelte/icons/tablet";
 import Tag from "@lucide/svelte/icons/tag";
 import Thermometer from "@lucide/svelte/icons/thermometer";
+import ToggleRight from "@lucide/svelte/icons/toggle-right";
 import UserRound from "@lucide/svelte/icons/user-round";
 import Users from "@lucide/svelte/icons/users";
+import { isOn, type Feature } from "./features.svelte";
 
 // What's set once and then left alone, kept out of the everyday sidebar.
 export type SettingsPage =
   | "account"
   | "nursery"
+  | "features"
   | "map"
   | "sensors"
   | "printers"
@@ -30,6 +33,8 @@ export type SettingsItem = {
   page: SettingsPage;
   label: string;
   icon: typeof Info;
+  /** Shown only while this part of GrowLog is on. */
+  feature?: Feature;
 };
 
 type SettingsGroup = {
@@ -49,9 +54,15 @@ const groups: SettingsGroup[] = [
     ownerOnly: true,
     items: [
       { page: "nursery", label: "Nursery details", icon: Store },
-      { page: "map", label: "Map", icon: MapIcon },
+      { page: "features", label: "Features", icon: ToggleRight },
+      { page: "map", label: "Map", icon: MapIcon, feature: "PlacesMap" },
       { page: "potSizes", label: "Pot sizes", icon: Cylinder },
-      { page: "sensors", label: "Sensors", icon: Thermometer },
+      {
+        page: "sensors",
+        label: "Sensors",
+        icon: Thermometer,
+        feature: "Climate",
+      },
     ],
   },
   {
@@ -83,9 +94,14 @@ const groups: SettingsGroup[] = [
   },
 ];
 
-/** The settings someone can see: staff get their own account and About; owners get everything. */
+/** The settings someone can see: staff get their own account and About; owners get everything that's turned on. */
 export const settingsGroups = (isOwner: boolean) =>
-  groups.filter((group) => isOwner || !group.ownerOnly);
+  groups
+    .filter((group) => isOwner || !group.ownerOnly)
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !item.feature || isOn(item.feature)),
+    }));
 
 export const canOpen = (page: SettingsPage, isOwner: boolean) =>
   settingsGroups(isOwner).some((group) =>

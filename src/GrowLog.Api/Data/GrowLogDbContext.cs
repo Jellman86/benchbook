@@ -91,6 +91,10 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
     public async Task<NurserySettings> GetNurserySettingsAsync(CancellationToken cancellationToken) =>
         await NurserySettings.AsNoTracking().FirstOrDefaultAsync(cancellationToken) ?? new NurserySettings();
 
+    /// <summary>Whether the owner has left this part of GrowLog on. Everything is on until turned off.</summary>
+    public async Task<bool> IsOnAsync(NurseryFeature feature, CancellationToken cancellationToken) =>
+        !await NurserySettings.AnyAsync(settings => settings.FeaturesOff.Contains(feature), cancellationToken);
+
     public static void Configure(DbContextOptionsBuilder options, string connectionString) =>
         options.UseNpgsql(connectionString).UseSnakeCaseNamingConvention();
 
@@ -359,6 +363,7 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.SignInLevel).HasConversion<string>();
             entity.Property(e => e.LabelStyles).HasColumnType("jsonb");
+            entity.PrimitiveCollection(e => e.FeaturesOff).ElementType().HasConversion<string>();
             entity.ToTable(table => table.HasCheckConstraint("ck_nursery_settings_single", "id = 1"));
         });
     }

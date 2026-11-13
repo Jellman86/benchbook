@@ -3,6 +3,7 @@ using System.Security.Claims;
 using GrowLog.Api.Accounts;
 using GrowLog.Api.Data;
 using GrowLog.Api.Labels;
+using GrowLog.Api.Settings;
 using Microsoft.EntityFrameworkCore;
 
 namespace GrowLog.Api.Selling;
@@ -19,7 +20,7 @@ internal static class InvoiceEndpoints
 
     public static void MapInvoiceEndpoints(this IEndpointRouteBuilder app)
     {
-        var invoices = app.MapGroup("/api/invoices").RequireAuthorization(AccountServices.OwnerPolicy);
+        var invoices = app.MapGroup("/api/invoices").RequireAuthorization(AccountServices.OwnerPolicy).RequireFeature(NurseryFeature.Invoices);
         invoices.MapGet("/", ListAsync);
         invoices.MapPost("/", IssueAsync).Produces<InvoiceIssued>(StatusCodes.Status201Created).Produces<IssueRefused>(StatusCodes.Status409Conflict);
         invoices.MapPost("/{id:guid}/paid", SetPaidAsync);

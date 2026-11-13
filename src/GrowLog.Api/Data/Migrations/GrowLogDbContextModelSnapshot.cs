@@ -1323,6 +1323,11 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("email");
 
+                    b.PrimitiveCollection<string[]>("FeaturesOff")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("features_off");
+
                     b.Property<string>("LabelStyles")
                         .IsRequired()
                         .HasColumnType("jsonb")

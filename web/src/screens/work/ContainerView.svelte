@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isOn } from "../../lib/features.svelte";
   import PrintButton from "../PrintButton.svelte";
   import BatchPhotos from "./BatchPhotos.svelte";
   import EditBatch from "./EditBatch.svelte";
@@ -81,7 +82,13 @@
 
   const now = new Date();
   const first = $derived(container ? likelyNext(container) : []);
-  const rest = $derived(container ? otherActions(container) : []);
+  const rest = $derived(
+    container
+      ? otherActions(container).filter(
+          (action) => action !== "passports" || isOn("Passports"),
+        )
+      : [],
+  );
   // Each action and the plant card is a step in the browser's history, so Back returns to the tray.
   const back = () => window.history.back();
 
@@ -284,7 +291,7 @@
   <Count {container} {when} {onDone} onCancel={back} />
 {:else if action === "treat"}
   <Treat {container} {when} {onDone} onCancel={back} />
-{:else if action === "passports"}
+{:else if action === "passports" && isOn("Passports")}
   <Passports {container} onCancel={back} />
 {:else if action === "note"}
   <Note {container} {when} {onDone} onCancel={back} />
@@ -330,11 +337,13 @@
               {plantName(line.commonName, line.variety)}
             </p>
             <span class="muted credit">Batch {line.traceabilityCode}</span>
-            <BatchPhotos
-              batchId={line.batchId}
-              containerId={container.id}
-              kinds={fromDevice ? [] : ["Growing"]}
-            />
+            {#if isOn("BatchPhotos")}
+              <BatchPhotos
+                batchId={line.batchId}
+                containerId={container.id}
+                kinds={fromDevice ? [] : ["Growing"]}
+              />
+            {/if}
             <div class="row">
               <button class="link-button" onclick={() => openCard(line.plantId)}
                 >About this plant</button

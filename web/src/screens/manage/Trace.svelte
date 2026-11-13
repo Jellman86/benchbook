@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isOn } from "../../lib/features.svelte";
   import Printer from "@lucide/svelte/icons/printer";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
@@ -199,61 +200,63 @@
             </p>
           {/if}
 
-          <h2>Plant passports received</h2>
-          <div class="passport-list">
-            {#each trace.receivedPassports as passport, index (index)}
-              <PassportCard
-                caption="Passport received from {passport.supplierName}"
-                partA={passport.partA}
-                partB={passport.partB}
-                partC={passport.partC}
-                partD={passport.partD}
-                partE={passport.partE}
-              >
-                <span
-                  ><strong>{passportStatusLabels[passport.status]}</strong> ·
-                  from
-                  {passport.supplierName}, {dayLabel(
-                    passport.receivedOn,
-                    now,
-                  )}</span
-                >
-              </PassportCard>
-            {:else}
-              <p class="muted">None recorded for this batch.</p>
-            {/each}
-          </div>
-
-          <h2>Plant passports issued</h2>
-          <div class="passport-list">
-            {#each trace.issuedPassports as passport (passport.id)}
-              <div class="stack tight">
+          {#if isOn("Passports")}
+            <h2>Plant passports received</h2>
+            <div class="passport-list">
+              {#each trace.receivedPassports as passport, index (index)}
                 <PassportCard
-                  caption="Passport issued to {passport.issuedTo}"
+                  caption="Passport received from {passport.supplierName}"
                   partA={passport.partA}
                   partB={passport.partB}
                   partC={passport.partC}
                   partD={passport.partD}
+                  partE={passport.partE}
                 >
                   <span
-                    >{passport.quantity} to {passport.issuedTo}, {dayLabel(
-                      passport.issuedOn,
+                    ><strong>{passportStatusLabels[passport.status]}</strong> ·
+                    from
+                    {passport.supplierName}, {dayLabel(
+                      passport.receivedOn,
                       now,
-                    )}, from {passport.labelCode}</span
+                    )}</span
                   >
-                  <span class="muted">D: {passport.originRule}</span>
                 </PassportCard>
-                <div class="no-print">
-                  <PrintButton
-                    href="/api/labels/passports/{passport.id}"
-                    label="Print again"
-                  />
+              {:else}
+                <p class="muted">None recorded for this batch.</p>
+              {/each}
+            </div>
+
+            <h2>Plant passports issued</h2>
+            <div class="passport-list">
+              {#each trace.issuedPassports as passport (passport.id)}
+                <div class="stack tight">
+                  <PassportCard
+                    caption="Passport issued to {passport.issuedTo}"
+                    partA={passport.partA}
+                    partB={passport.partB}
+                    partC={passport.partC}
+                    partD={passport.partD}
+                  >
+                    <span
+                      >{passport.quantity} to {passport.issuedTo}, {dayLabel(
+                        passport.issuedOn,
+                        now,
+                      )}, from {passport.labelCode}</span
+                    >
+                    <span class="muted">D: {passport.originRule}</span>
+                  </PassportCard>
+                  <div class="no-print">
+                    <PrintButton
+                      href="/api/labels/passports/{passport.id}"
+                      label="Print again"
+                    />
+                  </div>
                 </div>
-              </div>
-            {:else}
-              <p class="muted">None issued for this batch.</p>
-            {/each}
-          </div>
+              {:else}
+                <p class="muted">None issued for this batch.</p>
+              {/each}
+            </div>
+          {/if}
 
           <h2>Now</h2>
           <dl class="facts card">
@@ -331,8 +334,10 @@
             </ol>
           {/if}
 
-          <h2>Photos</h2>
-          {#key trace.id}<BatchPhotos batchId={trace.id} />{/key}
+          {#if isOn("BatchPhotos")}
+            <h2>Photos</h2>
+            {#key trace.id}<BatchPhotos batchId={trace.id} />{/key}
+          {/if}
 
           <h2>What was done to it</h2>
           <ol class="timeline">

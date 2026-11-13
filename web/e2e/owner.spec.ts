@@ -584,6 +584,27 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Back").click();
   await leaveManage(page);
 
+  // A nursery without sensors turns them off: Climate goes from Manage until it's turned back on.
+  await openSettings(page, "Features");
+  const climateSwitch = page.getByRole("switch", {
+    name: /Sensors and climate/,
+  });
+  await expect(climateSwitch).toBeChecked();
+  await climateSwitch.click();
+  await expect(climateSwitch).not.toBeChecked();
+  await expect(page.getByText("Off, so hidden:")).toBeVisible();
+  await leaveManage(page);
+  await button(page, "Manage").click();
+  await expect(button(page, "Jobs")).toBeVisible();
+  await expect(button(page, "Climate")).toHaveCount(0);
+  await button(page, "Back").click();
+  await openSettings(page, "Features");
+  await climateSwitch.click();
+  await expect(climateSwitch).toBeChecked();
+  await leaveManage(page);
+  await openManage(page, "Climate");
+  await leaveManage(page);
+
   // This device becomes a bench station, which signs the owner out of it.
   await openSettings(page, "Bench stations");
   await page.getByLabel("Name for this device").fill("Potting shed");

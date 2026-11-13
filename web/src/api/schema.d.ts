@@ -4859,6 +4859,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/features": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FeatureState"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/features/{feature}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    feature: components["schemas"]["NurseryFeature"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["FeatureChange"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/labels/containers/{label}": {
         parameters: {
             query?: never;
@@ -7407,6 +7481,13 @@ export interface components {
             redirectUri: string;
             fromDeployment: boolean;
         };
+        FeatureChange: {
+            on: boolean;
+        };
+        FeatureState: {
+            feature: components["schemas"]["NurseryFeature"];
+            on: boolean;
+        };
         /** @enum {unknown} */
         FieldType: "Text" | "YesNo" | "Number";
         Figures: {
@@ -7857,6 +7938,8 @@ export interface components {
             /** @default false */
             setsRenewal: boolean;
         };
+        /** @enum {unknown} */
+        NurseryFeature: "Climate" | "PlacesMap" | "Passports" | "MotherPlants" | "Jobs" | "Invoices" | "Purchases" | "BatchPhotos";
         OutlineRequest: {
             points: null | (number | string)[][];
         };

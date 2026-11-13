@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using GrowLog.Api.Accounts;
 using GrowLog.Api.Data;
+using GrowLog.Api.Settings;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -13,7 +14,7 @@ internal static class PurchaseEndpoints
 
     public static void MapPurchaseEndpoints(this IEndpointRouteBuilder app)
     {
-        var purchases = app.MapGroup("/api/purchases").RequireAuthorization(AccountServices.OwnerPolicy);
+        var purchases = app.MapGroup("/api/purchases").RequireAuthorization(AccountServices.OwnerPolicy).RequireFeature(NurseryFeature.Purchases);
         purchases.MapGet("/", ListAsync);
         purchases.MapPost("/", AddAsync).Produces<PurchaseCreated>(StatusCodes.Status201Created);
         purchases.MapPost("/{id:guid}/paid", SetPaidAsync);

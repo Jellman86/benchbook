@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using GrowLog.Api.Data;
+using GrowLog.Api.Settings;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,7 +26,7 @@ internal static class PassportEndpoints
     {
         app.MapGet("/api/batches/{id:guid}/passport-draft", DraftAsync).Produces<IssueDraft>();
 
-        var passports = app.MapGroup("/api/passports");
+        var passports = app.MapGroup("/api/passports").RequireFeature(NurseryFeature.Passports);
         passports.MapGet("/", ListAsync);
         passports.MapPost("/", IssueAsync).Produces<PassportIssued>(StatusCodes.Status201Created).Produces<PassportRefused>(StatusCodes.Status409Conflict);
     }
