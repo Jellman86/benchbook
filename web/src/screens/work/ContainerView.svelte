@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { crumbs } from "../../lib/crumbs.svelte";
   import { isOn } from "../../lib/features.svelte";
   import PrintButton from "../PrintButton.svelte";
   import BatchPhotos from "./BatchPhotos.svelte";
@@ -91,6 +92,23 @@
   );
   // Each action and the plant card is a step in the browser's history, so Back returns to the tray.
   const back = () => window.history.back();
+
+  // The tray, then whatever is open on it.
+  crumbs(() => {
+    const step =
+      cardPlant !== null
+        ? "About this plant"
+        : editing !== null
+          ? "Edit batch"
+          : action
+            ? actionLabels[action]
+            : null;
+    const tray = `Tray ${container?.labelCode ?? label}`;
+
+    return step
+      ? [{ label: tray, go: back }, { label: step }]
+      : [{ label: tray }];
+  });
 
   function openCard(plantId: string) {
     cardPlant = plantId;

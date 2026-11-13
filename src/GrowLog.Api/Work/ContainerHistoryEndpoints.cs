@@ -19,7 +19,7 @@ internal static class ContainerHistoryEndpoints
     }
 
     /// <summary>Newest first. Work that has been undone is shown as undone rather than hidden.</summary>
-    private static async Task<List<HistoryEntry>> HistoryAsync(Guid id, GrowLogDbContext db, CancellationToken cancellationToken)
+    internal static async Task<List<HistoryEntry>> HistoryAsync(Guid id, GrowLogDbContext db, CancellationToken cancellationToken)
     {
         var rows = await db.Events
             .AsNoTracking()

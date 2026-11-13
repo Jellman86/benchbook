@@ -1348,6 +1348,18 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("address");
 
+                    b.Property<bool>("AssistantForStaff")
+                        .HasColumnType("boolean")
+                        .HasColumnName("assistant_for_staff");
+
+                    b.Property<string>("AssistantKey")
+                        .HasColumnType("text")
+                        .HasColumnName("assistant_key");
+
+                    b.Property<string>("AssistantModel")
+                        .HasColumnType("text")
+                        .HasColumnName("assistant_model");
+
                     b.Property<DateOnly?>("AuthorisationRenewsOn")
                         .HasColumnType("date")
                         .HasColumnName("authorisation_renews_on");

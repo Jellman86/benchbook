@@ -124,3 +124,8 @@ const moved: Record<string, SettingsPage> = {
 
 export const movedToSettings = (section: unknown): SettingsPage | null =>
   typeof section === "string" ? (moved[section] ?? null) : null;
+
+/** A settings page's name, for its breadcrumb. */
+export const settingsLabel = (page: SettingsPage) =>
+  groups.flatMap((group) => group.items).find((item) => item.page === page)
+    ?.label ?? "Settings";

@@ -222,7 +222,18 @@ test("the owner sets up the nursery and staff can sign in", async ({
   ).toBeVisible();
   await button(page, "Back").click();
 
-  // A place's own page opens it on the map again, outline and all.
+  // A place's own page opens it on the map again, outline and all. Breadcrumbs show the way back up.
+  await page.locator(".place-row", { hasText: "Greenhouse 2" }).click();
+  const crumbs = page.getByRole("navigation", { name: "Breadcrumb" });
+  await expect(crumbs).toContainText("Manage");
+  await expect(crumbs).toContainText("Croft");
+  await expect(crumbs.locator("[aria-current=page]")).toHaveText(
+    "Greenhouse 2",
+  );
+  await crumbs.getByRole("link", { name: "Croft" }).click();
+  await expect(page.getByRole("heading", { name: "Croft" })).toBeVisible();
+  await crumbs.getByRole("link", { name: "Places" }).click();
+  await expect(page.getByRole("heading", { name: "Places" })).toBeVisible();
   await page.locator(".place-row", { hasText: "Greenhouse 2" }).click();
   await button(page, "On the map").click();
   await expect(

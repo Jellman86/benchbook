@@ -2961,3 +2961,78 @@ button.danger:hover:not(:disabled) {
   border: 1px solid var(--border);
   background: var(--surface);
 }
+
+/* Breadcrumbs: where the person is, above every screen. One quiet line, scrolling sideways on a phone if long. */
+.breadcrumbs {
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 0.85rem 1rem 0;
+  font-size: 0.9rem;
+}
+
+.breadcrumbs ol {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+
+.breadcrumbs li {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  color: var(--muted);
+}
+
+.breadcrumbs .crumb {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0 0.35rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+
+.breadcrumbs a.crumb {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+  cursor: pointer;
+}
+
+.breadcrumbs a.crumb:hover {
+  background: var(--accent-surface);
+}
+
+.breadcrumbs [aria-current="page"] {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* The page below sits close under its breadcrumbs. */
+.breadcrumbs + main,
+.breadcrumbs + .settings-layout {
+  padding-top: 0.5rem;
+}
+
+@media (min-width: 900px) {
+  .with-sidebar .breadcrumbs {
+    max-width: 96rem;
+    margin: 0;
+    padding: 1.25rem 2.5rem 0;
+  }
+
+  .with-sidebar .breadcrumbs + main,
+  .with-sidebar .breadcrumbs + .settings-layout {
+    padding-top: 0.75rem;
+  }
+}

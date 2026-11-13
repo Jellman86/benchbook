@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { crumbs } from "../../lib/crumbs.svelte";
   import { isOn } from "../../lib/features.svelte";
   import { lineAmount } from "../../lib/sowing";
   import PrintButton from "../PrintButton.svelte";
@@ -55,6 +56,23 @@
   let destination = $state("");
 
   const place = $derived(places.find((item) => item.id === placeId));
+
+  // The place and the places it sits in, each one tap away.
+  crumbs(() => {
+    const path: Place[] = [];
+    let at = place;
+
+    while (at && path.length < 20) {
+      path.unshift(at);
+      const parentId = at.parentId;
+      at = parentId ? places.find((item) => item.id === parentId) : undefined;
+    }
+
+    return path.map((item) => ({
+      label: item.name,
+      go: item.id === placeId ? undefined : () => onOpenPlace(item.id),
+    }));
+  });
   const inside = $derived(
     places
       .filter((item) => item.parentId === placeId && !item.archived)

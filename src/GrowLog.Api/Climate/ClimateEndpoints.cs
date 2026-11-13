@@ -21,7 +21,7 @@ internal static class ClimateEndpoints
     }
 
     /// <summary>Every place with a sensor in it, or a reading in the last month.</summary>
-    private static async Task<List<PlaceClimate>> ListAsync(GrowLogDbContext db, TimeProvider clock, CancellationToken cancellationToken)
+    internal static async Task<List<PlaceClimate>> ListAsync(GrowLogDbContext db, TimeProvider clock, CancellationToken cancellationToken)
     {
         var today = StartOfToday(clock);
         var month = clock.GetUtcNow().AddDays(-31);

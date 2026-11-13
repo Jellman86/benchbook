@@ -32,4 +32,7 @@ internal enum NurseryFeature
 
     /// <summary>Shared devices at a bench, where staff tap their name and type a PIN.</summary>
     BenchStations,
+
+    /// <summary>Ask GrowLog, the optional AI assistant, which needs the owner's OpenRouter key.</summary>
+    Assistant,
 }

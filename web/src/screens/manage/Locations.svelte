@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { crumbs } from "../../lib/crumbs.svelte";
   import { isOn } from "../../lib/features.svelte";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import FormPanel from "../FormPanel.svelte";
@@ -27,6 +28,19 @@
   // A place being drawn on the map, just added or opened from its own screen, and where to go back to after.
   let drawing = $state<AddedPlace | null>(null);
   let backTo = $state<string | null>(null);
+
+  // A place being drawn adds itself to the trail; an open place adds its own.
+  crumbs(() =>
+    drawing
+      ? [
+          {
+            label: drawing.name,
+            go: backTo ? doneDrawing : undefined,
+          },
+          { label: "On the map" },
+        ]
+      : [],
+  );
 
   function drawOnMap(place: AddedPlace, from: string | null) {
     backTo = from;

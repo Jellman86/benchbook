@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { crumbs } from "../../lib/crumbs.svelte";
   import { isOn } from "../../lib/features.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
@@ -31,6 +32,14 @@
   let invoiced = $state<Schemas["InvoicedPlants"][]>([]);
   let opened = $state<Schemas["ConsignmentDetails"] | null>(null);
   let writing = $state(false);
+
+  crumbs(() =>
+    opened
+      ? [{ label: `Consignment ${opened.number}` }]
+      : writing
+        ? [{ label: "New consignment" }]
+        : [],
+  );
   let kind = $state<ConsignmentKind>("TradeSale");
   let customerId = $state("");
   let sentTo = $state("");

@@ -114,3 +114,7 @@ export const isManageSectionOn = (section: ManageSection) =>
 
 export const isManageSection = (value: unknown): value is ManageSection =>
   manageSections.some((item) => item.section === value);
+
+/** A section's name, for its breadcrumb. */
+export const sectionLabel = (section: ManageSection) =>
+  manageSections.find((item) => item.section === section)?.label ?? "Manage";

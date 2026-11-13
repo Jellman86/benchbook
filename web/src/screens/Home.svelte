@@ -33,8 +33,18 @@
     submit,
     work,
   } from "../lib/work";
-  import { isManageSection, type ManageSection } from "../lib/sections";
-  import { movedToSettings, type SettingsPage } from "../lib/settings";
+  import {
+    isManageSection,
+    sectionLabel,
+    type ManageSection,
+  } from "../lib/sections";
+  import {
+    movedToSettings,
+    settingsLabel,
+    type SettingsPage,
+  } from "../lib/settings";
+  import { crumbs, type Crumb } from "../lib/crumbs.svelte";
+  import Breadcrumbs from "./Breadcrumbs.svelte";
   import {
     applyTheme,
     nextTheme,
@@ -103,6 +113,79 @@
         section: ManageSection | null;
         batchId?: string | null;
       };
+
+  // Bumped to show a screen afresh, from the top, when its breadcrumb is tapped.
+  let fresh = $state(0);
+
+  function again(next: View) {
+    view = next;
+    fresh += 1;
+  }
+
+  const recordWorkCrumb: Crumb = {
+    label: "Record work",
+    go: () => void goHome(),
+  };
+
+  // The top of the breadcrumb trail: the screens below add their own part.
+  crumbs((): Crumb[] => {
+    const current = view;
+
+    switch (current.name) {
+      case "home":
+        return [{ label: "Record work" }];
+      case "container":
+        return current.fromProduction
+          ? [
+              {
+                label: "Production",
+                go: () => again({ name: "production" }),
+              },
+            ]
+          : [recordWorkCrumb];
+      case "start":
+        return [recordWorkCrumb, { label: "New batch" }];
+      case "camera":
+        return [recordWorkCrumb, { label: "Scan" }];
+      case "production":
+        return [
+          { label: "Production", go: () => again({ name: "production" }) },
+        ];
+      case "place":
+        return [recordWorkCrumb];
+      case "moveMany":
+        return [recordWorkCrumb, { label: "Move several trays" }];
+      case "labelSheets":
+        return [recordWorkCrumb, { label: "Labels on A4" }];
+      case "plants":
+        return [{ label: "Plants", go: () => again({ name: "plants" }) }];
+      case "settings":
+        return [
+          {
+            label: "Settings",
+            go: () => again({ name: "settings", page: null }),
+          },
+          ...(current.page ? [{ label: settingsLabel(current.page) }] : []),
+        ];
+      case "manage": {
+        const section = current.section;
+        return [
+          {
+            label: "Manage",
+            go: () => again({ name: "manage", section: null }),
+          },
+          ...(section
+            ? [
+                {
+                  label: sectionLabel(section),
+                  go: () => again({ name: "manage", section }),
+                },
+              ]
+            : []),
+        ];
+      }
+    }
+  });
 
   // svelte-ignore state_referenced_locally
   const queue = useQueue(me.id, me.name);
@@ -753,7 +836,8 @@
 {/snippet}
 
 {#if atBench}
-  {@render screen()}
+  <Breadcrumbs />
+  {#key fresh}{@render screen()}{/key}
 {:else}
   <div class="with-sidebar" class:collapsed>
     <Sidebar
@@ -788,7 +872,8 @@
         <img src="/logo-96.png" alt="" width="32" height="32" />
         GrowLog
       </div>
-      {@render screen()}
+      <Breadcrumbs />
+      {#key fresh}{@render screen()}{/key}
     </div>
     <BottomNav
       {me}
