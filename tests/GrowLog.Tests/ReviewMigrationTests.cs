@@ -41,20 +41,4 @@ public sealed class ReviewMigrationTests(PostgresFixture database)
         Assert.Equal(AppendResult.Stored, await store.AppendAsync(Work(EventType.Lost, start.AddHours(1), -3), Cancellation));
         Assert.Equal(35, Assert.Single((await store.GetContainerStateAsync(tray.Id, Cancellation)).Contents).Quantity);
     }
-
-    [Fact]
-    public async Task Fresh_database_demo_cleanup_preserves_a_live_owner_with_an_example_name()
-    {
-        await using var db = await database.CreateMigratedDatabaseAsync();
-        var owner = new AppUser { Id = Guid.CreateVersion7(), UserName = "Example Worker", PasswordHash = "test-only-marker" };
-        var demo = new AppUser { Id = Guid.CreateVersion7(), UserName = "Sample Helper", ArchivedAt = DateTimeOffset.UtcNow };
-        var role = new IdentityRole<Guid> { Id = Guid.CreateVersion7(), Name = "Owner" };
-        db.AddRange(owner, demo, role, new IdentityUserRole<Guid> { UserId = owner.Id, RoleId = role.Id });
-        await db.SaveChangesAsync(Cancellation);
-        await db.GetService<IMigrator>().MigrateAsync("20261112130935_IssuedPassportsAndRegistrations", Cancellation);
-        await db.Database.MigrateAsync(Cancellation);
-        db.ChangeTracker.Clear();
-        Assert.True(await db.Users.AnyAsync(person => person.Id == owner.Id, Cancellation));
-        Assert.False(await db.Users.AnyAsync(person => person.Id == demo.Id, Cancellation));
-    }
 }

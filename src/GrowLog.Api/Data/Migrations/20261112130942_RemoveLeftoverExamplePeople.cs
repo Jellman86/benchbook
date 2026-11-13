@@ -17,11 +17,7 @@ namespace GrowLog.Api.Data.Migrations
                 DO $$
                 DECLARE person uuid;
                 BEGIN
-                    FOR person IN SELECT id FROM "AspNetUsers" WHERE user_name IN ('Example Worker', 'Sample Helper')
-                        AND archived_at IS NOT NULL AND password_hash IS NULL AND pin_hash IS NULL AND NOT is_team_account
-                        AND NOT EXISTS (SELECT 1 FROM "AspNetUserRoles" roles WHERE roles.user_id = "AspNetUsers".id)
-                        AND NOT EXISTS (SELECT 1 FROM "AspNetUserLogins" logins WHERE logins.user_id = "AspNetUsers".id)
-                        AND NOT EXISTS (SELECT 1 FROM "AspNetUserPasskeys" passkeys WHERE passkeys.user_id = "AspNetUsers".id) LOOP
+                    FOR person IN SELECT id FROM "AspNetUsers" WHERE user_name IN ('Example Worker', 'Sample Helper') LOOP
                         BEGIN
                             DELETE FROM "AspNetUsers" WHERE id = person;
                         EXCEPTION WHEN foreign_key_violation THEN

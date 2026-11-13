@@ -187,7 +187,11 @@
             customerId,
             issuedOn: null,
             notes: notes || null,
-            lines: lines.map(({ catalogueGross: _, ...line }) => line),
+            lines: lines.map((line) => {
+              const sent = { ...line };
+              delete sent.catalogueGross;
+              return sent;
+            }),
           },
         });
 

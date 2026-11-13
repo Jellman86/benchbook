@@ -105,9 +105,8 @@
 
   // svelte-ignore state_referenced_locally
   const queue = useQueue(me.id, me.name);
-  // Work used to be kept under a person's name, which can change.
-  // svelte-ignore state_referenced_locally
   let queueProblem = "";
+  // Work used to be kept under a person's name, which can change.
   try {
     // svelte-ignore state_referenced_locally
     queue.adopt(me.name);
