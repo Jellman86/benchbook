@@ -1,3 +1,4 @@
+import Sparkles from "@lucide/svelte/icons/sparkles";
 import Cylinder from "@lucide/svelte/icons/cylinder";
 import DatabaseBackup from "@lucide/svelte/icons/database-backup";
 import Info from "@lucide/svelte/icons/info";
@@ -18,6 +19,7 @@ export type SettingsPage =
   | "account"
   | "nursery"
   | "features"
+  | "assistant"
   | "map"
   | "sensors"
   | "printers"
@@ -57,6 +59,12 @@ const groups: SettingsGroup[] = [
       { page: "features", label: "Features", icon: ToggleRight },
       { page: "map", label: "Map", icon: MapIcon, feature: "PlacesMap" },
       { page: "potSizes", label: "Pot sizes", icon: Cylinder },
+      {
+        page: "assistant",
+        label: "AI assistant",
+        icon: Sparkles,
+        feature: "Assistant",
+      },
       {
         page: "sensors",
         label: "Sensors",

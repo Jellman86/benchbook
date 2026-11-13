@@ -3036,3 +3036,280 @@ button.danger:hover:not(:disabled) {
     padding-top: 0.75rem;
   }
 }
+
+/* A small square button for an icon, such as removing a photo. */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--target);
+  min-width: var(--target);
+  height: var(--target);
+  min-height: var(--target);
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* A pill that can be pressed, such as a record an answer looked at. */
+.pill-button {
+  min-height: 2rem;
+  padding: 0.15rem 0.7rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent-surface);
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* Ask GrowLog: a conversation, with the question box kept in reach at the foot of a phone's screen. */
+.ask h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ask-layout,
+.ask-conversation {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ask-suggestions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.ask-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ask-line.user {
+  align-self: flex-end;
+  max-width: 85%;
+}
+
+.ask-question {
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius) var(--radius) 0.2rem var(--radius);
+  background: var(--accent-surface);
+  color: var(--accent-text);
+  white-space: pre-wrap;
+}
+
+.ask-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.ask-answer p,
+.ask-answer ul {
+  margin: 0;
+}
+
+.ask-answer ul {
+  padding-left: 1.25rem;
+  white-space: normal;
+}
+
+.ask-looked {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ask-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ask-cost {
+  font-size: 0.85rem;
+}
+
+.ask-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ask-photos img {
+  width: 5rem;
+  height: 5rem;
+  border-radius: var(--radius);
+  object-fit: cover;
+}
+
+.ask-photo {
+  position: relative;
+}
+
+.ask-photo .icon-button {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.2rem;
+  width: 1.75rem;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  min-height: 1.75rem;
+}
+
+.ask-composer {
+  position: sticky;
+  bottom: calc(4.75rem + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--paper-edge);
+}
+
+.ask-context {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.ask-context .icon-button {
+  width: 1.75rem;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  min-height: 1.75rem;
+}
+
+.ask-input {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.ask-input .grow {
+  flex: 1;
+}
+
+.ask-input textarea {
+  width: 100%;
+  min-height: var(--target);
+  max-height: 12rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  font-weight: 400;
+  resize: vertical;
+}
+
+.ask-camera input {
+  display: none;
+}
+
+.ask-send {
+  width: var(--target);
+  min-width: var(--target);
+  padding: 0;
+}
+
+.ask-suggestion {
+  text-align: left;
+}
+
+@media (min-width: 900px) {
+  .with-sidebar main.ask {
+    max-width: 84rem;
+  }
+
+  .ask-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    align-items: start;
+    gap: 2rem;
+  }
+
+  .ask-conversation {
+    max-width: 52rem;
+  }
+
+  .ask-composer {
+    bottom: 1rem;
+  }
+
+  .with-sidebar .ask-side {
+    position: sticky;
+    top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+/* Settings, AI assistant: the models to choose from, with their prices. */
+.model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 28rem;
+  overflow-y: auto;
+}
+
+.model-choice {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.model-choice.chosen {
+  border-color: var(--accent);
+  background: var(--accent-surface);
+}
+
+.model-choice input {
+  width: auto;
+  min-height: 0;
+  margin-top: 0.2rem;
+}
+
+/* Record work: Ask GrowLog, offered as a card when this person can ask. */
+.ask-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-surface);
+  color: var(--accent-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}

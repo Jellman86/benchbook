@@ -31,7 +31,7 @@ internal static class AssistantEndpoints
         var settings = assistant.MapGroup("/settings").RequireAuthorization(AccountServices.OwnerPolicy);
         settings.MapGet("/", GetSettingsAsync);
         settings.MapPut("/", SaveSettingsAsync);
-        settings.MapGet("/models", ModelsAsync);
+        settings.MapGet("/models", ModelsAsync).Produces<List<OpenRouter.ModelChoice>>();
     }
 
     private static Guid UserId(ClaimsPrincipal user) => Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);

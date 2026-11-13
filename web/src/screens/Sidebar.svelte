@@ -8,6 +8,7 @@
   import Plus from "@lucide/svelte/icons/plus";
   import ScanLine from "@lucide/svelte/icons/scan-line";
   import Settings from "@lucide/svelte/icons/settings";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
   import Sprout from "@lucide/svelte/icons/sprout";
   import Sun from "@lucide/svelte/icons/sun";
   import type { Me } from "../lib/boot";
@@ -23,6 +24,7 @@
     onHome,
     onNewBatch,
     onProduction,
+    onAsk,
     onPlants,
     onSection,
     onToggleCollapsed,
@@ -33,6 +35,7 @@
     me: Me;
     current:
       | "home"
+      | "ask"
       | "start"
       | "settings"
       | "production"
@@ -44,6 +47,8 @@
     onHome: () => void;
     onNewBatch: () => void;
     onProduction: () => void;
+    /** Opens Ask GrowLog, when this person can ask. */
+    onAsk?: () => void;
     onPlants: () => void;
     onSection: (section: ManageSection) => void;
     onToggleCollapsed: () => void;
@@ -98,6 +103,18 @@
       <Sprout size={20} />
       <span class="nav-text">Production</span>
     </button>
+
+    {#if onAsk}
+      <button
+        aria-current={here("ask")}
+        aria-label="Ask GrowLog"
+        title="Ask GrowLog"
+        onclick={onAsk}
+      >
+        <Sparkles size={20} />
+        <span class="nav-text">Ask GrowLog</span>
+      </button>
+    {/if}
 
     {#if !me.isOwner}
       <button

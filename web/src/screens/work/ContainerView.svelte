@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import type { AskAbout } from "../../lib/assistant.svelte";
   import { crumbs } from "../../lib/crumbs.svelte";
   import { isOn } from "../../lib/features.svelte";
   import PrintButton from "../PrintButton.svelte";
@@ -53,8 +55,11 @@
     onDone,
     onCancel,
     onNotFound,
+    onAsk,
   }: {
     label: string;
+    /** Opens Ask GrowLog about this tray, a plant in it or one of its photos, when this person can ask. */
+    onAsk?: (about: AskAbout) => void;
     /** Only for the owner: opens the batch's trace report. */
     onTrace?: (batchId: string) => void;
     onDone: (message: string, eventId: string, newLabel?: string) => void;
@@ -292,7 +297,25 @@
 {#if !container}
   <main><p class="muted">Loading…</p></main>
 {:else if cardPlant}
-  <PlantCard plantId={cardPlant} onBack={back} />
+  <PlantCard plantId={cardPlant} onBack={back}>
+    {#snippet actions()}
+      {#if onAsk}
+        {@const plant = container!.contents.find(
+          (line) => line.plantId === cardPlant,
+        )}
+        <button
+          class="secondary"
+          onclick={() =>
+            onAsk({
+              title: plant
+                ? plantName(plant.commonName, plant.variety)
+                : "this plant",
+              plantId: cardPlant,
+            })}><Sparkles size={18} /> Ask about this plant</button
+        >
+      {/if}
+    {/snippet}
+  </PlantCard>
 {:else if editing}
   <EditBatch batchId={editing} onSaved={editSaved} onCancel={back} />
 {:else if action === "lost"}
@@ -360,6 +383,14 @@
                 batchId={line.batchId}
                 containerId={container.id}
                 kinds={fromDevice ? [] : ["Growing"]}
+                onAsk={onAsk
+                  ? (photoId) =>
+                      onAsk({
+                        title: `a photo of ${plantName(line.commonName, line.variety)}`,
+                        photoId,
+                        trayLabel: container!.labelCode,
+                      })
+                  : undefined}
               />
             {/if}
             <div class="row">
@@ -435,6 +466,16 @@
           )}"
           label="Print label"
         />
+        {#if onAsk}
+          <button
+            class="secondary"
+            onclick={() =>
+              onAsk({
+                title: `tray ${container!.labelCode}`,
+                trayLabel: container!.labelCode,
+              })}><Sparkles size={18} /> Ask about this tray</button
+          >
+        {/if}
       </section>
 
       {#if history.length > 0}

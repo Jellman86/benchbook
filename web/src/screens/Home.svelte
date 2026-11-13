@@ -71,6 +71,13 @@
   import { findPlaceByCode, isPlaceCode, type Place } from "../lib/places";
   import { rememberedPlaces } from "../lib/offline";
   import StartBatch from "./work/StartBatch.svelte";
+  import Ask from "./Ask.svelte";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import {
+    assistant,
+    loadAssistant,
+    type AskAbout,
+  } from "../lib/assistant.svelte";
 
   let {
     me,
@@ -93,6 +100,7 @@
     labelSheets: "Labels on A4",
     plants: "Plants",
     manage: "Manage",
+    ask: "Ask GrowLog",
   };
   const sendEvery = 30 * 1000;
   const cameraAvailable = !!navigator.mediaDevices?.getUserMedia;
@@ -108,6 +116,7 @@
     | { name: "moveMany"; destination?: string | null }
     | { name: "labelSheets"; trays?: string[] }
     | { name: "plants" }
+    | { name: "ask"; about?: AskAbout | null }
     | {
         name: "manage";
         section: ManageSection | null;
@@ -159,6 +168,8 @@
         return [recordWorkCrumb, { label: "Labels on A4" }];
       case "plants":
         return [{ label: "Plants", go: () => again({ name: "plants" }) }];
+      case "ask":
+        return [recordWorkCrumb, { label: "Ask GrowLog" }];
       case "settings":
         return [
           {
@@ -526,8 +537,20 @@
   // A change the owner makes to Settings, Features reaches this device when the app comes back into view.
   onMount(watchFeatures);
 
+  // Whether Ask GrowLog can be offered, checked again whenever the app comes back into view.
   onMount(() => {
-    void loadFeatures();
+    const visible = () => {
+      if (document.visibilityState === "visible") {
+        void loadAssistant();
+      }
+    };
+
+    document.addEventListener("visibilitychange", visible);
+    return () => document.removeEventListener("visibilitychange", visible);
+  });
+
+  onMount(() => {
+    void loadFeatures().then(loadAssistant);
 
     if (location.search.includes("sso=")) {
       problem = externalSignInProblem(location.search);
@@ -619,6 +642,13 @@
     <LabelSheets onBack={goHome} trayLabels={view.trays ?? []} />
   {:else if view.name === "plants"}
     <Plants canManage={false} onBack={goHome} />
+  {:else if view.name === "ask"}
+    <Ask
+      {me}
+      about={view.about ?? null}
+      onOpenTray={(code) => open(code)}
+      onOpenPlace={(id) => (view = { name: "place", id })}
+    />
   {:else if view.name === "production"}
     <Production
       onOpen={(code) => open(code, true)}
@@ -640,6 +670,9 @@
     {#key view.label}
       <ContainerView
         label={view.label}
+        onAsk={assistant.canAsk && !atBench
+          ? (about) => (view = { name: "ask", about })
+          : undefined}
         onTrace={me.isOwner && !atBench ? trace : undefined}
         onDone={finishWork}
         onCancel={view.fromProduction
@@ -727,6 +760,18 @@
         </p>
       {/each}
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+
+      {#if assistant.canAsk && !atBench}
+        <button class="ask-card" onclick={() => (view = { name: "ask" })}>
+          <Sparkles size={22} aria-hidden="true" />
+          <span class="stack tight">
+            <strong>Ask GrowLog</strong>
+            <span class="muted"
+              >About plants, the trays, losses and photos of plants</span
+            >
+          </span>
+        </button>
+      {/if}
 
       <div class="split">
         <section>
@@ -851,6 +896,7 @@
             ? "production"
             : "home"
           : view.name === "home" ||
+              view.name === "ask" ||
               view.name === "start" ||
               view.name === "settings" ||
               view.name === "plants" ||
@@ -859,6 +905,7 @@
             : null}
       onHome={goHome}
       onNewBatch={() => (view = { name: "start" })}
+      onAsk={assistant.canAsk ? () => (view = { name: "ask" }) : undefined}
       onSection={(section) => (view = { name: "manage", section })}
       onToggleCollapsed={toggleCollapsed}
       onCycleTheme={() => setTheme(nextTheme(theme))}
