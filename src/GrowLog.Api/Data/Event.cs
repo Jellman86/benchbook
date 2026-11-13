@@ -38,6 +38,8 @@ internal sealed class Event
     /// <summary>Details specific to the event type, as JSON. Must not contain personal data, which has to stay erasable.</summary>
     public string Payload { get; set; } = "{}";
 
+    public string? RequestFingerprint { get; set; }
+
     public ICollection<EventLine> Lines { get; } = new List<EventLine>();
 
     /// <summary>Changes to stock that stock counts absorb because of this event. Worked out by the event store.</summary>

@@ -49,6 +49,12 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("concurrency_stamp");
 
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
@@ -471,6 +477,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("number");
 
+                    b.Property<string>("RequestFingerprint")
+                        .HasColumnType("text")
+                        .HasColumnName("request_fingerprint");
+
                     b.Property<DateOnly>("SentOn")
                         .HasColumnType("date")
                         .HasColumnName("sent_on");
@@ -677,6 +687,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("recorded_by");
 
+                    b.Property<string>("RequestFingerprint")
+                        .HasColumnType("text")
+                        .HasColumnName("request_fingerprint");
+
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("text")
@@ -845,6 +859,26 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("date")
                         .HasColumnName("paid_on");
 
+                    b.Property<string>("RequestFingerprint")
+                        .HasColumnType("text")
+                        .HasColumnName("request_fingerprint");
+
+                    b.Property<string>("SellerAddress")
+                        .HasColumnType("text")
+                        .HasColumnName("seller_address");
+
+                    b.Property<string>("SellerContact")
+                        .HasColumnType("text")
+                        .HasColumnName("seller_contact");
+
+                    b.Property<string>("SellerName")
+                        .HasColumnType("text")
+                        .HasColumnName("seller_name");
+
+                    b.Property<string>("SellerVatNumber")
+                        .HasColumnType("text")
+                        .HasColumnName("seller_vat_number");
+
                     b.Property<Guid?>("SoldEventId")
                         .HasColumnType("uuid")
                         .HasColumnName("sold_event_id");
@@ -949,6 +983,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<bool?>("ActiveGrowthConfirmed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("active_growth_confirmed");
+
                     b.Property<Guid>("BatchId")
                         .HasColumnType("uuid")
                         .HasColumnName("batch_id");
@@ -1017,6 +1055,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("quantity");
 
+                    b.Property<string>("RequestFingerprint")
+                        .HasColumnType("text")
+                        .HasColumnName("request_fingerprint");
+
                     b.HasKey("Id")
                         .HasName("pk_issued_passports");
 
@@ -1044,6 +1086,30 @@ namespace GrowLog.Api.Data.Migrations
 
                             t.HasCheckConstraint("ck_issued_passports_quantity", "quantity > 0");
                         });
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.LegacyCount", b =>
+                {
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
+
+                    b.Property<Guid>("ContainerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("container_id");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("batch_id");
+
+                    b.Property<int>("Counted")
+                        .HasColumnType("integer")
+                        .HasColumnName("counted");
+
+                    b.HasKey("EventId", "ContainerId", "BatchId")
+                        .HasName("pk_legacy_count");
+
+                    b.ToTable("legacy_count", (string)null);
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.Location", b =>
@@ -1620,6 +1686,10 @@ namespace GrowLog.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("reference");
 
+                    b.Property<string>("RequestFingerprint")
+                        .HasColumnType("text")
+                        .HasColumnName("request_fingerprint");
+
                     b.Property<Guid>("SupplierId")
                         .HasColumnType("uuid")
                         .HasColumnName("supplier_id");
@@ -1823,6 +1893,10 @@ namespace GrowLog.Api.Data.Migrations
                         .IsRequired()
                         .HasColumnType("bytea")
                         .HasColumnName("key_hash");
+
+                    b.Property<DateTimeOffset?>("LastReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_received_at");
 
                     b.Property<Guid>("LocationId")
                         .HasColumnType("uuid")
@@ -2695,6 +2769,16 @@ namespace GrowLog.Api.Data.Migrations
                         .HasForeignKey("PackageId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_issued_passports_consignment_packages_package_id");
+                });
+
+            modelBuilder.Entity("GrowLog.Api.Data.LegacyCount", b =>
+                {
+                    b.HasOne("GrowLog.Api.Data.Event", null)
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_legacy_count_events_event_id");
                 });
 
             modelBuilder.Entity("GrowLog.Api.Data.Location", b =>

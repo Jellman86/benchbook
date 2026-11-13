@@ -5,6 +5,8 @@ namespace GrowLog.Api.Accounts;
 /// <summary>A person who records work. UserName holds the name shown to them and to colleagues.</summary>
 internal sealed class AppUser : IdentityUser<Guid>
 {
+    public DateTimeOffset CreatedAt { get; private set; }
+
     /// <summary>Hash of the short PIN used at a bench station.</summary>
     public string? PinHash { get; set; }
 

@@ -52,7 +52,7 @@ internal static class BatchEditEndpoints
             batch.PacketShare,
             batch.PacketSays,
             batch.MotherPlantId,
-            start?.Event.OccurredAt,
+            start?.At,
             start?.Quantity,
             start is not null && await StartCanChangeAsync(db, id, start, cancellationToken),
             await db.Set<ReceivedPassport>().CountAsync(passport => passport.BatchId == id, cancellationToken),
@@ -238,16 +238,16 @@ internal static class BatchEditEndpoints
             return TypedResults.Conflict(new EditRefused("CountInstead"));
         }
 
-        var startedAt = request.StartedAt?.ToUniversalTime() ?? start.Event.OccurredAt;
+        var startedAt = request.StartedAt?.ToUniversalTime() ?? start.At;
         var quantity = request.Quantity ?? start.Quantity;
 
-        if (startedAt == start.Event.OccurredAt && quantity == start.Quantity && type == start.Event.Type)
+        if (startedAt == start.At && quantity == start.Quantity && type == start.Type)
         {
             return null;
         }
 
         // Sown earlier than recorded is always safe: everything recorded since still comes after it.
-        var onlyEarlier = startedAt < start.Event.OccurredAt && quantity == start.Quantity && type == start.Event.Type;
+        var onlyEarlier = startedAt < start.At && quantity == start.Quantity && type == start.Type;
 
         if (!onlyEarlier && !await StartCanChangeAsync(db, batch.Id, start, cancellationToken))
         {
@@ -277,7 +277,7 @@ internal static class BatchEditEndpoints
             return TypedResults.Conflict(new EditRefused("StartLocked"));
         }
 
-        NoteStartChanges(changes, original.OccurredAt, startedAt, start.Quantity, quantity);
+        NoteStartChanges(changes, start.At, startedAt, start.Quantity, quantity);
         return null;
     }
 
@@ -315,15 +315,21 @@ internal static class BatchEditEndpoints
     /// <summary>The work that started the batch: its first sowing, arrival or cuttings, still standing.</summary>
     private static async Task<Start?> FindStartAsync(GrowLogDbContext db, Guid id, CancellationToken cancellationToken)
     {
-        var start = await db.Events
-            .AsNoTracking()
-            .Where(e => Starts.Contains(e.Type) && !db.Events.Any(correction => correction.CorrectsEventId == e.Id))
-            .Where(e => e.Lines.Any(line => line.BatchId == id && (line.QuantityChange > 0 || (e.Type == EventType.Sown && line.QuantityChange == 0))))
-            .OrderBy(e => e.OccurredAt)
-            .Select(e => new { Event = e, Line = e.Lines.First(line => line.BatchId == id) })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        return start is null ? null : new Start(start.Event, start.Line.ContainerId, start.Line.QuantityChange);
+        var candidates = await db.Events.AsNoTracking().Include(e => e.Lines)
+            .Where(e => !db.Events.Any(correction => correction.CorrectsEventId == e.Id)
+                && e.Lines.Any(line => line.BatchId == id && line.QuantityChange >= 0))
+            .ToListAsync(cancellationToken);
+        Start? first = null;
+        foreach (var candidate in candidates)
+        {
+            var (type, at) = await EventHistory.ResolveAsync(candidate, db, cancellationToken);
+            if (Starts.Contains(type) && (first is null || at < first.At))
+            {
+                var line = candidate.Lines.First(line => line.BatchId == id);
+                first = new Start(candidate, line.ContainerId, line.QuantityChange, type, at);
+            }
+        }
+        return first;
     }
 
     /// <summary>Only while nothing else has been recorded on the batch or its first container.</summary>
@@ -339,7 +345,7 @@ internal static class BatchEditEndpoints
         return !await onBatch.AnyAsync(cancellationToken) && !await onContainer.AnyAsync(cancellationToken);
     }
 
-    private sealed record Start(Event Event, Guid ContainerId, int Quantity);
+    private sealed record Start(Event Event, Guid ContainerId, int Quantity, EventType Type, DateTimeOffset At);
 
     private sealed record Restart(Batch Batch, Start? Start, EditBatchRequest Request, Wanted Wanted, Guid UserId);
 

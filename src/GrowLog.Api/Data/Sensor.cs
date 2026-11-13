@@ -16,5 +16,7 @@ internal sealed class Sensor : IArchivable
 
     public DateTimeOffset? ArchivedAt { get; set; }
 
+    public DateTimeOffset? LastReceivedAt { get; set; }
+
     public DateTimeOffset CreatedAt { get; private set; }
 }

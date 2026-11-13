@@ -10,3 +10,5 @@ playwright-report/
 *.user
 .DS_Store
 DerivedData/
+
+.cache/

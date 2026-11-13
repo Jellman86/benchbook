@@ -20,6 +20,8 @@ internal sealed class Consignment
 
     public required Guid CreatedBy { get; init; }
 
+    public string? RequestFingerprint { get; init; }
+
     public DateTimeOffset CreatedAt { get; private set; }
 
     public ICollection<ConsignmentPackage> Packages { get; } = new List<ConsignmentPackage>();

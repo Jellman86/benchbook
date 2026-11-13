@@ -52,7 +52,7 @@ public sealed class EventStoreTests(PostgresFixture database)
     }
 
     [Fact]
-    public async Task Resending_an_event_keeps_the_original()
+    public async Task Reusing_an_event_identifier_with_changed_payload_is_refused()
     {
         var original = NewEvent(payload: """{"count": 1}""");
         await AppendAsync(original);
@@ -66,7 +66,7 @@ public sealed class EventStoreTests(PostgresFixture database)
             Payload = """{"count": 99}""",
         };
 
-        Assert.Equal(AppendResult.AlreadyStored, await AppendAsync(resent));
+        Assert.Equal(AppendResult.IdInUse, await AppendAsync(resent));
 
         var stored = await ReadAsync(original.Id);
         Assert.Contains("1", stored.Payload, StringComparison.Ordinal);

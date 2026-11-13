@@ -12,5 +12,7 @@ internal sealed class DeviceClock
     public static readonly TimeSpan Tolerance = TimeSpan.FromMinutes(2);
 
     /// <summary>Server time minus device time, when the device said.</summary>
+    public string? RequestFingerprint { get; set; }
+
     public TimeSpan? Skew { get; set; }
 }

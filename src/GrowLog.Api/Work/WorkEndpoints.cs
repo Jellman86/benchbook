@@ -20,9 +20,9 @@ internal static class WorkEndpoints
 
     public static void MapWorkEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/batches", StartBatchAsync).Produces<BatchStarted>(StatusCodes.Status201Created).Produces<BatchStarted>().Produces<WorkRefused>(StatusCodes.Status409Conflict);
+        app.MapPost("/api/batches", StartBatchAsync).AddEndpointFilter(RequestFingerprint.Capture).Produces<BatchStarted>(StatusCodes.Status201Created).Produces<BatchStarted>().Produces<WorkRefused>(StatusCodes.Status409Conflict);
 
-        var containers = app.MapGroup("/api/containers");
+        var containers = app.MapGroup("/api/containers").AddEndpointFilter(RequestFingerprint.Capture);
         containers.MapGet("/by-label/{label}", FindByLabelAsync).Produces<ContainerResponse>();
         containers.MapGet("/active", ListActiveAsync);
         containers.MapPost("/{id:guid}/germinated", RecordGerminatedAsync).ProducesWork();
@@ -34,7 +34,7 @@ internal static class WorkEndpoints
         containers.MapPost("/{id:guid}/treatments", RecordTreatmentAsync).ProducesWork();
         containers.MapPost("/{id:guid}/notes", RecordNoteAsync).ProducesWork();
 
-        var events = app.MapGroup("/api/events");
+        var events = app.MapGroup("/api/events").AddEndpointFilter(RequestFingerprint.Capture);
         events.MapGet("/recent", RecentAsync);
         events.MapPost("/{id:guid}/correct", CorrectAsync).ProducesWork();
     }
@@ -108,7 +108,7 @@ internal static class WorkEndpoints
     }
 
     private static Task<IResult> StoreSimpleAsync(EventStore store, Event work, CancellationToken cancellationToken) =>
-        StoreAsync(() => store.AppendAsync(work, cancellationToken), () => Task.FromResult<object>(new WorkRecorded(work.Id, CountedSince: work.Adjustments.Count > 0)));
+        StoreAsync(() => store.AppendAsync(work, cancellationToken), () => Task.FromResult<object>(new WorkRecorded(work.Id, CountedSince: work.Adjustments.Any(adjustment => adjustment.CountEventId != work.Id))));
 
     private static async Task<IResult> StartBatchAsync(
         StartBatchRequest request,
@@ -117,6 +117,12 @@ internal static class WorkEndpoints
         EventStore store,
         CancellationToken cancellationToken)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await store.LockRequestAsync(request.EventId, cancellationToken);
+        if (await store.MatchRequestAsync(request.EventId, UserId(user), cancellationToken) is { } repeated)
+        {
+            return repeated == AppendResult.AlreadyStored ? TypedResults.Ok(await DescribeStartedBatchAsync(request.EventId, db, cancellationToken)) : Refused("IdInUse");
+        }
         // Seed sown without a count starts the tray at nought, "not counted yet", until the first count.
         var sownAs = request.Source == BatchSource.SeedLot ? request.SownAs : null;
         var counted = sownAs is null or SownMeasure.Counted;
@@ -132,7 +138,6 @@ internal static class WorkEndpoints
 
         // Cuttings from a mother plant take its next number. The mother is locked while it's chosen, so two people
         // taking cuttings at once can't both have the same number.
-        await using var transaction = request.MotherPlantId is null ? null : await db.Database.BeginTransactionAsync(cancellationToken);
         var mother = await MotherForAsync(request, db, cancellationToken);
 
         if (request.MotherPlantId is not null && mother is null)
@@ -159,7 +164,7 @@ internal static class WorkEndpoints
             () => store.AppendAsync(work, cancellationToken),
             async () => await DescribeStartedBatchAsync(request.EventId, db, cancellationToken));
 
-        if (transaction is not null && result is IStatusCodeHttpResult { StatusCode: StatusCodes.Status200OK or StatusCodes.Status201Created })
+        if (result is IStatusCodeHttpResult { StatusCode: StatusCodes.Status200OK or StatusCodes.Status201Created })
         {
             await transaction.CommitAsync(cancellationToken);
         }
@@ -265,7 +270,7 @@ internal static class WorkEndpoints
     private static async Task<Dictionary<Guid, DateTimeOffset>> StartsAsync(List<Guid> containerIds, GrowLogDbContext db, CancellationToken cancellationToken) =>
         await db.EventLines
             .Where(line => containerIds.Contains(line.ContainerId))
-            .Join(db.Events.Where(e => e.CorrectsEventId == null && !db.Events.Any(c => c.CorrectsEventId == e.Id)), line => line.EventId, e => e.Id, (line, e) => new { line.ContainerId, e.OccurredAt })
+            .Join(db.Events.Where(e => !db.Events.Any(c => c.CorrectsEventId == e.Id)), line => line.EventId, e => e.Id, (line, e) => new { line.ContainerId, OccurredAt = line.EffectiveAt ?? e.OccurredAt })
             .GroupBy(row => row.ContainerId)
             .Select(group => new { group.Key, Started = group.Min(row => row.OccurredAt) })
             .ToDictionaryAsync(row => row.Key, row => row.Started, cancellationToken);
@@ -313,8 +318,28 @@ internal static class WorkEndpoints
         });
     }
 
-    private static Task<IResult> RecordGerminatedAsync(Guid id, GerminatedRequest request, ClaimsPrincipal user, EventStore store, CancellationToken cancellationToken) =>
-        StoreSimpleAsync(store, NewEvent(request.EventId, EventType.Germinated, request.OccurredAt, user, id), cancellationToken);
+    private static async Task<IResult> RecordGerminatedAsync(Guid id, GerminatedRequest request, ClaimsPrincipal user, GrowLogDbContext db, EventStore store, CancellationToken cancellationToken)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await store.LockRequestAsync(request.EventId, cancellationToken);
+        await store.LockAsync([id], cancellationToken);
+        var work = NewEvent(request.EventId, EventType.Germinated, request.OccurredAt, user, id,
+            details: request.CountEventId is { } countId ? new { countEventId = countId } : null);
+        var result = await store.AppendAsync(work, cancellationToken);
+        if (result == AppendResult.Stored && request.CountEventId is { } countEvent)
+        {
+            if (request.BatchId is not { } batch || request.Counted is not (>= 0 and <= MaxQuantity))
+            {
+                return TypedResults.BadRequest();
+            }
+            result = await store.AppendStockCountAsync(NewEvent(countEvent, EventType.StockCounted, work.OccurredAt, user, id), batch, request.Counted.Value, cancellationToken, request.Rough);
+        }
+        if (result is AppendResult.Stored or AppendResult.AlreadyStored)
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
+        return await StoreAsync(() => Task.FromResult(result), () => Task.FromResult<object>(new WorkRecorded(work.Id)));
+    }
 
     private static Task<IResult> RecordReadyAsync(Guid id, ReadyRequest request, ClaimsPrincipal user, EventStore store, CancellationToken cancellationToken) =>
         StoreSimpleAsync(store, NewEvent(request.EventId, EventType.Ready, request.OccurredAt, user, id), cancellationToken);
@@ -323,7 +348,24 @@ internal static class WorkEndpoints
     /// A loss of a number of plants, or from a tray nobody has counted, all of them or some: neither changes a count
     /// nobody has made, and "all of them" ends the tray.
     /// </summary>
-    private static async Task<IResult> RecordLossAsync(Guid id, LossRequest request, ClaimsPrincipal user, EventStore store, CancellationToken cancellationToken)
+    private static async Task<IResult> RecordLossAsync(Guid id, LossRequest request, ClaimsPrincipal user, GrowLogDbContext db, EventStore store, CancellationToken cancellationToken)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await store.LockRequestAsync(request.EventId, cancellationToken);
+        await store.LockAsync([id], cancellationToken);
+        if (await store.MatchRequestAsync(request.EventId, UserId(user), cancellationToken) is { } repeated)
+        {
+            return repeated == AppendResult.AlreadyStored ? TypedResults.Ok(new WorkRecorded(request.EventId)) : Refused("IdInUse");
+        }
+        var result = await RecordLockedLossAsync(id, request, user, store, cancellationToken);
+        if (result is IStatusCodeHttpResult { StatusCode: StatusCodes.Status200OK or StatusCodes.Status201Created })
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
+        return result;
+    }
+
+    private static async Task<IResult> RecordLockedLossAsync(Guid id, LossRequest request, ClaimsPrincipal user, EventStore store, CancellationToken cancellationToken)
     {
         // Sent as "all" or "some" from a tray that someone has counted since, as when work queued offline arrives late.
         if (request.All is { } said && !await store.IsNotCountedAsync(id, request.BatchId, cancellationToken))
@@ -387,6 +429,15 @@ internal static class WorkEndpoints
         EventStore store,
         CancellationToken cancellationToken)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await store.LockRequestAsync(request.EventId, cancellationToken);
+        await store.LockAsync([id], cancellationToken);
+        if (await store.MatchRequestAsync(request.EventId, UserId(user), cancellationToken) is { } repeated)
+        {
+            return repeated == AppendResult.AlreadyStored
+                ? TypedResults.Ok(await db.Events.Where(e => e.Id == request.EventId).Join(db.Containers, e => e.ContainerId, container => container.Id, (e, container) => new ContainerCreated(e.Id, container.Id, container.LabelCode, false)).SingleAsync(cancellationToken))
+                : Refused("IdInUse");
+        }
         if (!IsValidQuantity(request.Quantity) || request.Type is not (EventType.PottedOn or EventType.PrickedOut))
         {
             return TypedResults.BadRequest();
@@ -411,7 +462,7 @@ internal static class WorkEndpoints
 
         db.Add(target);
 
-        return await StoreAsync(
+        var result = await StoreAsync(
             () => counting
                 ? store.AppendCountThenAsync(NewEvent(request.CountEventId!.Value, EventType.StockCounted, request.OccurredAt, user, id), request.BatchId, request.Quantity + request.LeftInTray!.Value, work, cancellationToken)
                 : store.AppendAsync(work, cancellationToken),
@@ -424,6 +475,11 @@ internal static class WorkEndpoints
                 // Taken from a tray counted after the time it's dated, which keeps its count.
                 CountedSince = work.Adjustments.Any(adjustment => adjustment.ContainerId == id),
             });
+        if (result is IStatusCodeHttpResult { StatusCode: StatusCodes.Status200OK or StatusCodes.Status201Created })
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
+        return result;
     }
 
     private static async Task<IResult> CountAsync(Guid id, CountRequest request, ClaimsPrincipal user, EventStore store, CancellationToken cancellationToken)
@@ -527,7 +583,41 @@ internal static class WorkEndpoints
             }
         }
 
-        return await StoreSimpleAsync(store, correction, cancellationToken);
+        return await StoreCorrectionAsync(original, correction, db, store, cancellationToken);
+    }
+
+    private static async Task<IResult> StoreCorrectionAsync(Event original, Event correction, GrowLogDbContext db, EventStore store, CancellationToken cancellationToken)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await store.LockRequestAsync(correction.Id, cancellationToken);
+        await store.LockAsync(original.Lines.Select(line => line.ContainerId).Concat(original.ContainerId is { } id ? [id] : []), cancellationToken);
+        if (await store.MatchRequestAsync(correction.Id, correction.RecordedBy, cancellationToken) is { } repeated)
+        {
+            return repeated == AppendResult.AlreadyStored ? TypedResults.Ok(new WorkRecorded(correction.Id)) : Refused("IdInUse");
+        }
+        using var details = JsonDocument.Parse(original.Payload);
+        if (original.Type == EventType.Germinated && details.RootElement.TryGetProperty("countEventId", out var count))
+        {
+            var undoCount = new Event
+            {
+                Id = Guid.CreateVersion7(),
+                Type = EventType.Corrected,
+                OccurredAt = correction.OccurredAt,
+                RecordedBy = correction.RecordedBy,
+                ContainerId = original.ContainerId,
+                CorrectsEventId = count.GetGuid(),
+            };
+            if (await store.AppendAsync(undoCount, cancellationToken) is not (AppendResult.Stored or AppendResult.AlreadyStored))
+            {
+                return Refused("BelowZero");
+            }
+        }
+        var result = await StoreSimpleAsync(store, correction, cancellationToken);
+        if (result is IStatusCodeHttpResult { StatusCode: StatusCodes.Status200OK or StatusCodes.Status201Created })
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
+        return result;
     }
 
     /// <summary>The signed-in person's latest actions, with what a screen needs to offer them again in one press.</summary>
@@ -599,7 +689,9 @@ internal static class WorkEndpoints
                     row.batch.Source,
                     row.batch.SourceReference,
                     row.batch.SupplierId,
-                    row.batch.OriginCountry),
+                    row.batch.OriginCountry,
+                    row.batch.MotherPlantId,
+                    row.batch.MotherPlant),
             })
             .ToListAsync(cancellationToken);
 
@@ -640,7 +732,7 @@ internal static class WorkEndpoints
         string? PacketSays = null,
         Guid? MotherPlantId = null);
 
-    internal sealed record GerminatedRequest(Guid EventId, DateTimeOffset OccurredAt);
+    internal sealed record GerminatedRequest(Guid EventId, DateTimeOffset OccurredAt, Guid? CountEventId = null, Guid? BatchId = null, int? Counted = null, bool Rough = false);
 
     /// <param name="All">For a tray nobody has counted: whether all of them were lost, or some.</param>
     internal sealed record LossRequest(Guid EventId, DateTimeOffset OccurredAt, Guid BatchId, int Quantity, LossReason Reason, bool? All = null);
@@ -700,7 +792,9 @@ internal static class WorkEndpoints
         BatchSource Source,
         string? SourceReference,
         Guid? SupplierId,
-        string OriginCountry);
+        string OriginCountry,
+        Guid? MotherPlantId = null,
+        string? MotherPlant = null);
 
     internal sealed record RecentAction(
         Guid Id,
