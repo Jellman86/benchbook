@@ -192,6 +192,35 @@ Not a priority: users preferred drop-down lists and one-press repeats. If it is 
 
 Repeating jobs, such as watering, feeding and spraying rotas, are set up by the owner under Manage, Jobs: what, every so many days or weeks, the next date, optionally a place, and notes. Jobs due or late show on Record with their notes, and anyone ticks one off; it moves on by its interval to the next date after today, never leaving a backlog and never earlier than it was, and keeps who did it and when. A tick made by mistake can be undone for a quarter of an hour, by whoever made it or the owner. Done twice on one day counts once. The owner also sees "Needs a look" on Record: the plant health authorisation renewal (from six weeks before the date set in Nursery details), overdue invoices, trays ready for over four weeks, trays sown without a count and not counted for three weeks, and jobs more than two days late. Each says why it is there, leads to where it's dealt with, and is worked out afresh, so it goes once it's dealt with. Mother plants are kept as records under Manage, Mother plants: which plant, a name, where it is and notes. Anyone taking cuttings can add one from New batch. Cuttings of a plant already on the list are taken from one of its mother plants, and each batch from a mother takes its next number (cuttings 1, 2, 3) under a lock, so two at once can't share one; the mother lists every batch taken from it, and the trace report says which mother and which batch. Cuttings taken from a mother stay hers: Edit batch can't change their source, mother or plant. A new mother's name typed in New batch is added on Next, even if Add wasn't tapped. The owner can mark a mother no longer used, and its cuttings stay recorded; her name can then be given to a new mother. Each batch has a strip of photos, oldest first, on its trays, Edit batch and the trace report. Anyone can add a photo of the plants from a tray; it is captioned with the day of the batch (the day it was sown or arrived is day 1) and the stage the tray had reached. Seed packet, label and packaging photos are added from Edit batch. Tapping a photo shows it large, and a wrong one can be removed for good by whoever took it or by the owner. Still to come: supplier documents for ornamental propagating material, pest and disease notes with photos, reservations, availability lists, CSV import and export.
 
+## Ask GrowLog
+
+Ask GrowLog is an optional AI assistant. It answers questions about plants and about the nursery's own records, and looks at photos of plants. It works only once the owner has added an OpenRouter API key and chosen a model under Settings, AI assistant, and it has its own switch under Settings, Features.
+
+- **The key and the model:**
+  - The key is kept encrypted on the server and never sent back to any screen. The settings show only that there is one, and what it has spent of its limit as OpenRouter reports it.
+  - The models offered are OpenRouter's that can use GrowLog's lookups. Each shows its rough price per question and whether it reads photos.
+  - The owner pays OpenRouter directly. A spending limit is set on the key at openrouter.ai.
+- **Who can ask:** the owner, and staff too if the owner ticks "Staff can ask". Each person can ask up to 40 questions an hour.
+- **Where it's offered:**
+  - From the sidebar on a desk, and from a card on Record work on a phone.
+  - "Ask about this tray" on a tray, "Ask about this plant" on a plant card, and "Ask about this photo" on a batch photo. These start the conversation with that tray, plant or photo.
+- **The screen:**
+  - On a phone, the question box stays in reach at the foot of the screen, with a camera button when the model reads photos, up to four at a time.
+  - On a desk, the conversation sits beside the records the answers looked at, suggested questions, and what is sent.
+  - Answers are shown as plain text, with paragraphs and lists, and are never treated as markup. Each lists the records it looked at; a tray or place can be opened from there. Each shows roughly what it cost.
+  - The conversation stays on the device for the session and can be started again. Nothing asked is kept on GrowLog's server.
+- **What the model reads:**
+  - It looks the nursery's records up through read-only tools: places, plants and their care notes, what's growing by stage, place or plant, a tray and its history, recent losses and treatments, the sensors' climate, the "Needs a look" list, and jobs.
+  - It can't record or change anything. When something should be done, it says what, and a person does it.
+  - Tools for parts turned off under Settings, Features aren't offered.
+- **What is sent:**
+  - Requests ask OpenRouter only for providers that don't keep or train on what they're sent.
+  - Never customers, money, overdue invoices, or who did a piece of work.
+  - A photo is sent only when the person adds it or asks about it.
+- **Photos and plant health:**
+  - For a photo of plants, it describes what it sees and gives the likely causes, how sure it is, and what to check. It is never a diagnosis.
+  - Anything that could be a notifiable or quarantine pest or disease, such as Xylella, is to be isolated, not moved, sold or treated, and reported to APHA.
+
 ## Architecture
 
 | Part | Choice |
@@ -221,46 +250,16 @@ AGPL-3.0-or-later. Dependencies and bundled fonts must use open-source licences 
 
 ## Roadmap
 
-**Done so far.** Stage 1 in full. From stage 2: purchases, invoices and credit notes, simple accounts, received and issued plant passports, consignments with a passport for each package, and trace reports. Alongside them: correcting batches, sowing seed without a count, finding a tray without a label, supplier registration numbers, seed packet dates, labels on A4 sticker sheets, dates on all work, work on many trays at once, repeating jobs with alerts, mother plants, a photo strip for each batch, greenhouse sensors, bringing records in from spreadsheets and taking everything out, the smaller follow-ups from testing (rough counts, seedlings per gram, uncounted trays in the totals, lost trays staying lost), fixes from a whole-codebase review, switches to turn off the parts a nursery doesn't use, changing how seed was sown after the fact, moving a batch from Edit batch, choosing several trays on a desk, and drawing a place on the map as part of adding it.
+**Done so far.** Stage 1 in full. From stage 2: purchases, invoices and credit notes, simple accounts, received and issued plant passports, consignments with a passport for each package, and trace reports. Alongside them: correcting batches, sowing seed without a count, finding a tray without a label, supplier registration numbers, seed packet dates, labels on A4 sticker sheets, dates on all work, work on many trays at once, repeating jobs with alerts, mother plants, a photo strip for each batch, greenhouse sensors, bringing records in from spreadsheets and taking everything out, the smaller follow-ups from testing (rough counts, seedlings per gram, uncounted trays in the totals, lost trays staying lost), fixes from a whole-codebase review, switches to turn off the parts a nursery doesn't use, changing how seed was sown after the fact, moving a batch from Edit batch, choosing several trays on a desk, and drawing a place on the map as part of adding it, drawing on the nursery's own picture without a satellite key, breadcrumbs on every screen, and Ask GrowLog, the optional AI assistant.
 
 **Next, in order:**
 
 1. **Spray and sale warnings.** An alert when a tray treated with a product is marked ready or sold within the product's harvest or re-entry interval, once products carry one.
-2. **Ask GrowLog, an optional AI assistant.** Off until the owner turns it on, and a switch under Settings, Features like the other optional parts. It answers questions about plants and about the nursery's own records, and looks at photos of plants.
-   - **Setup:**
-     - The owner pastes an OpenRouter API key under Settings, AI. It is kept encrypted on the server, like the staff login secret, and never reaches a browser.
-     - The owner picks a model from OpenRouter's list, filtered to those that can use GrowLog's tools and, for photo questions, read images. The price per question is shown beside each.
-     - A monthly spending limit is set on the OpenRouter key itself. GrowLog shows what has been spent.
-     - The owner chooses whether staff can ask, or only the owner.
-   - **Privacy:**
-     - Requests ask OpenRouter only for providers that don't keep or train on prompts (`data_collection: deny`, and zero data retention where the model offers it).
-     - Customer names, addresses and contact details, staff details and money are never sent. Plants, places, batches, work, counts, losses, treatments, climate readings and photos the person chooses are.
-     - Each answer says which records it used, with links to them.
-     - Questions and answers are kept for the person who asked for 30 days, then deleted.
-   - **Records are read, never changed:**
-     - The model reads the nursery's records through read-only tools: find a plant, a tray and its history, stock by stage and place, losses by reason and time, treatments, a place's climate, jobs due, the "Needs a look" list, and the germination and survival figures.
-     - It can't record or change anything. A suggested action, such as "record a treatment" or "move these trays", is shown as a button the person checks and presses, following "suggestions need a person".
-   - **What to build, in order:**
-     1. **Ask about a plant:** care, sowing and propagation times, temperatures, pests and diseases, answered alongside the nursery's own figures for it, such as its germination rate here.
-     2. **Ask about the nursery:** "What needs attention this week?", "Why were losses high in Greenhouse 2 last month?", "Which batches are slowest to germinate?" The answers come from the tools, with the records linked.
-     3. **Ask about a photo:**
-        - From a tray or the photo strip: send a photo with the plant, its stage, recent treatments and the place's climate.
-        - Get the likely causes (pest, disease, watering, nutrients, cold or scorch), how sure it is, and what to check.
-        - It is never a diagnosis.
-        - Anything that could be a notifiable pest or disease, such as Xylella, says to report it to APHA and doesn't suggest treating it first.
-     4. **Reading labels:**
-        - A seed packet photo fills in the variety, lot, sow-by date and amount in New batch.
-        - A supplier's plant passport photo fills in its parts in the received-passport form.
-        - Both are suggestions to check before saving. A received passport must match what was printed, so it is shown beside the photo.
-     5. **Writing:** care notes for labels and bench cards, and plant descriptions for the website, as drafts to edit.
-   - **Later:**
-     - Ask by voice in the potting shed.
-     - A weekly summary on the owner's Home.
-     - Warnings that combine the sensors with the forecast and the batches in each place, such as frost on tender plants in an unheated tunnel.
-   - **Open questions:**
-     - Which model to start with.
-     - Whether staff use counts against the same limit.
-     - Whether photos may go to a model whose provider keeps images for safety checks.
+2. **More from Ask GrowLog.**
+   - **Reading labels:** a seed packet photo fills in New batch, and a supplier's plant passport photo fills in the received-passport form, shown beside the photo to check before saving.
+   - **Writing:** care notes for labels and bench cards, and plant descriptions for the website, as drafts to edit.
+   - **Suggested actions:** a suggested action, such as recording a treatment, offered as a button the person checks and presses.
+   - **Later:** asking by voice, a weekly summary on Home, and frost warnings that combine the sensors and the forecast with what is growing in each place.
 
 Stage 3 stays as above.
 
