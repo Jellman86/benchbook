@@ -230,16 +230,12 @@ internal static class BatchEditEndpoints
             return asked ? TypedResults.Conflict(new EditRefused("StartLocked")) : null;
         }
 
-        // Seed sown without a count stays seed without a count: only a count gives it a number.
-        var uncounted = start.Quantity == 0;
-
-        if (uncounted != (wanted.SownAs is not (null or SownMeasure.Counted)) || (uncounted && request.Quantity is not null))
+        if (await StartQuantityAsync(restart, start, db, cancellationToken) is not { } quantity)
         {
             return TypedResults.Conflict(new EditRefused("CountInstead"));
         }
 
         var startedAt = request.StartedAt?.ToUniversalTime() ?? start.At;
-        var quantity = request.Quantity ?? start.Quantity;
 
         if (startedAt == start.At && quantity == start.Quantity && type == start.Type)
         {
@@ -333,6 +329,30 @@ internal static class BatchEditEndpoints
     }
 
     /// <summary>Only while nothing else has been recorded on the batch or its first container.</summary>
+    /// <summary>
+    /// The number the start should have, or null when it can't be had. Seed can move between counted and measured
+    /// another way (a weight, a packet, about so many) only while nothing has been recorded since it was sown; after
+    /// that, only a count gives it a number. Counted needs its number; measured another way starts with none.
+    /// </summary>
+    private static async Task<int?> StartQuantityAsync(Restart restart, Start start, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
+        var wasUncounted = start.Quantity == 0;
+        var uncounted = restart.Wanted.SownAs is not (null or SownMeasure.Counted);
+        var quantity = restart.Request.Quantity;
+
+        if (wasUncounted != uncounted && !await StartCanChangeAsync(db, restart.Batch.Id, start, cancellationToken))
+        {
+            return null;
+        }
+
+        if ((uncounted && quantity is not null) || (wasUncounted && !uncounted && quantity is null))
+        {
+            return null;
+        }
+
+        return uncounted ? 0 : quantity ?? start.Quantity;
+    }
+
     private static async Task<bool> StartCanChangeAsync(GrowLogDbContext db, Guid id, Start start, CancellationToken cancellationToken)
     {
         // An undo is not work; a correction that replaced work is.

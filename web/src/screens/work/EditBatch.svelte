@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isOn } from "../../lib/features.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { originCountries } from "../../lib/countries";
@@ -76,7 +77,9 @@
         startedOn: details.startedAt ? isoDay(new Date(details.startedAt)) : "",
         quantity: Number(details.quantity ?? 0),
         sowBy: details.sowBy ?? "",
-        sownAs: details.sownAs ?? null,
+        // Seed recorded before the ways of measuring it existed was counted.
+        sownAs:
+          details.sownAs ?? (details.source === "SeedLot" ? "Counted" : null),
         sownAmount:
           details.sownAmount == null ? "" : String(details.sownAmount),
         packetShare: details.packetShare ?? null,
@@ -101,6 +104,21 @@
       Number(details.quantity) === 0 &&
       !!details.sownAs &&
       details.sownAs !== "Counted",
+  );
+
+  // Measured another way than a count, so the tray has no number until it's counted.
+  const measuredOtherwise = $derived(
+    !!form &&
+      form.source === "SeedLot" &&
+      !!form.sownAs &&
+      form.sownAs !== "Counted",
+  );
+  // How the seed went in can move between counted and not while nothing has been recorded since.
+  const sowingCanChange = $derived(
+    !!details &&
+      !!form &&
+      form.source === "SeedLot" &&
+      (uncounted || details.startCanChange),
   );
 
   const changes = $derived(
@@ -171,6 +189,16 @@
       busy = true;
 
       try {
+        if (
+          form.source === "SeedLot" &&
+          form.sownAs === "Counted" &&
+          uncounted &&
+          form.quantity <= 0
+        ) {
+          problem = "Say how many seeds went in.";
+          return;
+        }
+
         const startChanged =
           !!details.startedAt &&
           (form.startedOn !== before.startedOn ||
@@ -205,7 +233,9 @@
                 ? startedAt(form.startedOn)
                 : null,
             quantity:
-              startChanged && form.quantity !== before.quantity
+              !measuredOtherwise &&
+              startChanged &&
+              form.quantity !== before.quantity
                 ? form.quantity
                 : null,
           },
@@ -219,7 +249,7 @@
         ) {
           checking = false;
           problem =
-            "Seed sown without a count keeps it that way: use Count on the tray to give it a number.";
+            "Other work has been recorded on this tray since it was sown, so it can't change between counted and not. Use Count on the tray to give it a number.";
         } else if (
           (error as { problem?: string } | undefined)?.problem === "StartLocked"
         ) {
@@ -284,8 +314,10 @@
       >
     {/if}
   {:else}
-    <BatchPhotos {batchId} kinds={["Packet", "Label", "Packaging"]} />
-    <p class="muted">Photos are saved as soon as they're taken.</p>
+    {#if isOn("BatchPhotos")}
+      <BatchPhotos {batchId} kinds={["Packet", "Label", "Packaging"]} />
+      <p class="muted">Photos are saved as soon as they're taken.</p>
+    {/if}
 
     <label>
       Plant
@@ -313,11 +345,11 @@
       {/each}
     </div>
 
-    {#if uncounted}
+    {#if sowingCanChange}
       <fieldset class="day-picker">
         <legend class="field-label">How much seed went in?</legend>
         <div class="segmented two">
-          {#each sowingChoices.filter((choice) => choice.measure !== "Counted") as choice (choice.measure)}
+          {#each sowingChoices.filter((choice) => details!.startCanChange || choice.measure !== "Counted") as choice (choice.measure)}
             <button
               aria-pressed={form.sownAs === choice.measure}
               onclick={() => (form!.sownAs = choice.measure)}
@@ -348,16 +380,28 @@
           /></label
         >
       {/if}
-      <p class="muted">
-        Sown without a count: the number comes from counting them, when they
-        germinate or are pricked out.
-      </p>
+      {#if measuredOtherwise}
+        <p class="muted">
+          Sown without a count: the number comes from counting them, when they
+          germinate or are pricked out.
+        </p>
+        {#if !uncounted}
+          <p class="caution">
+            The tray's {before?.quantity} will go, and it shows as not counted until
+            someone counts it.
+          </p>
+        {/if}
+      {/if}
     {/if}
 
     {#if details.startCanChange && form.startedOn}
       <DayPicker bind:value={form.startedOn} label={whenAsked[form.source]} />
-      {#if !uncounted}
-        <p class="field-label">How many to start with</p>
+      {#if !measuredOtherwise}
+        <p class="field-label">
+          {form.source === "SeedLot"
+            ? "How many seeds went in"
+            : "How many to start with"}
+        </p>
         <Stepper bind:value={form.quantity} />
       {/if}
     {:else if details.startedAt && form.startedOn}
