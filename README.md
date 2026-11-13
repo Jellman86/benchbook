@@ -14,6 +14,8 @@ GrowLog is for the people doing the work. Scan a label, press what happened, and
 - Print plant labels and bench cards.
 - Keep the records needed for UK plant passports and plant health inspections.
 - Keep supplier details and simple records of buying and selling.
+- Show greenhouse temperature and humidity from sensors, and places on a map or the nursery's own picture.
+- Optionally, answer questions about plants and the nursery's records with an AI model the nursery chooses (Ask GrowLog), showing each person what their questions cost.
 
 The first release targets nurseries in England and Wales.
 

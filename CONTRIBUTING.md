@@ -25,7 +25,15 @@ Once a migration is merged it may already have run somewhere, so never edit it: 
 
 ## Browser tests
 
-`npm run e2e` in `web` drives the real application in Chromium, against a throwaway PostgreSQL container, using a built-in virtual passkey. Build the web app first with `npm run build`, and install the browser once with `npx playwright install chromium`.
+`npm run e2e` in `web` drives the real application in Chromium, against a throwaway PostgreSQL container, using a built-in virtual passkey. Build the web app first with `npm run build`, and install the browsers once with `npx playwright install chromium webkit`.
+
+Staff mostly use iPhones, so the phone specs (`iphone`, `ask` and `review-phone`) also run in WebKit, Safari's engine, at iPhone 15 size, as the `iphone` project. Check every screen change at iPhone width. Where WebKit can't run on the machine itself, start Playwright's server in its official image and point the tests at it:
+
+```sh
+docker run -d --rm --name growlog-webkit --network host --init mcr.microsoft.com/playwright:v1.65.0-noble \
+  /bin/sh -c "cd /tmp && npx -y playwright@1.65.0 run-server --port 3123 --host 127.0.0.1"
+PW_WEBKIT_WS=ws://127.0.0.1:3123/ npx playwright test --project=iphone
+```
 
 ## API contract
 
