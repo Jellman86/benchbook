@@ -69,13 +69,27 @@ app.Use((context, next) =>
     return next();
 });
 
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next(context);
+    }
+    catch (LabelStockTooSmallException exception)
+    {
+        context.Response.StatusCode = StatusCodes.Status422UnprocessableEntity;
+        await context.Response.WriteAsJsonAsync(new { problem = "LabelTooSmall", detail = exception.Message }, context.RequestAborted);
+    }
+});
+
+app.UseHealthEndpoints();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapOpenApi().AllowAnonymous();
-app.MapGet("/api/health", () => TypedResults.Ok(new HealthResponse("ok"))).AllowAnonymous();
+app.MapHealthEndpoints();
 app.MapAccountEndpoints();
 app.MapSignInEndpoints();
 app.MapExternalSignInEndpoints();

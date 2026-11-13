@@ -18,7 +18,9 @@ internal static class BackupStatusEndpoints
 
         if (status is null)
         {
-            return new BackupHealth(Known: false, Healthy: true, LastDumpAt: null, LastTransferAt: null);
+            var firstAccount = await db.Users.MinAsync(person => (DateTimeOffset?)person.CreatedAt, cancellationToken);
+            var inGrace = firstAccount is null || clock.GetUtcNow() - firstAccount < TimeSpan.FromHours(24);
+            return new BackupHealth(Known: false, Healthy: inGrace, LastDumpAt: null, LastTransferAt: null);
         }
 
         var oldest = clock.GetUtcNow() - Limit;

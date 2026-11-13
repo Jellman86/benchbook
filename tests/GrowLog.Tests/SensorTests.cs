@@ -25,7 +25,8 @@ public sealed class SensorTests(PostgresFixture database)
     [Fact]
     public async Task A_sensor_sends_readings_with_its_key_and_each_place_shows_its_climate()
     {
-        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var clock = new TestClock();
+        await using var nursery = await TwoPersonNursery.CreateAsync(database, clock: clock);
         var site = Json(await PostForTextAsync(nursery.Owner, "/api/locations", new { name = "Croft", kind = "Site" })).GetProperty("id").GetGuid();
         var greenhouse = Json(await PostForTextAsync(nursery.Owner, "/api/locations", new { name = "Greenhouse 1", kind = "Greenhouse", parentId = site })).GetProperty("id").GetGuid();
 
@@ -40,8 +41,10 @@ public sealed class SensorTests(PostgresFixture database)
         Assert.Equal(HttpStatusCode.BadRequest, await SendAsync(anyone, key, new { temperature = 140 }));
         Assert.Equal(HttpStatusCode.BadRequest, await SendAsync(anyone, key, new { }));
         Assert.Equal(HttpStatusCode.NoContent, await SendAsync(anyone, key, new { temperature = 12.25, humidity = 80, takenAt = DateTimeOffset.UtcNow.AddMinutes(-20) }));
+        Assert.Equal(HttpStatusCode.TooManyRequests, await SendAsync(anyone, key, new { temperature = 18.5, humidity = 70 }));
+        clock.Advance(TimeSpan.FromMinutes(1));
         Assert.Equal(HttpStatusCode.NoContent, await SendAsync(anyone, key, new { temperature = 18.5, humidity = 70 }));
-        Assert.Equal(HttpStatusCode.TooManyRequests, await SendAsync(anyone, key, new { temperature = 18.6 }));
+        Assert.Equal(HttpStatusCode.TooManyRequests, await SendAsync(anyone, key, new { temperature = 18.6, takenAt = DateTimeOffset.UtcNow.AddSeconds(10) }));
 
         var place = Assert.Single((await nursery.Staff.GetFromJsonAsync<JsonElement>(Route("/api/climate"), Cancellation)).EnumerateArray());
         Assert.Equal("Greenhouse 1", place.GetProperty("place").GetString());
@@ -53,13 +56,15 @@ public sealed class SensorTests(PostgresFixture database)
         Assert.Equal(18.5m, hours.Max(hour => hour.GetProperty("highestTemperature").GetDecimal()));
 
         // Two sent at the same moment: only one gets in.
+        clock.Advance(TimeSpan.FromMinutes(1));
         var at = DateTimeOffset.UtcNow.AddMinutes(-40);
-        var both = await Task.WhenAll(SendAsync(anyone, key, new { temperature = 15, takenAt = at }), SendAsync(anyone, key, new { temperature = 15, takenAt = at }));
+        var both = await Task.WhenAll(SendAsync(anyone, key, new { temperature = 15, takenAt = at }), SendAsync(anyone, key, new { temperature = 15, takenAt = at.AddSeconds(1) }));
         Assert.Equal([HttpStatusCode.NoContent, HttpStatusCode.TooManyRequests], both.Order());
 
         // A new key stops the old one working.
         var newKey = Json(await PostForTextAsync(nursery.Owner, $"/api/sensors/{added.GetProperty("id").GetGuid()}/new-key", new { })).GetProperty("key").GetString()!;
         Assert.Equal(HttpStatusCode.Unauthorized, await SendAsync(anyone, key, new { temperature = 19, takenAt = DateTimeOffset.UtcNow.AddMinutes(-10) }));
+        clock.Advance(TimeSpan.FromMinutes(1));
         Assert.Equal(HttpStatusCode.NoContent, await SendAsync(anyone, newKey, new { temperature = 19, takenAt = DateTimeOffset.UtcNow.AddMinutes(-10) }));
 
         // A stopped sensor's name can be used again, but not a working one's.

@@ -194,4 +194,21 @@ public sealed class BatchEditTests(PostgresFixture database)
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, await GetStatusAsync(nursery.Staff, $"/api/batches/{Guid.NewGuid()}"));
     }
+
+    [Fact]
+    public async Task A_start_replaced_by_a_correction_still_has_its_original_type_and_time()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (_, batch, tray, _) = await SowAsync(nursery);
+        var history = (await nursery.Staff.GetFromJsonAsync<JsonElement>(Route($"/api/containers/{tray}/history"), Cancellation))[0];
+        var original = history.GetProperty("eventId").GetGuid();
+        await PostForTextAsync(nursery.Staff, $"/api/events/{original}/correct", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow, quantity = 35 });
+        var details = await DetailsAsync(nursery.Staff, batch);
+        Assert.True(details.GetProperty("startCanChange").GetBoolean());
+        Assert.Equal(Sown.ToUnixTimeSeconds(), details.GetProperty("startedAt").GetDateTimeOffset().ToUnixTimeSeconds());
+        Assert.Equal(35, details.GetProperty("quantity").GetInt32());
+        using var earlier = await PostAsync(nursery.Staff, $"/api/containers/{tray}/notes", new { eventId = Guid.NewGuid(), occurredAt = Sown.AddDays(-1), note = "Too early" });
+        Assert.Equal(HttpStatusCode.Conflict, earlier.StatusCode);
+    }
+
 }

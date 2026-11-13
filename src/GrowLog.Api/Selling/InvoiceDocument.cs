@@ -31,10 +31,10 @@ internal static class InvoiceDocument
             vatCharged = invoice.VatCharged,
             seller = new
             {
-                name = nursery.NurseryName ?? string.Empty,
-                address = LinesOf(nursery.Address),
-                contact = string.Join(" · ", new[] { nursery.Phone, nursery.Email, nursery.Website }.Where(part => !string.IsNullOrWhiteSpace(part))),
-                vat = invoice.VatCharged && !string.IsNullOrWhiteSpace(nursery.VatNumber) ? $"VAT number {nursery.VatNumber}" : string.Empty,
+                name = invoice.SellerName ?? nursery.NurseryName ?? string.Empty,
+                address = LinesOf(invoice.SellerAddress ?? nursery.Address),
+                contact = invoice.SellerContact ?? string.Join(" · ", new[] { nursery.Phone, nursery.Email, nursery.Website }.Where(part => !string.IsNullOrWhiteSpace(part))),
+                vat = invoice.VatCharged && !string.IsNullOrWhiteSpace(invoice.SellerVatNumber ?? nursery.VatNumber) ? $"VAT number {invoice.SellerVatNumber ?? nursery.VatNumber}" : string.Empty,
             },
             buyer = new
             {

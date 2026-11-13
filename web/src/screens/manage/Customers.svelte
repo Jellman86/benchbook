@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { showForm } from "../../lib/showForm";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { attempt, optional, type Schemas } from "../../lib/types";
@@ -12,6 +13,7 @@
 
   let customers = $state<Customer[]>([]);
   let form = $state({ ...blank });
+  let formOpen = $state(false);
   let editing = $state<string | null>(null);
   let problem = $state("");
 
@@ -57,6 +59,8 @@
   };
 
   function edit(customer: Customer) {
+    formOpen = true;
+    void showForm();
     editing = customer.id;
     form = {
       name: customer.name,
@@ -90,8 +94,11 @@
 
   <div class="split">
     <section>
-      <FormPanel label={editing ? "Change customer" : "Add a customer"}>
-        <form class="stack" onsubmit={save}>
+      <FormPanel
+        bind:open={formOpen}
+        label={editing ? "Change customer" : "Add a customer"}
+      >
+        <form class="stack" onsubmit={save} data-edit-form>
           <label>Name <input bind:value={form.name} required /></label>
           <label
             >Address <textarea bind:value={form.address} rows="3"

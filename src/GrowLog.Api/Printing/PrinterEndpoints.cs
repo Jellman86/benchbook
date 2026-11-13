@@ -41,10 +41,10 @@ internal static partial class PrinterEndpoints
                 printer.DotsPerInch,
                 [.. printer.Labels.Select(Enum.Parse<LabelKind>)]));
 
-    private static bool IsSensible(PrinterRequest request) =>
+    private static bool IsSensible(PrinterRequest request, IConfiguration configuration) =>
         !string.IsNullOrWhiteSpace(request.Name) && request.Name.Trim().Length <= LongestName
         && AddressPattern().IsMatch(request.Address.Trim())
-        && request.Port is > 0 and <= 65535
+        && (PrinterConnection.IsPrinterPort(request.Port) || configuration.GetValue<bool>("Printing:AllowLocal") && request.Port is > 0 and <= 65535)
         && Resolutions.Contains(request.DotsPerInch)
         && Enum.IsDefined(request.Language)
         && request.Labels.All(Printable.Contains);
@@ -59,9 +59,9 @@ internal static partial class PrinterEndpoints
         printer.Labels = [.. request.Labels.Distinct().Select(kind => kind.ToString())];
     }
 
-    private static async Task<IResult> AddAsync(PrinterRequest request, GrowLogDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> AddAsync(PrinterRequest request, GrowLogDbContext db, IConfiguration configuration, CancellationToken cancellationToken)
     {
-        if (!IsSensible(request))
+        if (!IsSensible(request, configuration))
         {
             return TypedResults.BadRequest();
         }
@@ -72,14 +72,14 @@ internal static partial class PrinterEndpoints
         return await SaveAsync(db, TypedResults.Created("/api/printers", new PrinterAdded(printer.Id)), cancellationToken);
     }
 
-    private static async Task<IResult> ChangeAsync(Guid id, PrinterRequest request, GrowLogDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> ChangeAsync(Guid id, PrinterRequest request, GrowLogDbContext db, IConfiguration configuration, CancellationToken cancellationToken)
     {
         if (await db.Printers.FindAsync([id], cancellationToken) is not { } printer)
         {
             return TypedResults.NotFound();
         }
 
-        if (!IsSensible(request))
+        if (!IsSensible(request, configuration))
         {
             return TypedResults.BadRequest();
         }

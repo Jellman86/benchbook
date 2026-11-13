@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using GrowLog.Api.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
@@ -77,13 +78,23 @@ internal static class ExternalSignInEndpoints
         }
 
         await context.SignOutAsync(IdentityConstants.ExternalScheme);
+        var subject = info.Principal.FindFirst("sub") ?? info.Principal.FindFirst(ClaimTypes.NameIdentifier);
+        if (subject is null || !string.Equals(subject.Issuer.TrimEnd('/'), store.Current.Authority?.TrimEnd('/'), StringComparison.Ordinal))
+        {
+            return Back("failed");
+        }
+        info = new ExternalLoginInfo(info.Principal, info.LoginProvider, RequestFingerprint.For(new { subject.Issuer, Subject = subject.Value }), info.ProviderDisplayName ?? AccountServices.OidcScheme)
+        {
+            AuthenticationProperties = info.AuthenticationProperties,
+        };
 
         if (info.AuthenticationProperties?.Items.TryGetValue(LinkItem, out var linkUser) == true && linkUser is not null)
         {
             return await LinkLoginAsync(linkUser, info, users);
         }
 
-        var person = await users.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
+        var person = await users.FindByLoginAsync(info.LoginProvider, info.ProviderKey)
+            ?? await UpgradeLegacyLoginAsync(info, subject.Value, users);
 
         if (person is null)
         {
@@ -103,8 +114,29 @@ internal static class ExternalSignInEndpoints
         }
 
         await MatchOwnerRoleAsync(person, info, users, roles, store);
-        await signIn.SignInAsync(person, isPersistent: true);
+        await AccountServices.SignInAsync(signIn, person, "oidc");
         return TypedResults.Redirect("/");
+    }
+
+    /// <summary>
+    /// Links made before logins were bound to their issuer stored only the subject. The issuer has just been checked
+    /// against the configured provider, and changing the provider removes every link, so such a link belongs to this
+    /// provider: move it to the issuer-bound key rather than creating a second account for the same person.
+    /// </summary>
+    private static async Task<AppUser?> UpgradeLegacyLoginAsync(ExternalLoginInfo info, string subject, UserManager<AppUser> users)
+    {
+        if (await users.FindByLoginAsync(info.LoginProvider, subject) is not { } person)
+        {
+            return null;
+        }
+
+        if (!(await users.RemoveLoginAsync(person, info.LoginProvider, subject)).Succeeded
+            || !(await users.AddLoginAsync(person, info)).Succeeded)
+        {
+            return null;
+        }
+
+        return person;
     }
 
     /// <summary>Connects the shared login to the account already signed in here.</summary>

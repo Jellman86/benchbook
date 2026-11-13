@@ -9,7 +9,6 @@ namespace GrowLog.Api.Catalogue;
 internal static class PlaceEndpoints
 {
     private const int MostAtOnce = 50;
-    private const int DeepestNesting = 12;
 
     public static void MapPlaceEndpoints(this IEndpointRouteBuilder app)
     {
@@ -21,6 +20,8 @@ internal static class PlaceEndpoints
     /// <summary>Puts a place inside another, as long as that wouldn't put it inside itself.</summary>
     private static async Task<IResult> MoveAsync(Guid id, MovePlaceRequest request, GrowLogDbContext db, CancellationToken cancellationToken)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.Database.ExecuteSqlRawAsync("LOCK TABLE locations IN SHARE ROW EXCLUSIVE MODE", cancellationToken);
         if (await db.Locations.FindAsync([id], cancellationToken) is not { } place)
         {
             return TypedResults.NotFound();
@@ -37,7 +38,9 @@ internal static class PlaceEndpoints
         }
 
         place.ParentId = request.ParentId;
-        return await SaveAsync(db, TypedResults.NoContent(), cancellationToken);
+        var result = await SaveAsync(db, TypedResults.NoContent(), cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return result;
     }
 
     /// <summary>Adds numbered places in one go, such as Bench 1 to Bench 12. All are added, or none.</summary>
@@ -75,9 +78,10 @@ internal static class PlaceEndpoints
         var parents = await db.Locations.AsNoTracking().ToDictionaryAsync(place => place.Id, place => place.ParentId, cancellationToken);
         Guid? current = placeId;
 
-        for (var depth = 0; current is { } id && depth < DeepestNesting; depth++)
+        var seen = new HashSet<Guid>();
+        while (current is { } id)
         {
-            if (id == containerId)
+            if (id == containerId || !seen.Add(id) || !parents.ContainsKey(id))
             {
                 return true;
             }

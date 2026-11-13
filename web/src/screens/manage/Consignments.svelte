@@ -39,6 +39,7 @@
   // Made here, so sending again after a lost reply finds the same consignment rather than making a second.
   let draftId = $state("");
   let examined = $state<Record<string, boolean>>({});
+  let activeGrowthConfirmed = $state<Record<string, boolean>>({});
   let findings = $state<Record<string, string>>({});
   let busy = $state(false);
   let problem = $state("");
@@ -179,6 +180,7 @@
             params: { path: { id, packageId } },
             body: {
               examined: examined[packageId] ?? false,
+              activeGrowthConfirmed: activeGrowthConfirmed[packageId] ?? false,
               findings: optional(findings[packageId] ?? ""),
             },
           },
@@ -276,6 +278,13 @@
           {/each}
         </ul>
 
+        {#if pack.lines.some((line) => line.propagatingMaterial)}
+          <p class="caution">
+            Ornamental propagating material, including seeds, plugs, cuttings
+            and liners, must also travel with a separate supplier document. A
+            plant passport does not replace it.
+          </p>
+        {/if}
         {#if pack.passport}
           <PackagePassportCard
             caption="Passport for package {pack.number}"
@@ -292,6 +301,15 @@
             label="Print the passport"
           />
         {:else if consignment.passportNeeded}
+          <label class="tick"
+            ><input
+              type="checkbox"
+              bind:checked={activeGrowthConfirmed[pack.id]}
+            />
+            Where origin depends on time here, I confirm active growth for at least
+            two weeks under protection or four weeks outside, without a break. Leave
+            unticked to keep the original country.</label
+          >
           <label class="tick">
             <input type="checkbox" bind:checked={examined[pack.id]} />
             I've examined the plants in this package just now and they're fit to move
@@ -328,6 +346,11 @@
 {:else if writing}
   <main>
     <h1>Send plants</h1>
+    <p class="caution">
+      If these are ornamental propagating material (including seeds, plugs,
+      cuttings or liners), prepare a separate supplier document to travel with
+      them. A passport does not replace it.
+    </p>
     <form class="stack" onsubmit={record}>
       <fieldset class="form-card stack">
         <legend class="field-label">How are they going?</legend>

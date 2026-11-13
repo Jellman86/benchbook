@@ -21,7 +21,8 @@ export type Outcome =
   | { kind: "signedOut" }
   | { kind: "refused"; problem: string }
   | { kind: "rejected" }
-  | { kind: "unreachable" };
+  | { kind: "unreachable" }
+  | { kind: "storageFailed" };
 
 type Details<T> = Omit<T, "eventId" | "occurredAt">;
 
@@ -41,6 +42,23 @@ function request<T extends object>(
   };
 }
 
+/** Keep the original identity and time while allowing a refused form's details to be corrected. */
+export function retainIdentity(
+  next: WorkRequest,
+  previous: WorkRequest | null,
+): WorkRequest {
+  return previous
+    ? {
+        ...next,
+        body: {
+          ...next.body,
+          eventId: previous.body.eventId,
+          occurredAt: previous.body.occurredAt,
+        },
+      }
+    : next;
+}
+
 const onContainer = (id: string, action: string) =>
   `/api/containers/${id}/${action}`;
 
@@ -50,8 +68,11 @@ export const work = {
     occurredAt?: string,
   ) => request("/api/batches", details, occurredAt),
   // Each takes the moment the work was done, when it wasn't just now.
-  germinated: (id: string, occurredAt?: string) =>
-    request(onContainer(id, "germinated"), {}, occurredAt),
+  germinated: (
+    id: string,
+    occurredAt?: string,
+    details: Partial<Details<Schemas["GerminatedRequest"]>> = {},
+  ) => request(onContainer(id, "germinated"), details, occurredAt),
   ready: (id: string, occurredAt?: string) =>
     request(onContainer(id, "ready"), {}, occurredAt),
   lose: (
@@ -184,6 +205,8 @@ export function outcomeProblem(outcome: Outcome): string {
         default:
           return "That has already been corrected.";
       }
+    case "storageFailed":
+      return "This device could not save the work. Keep this screen open and try again with a connection.";
     case "unreachable":
       return "Can't reach GrowLog. Check the connection and try again.";
     case "rejected":
@@ -329,7 +352,8 @@ export function repeatOf(action: Schemas["RecentAction"]): WorkRequest | null {
       sourceReference: line.sourceReference,
       supplierId: line.supplierId,
       parentBatchId: null,
-      motherPlant: null,
+      motherPlant: line.motherPlant ?? null,
+      motherPlantId: line.motherPlantId ?? null,
       originCountry: line.originCountry,
       containerKind: action.containerKind,
       locationId: action.locationId,

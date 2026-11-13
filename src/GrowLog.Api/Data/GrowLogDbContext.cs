@@ -140,6 +140,7 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         ConfigureIssuedPassports(modelBuilder);
         ConfigureJobsAndMothers(modelBuilder);
         ConfigureConsignments(modelBuilder);
+        ConfigureReviewRecords(modelBuilder);
         ConfigureSensors(modelBuilder);
         ConfigurePurchases(modelBuilder);
 
@@ -153,6 +154,16 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
         {
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        });
+    }
+
+    private static void ConfigureReviewRecords(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<AppUser>().Property(user => user.CreatedAt).HasDefaultValueSql("now()");
+        modelBuilder.Entity<LegacyCount>(entity =>
+        {
+            entity.HasKey(count => new { count.EventId, count.ContainerId, count.BatchId });
+            entity.HasOne<Event>().WithMany().HasForeignKey(count => count.EventId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 

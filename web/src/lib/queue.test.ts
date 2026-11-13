@@ -1,5 +1,12 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { flush, waitingByOthers, WorkQueue } from "./queue";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  flush,
+  recordWork,
+  stopQueue,
+  useQueue,
+  waitingByOthers,
+  WorkQueue,
+} from "./queue";
 import type { Outcome, WorkRequest } from "./work";
 
 function memoryStore() {
@@ -180,5 +187,121 @@ describe("WorkQueue", () => {
   it("opens even when what's stored is damaged", () => {
     store.setItem("growlog.queue.Alex", "not json");
     expect(new WorkQueue(store, "Alex").waiting).toBe(0);
+  });
+});
+
+describe("queue storage transitions", () => {
+  it("keeps the waiting item if writing its refusal fails", () => {
+    const store = memoryStore();
+    const queue = new WorkQueue(store, "Alex");
+    queue.add(request("a"));
+    const item = queue.next!;
+    const failing = new WorkQueue(
+      {
+        getItem: store.getItem,
+        setItem: () => {
+          throw new Error("full");
+        },
+      },
+      "Alex",
+    );
+    expect(() => failing.fail(item, "refused")).toThrow("full");
+    expect(queue.waiting).toBe(1);
+    expect(queue.failed).toEqual([]);
+  });
+
+  it("keeps the failed item if putting it back in line fails", () => {
+    const store = memoryStore();
+    const queue = new WorkQueue(store, "Alex");
+    queue.add(request("a"));
+    queue.fail(queue.next!, "refused");
+    const failing = new WorkQueue(
+      {
+        getItem: store.getItem,
+        setItem: () => {
+          throw new Error("full");
+        },
+      },
+      "Alex",
+    );
+    expect(() => failing.retry("a")).toThrow("full");
+    expect(queue.waiting).toBe(0);
+    expect(queue.failed[0].eventId).toBe("a");
+  });
+
+  it("upgrades both old keys in one write", () => {
+    const store = memoryStore();
+    store.setItem(
+      "growlog.queue.Alex",
+      JSON.stringify([{ request: request("a"), description: "a" }]),
+    );
+    store.setItem(
+      "growlog.failed.Alex",
+      JSON.stringify([
+        { eventId: "b", request: request("b"), description: "b", reason: "no" },
+      ]),
+    );
+    const queue = new WorkQueue(store, "Alex");
+    queue.retry("b");
+    expect(queue.waiting).toBe(2);
+    expect(queue.failed).toEqual([]);
+    expect(new WorkQueue(store, "Alex").failed).toEqual([]);
+  });
+
+  it("stops before sending the next item when the person leaves", async () => {
+    const queue = new WorkQueue(memoryStore(), "Alex");
+    queue.add(request("a"));
+    queue.add(request("b"));
+    const sent: string[] = [];
+    await flush(
+      queue,
+      async (item) => {
+        sent.push(item.body.eventId);
+        queue.stopped = true;
+        return { kind: "stored", eventId: item.body.eventId };
+      },
+      explain,
+    );
+    expect(sent).toEqual(["a"]);
+    expect(queue.next?.request.body.eventId).toBe("b");
+  });
+});
+
+describe("originating queue", () => {
+  afterEach(() => {
+    stopQueue();
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps a lost reply under the person who started the request", async () => {
+    vi.stubGlobal("localStorage", memoryStore());
+    let reject!: (reason: Error) => void;
+    vi.stubGlobal(
+      "fetch",
+      () =>
+        new Promise((_, failed) => {
+          reject = failed;
+        }),
+    );
+    const alex = useQueue("Alex");
+    const pending = recordWork(request("a"));
+    const kim = useQueue("Kim");
+    reject(new Error("offline"));
+    expect(await pending).toEqual({ kind: "queued", eventId: "a" });
+    expect(alex.has("a")).toBe(true);
+    expect(kim.waiting).toBe(0);
+    expect(alex.stopped).toBe(true);
+  });
+
+  it("reports a failure to store offline work", async () => {
+    vi.stubGlobal("localStorage", {
+      getItem: () => null,
+      setItem: () => {
+        throw new Error("full");
+      },
+    });
+    vi.stubGlobal("fetch", () => Promise.reject(new Error("offline")));
+    useQueue("Alex");
+    expect(await recordWork(request("a"))).toEqual({ kind: "storageFailed" });
   });
 });

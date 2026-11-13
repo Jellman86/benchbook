@@ -21,15 +21,13 @@
     children?: Snippet;
   } = $props();
 
-  const parts = $derived(
-    [
-      { key: "A", value: partA, botanical: true },
-      { key: "B", value: partB, botanical: false },
-      { key: "C", value: partC, botanical: false },
-      { key: "D", value: partD, botanical: false },
-      { key: "E", value: partE, botanical: false },
-    ].filter((part) => part.value || part.key !== "E"),
-  );
+  const parts = $derived([
+    { key: "A", value: partA, botanical: true },
+    { key: "B", value: partB, botanical: false },
+    { key: "C", value: partC, botanical: false },
+    { key: "D", value: partD, botanical: false },
+    { key: "E", value: partE, botanical: false },
+  ]);
 </script>
 
 <figure class="passport">
@@ -38,8 +36,11 @@
   <dl>
     {#each parts as part (part.key)}
       <dt>{part.key}</dt>
-      <dd class:botanical={part.botanical} class:missing={!part.value}>
-        {part.value || "missing"}
+      <dd
+        class:botanical={part.botanical}
+        class:missing={!part.value && part.key !== "E"}
+      >
+        {part.value || (part.key === "E" ? "" : "missing")}
       </dd>
     {/each}
   </dl>

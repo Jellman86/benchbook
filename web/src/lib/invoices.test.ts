@@ -1,3 +1,4 @@
+import { catalogueNet, changeRate } from "./invoices";
 import { describe, expect, it } from "vitest";
 import { invoiceNumber, standing, totals, type DraftLine } from "./invoices";
 
@@ -52,5 +53,31 @@ describe("invoice standing", () => {
 
   it("pads numbers", () => {
     expect(invoiceNumber(7)).toBe("0007");
+  });
+});
+
+describe("catalogue prices", () => {
+  it("removes VAT and rounds net prices to the penny", () => {
+    expect(catalogueNet(4.5, 20, true)).toBe(3.75);
+    expect(catalogueNet(4.5, 5, true)).toBe(4.29);
+    expect(catalogueNet(4.5, 20, false)).toBe(4.5);
+  });
+
+  it("recomputes the prefill when the rate changes until someone edits it", () => {
+    const line = {
+      description: "Lavender",
+      quantity: 1,
+      unitPrice: 3.75,
+      vatRate: 20,
+      plantId: null,
+      containerId: null,
+      batchId: null,
+      catalogueGross: 4.5,
+    };
+    expect(changeRate(line, 5, true).unitPrice).toBe(4.29);
+    expect(
+      changeRate({ ...line, unitPrice: 3, catalogueGross: null }, 5, true)
+        .unitPrice,
+    ).toBe(3);
   });
 });

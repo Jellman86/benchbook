@@ -41,7 +41,7 @@
 /// is left out. So a long name makes smaller text, never a clipped or overflowing label.
 ///
 /// A design pushes its last part to the bottom with `v(1fr)`, which takes no room while measuring.
-#let fit(sizes, levels, body, fits: (size, level, space) => true) = layout(space => {
+#let fit(sizes, levels, body, fits: (size, level, space) => true, required: false) = layout(space => {
   // A line's box ends at its baseline, so leave room for the tails of letters on the last line.
   let room = space.height - 2pt
   let chosen = (sizes.last(), levels - 1)
@@ -59,7 +59,8 @@
     if found { break }
   }
 
-  block(width: space.width, height: space.height, clip: true, block(width: 100%, height: room, body(..chosen)))
+  if required and not found { panic("The label stock is too small for this passport. Choose a larger label.") }
+  block(width: space.width, height: space.height, clip: not required, block(width: 100%, height: room, body(..chosen)))
 })
 
 /// The nursery's logo, as large as fits inside the given box whatever its shape.

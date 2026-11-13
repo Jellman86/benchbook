@@ -24,6 +24,7 @@
   let issuing = $state(false);
   let quantity = $state(1);
   let issuedTo = $state("");
+  let activeGrowthConfirmed = $state(false);
   let examined = $state(false);
   let findings = $state("");
   let problem = $state("");
@@ -84,6 +85,7 @@
     quantity = Math.max(1, available);
     issuedTo = "";
     examined = false;
+    activeGrowthConfirmed = false;
     findings = "";
     passportId = crypto.randomUUID();
     issuing = true;
@@ -114,7 +116,11 @@
           issuedTo: issuedTo.trim(),
           examined,
           findings: findings.trim() || null,
-          expectedPartD: draft?.partD ?? null,
+          expectedPartD:
+            activeGrowthConfirmed && draft?.needsActiveGrowthConfirmation
+              ? "GB"
+              : (draft?.partD ?? null),
+          activeGrowthConfirmed,
         },
       });
 
@@ -158,11 +164,27 @@
       partA={draft.partA}
       partB={draft.partB}
       partC={draft.partC}
-      partD={draft.partD}
+      partD={activeGrowthConfirmed && draft.needsActiveGrowthConfirmation
+        ? "GB"
+        : draft.partD}
     >
       <span class="muted">D: {draft.originRule}</span>
     </PassportCard>
 
+    {#if draft.propagatingMaterial}
+      <p class="caution">
+        Ornamental propagating material, including seeds, plugs, cuttings and
+        liners, must also travel with a separate supplier document. A plant
+        passport does not replace it.
+      </p>
+    {/if}
+    {#if draft.needsActiveGrowthConfirmation}
+      <label class="tick"
+        ><input type="checkbox" bind:checked={activeGrowthConfirmed} />
+        I confirm these plants were in active growth for the time described above.
+        Leave unticked to keep their original country.</label
+      >
+    {/if}
     {#if draft.problems.length > 0}
       <div class="caution stack tight" role="alert">
         {#each draft.problems as reason (reason)}<p>{reason}</p>{/each}

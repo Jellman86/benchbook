@@ -99,7 +99,7 @@ internal static class AccountEndpoints
         await users.AddOrUpdatePasskeyAsync(owner, attestation.Passkey);
         await transaction.CommitAsync(cancellationToken);
 
-        await signIn.SignInAsync(owner, isPersistent: true);
+        await AccountServices.SignInAsync(signIn, owner, "passkey");
         return TypedResults.NoContent();
     }
 
@@ -139,7 +139,7 @@ internal static class AccountEndpoints
         await users.AddToRoleAsync(owner, AccountServices.OwnerRole);
         await transaction.CommitAsync(cancellationToken);
 
-        await signIn.SignInAsync(owner, isPersistent: true);
+        await AccountServices.SignInAsync(signIn, owner, "password");
         return TypedResults.NoContent();
     }
 
@@ -160,7 +160,7 @@ internal static class AccountEndpoints
 
         // Saves the new signature counter, which is how a cloned passkey would be noticed.
         await users.AddOrUpdatePasskeyAsync(assertion.User, assertion.Passkey);
-        await signIn.SignInAsync(assertion.User, isPersistent: true);
+        await AccountServices.SignInAsync(signIn, assertion.User, "passkey");
         return TypedResults.NoContent();
     }
 

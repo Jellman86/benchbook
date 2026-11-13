@@ -152,7 +152,7 @@ internal static class BenchEndpoints
                 IsPersistent = false,
                 ExpiresUtc = DateTimeOffset.UtcNow + IdleLimit,
             },
-            [new Claim(AccountServices.BenchSessionClaim, "true")]);
+            [new Claim(AccountServices.BenchSessionClaim, "true"), new Claim(AccountServices.SignInMethodClaim, "pin")]);
 
         return TypedResults.NoContent();
     }

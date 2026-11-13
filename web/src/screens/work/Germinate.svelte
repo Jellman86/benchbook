@@ -52,29 +52,25 @@
     busy = true;
     problem = "";
 
-    // Both wait on the device if there's no signal, and go in this order.
-    const germinated = await recordWork(work.germinated(container.id, when));
-
+    // One request keeps germination and its optional count together, including Undo and offline capture.
+    const germinated = await recordWork(
+      work.germinated(
+        container.id,
+        when,
+        withCount
+          ? {
+              countEventId: crypto.randomUUID(),
+              batchId: line.batchId,
+              counted: up,
+              rough,
+            }
+          : {},
+      ),
+    );
     if (!isRecorded(germinated)) {
       busy = false;
       problem = outcomeProblem(germinated);
       return;
-    }
-
-    if (withCount) {
-      const counted = await recordWork(
-        work.count(
-          container.id,
-          { batchId: line.batchId, counted: up, rough },
-          when,
-        ),
-      );
-
-      if (!isRecorded(counted)) {
-        busy = false;
-        problem = `Germinated is saved, but the count wasn't: ${outcomeProblem(counted)}`;
-        return;
-      }
     }
 
     busy = false;

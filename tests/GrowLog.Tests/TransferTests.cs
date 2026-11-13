@@ -81,6 +81,8 @@ public sealed class TransferTests(PostgresFixture database)
         await using var zipped = await response.Content.ReadAsStreamAsync(Cancellation);
         using var archive = new ZipArchive(zipped);
         Assert.Contains(archive.Entries, entry => string.Equals(entry.Name, "work.csv", StringComparison.Ordinal));
+        Assert.Contains(archive.Entries, entry => string.Equals(entry.Name, "count-adjustments.csv", StringComparison.Ordinal));
+        Assert.Contains(archive.Entries, entry => string.Equals(entry.Name, "legacy-counts.csv", StringComparison.Ordinal));
 
         using var plants = new StreamReader(archive.GetEntry("plants.csv")!.Open(), Encoding.UTF8);
         var text = await plants.ReadToEndAsync(Cancellation);
@@ -90,6 +92,7 @@ public sealed class TransferTests(PostgresFixture database)
         using var work = new StreamReader(archive.GetEntry("work.csv")!.Open(), Encoding.UTF8);
         var lines = (await work.ReadToEndAsync(Cancellation)).Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(3, lines.Length);
+        Assert.Contains("Line effective time", lines[0], StringComparison.Ordinal);
         Assert.Contains(",Sown,", lines[1], StringComparison.Ordinal);
         Assert.Contains(",40,", lines[1], StringComparison.Ordinal);
 

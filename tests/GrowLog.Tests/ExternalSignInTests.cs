@@ -6,6 +6,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -527,5 +528,55 @@ public sealed class ExternalSignInTests(PostgresFixture database)
 
         Assert.Equal("https://localhost/signin-oidc", shown.GetProperty("redirectUri").GetString());
         Assert.True(shown.GetProperty("fromDeployment").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Changing_the_provider_while_disabled_clears_old_associations()
+    {
+        var provider = new Provider();
+        await using var app = await CreateAsync(database, provider);
+        using var owner = Browser(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+        using var staff = Browser(app);
+        Assert.Equal("/", await GoThroughProviderAsync(staff, provider));
+        using var disabled = await SaveAsync(owner, Settings(enabled: false));
+        Assert.Equal(HttpStatusCode.NoContent, disabled.StatusCode);
+        using var changed = await SaveAsync(owner, Settings(enabled: false, authority: "https://another-provider.test/"));
+        Assert.Equal(HttpStatusCode.NoContent, changed.StatusCode);
+        using var scope = app.Services.CreateScope();
+        Assert.Empty(scope.ServiceProvider.GetRequiredService<GrowLog.Api.Data.GrowLogDbContext>().UserLogins);
+    }
+
+    [Fact]
+    public async Task A_login_linked_before_issuers_were_recorded_finds_the_same_account()
+    {
+        var provider = new Provider();
+        await using var app = await CreateAsync(database, provider);
+        using var owner = Browser(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+
+        using (var first = Browser(app))
+        {
+            Assert.Equal("/", await GoThroughProviderAsync(first, provider));
+        }
+
+        // Older versions stored only the subject as the login's key.
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<GrowLog.Api.Data.GrowLogDbContext>();
+            await db.Database.ExecuteSqlRawAsync(
+                "UPDATE \"AspNetUserLogins\" SET provider_key = {0}", [provider.Subject], Cancellation);
+        }
+
+        using var second = Browser(app);
+        Assert.Equal("/", await GoThroughProviderAsync(second, provider));
+        Assert.Equal("Jo Reed", (await MeAsync(second)).GetProperty("name").GetString());
+        Assert.Equal(2, (await StaffAsync(owner)).Count);
+
+        using var check = app.Services.CreateScope();
+        var logins = check.ServiceProvider.GetRequiredService<GrowLog.Api.Data.GrowLogDbContext>().UserLogins.ToList();
+        Assert.NotEqual(provider.Subject, Assert.Single(logins).ProviderKey, StringComparer.Ordinal);
     }
 }

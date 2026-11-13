@@ -1,9 +1,12 @@
 <script lang="ts">
+  import { isoDay } from "../../lib/days";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { dayLabel } from "../../lib/dates";
   import {
     invoiceNumber,
+    catalogueNet,
+    changeRate,
     standing,
     totals,
     vatRates,
@@ -30,9 +33,10 @@
   let lines = $state<DraftLine[]>([]);
   let problem = $state("");
   let issued = $state<{ id: string; number: number } | null>(null);
+  let requestId = crypto.randomUUID();
   let busy = $state(false);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = isoDay(new Date());
 
   // The form can open before the customers have loaded; choose the first once they have.
   $effect(() => {
@@ -88,6 +92,7 @@
   });
 
   function start() {
+    requestId = crypto.randomUUID();
     writing = true;
     issued = null;
     problem = "";
@@ -117,7 +122,10 @@
       ...lines[index],
       plantId: plant.id,
       description: `${plantName(plant.commonName, plant.variety)}${size ? ` ${size.name}` : ""}`,
-      unitPrice: price ? Number(price.price) : lines[index].unitPrice,
+      unitPrice: price
+        ? catalogueNet(Number(price.price), lines[index].vatRate, vatRegistered)
+        : lines[index].unitPrice,
+      catalogueGross: price ? Number(price.price) : null,
       containerId: null,
       batchId: null,
     };
@@ -174,7 +182,17 @@
 
       try {
         const { data, response } = await api.POST("/api/invoices", {
-          body: { customerId, issuedOn: null, notes: notes || null, lines },
+          body: {
+            id: requestId,
+            customerId,
+            issuedOn: null,
+            notes: notes || null,
+            lines: lines.map((line) => {
+              const sent = { ...line };
+              delete sent.catalogueGross;
+              return sent;
+            }),
+          },
         });
 
         if (response.ok && data) {
@@ -324,13 +342,22 @@
                 min="0"
                 step="0.01"
                 bind:value={line.unitPrice}
+                oninput={() => (line.catalogueGross = null)}
                 required
               /></label
             >
             {#if vatRegistered}
               <label>
                 VAT
-                <select bind:value={line.vatRate}>
+                <select
+                  value={line.vatRate}
+                  onchange={(event) =>
+                    (lines[index] = changeRate(
+                      line,
+                      Number(event.currentTarget.value),
+                      vatRegistered,
+                    ))}
+                >
                   {#each vatRates as rate (rate)}<option value={rate}
                       >{rate}%</option
                     >{/each}

@@ -8,7 +8,9 @@
     outcomeProblem,
     plantName,
     submit,
+    retainIdentity,
     work,
+    type WorkRequest,
   } from "../../lib/work";
   import ActionFrame from "./ActionFrame.svelte";
   import BatchChoice from "./BatchChoice.svelte";
@@ -69,9 +71,10 @@
     }
   });
 
+  let pending: WorkRequest | null = null;
   async function record() {
     busy = true;
-    const outcome = await submit(
+    pending = retainIdentity(
       work.transfer(
         container.id,
         {
@@ -86,7 +89,9 @@
         },
         when,
       ),
+      pending,
     );
+    const outcome = await submit(pending);
     busy = false;
 
     if (outcome.kind === "stored") {

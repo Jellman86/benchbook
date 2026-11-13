@@ -8,6 +8,7 @@ export interface DraftLine {
   plantId: string | null;
   containerId: string | null;
   batchId: string | null;
+  catalogueGross?: number | null;
 }
 
 export const vatRates = [20, 5, 0];
@@ -65,4 +66,28 @@ export function standing(invoice: InvoiceSummary, today: string): string {
 
 export function invoiceNumber(number: number | string): string {
   return String(number).padStart(4, "0");
+}
+
+/** Catalogue prices include VAT; invoice prices are net when registered. */
+export function catalogueNet(
+  gross: number,
+  rate: number,
+  registered: boolean,
+): number {
+  return round(registered ? gross / (1 + rate / 100) : gross);
+}
+
+export function changeRate(
+  line: DraftLine,
+  rate: number,
+  registered: boolean,
+): DraftLine {
+  return {
+    ...line,
+    vatRate: rate,
+    unitPrice:
+      line.catalogueGross == null
+        ? line.unitPrice
+        : catalogueNet(line.catalogueGross, rate, registered),
+  };
 }

@@ -79,16 +79,24 @@ internal static class InvoiceEndpoints
 
     private static async Task<IResult> IssueAsync(InvoiceRequest request, ClaimsPrincipal user, GrowLogDbContext db, EventStore store, TimeProvider clock, CancellationToken cancellationToken)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var requestId = request.Id ?? Guid.CreateVersion7();
+        await store.LockRequestAsync(requestId, cancellationToken);
+        if (await db.Invoices.AsNoTracking().FirstOrDefaultAsync(invoice => invoice.Id == requestId, cancellationToken) is { } stored)
+        {
+            return stored.IssuedBy == UserId(user) && string.Equals(stored.RequestFingerprint, RequestFingerprint.For(request), StringComparison.Ordinal)
+                ? TypedResults.Ok(new InvoiceIssued(stored.Id, stored.Number)) : TypedResults.Conflict(new IssueRefused("IdInUse"));
+        }
         var settings = await db.GetNurserySettingsAsync(cancellationToken);
 
-        if (Problem(request, settings.VatRegistered) is not null
+        if (requestId == Guid.Empty || Problem(request, settings.VatRegistered) is not null
             || await db.Customers.AsNoTracking().FirstOrDefaultAsync(customer => customer.Id == request.CustomerId && customer.ArchivedAt == null, cancellationToken) is not { } customer)
         {
             return TypedResults.BadRequest();
         }
 
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var issuedOn = request.IssuedOn ?? DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
+        var number = await NextNumberAsync(db, cancellationToken);
         var sold = await TakeFromStockAsync(request.Lines, user, store, clock, cancellationToken);
 
         if (sold is { Result: not AppendResult.Stored })
@@ -98,7 +106,13 @@ internal static class InvoiceEndpoints
 
         var invoice = new Invoice
         {
-            Number = await NextNumberAsync(db, cancellationToken),
+            Id = requestId,
+            RequestFingerprint = RequestFingerprint.For(request),
+            SellerName = settings.NurseryName ?? string.Empty,
+            SellerAddress = settings.Address ?? string.Empty,
+            SellerVatNumber = settings.VatNumber ?? string.Empty,
+            SellerContact = string.Join(" · ", new[] { settings.Phone, settings.Email, settings.Website }.Where(part => !string.IsNullOrWhiteSpace(part))),
+            Number = number,
             Kind = InvoiceKind.Invoice,
             CustomerId = customer.Id,
             CustomerName = customer.Name,
@@ -112,7 +126,17 @@ internal static class InvoiceEndpoints
             IssuedBy = UserId(user),
         };
 
-        foreach (var (line, position) in request.Lines.Select((line, index) => (line, index + 1)))
+        AddLines(invoice, request.Lines);
+
+        db.Invoices.Add(invoice);
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return TypedResults.Created($"/api/invoices/{invoice.Id}", new InvoiceIssued(invoice.Id, invoice.Number));
+    }
+
+    private static void AddLines(Invoice invoice, IReadOnlyList<InvoiceLineRequest> lines)
+    {
+        foreach (var (line, position) in lines.Select((line, index) => (line, index + 1)))
         {
             invoice.Lines.Add(new InvoiceLine
             {
@@ -127,10 +151,6 @@ internal static class InvoiceEndpoints
             });
         }
 
-        db.Invoices.Add(invoice);
-        await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return TypedResults.Created($"/api/invoices/{invoice.Id}", new InvoiceIssued(invoice.Id, invoice.Number));
     }
 
     /// <summary>Records the plants taken from trays as one Sold event, or nothing when no line names a tray.</summary>
@@ -194,7 +214,12 @@ internal static class InvoiceEndpoints
         }
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-
+        var number = await NextNumberAsync(db, cancellationToken);
+        await db.Database.ExecuteSqlRawAsync("SELECT 1 FROM invoices WHERE id = {0} FOR UPDATE", [id], cancellationToken);
+        if (await db.Invoices.AnyAsync(invoice => invoice.CreditsInvoiceId == id, cancellationToken))
+        {
+            return TypedResults.Conflict(new IssueRefused("AlreadyCredited"));
+        }
         if (original.SoldEventId is { } soldId)
         {
             var putBack = new Event { Id = Guid.CreateVersion7(), Type = EventType.Corrected, OccurredAt = clock.GetUtcNow(), RecordedBy = UserId(user), CorrectsEventId = soldId };
@@ -203,8 +228,12 @@ internal static class InvoiceEndpoints
 
         var credit = new Invoice
         {
-            Number = await NextNumberAsync(db, cancellationToken),
+            Number = number,
             Kind = InvoiceKind.CreditNote,
+            SellerName = original.SellerName,
+            SellerAddress = original.SellerAddress,
+            SellerVatNumber = original.SellerVatNumber,
+            SellerContact = original.SellerContact,
             CustomerId = original.CustomerId,
             CustomerName = original.CustomerName,
             CustomerAddress = original.CustomerAddress,
@@ -247,7 +276,7 @@ internal static class InvoiceEndpoints
 
     internal sealed record InvoiceLineRequest(string Description, int Quantity, decimal UnitPrice, decimal VatRate, Guid? PlantId, Guid? ContainerId, Guid? BatchId);
 
-    internal sealed record InvoiceRequest(Guid CustomerId, DateOnly? IssuedOn, string? Notes, IReadOnlyList<InvoiceLineRequest> Lines);
+    internal sealed record InvoiceRequest(Guid CustomerId, DateOnly? IssuedOn, string? Notes, IReadOnlyList<InvoiceLineRequest> Lines, Guid? Id = null);
 
     internal sealed record InvoiceIssued(Guid Id, int Number);
 

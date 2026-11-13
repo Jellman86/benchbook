@@ -228,10 +228,9 @@ public sealed class WorkApiTests(PostgresFixture database)
     {
         await using var scene = await CreateSceneAsync();
         var batch = await StartAsync(scene);
-        var eventId = Guid.NewGuid();
-
-        Assert.Equal(HttpStatusCode.Created, await LoseAsync(scene, batch, 5, eventId));
-        Assert.Equal(HttpStatusCode.OK, await LoseAsync(scene, batch, 5, eventId));
+        var body = new { eventId = Guid.NewGuid(), occurredAt = Now, batchId = batch.BatchId, quantity = 5, reason = "Pest" };
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(scene.Staff, $"/api/containers/{batch.ContainerId}/losses", body));
+        Assert.Equal(HttpStatusCode.OK, await PostStatusAsync(scene.Staff, $"/api/containers/{batch.ContainerId}/losses", body));
 
         Assert.Equal(35, await QuantityAsync(scene, batch.LabelCode));
     }
@@ -755,4 +754,48 @@ public sealed class WorkApiTests(PostgresFixture database)
         var note = history.EnumerateArray().Single(entry => string.Equals(entry.GetProperty("type").GetString(), "Note", StringComparison.Ordinal));
         Assert.True(note.GetProperty("occurredAt").GetDateTimeOffset() > DateTimeOffset.UtcNow.AddMinutes(-5));
     }
+
+    [Fact]
+    public async Task Germination_and_its_count_are_undone_together()
+    {
+        await using var scene = await CreateSceneAsync();
+        var started = Json(await PostForTextAsync(scene.Staff, "/api/batches", new { eventId = Guid.NewGuid(), occurredAt = Now.AddDays(-10), plantId = scene.Plant, quantity = 0, source = "SeedLot", sownAs = "Unknown", originCountry = "GB", containerKind = "Tray" }));
+        var tray = started.GetProperty("containerId").GetGuid();
+        var batch = started.GetProperty("batchId").GetGuid();
+        var id = Guid.NewGuid();
+        var body = new { eventId = id, occurredAt = Now, batchId = batch, countEventId = Guid.NewGuid(), counted = 25, rough = true };
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(scene.Staff, $"/api/containers/{tray}/germinated", body));
+        Assert.Equal(HttpStatusCode.OK, await PostStatusAsync(scene.Staff, $"/api/containers/{tray}/germinated", body));
+        var undo = new { eventId = Guid.NewGuid(), occurredAt = Now };
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(scene.Staff, $"/api/events/{id}/correct", undo));
+        Assert.Equal(HttpStatusCode.OK, await PostStatusAsync(scene.Staff, $"/api/events/{id}/correct", undo));
+        var scanned = await ScanAsync(scene, started.GetProperty("labelCode").GetString()!);
+        Assert.True(scanned.GetProperty("contents")[0].GetProperty("notCounted").GetBoolean());
+    }
+
+    [Fact]
+    public async Task A_lost_all_retry_after_success_is_recognised_before_the_empty_tray_is_checked()
+    {
+        await using var scene = await CreateSceneAsync();
+        var started = Json(await PostForTextAsync(scene.Staff, "/api/batches", new { eventId = Guid.NewGuid(), occurredAt = Now.AddDays(-10), plantId = scene.Plant, quantity = 0, source = "SeedLot", sownAs = "Unknown", originCountry = "GB", containerKind = "Tray" }));
+        var tray = started.GetProperty("containerId").GetGuid();
+        var batch = started.GetProperty("batchId").GetGuid();
+        var body = new { eventId = Guid.NewGuid(), occurredAt = Now, batchId = batch, quantity = 0, reason = "FailedToGerminate", all = true };
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(scene.Staff, $"/api/containers/{tray}/losses", body));
+        Assert.Equal(HttpStatusCode.OK, await PostStatusAsync(scene.Staff, $"/api/containers/{tray}/losses", body));
+        Assert.Equal(HttpStatusCode.Created, await PostStatusAsync(scene.Staff, $"/api/containers/{tray}/count", new { eventId = Guid.NewGuid(), occurredAt = Now.AddHours(-1), batchId = batch, counted = 30 }));
+        Assert.Equal(0, await QuantityAsync(scene, started.GetProperty("labelCode").GetString()!));
+    }
+
+    [Fact]
+    public async Task Counting_while_pricking_out_cannot_introduce_an_unrelated_batch()
+    {
+        await using var scene = await CreateSceneAsync();
+        var first = await StartAsync(scene);
+        var other = await StartAsync(scene);
+        using var response = await PostAsync(scene.Staff, $"/api/containers/{first.ContainerId}/transfer", new { eventId = Guid.NewGuid(), occurredAt = Now, batchId = other.BatchId, quantity = 5, type = "PrickedOut", containerKind = "Tray", leftInTray = 10, countEventId = Guid.NewGuid() });
+        Assert.Equal("NotInContainer", await ProblemAsync(response));
+        Assert.Equal(40, await QuantityAsync(scene, first.LabelCode));
+    }
+
 }

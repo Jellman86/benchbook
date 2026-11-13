@@ -191,4 +191,43 @@ public sealed class InvoiceTests(PostgresFixture database)
         using var refused = await nursery.Owner.PostAsync(Route("/api/purchases/read-invoice"), notPdf, Cancellation);
         Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
     }
+
+    [Fact]
+    public async Task Invoice_retries_are_once_only_and_changed_content_is_refused()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var customer = await AddCustomerAsync(nursery.Owner);
+        var (tray, batch, label) = await TrayAsync(nursery, 20);
+        var id = Guid.NewGuid();
+        var body = new { id, customerId = customer, lines = new[] { Line("Lavender", 5, 3, containerId: tray, batchId: batch) } };
+        var replies = await Task.WhenAll(PostAsync(nursery.Owner, "/api/invoices", body), PostAsync(nursery.Owner, "/api/invoices", body));
+        foreach (var reply in replies)
+        {
+            Assert.True(reply.IsSuccessStatusCode);
+            reply.Dispose();
+        }
+        using var changed = await PostAsync(nursery.Owner, "/api/invoices", new { id, customerId = customer, lines = new[] { Line("Lavender", 6, 3, containerId: tray, batchId: batch) } });
+        Assert.Equal(HttpStatusCode.Conflict, changed.StatusCode);
+        Assert.Equal(15, await QuantityAsync(nursery.Staff, label));
+        Assert.Single((await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/invoices"), Cancellation)).EnumerateArray());
+    }
+
+    [Fact]
+    public async Task Invoice_issuer_details_are_snapshots()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        await SetVatAsync(nursery.Owner, registered: true);
+        var customer = await AddCustomerAsync(nursery.Owner);
+        var issued = await IssuedAsync(nursery.Owner, customer, Line("Lavender", 1, 3, 20));
+        await using var scope = nursery.App.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<GrowLogDbContext>();
+        var id = issued.GetProperty("id").GetGuid();
+        var invoice = await db.Invoices.Include(invoice => invoice.Lines).SingleAsync(invoice => invoice.Id == id, Cancellation);
+        var later = new NurserySettings { NurseryName = "Changed", Address = "Elsewhere", VatNumber = "Different" };
+        var document = JsonSerializer.SerializeToElement(GrowLog.Api.Selling.InvoiceDocument.Describe(invoice, later, null));
+        Assert.Equal("Croft View", document.GetProperty("seller").GetProperty("name").GetString());
+        Assert.Equal("Croft Lane", document.GetProperty("seller").GetProperty("address")[0].GetString());
+        Assert.Contains("GB123456789", document.GetProperty("seller").GetProperty("vat").GetString(), StringComparison.Ordinal);
+    }
+
 }

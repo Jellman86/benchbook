@@ -60,7 +60,7 @@ public sealed class PassportTests(PostgresFixture database)
         bool changed = false,
         bool underCover = false,
         bool? host = false) =>
-        new(source, "NL", Now.AddDays(-daysHere), Now, changed, underCover ? Now.AddDays(-daysHere) : null, host);
+        new(source, "NL", Now.AddDays(-daysHere), Now, changed, underCover ? Now.AddDays(-daysHere) : null, host, ActiveGrowthConfirmed: true, OutsideSince: underCover ? null : Now.AddDays(-daysHere));
 
     [Theory]
     [InlineData(1, false, false, "NL")]
@@ -167,7 +167,8 @@ public sealed class PassportTests(PostgresFixture database)
         Assert.Equal("NL", await PartDAsync(nursery.Staff, moved, movedTray));
 
         var (covered, coveredTray) = await BuyInAtAsync(nursery, tunnel, DateTimeOffset.UtcNow.AddDays(-15));
-        Assert.Equal("GB", await PartDAsync(nursery.Staff, covered, coveredTray));
+        Assert.Equal("NL", await PartDAsync(nursery.Staff, covered, coveredTray));
+        Assert.True((await DraftAsync(nursery.Staff, covered, coveredTray)).GetProperty("needsActiveGrowthConfirmation").GetBoolean());
 
         // Plane trees host Ceratocystis platani, so they wait a year.
         var (plane, planeTray) = await BuyInAtAsync(nursery, tunnel, DateTimeOffset.UtcNow.AddDays(-30), "Platanus x hispanica");
@@ -235,4 +236,63 @@ public sealed class PassportTests(PostgresFixture database)
         var change = Assert.Single(trace.GetProperty("corrections").EnumerateArray());
         Assert.Equal(("Sow by", "2027-12", "2028-06"), (change.GetProperty("field").GetString(), change.GetProperty("before").GetString(), change.GetProperty("after").GetString()));
     }
+
+    [Theory]
+    [InlineData(true, 15)]
+    [InlineData(false, 29)]
+    public void Time_rules_need_a_confirmation_of_active_growth(bool covered, int days)
+    {
+        var facts = Facts(daysHere: days, underCover: covered) with { ActiveGrowthConfirmed = false };
+        var decision = PassportOrigin.Decide(facts);
+        Assert.Equal("NL", decision.Country);
+        Assert.True(decision.NeedsActiveGrowthConfirmation);
+        Assert.Equal("GB", PassportOrigin.Decide(facts with { ActiveGrowthConfirmed = true }).Country);
+    }
+
+    [Theory]
+    [InlineData("ZZ", false)]
+    [InlineData("UK", false)]
+    [InlineData("GB", true)]
+    [InlineData("NL", true)]
+    [InlineData("AX", true)]
+    public void Part_d_uses_assigned_country_codes(string country, bool valid) => Assert.Equal(valid, PassportParts.Country(country));
+
+    [Theory]
+    [InlineData("Lavender", false)]
+    [InlineData("Lavandula", false)]
+    [InlineData("Lavandula sp.", true)]
+    [InlineData("Lavandula angustifolia", true)]
+    [InlineData("Lavandula   angustifolia", true)]
+    public void Botanical_names_need_genus_and_species_or_sp(string name, bool valid) => Assert.Equal(valid, PassportParts.Botanical(name));
+
+    [Fact]
+    public async Task A_changed_passport_retry_is_refused()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        await RegisterAsync(nursery.Owner, "12345");
+        var (batch, tray) = await BuyInAsync(nursery);
+        var id = Guid.NewGuid();
+        using var first = await IssueAsync(nursery.Staff, batch, tray, passportId: id);
+        using var same = await IssueAsync(nursery.Staff, batch, tray, passportId: id);
+        using var changed = await IssueAsync(nursery.Staff, batch, tray, quantity: 11, passportId: id);
+        Assert.Equal(HttpStatusCode.Created, first.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, same.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, changed.StatusCode);
+    }
+
+    [Fact]
+    public async Task Active_growth_is_confirmed_and_recorded_at_issue()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        await RegisterAsync(nursery.Owner, "12345");
+        var (_, tunnel) = await PlacesAsync(nursery.Owner);
+        var (batch, tray) = await BuyInAtAsync(nursery, tunnel, DateTimeOffset.UtcNow.AddDays(-15));
+        var id = Guid.NewGuid();
+        using var issued = await PostAsync(nursery.Staff, "/api/passports", new { passportId = id, batchId = batch, containerId = tray, quantity = 10, issuedTo = "Hilltop", examined = true, expectedPartD = "GB", activeGrowthConfirmed = true });
+        Assert.Equal(HttpStatusCode.Created, issued.StatusCode);
+        var passport = (await nursery.Staff.GetFromJsonAsync<JsonElement>(Route($"/api/passports?batchId={batch}"), Cancellation))[0];
+        Assert.Equal("GB", passport.GetProperty("partD").GetString());
+        Assert.Contains("Confirmed", passport.GetProperty("originRule").GetString(), StringComparison.Ordinal);
+    }
+
 }

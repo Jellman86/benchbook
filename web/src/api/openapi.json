@@ -5,7 +5,7 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/api/health": {
+    "/api/health/live": {
       "get": {
         "tags": [
           "GrowLog.Api"
@@ -20,6 +20,28 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "HealthEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable"
           }
         }
       }
@@ -7250,6 +7272,33 @@
           "occurredAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "countEventId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "batchId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "counted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "rough": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -7783,6 +7832,13 @@
             "items": {
               "$ref": "#/components/schemas/InvoiceLineRequest"
             }
+          },
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -7910,6 +7966,14 @@
             "items": {
               "type": "string"
             }
+          },
+          "needsActiveGrowthConfirmation": {
+            "type": "boolean",
+            "default": false
+          },
+          "propagatingMaterial": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -7973,6 +8037,10 @@
               "null",
               "string"
             ]
+          },
+          "activeGrowthConfirmed": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -9048,6 +9116,10 @@
               "string"
             ],
             "format": "int32"
+          },
+          "propagatingMaterial": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -9121,6 +9193,10 @@
               "null",
               "string"
             ]
+          },
+          "activeGrowthConfirmed": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -10488,6 +10564,13 @@
             "items": {
               "$ref": "#/components/schemas/LineRequest"
             }
+          },
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -10779,6 +10862,19 @@
           },
           "originCountry": {
             "type": "string"
+          },
+          "motherPlantId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "motherPlant": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -12551,6 +12647,9 @@
   "tags": [
     {
       "name": "GrowLog.Api"
+    },
+    {
+      "name": "HealthEndpoints"
     },
     {
       "name": "SpeciesEndpoints"

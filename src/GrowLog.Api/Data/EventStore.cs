@@ -27,14 +27,6 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
             throw new ArgumentException("A stock count must be a StockCounted event on a container.", nameof(stockCount));
         }
 
-        // A count can only say how many of a batch are in a container the batch has been in.
-        if (!await db.EventLines.AnyAsync(line => line.ContainerId == containerId && line.BatchId == batchId, cancellationToken))
-        {
-            return await db.Events.AnyAsync(e => e.Id == stockCount.Id, cancellationToken)
-                ? AppendResult.AlreadyStored
-                : AppendResult.NotInContainer;
-        }
-
         stockCount.Payload = rough
             ? JsonSerializer.Serialize(new { batchId, counted, rough })
             : JsonSerializer.Serialize(new { batchId, counted });
@@ -107,22 +99,25 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
     /// </summary>
     public async Task<AppendResult> AppendCountThenAsync(Event stockCount, Guid batchId, int counted, Event then, CancellationToken cancellationToken)
     {
+        var outer = db.Database.CurrentTransaction is not null;
+        await using var transaction = outer ? null : await db.Database.BeginTransactionAsync(cancellationToken);
+        await LockAsync(stockCount.ContainerId is { } source ? [source] : [], cancellationToken);
         PutOnServerClock(then);
 
         // Placed after its tray's start first, if need be, so the count still falls just before it.
         if (!Starts.Contains(then.Type)
             && await StartedAsync(then, [.. then.Lines.Select(line => new StockKey(line.ContainerId, line.BatchId))], cancellationToken) is { PutPlantsIn: true } started
-            && then.OccurredAt <= started.At.AddSeconds(1)
+            && then.OccurredAt <= started.At.AddTicks(10)
             && SameDay(then.OccurredAt, started.At))
         {
-            then.OccurredAt = started.At.AddMinutes(1);
+            if (!await PlaceAfterStartAsync(then, started.At, 20, cancellationToken))
+            {
+                return AppendResult.BeforeStart;
+            }
         }
 
-        stockCount.OccurredAt = then.OccurredAt.AddSeconds(-1);
+        stockCount.OccurredAt = then.OccurredAt.AddTicks(-10);
         stockCount.Payload = JsonSerializer.Serialize(new { batchId, counted });
-
-        var outer = db.Database.CurrentTransaction is not null;
-        await using var transaction = outer ? null : await db.Database.BeginTransactionAsync(cancellationToken);
 
         var first = await AppendCoreAsync(stockCount, cancellationToken, alreadyOnServerClock: true);
 
@@ -180,6 +175,7 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
 
     private async Task<AppendResult> AppendCoreAsync(Event newEvent, CancellationToken cancellationToken, bool alreadyOnServerClock = false)
     {
+        newEvent.RequestFingerprint ??= device?.RequestFingerprint;
         if (!alreadyOnServerClock)
         {
             PutOnServerClock(newEvent);
@@ -189,14 +185,8 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
         var outer = db.Database.CurrentTransaction is not null;
         await using var transaction = outer ? null : await db.Database.BeginTransactionAsync(cancellationToken);
 
-        var reversed = await ReversedKeysAsync(newEvent.CorrectsEventId, cancellationToken);
-        var keys = newEvent.Lines.Select(line => new StockKey(line.ContainerId, line.BatchId))
-            .Concat(reversed)
-            .Concat(newEvent.ContainerId is { } containerId && CountOf(newEvent.Payload) is { } count && newEvent.Type == EventType.StockCounted
-                ? [new StockKey(containerId, count.BatchId)]
-                : [])
-            .Distinct()
-            .ToList();
+        await LockRequestAsync(newEvent.Id, cancellationToken);
+        var keys = await KeysAsync(newEvent, cancellationToken);
 
         await LockContainersAsync(keys, newEvent.ContainerId, cancellationToken);
 
@@ -204,6 +194,12 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
         if (await RefusedAsync(newEvent, keys, cancellationToken) is { } refused)
         {
             return refused;
+        }
+
+        if (newEvent.Type == EventType.StockCounted && newEvent.ContainerId is { } countedContainer && CountOf(newEvent.Payload) is { } counted
+            && !await db.EventLines.AnyAsync(line => line.ContainerId == countedContainer && line.BatchId == counted.BatchId, cancellationToken))
+        {
+            return AppendResult.NotInContainer;
         }
 
         foreach (var key in keys)
@@ -238,6 +234,19 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
         }
     }
 
+    private async Task<List<StockKey>> KeysAsync(Event newEvent, CancellationToken cancellationToken)
+    {
+        var reversed = await ReversedKeysAsync(newEvent.CorrectsEventId, cancellationToken);
+        return newEvent.Lines.Select(line => new StockKey(line.ContainerId, line.BatchId))
+            .Concat(reversed)
+            .Concat(newEvent.ContainerId is { } containerId && CountOf(newEvent.Payload) is { } count && newEvent.Type == EventType.StockCounted
+                ? [new StockKey(containerId, count.BatchId)]
+                : [])
+            .Distinct()
+            .ToList();
+
+    }
+
     /// <summary>A resend, an identifier clash, or work dated before its tray was started; null if the work can go in.</summary>
     private async Task<AppendResult?> RefusedAsync(Event newEvent, List<StockKey> keys, CancellationToken cancellationToken)
     {
@@ -270,8 +279,7 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
             return true;
         }
 
-        newEvent.OccurredAt = first.At.AddMinutes(1);
-        return false;
+        return !await PlaceAfterStartAsync(newEvent, first.At, 10, cancellationToken);
     }
 
     private bool SameDay(DateTimeOffset one, DateTimeOffset other) =>
@@ -288,15 +296,36 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
             .Distinct()
             .ToList();
 
-        var first = await db.Events
+        var candidates = await db.Events.AsNoTracking().Include(e => e.Lines)
             .Where(e => !db.Events.Any(c => c.CorrectsEventId == e.Id)
-                && e.CorrectsEventId == null
+                && (e.CorrectsEventId == null || e.Lines.Any() || e.LocationId != null)
                 && ((e.ContainerId != null && containers.Contains(e.ContainerId.Value)) || e.Lines.Any(line => containers.Contains(line.ContainerId))))
-            .OrderBy(e => e.OccurredAt)
-            .Select(e => new { e.OccurredAt, PutPlantsIn = e.Lines.Any(line => containers.Contains(line.ContainerId) && line.QuantityChange >= 0) })
-            .FirstOrDefaultAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
+        (DateTimeOffset At, bool PutPlantsIn)? first = null;
+        foreach (var candidate in candidates)
+        {
+            var resolved = await EventHistory.ResolveAsync(candidate, db, cancellationToken);
+            if (first is null || resolved.At < first.Value.At)
+            {
+                first = (resolved.At, candidate.Lines.Any(line => containers.Contains(line.ContainerId) && line.QuantityChange >= 0));
+            }
+        }
+        return first;
+    }
 
-        return first is null ? null : (first.OccurredAt, first.PutPlantsIn);
+    private async Task<bool> PlaceAfterStartAsync(Event work, DateTimeOffset start, int ticks, CancellationToken cancellationToken)
+    {
+        var next = start.AddTicks(ticks);
+        var containerIds = work.Lines.Select(line => line.ContainerId).Concat(work.ContainerId is { } id ? [id] : []).Distinct().ToList();
+        var observation = await db.Events.Where(e => e.OccurredAt > start && e.ContainerId != null && containerIds.Contains(e.ContainerId.Value)
+                && !db.Events.Any(c => c.CorrectsEventId == e.Id))
+            .MinAsync(e => (DateTimeOffset?)e.OccurredAt, cancellationToken);
+        if (!SameDay(start, next) || observation <= next)
+        {
+            return false;
+        }
+        work.OccurredAt = next;
+        return true;
     }
 
     /// <summary>Work timed by a device whose clock is out is put back on the server's clock, and never in the future.</summary>
@@ -316,26 +345,58 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
     }
 
     /// <summary>A resend of the same work, or a clash with different work under the same identifier.</summary>
-    private async Task<AppendResult?> AlreadyStoredAsync(Event newEvent, CancellationToken cancellationToken)
+    public async Task LockRequestAsync(Guid id, CancellationToken cancellationToken) =>
+        await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(hashtextextended({0}, 0))", [id.ToString()], cancellationToken);
+
+    /// <summary>Recognises the original request before stock-dependent decisions are made.</summary>
+    public async Task<AppendResult?> MatchRequestAsync(Guid id, Guid recordedBy, CancellationToken cancellationToken)
     {
-        var stored = await db.Events
-            .AsNoTracking()
-            .Where(e => e.Id == newEvent.Id)
-            .Select(e => new { e.Type, e.RecordedBy, e.CorrectsEventId })
-            .FirstOrDefaultAsync(cancellationToken);
+        var stored = await db.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 
         if (stored is null)
         {
             return null;
         }
 
-        // The container isn't compared: work that makes a container makes a new one on each try.
-        var same = stored.Type == newEvent.Type
-            && stored.RecordedBy == newEvent.RecordedBy
-            && stored.CorrectsEventId == newEvent.CorrectsEventId;
+        if (stored.RecordedBy != recordedBy)
+        {
+            return AppendResult.IdInUse;
+        }
 
+        // Work saved before fingerprints were kept is left to the full comparison of its contents when appended.
+        if (stored.RequestFingerprint is null)
+        {
+            return null;
+        }
+
+        return string.Equals(stored.RequestFingerprint, device?.RequestFingerprint, StringComparison.Ordinal)
+            ? AppendResult.AlreadyStored : AppendResult.IdInUse;
+    }
+
+    private async Task<AppendResult?> AlreadyStoredAsync(Event newEvent, CancellationToken cancellationToken)
+    {
+        var stored = await db.Events.AsNoTracking().Include(e => e.Lines).FirstOrDefaultAsync(e => e.Id == newEvent.Id, cancellationToken);
+        if (stored is null)
+        {
+            return null;
+        }
+        var same = stored.Type == newEvent.Type && stored.RecordedBy == newEvent.RecordedBy && stored.CorrectsEventId == newEvent.CorrectsEventId;
+        if (stored.RequestFingerprint is not null && newEvent.RequestFingerprint is not null)
+        {
+            same &= string.Equals(stored.RequestFingerprint, newEvent.RequestFingerprint, StringComparison.Ordinal);
+        }
+        else
+        {
+            same &= SameContent(stored, newEvent);
+        }
         return same ? AppendResult.AlreadyStored : AppendResult.IdInUse;
     }
+
+    private static bool SameContent(Event stored, Event incoming) =>
+        stored.ContainerId == incoming.ContainerId && stored.LocationId == incoming.LocationId && stored.PotSizeId == incoming.PotSizeId
+        && JsonElement.DeepEquals(JsonSerializer.Deserialize<JsonElement>(stored.Payload), JsonSerializer.Deserialize<JsonElement>(incoming.Payload))
+        && (stored.Type == EventType.StockCounted || stored.Lines.Select(line => (line.ContainerId, line.BatchId, line.QuantityChange, line.EffectiveAt)).ToHashSet()
+            .SetEquals(incoming.Lines.Select(line => (line.ContainerId, line.BatchId, line.QuantityChange, line.EffectiveAt))));
 
     /// <summary>The stock an undo or correction takes away from, including what a reversed count absorbed.</summary>
     private async Task<List<StockKey>> ReversedKeysAsync(Guid? correctedId, CancellationToken cancellationToken)
@@ -383,6 +444,11 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
             counts.Add(new TimedCount(newEvent.Id, newEvent.OccurredAt, own.Counted));
         }
 
+        if (newEvent.Type == EventType.Lost && LostAll(newEvent.Payload) && newEvent.ContainerId == key.ContainerId)
+        {
+            counts.Add(new TimedCount(newEvent.Id, newEvent.OccurredAt, 0));
+        }
+
         foreach (var count in counts.OrderBy(count => count.At))
         {
             var difference = count.Counted - changes.Where(change => change.At <= count.At).Sum(change => change.Quantity);
@@ -392,7 +458,7 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
                 continue;
             }
 
-            if (count.EventId == newEvent.Id)
+            if (count.EventId == newEvent.Id && newEvent.Type == EventType.StockCounted)
             {
                 newEvent.Lines.Add(new EventLine { ContainerId = key.ContainerId, BatchId = key.BatchId, QuantityChange = difference, EffectiveAt = count.At });
             }
@@ -451,7 +517,12 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
             .Where(e => LostAll(e.Payload))
             .Select(e => new TimedCount(e.Id, e.OccurredAt, 0));
 
-        return [.. counts
+        var legacy = await db.Set<LegacyCount>()
+            .Where(count => count.ContainerId == key.ContainerId && count.BatchId == key.BatchId && count.EventId != ignoring
+                && !db.Events.Any(c => c.CorrectsEventId == count.EventId))
+            .Join(db.Events, count => count.EventId, e => e.Id, (count, e) => new TimedCount(e.Id, e.OccurredAt, count.Counted))
+            .ToListAsync(cancellationToken);
+        return [.. legacy, .. counts
             .Select(e => (e.Id, e.OccurredAt, Count: CountOf(e.Payload)))
             .Where(e => e.Count is { } count && count.BatchId == key.BatchId)
             .Select(e => new TimedCount(e.Id, e.OccurredAt, e.Count!.Counted))
@@ -565,9 +636,14 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
             .Distinct()
             .ToArray();
 
+        await LockAsync(containerIds, cancellationToken);
+    }
+
+    public async Task LockAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken)
+    {
         await db.Database.ExecuteSqlRawAsync(
             "SELECT 1 FROM containers WHERE id = ANY({0}) ORDER BY id FOR UPDATE",
-            [containerIds],
+            [ids.Distinct().ToArray()],
             cancellationToken);
     }
 

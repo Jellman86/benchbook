@@ -76,6 +76,10 @@ export const packagesReady = (packages: DraftLine[][]) =>
 /** Why a consignment or a package passport wasn't recorded, in words. */
 export function consignmentProblem(status: number, problem?: string): string {
   switch (problem) {
+    case "InvoiceCancelled":
+      return "The invoice was cancelled. These plants can no longer use that invoice for a passport.";
+    case "IdInUse":
+      return "That identifier was already used for different work. Start a new form.";
     case "TooMany":
       return "A tray doesn't hold that many now. Check the numbers.";
     case "NotExamined":

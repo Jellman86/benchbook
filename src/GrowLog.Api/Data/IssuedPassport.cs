@@ -31,6 +31,8 @@ internal sealed class IssuedPassport
     /// <summary>The rule that gave Part D, in words, so it can be checked later.</summary>
     public required string OriginRule { get; init; }
 
+    public bool? ActiveGrowthConfirmed { get; init; }
+
     public Guid? CustomerId { get; init; }
 
     /// <summary>The package it was issued for, when it covers a package of several batches with others.</summary>
@@ -45,6 +47,8 @@ internal sealed class IssuedPassport
     public required Guid ExaminationEventId { get; init; }
 
     public required Guid IssuedBy { get; init; }
+
+    public string? RequestFingerprint { get; init; }
 
     public DateTimeOffset CreatedAt { get; private set; }
 }

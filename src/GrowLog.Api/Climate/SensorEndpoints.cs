@@ -18,7 +18,7 @@ internal static class SensorEndpoints
     private const int KeptYears = 2;
 
     /// <summary>A sensor sending more often than this is refused, so a fault can't fill the database.</summary>
-    private static readonly TimeSpan Fastest = TimeSpan.FromSeconds(50);
+    private static readonly TimeSpan Fastest = TimeSpan.FromMinutes(1);
 
     public static void MapSensorEndpoints(this IEndpointRouteBuilder app)
     {
@@ -164,15 +164,33 @@ internal static class SensorEndpoints
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await db.Database.ExecuteSqlRawAsync("SELECT 1 FROM sensors WHERE id = {0} FOR UPDATE", [sensor.Id], cancellationToken);
 
-        if (await db.SensorReadings.AnyAsync(reading => reading.SensorId == sensor.Id && reading.TakenAt > takenAt - Fastest && reading.TakenAt < takenAt + Fastest, cancellationToken))
+        now = clock.GetUtcNow();
+        var locked = await db.Sensors.SingleAsync(item => item.Id == sensor.Id, cancellationToken);
+        if (locked.ArchivedAt is not null || !locked.KeyHash.AsSpan().SequenceEqual(hash))
+        {
+            return TypedResults.Unauthorized();
+        }
+        if (await db.SensorReadings.AnyAsync(reading => reading.SensorId == sensor.Id && reading.TakenAt == takenAt, cancellationToken))
+        {
+            return TypedResults.NoContent();
+        }
+        if (locked.LastReceivedAt > now - Fastest)
         {
             return TypedResults.StatusCode(StatusCodes.Status429TooManyRequests);
         }
 
+        await SaveReadingAsync(request, locked, takenAt, now, db, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return TypedResults.NoContent();
+    }
+
+    private static async Task SaveReadingAsync(SensorReadingRequest request, Sensor sensor, DateTimeOffset takenAt, DateTimeOffset now, GrowLogDbContext db, CancellationToken cancellationToken)
+    {
         // Readings are kept two years, enough to compare a season with last year's.
         var kept = now.AddYears(-KeptYears);
         await db.SensorReadings.Where(reading => reading.SensorId == sensor.Id && reading.TakenAt < kept).ExecuteDeleteAsync(cancellationToken);
 
+        sensor.LastReceivedAt = now;
         db.SensorReadings.Add(new SensorReading
         {
             SensorId = sensor.Id,
@@ -182,8 +200,6 @@ internal static class SensorEndpoints
             Humidity = request.Humidity is { } humidity ? Math.Round(humidity, 2) : null,
         });
         await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return TypedResults.NoContent();
     }
 
     internal sealed record SensorRequest(string Name, Guid LocationId);

@@ -140,7 +140,7 @@ public sealed class PrinterTests(PostgresFixture database)
     public async Task The_server_never_prints_to_itself()
     {
         await using var nursery = await NurseryAsync(database, allowLocal: false);
-        var printer = await AddPrinterAsync(nursery.Owner, Printer("Sneaky", 5432));
+        var printer = await AddPrinterAsync(nursery.Owner, Printer("Sneaky", 9100));
 
         using var response = await nursery.Owner.PostAsync(Route($"/api/printers/{printer}/test"), content: null, Cancellation);
 
@@ -158,4 +158,22 @@ public sealed class PrinterTests(PostgresFixture database)
     [InlineData("::ffff:127.0.0.1", false)]
     public void Only_addresses_a_printer_could_have_are_used(string address, bool usable) =>
         Assert.Equal(usable, PrinterConnection.IsPrinterAddress(IPAddress.Parse(address)));
+
+    [Theory]
+    [InlineData(9100, true)]
+    [InlineData(9101, true)]
+    [InlineData(9102, true)]
+    [InlineData(515, true)]
+    [InlineData(631, true)]
+    [InlineData(80, false)]
+    [InlineData(443, false)]
+    public void Only_printer_ports_are_allowed(int port, bool allowed) => Assert.Equal(allowed, PrinterConnection.IsPrinterPort(port));
+
+    [Fact]
+    public void The_servers_own_interface_addresses_are_never_printer_destinations()
+    {
+        var addresses = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()
+            .SelectMany(network => network.GetIPProperties().UnicastAddresses).Select(address => address.Address);
+        Assert.All(addresses, address => Assert.False(PrinterConnection.IsPrinterAddress(address)));
+    }
 }

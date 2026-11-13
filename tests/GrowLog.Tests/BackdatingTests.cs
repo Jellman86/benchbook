@@ -49,7 +49,7 @@ public sealed class BackdatingTests(PostgresFixture database)
 
         var history = (await nursery.Staff.GetFromJsonAsync<JsonElement>(Route($"/api/containers/{tray}/history"), Cancellation)).EnumerateArray().ToList();
         var lost = history.Single(entry => string.Equals(entry.GetProperty("type").GetString(), "Lost", StringComparison.Ordinal));
-        Assert.Equal(sown.AddMinutes(1), lost.GetProperty("occurredAt").GetDateTimeOffset());
+        Assert.Equal(sown.AddTicks(10), lost.GetProperty("occurredAt").GetDateTimeOffset());
     }
 
     [Fact]
@@ -72,4 +72,23 @@ public sealed class BackdatingTests(PostgresFixture database)
         var pricked = Json(await PostForTextAsync(nursery.Staff, $"/api/containers/{tray}/transfer", new { eventId = Guid.NewGuid(), occurredAt = sown.AddDays(2.5), type = "PrickedOut", batchId = batch, quantity = 10, containerKind = "Tray" }));
         Assert.True(pricked.GetProperty("countedSince").GetBoolean());
     }
+
+    [Fact]
+    public async Task Nudged_work_stays_before_a_nearby_count_and_on_its_chosen_day()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var plant = Json(await PostForTextAsync(nursery.Owner, "/api/plants", new { commonName = "Cosmos" })).GetProperty("id").GetGuid();
+        var start = new DateTimeOffset(DateTime.UtcNow.Date.AddDays(-3).AddHours(23).AddMinutes(59).AddSeconds(50), TimeSpan.Zero);
+        var started = Json(await PostForTextAsync(nursery.Staff, "/api/batches", new { eventId = Guid.NewGuid(), occurredAt = start, plantId = plant, quantity = 40, source = "SeedLot", originCountry = "GB", containerKind = "Tray" }));
+        var tray = started.GetProperty("containerId").GetGuid();
+        var batch = started.GetProperty("batchId").GetGuid();
+        await PostForTextAsync(nursery.Staff, $"/api/containers/{tray}/count", new { eventId = Guid.NewGuid(), occurredAt = start.AddSeconds(5), batchId = batch, counted = 30 });
+        var loss = Json(await PostForTextAsync(nursery.Staff, $"/api/containers/{tray}/losses", new { eventId = Guid.NewGuid(), occurredAt = start.AddHours(-12), batchId = batch, quantity = 2, reason = "Pest" }));
+        Assert.True(loss.GetProperty("countedSince").GetBoolean());
+        var history = (await nursery.Staff.GetFromJsonAsync<JsonElement>(Route($"/api/containers/{tray}/history"), Cancellation)).EnumerateArray();
+        var lost = history.Single(entry => string.Equals(entry.GetProperty("type").GetString(), "Lost", StringComparison.Ordinal)).GetProperty("occurredAt").GetDateTimeOffset();
+        Assert.True(lost > start && lost < start.AddSeconds(5));
+        Assert.Equal(start.Date, lost.Date);
+    }
+
 }

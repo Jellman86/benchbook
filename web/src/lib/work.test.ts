@@ -8,6 +8,7 @@ import {
   placeLabel,
   plantName,
   repeatOf,
+  retainIdentity,
   work,
   workPlaces,
   shortCredit,
@@ -152,6 +153,26 @@ describe("repeatOf", () => {
     });
   });
 
+  it("keeps the mother when repeating cuttings", () => {
+    const repeat = repeatOf(
+      action({
+        type: "CuttingsTaken",
+        lines: [
+          {
+            ...line,
+            source: "Cuttings",
+            motherPlant: "Hidcote mother",
+            motherPlantId: "m1",
+          },
+        ],
+      }),
+    );
+    expect(repeat?.body).toMatchObject({
+      motherPlant: "Hidcote mother",
+      motherPlantId: "m1",
+    });
+  });
+
   it("gives every repeat its own identifier", () => {
     expect(repeatOf(action({}))?.body.eventId).not.toBe(
       repeatOf(action({}))?.body.eventId,
@@ -231,5 +252,25 @@ describe("photo credits", () => {
 
   it("leaves other credits alone", () => {
     expect(shortCredit("(c) Jo Reed (CC BY)")).toBe("(c) Jo Reed (CC BY)");
+  });
+});
+
+describe("retry identities", () => {
+  it("keeps the first identifier and time across a lost reply", () => {
+    const first = work.note(
+      "tray",
+      { note: "Checked" },
+      "2026-11-13T10:00:00Z",
+    );
+    const later = {
+      ...first,
+      body: {
+        ...first.body,
+        eventId: "different",
+        occurredAt: "2026-11-13T10:01:00Z",
+      },
+    };
+    expect(retainIdentity(later, first)).toEqual(first);
+    expect(retainIdentity(later, null)).toEqual(later);
   });
 });

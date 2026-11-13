@@ -45,6 +45,8 @@ export function forgetPrinters() {
 }
 
 export const printProblems: Record<string, string> = {
+  LabelTooSmall:
+    "The label stock is too small for this passport. Choose a larger label.",
   "not-found": "GrowLog couldn't find a printer at that address.",
   "not-allowed":
     "That address belongs to the server itself, so it can't be a printer.",

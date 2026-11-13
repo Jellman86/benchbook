@@ -1,3 +1,4 @@
+import { isoDay } from "./days";
 /** The last day of a month, as a date the API takes: a packet's "sow by 12/2027" runs to the end of December. */
 export function monthEnd(year: number, month: number): string {
   const last = new Date(year, month, 0).getDate();
@@ -27,4 +28,4 @@ export function sowByWords(value: string | null | undefined): string {
 export const sowByPassed = (
   value: string | null | undefined,
   now = new Date(),
-) => !!value && value < now.toISOString().slice(0, 10);
+) => !!value && value < isoDay(now);

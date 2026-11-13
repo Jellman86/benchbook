@@ -1,3 +1,4 @@
+using System.Data;
 using System.IO.Compression;
 using System.Text;
 using GrowLog.Api.Accounts;
@@ -45,6 +46,7 @@ internal static class ExportEndpoints
 
     private static async Task<IResult> ExportAsync(GrowLogDbContext db, EventStore store, TimeProvider clock, CancellationToken cancellationToken)
     {
+        await using var snapshot = await db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken);
         var names = await Names.LoadAsync(db, cancellationToken);
         Sheet[] sheets =
         [
@@ -55,6 +57,8 @@ internal static class ExportEndpoints
             await BatchesAsync(db, names, cancellationToken),
             await TraysAsync(db, store, cancellationToken),
             await WorkAsync(db, names, cancellationToken),
+            await AdjustmentsAsync(db, cancellationToken),
+            await LegacyCountsAsync(db, cancellationToken),
             await PurchasesAsync(db, names, cancellationToken),
             await InvoicesAsync(db, names, cancellationToken),
             await TillAsync(db, cancellationToken),
@@ -139,10 +143,10 @@ internal static class ExportEndpoints
         var undone = (await db.Events.Where(e => e.CorrectsEventId != null).Select(e => e.CorrectsEventId!.Value).ToListAsync(cancellationToken)).ToHashSet();
         var events = await db.Events.AsNoTracking().Include(e => e.Lines).OrderBy(e => e.OccurredAt).ThenBy(e => e.RecordedAt).ToListAsync(cancellationToken);
 
-        return new("work", ["When", "Recorded", "What", "Tray or pot", "Batch", "Change in plants", "Place", "By", "Details", "Undone or corrected", "Corrects", "Work id"],
+        return new("work", ["When", "Recorded", "What", "Tray or pot", "Batch", "Change in plants", "Place", "By", "Details", "Undone or corrected", "Corrects", "Work id", "Line effective time"],
             events.SelectMany(e =>
             {
-                object?[] Row(Guid? container, Guid? batch, int? change) =>
+                object?[] Row(Guid? container, Guid? batch, int? change, DateTimeOffset? effectiveAt) =>
                 [
                     e.OccurredAt, e.RecordedAt, e.Type,
                     container is { } c ? names.Containers.GetValueOrDefault(c) : null,
@@ -154,13 +158,24 @@ internal static class ExportEndpoints
                     undone.Contains(e.Id),
                     e.CorrectsEventId,
                     e.Id,
+                    effectiveAt,
                 ];
 
                 return e.Lines.Count == 0
-                    ? [Row(e.ContainerId, null, null)]
-                    : e.Lines.Select(line => Row(line.ContainerId, line.BatchId, line.QuantityChange));
+                    ? [Row(e.ContainerId, null, null, null)]
+                    : e.Lines.Select(line => Row(line.ContainerId, line.BatchId, line.QuantityChange, line.EffectiveAt ?? e.OccurredAt));
             }));
     }
+
+    private static async Task<Sheet> AdjustmentsAsync(GrowLogDbContext db, CancellationToken cancellationToken) =>
+        new("count-adjustments", ["Work id", "Count work id", "Container id", "Batch id", "Change in plants"],
+            (await db.CountAdjustments.AsNoTracking().ToListAsync(cancellationToken))
+                .Select(adjustment => new object?[] { adjustment.EventId, adjustment.CountEventId, adjustment.ContainerId, adjustment.BatchId, adjustment.QuantityChange }));
+
+    private static async Task<Sheet> LegacyCountsAsync(GrowLogDbContext db, CancellationToken cancellationToken) =>
+        new("legacy-counts", ["Count work id", "Container id", "Batch id", "Counted"],
+            (await db.Set<LegacyCount>().AsNoTracking().ToListAsync(cancellationToken))
+                .Select(count => new object?[] { count.EventId, count.ContainerId, count.BatchId, count.Counted }));
 
     private static async Task<Sheet> PurchasesAsync(GrowLogDbContext db, Names names, CancellationToken cancellationToken) =>
         new("purchases", ["Bought", "Supplier", "Reference", "Item", "Quantity", "Cost before VAT", "VAT", "Paid", "Cancelled", "Notes"],

@@ -11,6 +11,8 @@ namespace GrowLog.Api.Labels;
 /// </summary>
 internal sealed class LabelPrinter(IConfiguration configuration)
 {
+    private static readonly SemaphoreSlim Processes = new(Math.Max(1, Environment.ProcessorCount));
+
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 
     public const int MostCopies = 100;
@@ -43,11 +45,19 @@ internal sealed class LabelPrinter(IConfiguration configuration)
             var drawn = new byte[jobs.Count][];
             var size = new Output("svg", sheet.WidthMm, sheet.HeightMm, null);
 
-            // A few at a time: each is its own Typst run.
+            var unique = Enumerable.Range(0, jobs.Count).GroupBy(index => JsonSerializer.Serialize(jobs[index]), StringComparer.Ordinal);
+            // Identical labels share one render, including when they fill several sheets.
             await Parallel.ForEachAsync(
-                Enumerable.Range(0, jobs.Count),
+                unique,
                 new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = cancellationToken },
-                async (index, token) => drawn[index] = await RenderAsync(jobs[index], size, 1, token));
+                async (group, token) =>
+                {
+                    var label = await RenderAsync(jobs[group.First()], size, 1, token);
+                    foreach (var index in group)
+                    {
+                        drawn[index] = label;
+                    }
+                });
 
             for (var index = 0; index < drawn.Length; index++)
             {
@@ -166,6 +176,19 @@ internal sealed class LabelPrinter(IConfiguration configuration)
 
     private async Task RunTypstAsync(Output size, string root, string template, string output, CancellationToken cancellationToken)
     {
+        await Processes.WaitAsync(cancellationToken);
+        try
+        {
+            await CompileAsync(size, root, template, output, cancellationToken);
+        }
+        finally
+        {
+            Processes.Release();
+        }
+    }
+
+    private async Task CompileAsync(Output size, string root, string template, string output, CancellationToken cancellationToken)
+    {
         var width = size.WidthMm.ToString(CultureInfo.InvariantCulture);
         var height = size.HeightMm.ToString(CultureInfo.InvariantCulture);
 
@@ -215,7 +238,12 @@ internal sealed class LabelPrinter(IConfiguration configuration)
 
         if (process.ExitCode != 0)
         {
-            throw new InvalidOperationException($"Typst could not make the label: {await errors}");
+            var detail = await errors;
+            if (detail.Contains("label stock is too small for this passport", StringComparison.Ordinal))
+            {
+                throw new LabelStockTooSmallException();
+            }
+            throw new InvalidOperationException($"Typst could not make the label: {detail}");
         }
     }
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isoDay } from "../../lib/days";
   import { onMount } from "svelte";
   import DayPicker from "../DayPicker.svelte";
   import { dayLabel } from "../../lib/dates";
@@ -27,7 +28,7 @@
   };
   const statuses = Object.keys(statusLabels) as Status[];
 
-  const today = () => new Date().toISOString().slice(0, 10);
+  const today = () => isoDay(new Date());
 
   let chosen = $state<string | null>(null);
   let passports = $state<Schemas["PassportResponse"][]>([]);
@@ -51,18 +52,24 @@
       container.contents[0],
   );
 
+  let loading = 0;
+  let drafting = 0;
   async function load(batchId: string) {
-    passports =
+    const token = ++loading;
+    const result =
       (
         await api.GET("/api/received-passports", {
           params: { query: { batchId } },
         })
       ).data ?? [];
+    if (token === loading && batchId === line.batchId) passports = result;
   }
 
   $effect(() => {
     const batchId = line.batchId;
     adding = false;
+    passports = [];
+    drafting++;
     void attempt(() => load(batchId), setProblem);
   });
 
@@ -75,11 +82,14 @@
   // Filled in from what's already known, for checking against the label.
   const startAdding = () =>
     attempt(async () => {
+      const token = ++drafting;
+      const batchId = line.batchId;
       const { data } = await api.GET(
         "/api/batches/{id}/received-passport-draft",
-        { params: { path: { id: line.batchId } } },
+        { params: { path: { id: batchId } } },
       );
 
+      if (token !== drafting || batchId !== line.batchId) return;
       form = {
         supplierId: data?.supplierId ?? "",
         receivedOn: today(),

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 
 namespace GrowLog.Api.Printing;
@@ -10,6 +11,10 @@ internal sealed class PrinterConnection(IConfiguration configuration)
 
     public async Task<PrintOutcome> SendAsync(string address, int port, byte[] job, CancellationToken cancellationToken)
     {
+        if (!configuration.GetValue<bool>("Printing:AllowLocal") && !IsPrinterPort(port))
+        {
+            return PrintOutcome.NotAllowed;
+        }
         IPAddress[] found;
 
         try
@@ -49,6 +54,8 @@ internal sealed class PrinterConnection(IConfiguration configuration)
         }
     }
 
+    internal static bool IsPrinterPort(int port) => port is >= 9100 and <= 9102 or 515 or 631;
+
     internal static bool IsPrinterAddress(IPAddress ip)
     {
         if (ip.IsIPv4MappedToIPv6)
@@ -56,7 +63,8 @@ internal sealed class PrinterConnection(IConfiguration configuration)
             ip = ip.MapToIPv4();
         }
 
-        if (IPAddress.IsLoopback(ip) || ip.Equals(IPAddress.Any) || ip.Equals(IPAddress.IPv6Any) || ip.IsIPv6LinkLocal || ip.IsIPv6Multicast)
+        var local = NetworkInterface.GetAllNetworkInterfaces().SelectMany(network => network.GetIPProperties().UnicastAddresses).Select(address => address.Address);
+        if (local.Any(address => address.Equals(ip)) || IPAddress.IsLoopback(ip) || ip.Equals(IPAddress.Any) || ip.Equals(IPAddress.IPv6Any) || ip.IsIPv6LinkLocal || ip.IsIPv6Multicast)
         {
             return false;
         }

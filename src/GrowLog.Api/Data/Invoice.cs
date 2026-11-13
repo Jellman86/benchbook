@@ -16,6 +16,14 @@ internal sealed class Invoice
 
     public required string CustomerName { get; init; }
 
+    public string? SellerName { get; init; }
+
+    public string? SellerAddress { get; init; }
+
+    public string? SellerVatNumber { get; init; }
+
+    public string? SellerContact { get; init; }
+
     public string? CustomerAddress { get; init; }
 
     public string? CustomerVatNumber { get; init; }
@@ -39,6 +47,8 @@ internal sealed class Invoice
     public DateOnly? PaidOn { get; set; }
 
     public required Guid IssuedBy { get; init; }
+
+    public string? RequestFingerprint { get; init; }
 
     public DateTimeOffset CreatedAt { get; private set; }
 

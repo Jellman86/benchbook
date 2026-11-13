@@ -384,7 +384,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(root).toHaveAttribute("data-theme", "dark");
 
   // On a phone the sidebar gives way to a bar along the bottom.
-  await page.setViewportSize({ width: 420, height: 900 });
+  await page.setViewportSize({ width: 390, height: 900 });
   await expect(sidebar).toBeHidden();
   await button(page, "Manage").click();
   await button(page, "Plants").click();
@@ -520,8 +520,27 @@ test("the owner sets up the nursery and staff can sign in", async ({
   const sensorKey = (await page.locator(".sensor-key").innerText()).trim();
   expect(sensorKey).toMatch(/^glk_/);
   for (let hour = 22; hour >= 0; hour--) {
+    // Retired sensors supply historical samples; each sensor still sends at most once a minute.
+    let key = sensorKey;
+    let historicalId: string | null = null;
+    if (hour > 0) {
+      const locations = await (await page.request.get("/api/locations")).json();
+      const active = await (await page.request.get("/api/sensors")).json();
+      const locationId = active.find(
+        (sensor: { name: string }) => sensor.name === "Greenhouse sensor",
+      ).locationId;
+      expect(
+        locations.some((place: { id: string }) => place.id === locationId),
+      ).toBe(true);
+      const created = await page.request.post("/api/sensors", {
+        data: { name: `Historical sensor ${hour}`, locationId },
+      });
+      const sensor = await created.json();
+      historicalId = sensor.id;
+      key = sensor.key;
+    }
     const sent = await page.request.post("/api/sensor-readings", {
-      headers: { authorization: `Bearer ${sensorKey}` },
+      headers: { authorization: `Bearer ${key}` },
       data: {
         temperature: 14 + 8 * Math.sin(hour / 4),
         humidity: 75 - 15 * Math.sin(hour / 4),
@@ -529,7 +548,17 @@ test("the owner sets up the nursery and staff can sign in", async ({
       },
     });
     expect(sent.status()).toBe(204);
+    if (historicalId)
+      await page.request.post(`/api/sensors/${historicalId}/stop`);
   }
+  const burst = await page.request.post("/api/sensor-readings", {
+    headers: { authorization: `Bearer ${sensorKey}` },
+    data: {
+      temperature: 20,
+      takenAt: new Date(Date.now() - 10000).toISOString(),
+    },
+  });
+  expect(burst.status()).toBe(429);
   await button(page, "Done").click();
   await expect(page.getByText("Last heard just now")).toBeVisible();
   await button(page, "Back").click();
