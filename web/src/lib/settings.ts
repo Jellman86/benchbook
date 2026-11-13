@@ -79,7 +79,12 @@ const groups: SettingsGroup[] = [
     items: [
       { page: "staff", label: "Staff", icon: Users },
       { page: "signingIn", label: "Signing in", icon: KeyRound },
-      { page: "stations", label: "Bench stations", icon: Tablet },
+      {
+        page: "stations",
+        label: "Bench stations",
+        icon: Tablet,
+        feature: "BenchStations",
+      },
     ],
   },
   {

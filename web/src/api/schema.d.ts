@@ -7939,7 +7939,7 @@ export interface components {
             setsRenewal: boolean;
         };
         /** @enum {unknown} */
-        NurseryFeature: "Climate" | "PlacesMap" | "Passports" | "MotherPlants" | "Jobs" | "Invoices" | "Purchases" | "BatchPhotos";
+        NurseryFeature: "Climate" | "PlacesMap" | "Passports" | "MotherPlants" | "Jobs" | "Invoices" | "Purchases" | "BatchPhotos" | "BenchStations";
         OutlineRequest: {
             points: null | (number | string)[][];
         };

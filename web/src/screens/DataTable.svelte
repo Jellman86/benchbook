@@ -10,6 +10,7 @@
     caption,
     onSelect,
     actions,
+    chosen,
   }: {
     rows: T[];
     columns: Column<T>[];
@@ -17,6 +18,8 @@
     caption: string;
     onSelect?: (row: T) => void;
     actions?: Snippet<[T]>;
+    /** While choosing several: whether a row is chosen. A row's tick box, or anywhere on the row, then chooses it. */
+    chosen?: (row: T) => boolean;
   } = $props();
 
   let sortBy = $state<number | null>(null);
@@ -40,6 +43,7 @@
     <caption class="visually-hidden">{caption}</caption>
     <thead>
       <tr>
+        {#if chosen}<th scope="col">Chosen</th>{/if}
         {#each columns as column, index (column.label)}
           <th
             scope="col"
@@ -61,10 +65,25 @@
     </thead>
     <tbody>
       {#each sorted as row (key(row))}
-        <tr>
+        <tr
+          class:chosen={!!chosen?.(row)}
+          class:choosing={!!chosen}
+          onclick={chosen && onSelect ? () => onSelect(row) : undefined}
+        >
+          {#if chosen}
+            <td class="choose-cell">
+              <input
+                type="checkbox"
+                checked={chosen(row)}
+                aria-label="Choose {cellText(columns[0], row)}"
+                onclick={(event) => event.stopPropagation()}
+                onchange={() => onSelect?.(row)}
+              />
+            </td>
+          {/if}
           {#each columns as column, index (column.label)}
             <td class:numeric={column.numeric}>
-              {#if index === 0 && onSelect}
+              {#if index === 0 && onSelect && !chosen}
                 <button class="link-button" onclick={() => onSelect(row)}
                   >{cellText(column, row)}</button
                 >

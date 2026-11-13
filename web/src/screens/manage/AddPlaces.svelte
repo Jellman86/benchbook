@@ -1,9 +1,15 @@
 <script lang="ts">
   import { api } from "../../api/client";
-  import { placeKinds, type Place, type PlaceKind } from "../../lib/places";
+  import {
+    placeKinds,
+    type AddedPlace,
+    type Place,
+    type PlaceKind,
+  } from "../../lib/places";
   import { attempt } from "../../lib/types";
 
-  // Adds a place, or a numbered row of them such as Bench 1 to Bench 12.
+  // Adds a place, or a numbered row of them such as Bench 1 to Bench 12. A single place is handed back, so it can be
+  // drawn on the map next.
   let {
     places,
     inside = null,
@@ -11,7 +17,7 @@
   }: {
     places: Place[];
     inside?: string | null;
-    onAdded: () => void | Promise<void>;
+    onAdded: (added: AddedPlace | null) => void | Promise<void>;
   } = $props();
 
   let kind = $state<PlaceKind>("Bench");
@@ -47,7 +53,7 @@
     event.preventDefault();
 
     return attempt(async () => {
-      const { response } =
+      const { data, response } =
         several && parent
           ? await api.POST("/api/locations/several", {
               body: {
@@ -63,9 +69,13 @@
             });
 
       if (response.ok) {
+        const added =
+          data && "id" in data
+            ? { id: data.id, name: name.trim(), kind, parentId: parent }
+            : null;
         name = "";
         problem = "";
-        await onAdded();
+        await onAdded(added);
       } else {
         explain(response.status);
       }

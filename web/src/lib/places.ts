@@ -3,6 +3,14 @@ import type { Schemas } from "./types";
 export type Place = Schemas["LocationResponse"];
 export type PlaceKind = Schemas["LocationKind"];
 
+/** A place just added or chosen for drawing on the map. */
+export type AddedPlace = {
+  id: string;
+  name: string;
+  kind: PlaceKind;
+  parentId: string | null;
+};
+
 export const placeKinds: { kind: PlaceKind; label: string }[] = [
   { kind: "Site", label: "Site" },
   { kind: "Greenhouse", label: "Greenhouse" },

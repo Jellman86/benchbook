@@ -9068,7 +9068,8 @@
           "Jobs",
           "Invoices",
           "Purchases",
-          "BatchPhotos"
+          "BatchPhotos",
+          "BenchStations"
         ]
       },
       "OutlineRequest": {

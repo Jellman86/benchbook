@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using GrowLog.Api.Data;
+using GrowLog.Api.Settings;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -14,12 +15,12 @@ internal static class BenchEndpoints
 
     public static void MapBenchEndpoints(this IEndpointRouteBuilder app)
     {
-        var stations = app.MapGroup("/api/bench/stations").RequireAuthorization(AccountServices.OwnerPolicy);
+        var stations = app.MapGroup("/api/bench/stations").RequireAuthorization(AccountServices.OwnerPolicy).RequireFeature(NurseryFeature.BenchStations);
         stations.MapGet("/", ListStationsAsync);
         stations.MapPost("/", RegisterStationAsync);
         stations.MapPost("/{id:guid}/revoke", RevokeStationAsync);
 
-        var bench = app.MapGroup("/api/bench").RequireAuthorization(AccountServices.BenchPolicy);
+        var bench = app.MapGroup("/api/bench").RequireAuthorization(AccountServices.BenchPolicy).RequireFeature(NurseryFeature.BenchStations);
         bench.MapGet("/people", ListPeopleAsync).Produces<List<Person>>();
         bench.MapPost("/sign-in", SignInAsync);
         bench.MapPost("/leave", LeaveAsync);

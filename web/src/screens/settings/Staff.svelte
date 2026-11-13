@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isOn } from "../../lib/features.svelte";
   import FormPanel from "../FormPanel.svelte";
   import { onMount, tick } from "svelte";
   import { api } from "../../api/client";
@@ -262,10 +263,12 @@
               />
             </label>
           {/if}
-          <label
-            >PIN for the bench (4 to 6 digits, optional)
-            <input bind:value={pin} inputmode="numeric" autocomplete="off" />
-          </label>
+          {#if isOn("BenchStations")}
+            <label
+              >PIN for the bench (4 to 6 digits, optional)
+              <input bind:value={pin} inputmode="numeric" autocomplete="off" />
+            </label>
+          {/if}
           <button type="submit">Add</button>
         </form>
       </FormPanel>
@@ -340,10 +343,12 @@
               <button class="secondary" onclick={() => invite(member.id)}
                 >Phone invitation</button
               >
-              <button
-                class="secondary"
-                onclick={() => (changingPinFor = member.id)}>New PIN</button
-              >
+              {#if isOn("BenchStations")}
+                <button
+                  class="secondary"
+                  onclick={() => (changingPinFor = member.id)}>New PIN</button
+                >
+              {/if}
               <button
                 class="secondary"
                 onclick={() => (settingPasswordFor = member.id)}
