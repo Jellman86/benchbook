@@ -339,7 +339,10 @@
 
           {#if isOn("BatchPhotos")}
             <h2>Photos</h2>
-            {#key trace.id}<BatchPhotos batchId={trace.id} />{/key}
+            {#key trace.id}<BatchPhotos
+                batchId={trace.id}
+                emptyText="No photos of this batch yet."
+              />{/key}
           {/if}
 
           <h2>What was done to it</h2>
@@ -388,7 +391,7 @@
       <h2 class="settings-heading">Newest batches</h2>
     {/if}
     {#if loaded && matches.length === 0}
-      <p class="muted">
+      <p class="note-empty muted">
         {searched ? "No batch matches that." : "No batches yet."}
       </p>
     {/if}

@@ -13,11 +13,31 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   // One long story that grows with GrowLog, including a phone waiting for its signal back.
   timeout: 120_000,
-  use: {
-    ...devices["Desktop Chrome"],
-    viewport: { width: 390, height: 900 },
-    baseURL: `http://localhost:${port}`,
-  },
+  use: { baseURL: `http://localhost:${port}` },
+  projects: [
+    {
+      // The whole story, phone-sized. Passkeys use Chromium's virtual authenticator, so this one runs in Chromium.
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 390, height: 900 },
+      },
+    },
+    {
+      // Staff mostly use iPhones: the phone screens again in Safari's engine, at an iPhone's size and touch. Where
+      // WebKit can't run locally, PW_WEBKIT_WS points at a Playwright server in its official Docker image.
+      name: "iphone",
+      testMatch: /(iphone|ask|review-phone)\.spec\.ts$/,
+      use: {
+        ...devices["iPhone 15"],
+        // The app's service worker would answer before the tests' stand-in server could.
+        serviceWorkers: "block",
+        ...(process.env.PW_WEBKIT_WS
+          ? { connectOptions: { wsEndpoint: process.env.PW_WEBKIT_WS } }
+          : {}),
+      },
+    },
+  ],
   webServer: [
     {
       command: `docker run --rm --name growlog-e2e -e POSTGRES_PASSWORD=e2e -p ${databasePort}:5432 ${postgres}`,

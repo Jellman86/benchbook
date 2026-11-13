@@ -203,7 +203,7 @@
 <main>
   <h1>Purchases</h1>
 
-  <div class="split">
+  <div class="split wide-list">
     <section>
       <FormPanel label="Add a purchase">
         <form class="stack" onsubmit={save}>
@@ -239,7 +239,7 @@
               <label
                 >Item <input bind:value={line.description} required /></label
               >
-              <div class="segmented" role="group" aria-label="What it is">
+              <div class="segmented two" role="group" aria-label="What it is">
                 <button
                   type="button"
                   aria-pressed={line.isPlants}
@@ -288,86 +288,204 @@
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
       <p><strong>Still owed: {money(owed)}</strong></p>
 
-      {#each purchases as purchase (purchase.id)}
-        <div class="card">
-          <strong
-            >{purchase.supplierName}: {money(
-              Number(purchase.netTotal) + Number(purchase.vatTotal),
-            )}</strong
-          >
-          <span
-            >{dayLabel(purchase.purchasedOn)}{purchase.reference
-              ? `, ${purchase.reference}`
-              : ""}</span
-          >
-          <span
-            >{purchase.paidOn
-              ? `Paid ${dayLabel(purchase.paidOn)}`
-              : "Not paid"}</span
-          >
-          {#each purchase.lines as line (line.id)}
-            <div class="line">
-              <span class="muted"
-                >{line.description}: {money(Number(line.netCost))} + VAT {money(
-                  Number(line.vat),
-                )}</span
+      <div class="mobile-only stack">
+        {#each purchases as purchase (purchase.id)}
+          <div class="card">
+            <strong
+              >{purchase.supplierName}: {money(
+                Number(purchase.netTotal) + Number(purchase.vatTotal),
+              )}</strong
+            >
+            <span
+              >{dayLabel(purchase.purchasedOn)}{purchase.reference
+                ? `, ${purchase.reference}`
+                : ""}</span
+            >
+            <span
+              >{purchase.paidOn
+                ? `Paid ${dayLabel(purchase.paidOn)}`
+                : "Not paid"}</span
+            >
+            {#each purchase.lines as line (line.id)}
+              <div class="line">
+                <span class="muted"
+                  >{line.description}: {money(Number(line.netCost))} + VAT {money(
+                    Number(line.vat),
+                  )}</span
+                >
+                {#if line.isPlants === false}
+                  <!-- Sundries such as compost never become batches. -->
+                {:else if Number(line.batchCount) > 0}
+                  <span class="muted">Batch started</span>
+                {:else}
+                  <button
+                    class="secondary"
+                    onclick={() =>
+                      onStartBatch({
+                        supplierId: purchase.supplierId,
+                        quantity: Number(line.quantity ?? 1),
+                        purchaseLineId: line.id,
+                        description: line.description,
+                        receivedOn: purchase.purchasedOn,
+                      })}>Start a batch</button
+                  >
+                {/if}
+              </div>
+            {/each}
+            {#each purchase.receiptIds as receipt, index (receipt)}
+              <a
+                href="/api/purchases/receipts/{receipt}"
+                target="_blank"
+                rel="noopener">Receipt {index + 1}</a
               >
-              {#if line.isPlants === false}
-                <!-- Sundries such as compost never become batches. -->
-              {:else if Number(line.batchCount) > 0}
-                <span class="muted">Batch started</span>
+            {/each}
+            <label class="photo-choice">
+              <Paperclip size={20} />
+              <span>Add a receipt (photo or PDF)</span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,application/pdf"
+                onchange={(event) => addReceipt(purchase.id, event)}
+              />
+            </label>
+            <div class="row">
+              {#if purchase.paidOn}
+                <button
+                  class="secondary"
+                  onclick={() => setPaid(purchase.id, null)}
+                  >Mark as not paid</button
+                >
               {:else}
                 <button
                   class="secondary"
-                  onclick={() =>
-                    onStartBatch({
-                      supplierId: purchase.supplierId,
-                      quantity: Number(line.quantity ?? 1),
-                      purchaseLineId: line.id,
-                      description: line.description,
-                      receivedOn: purchase.purchasedOn,
-                    })}>Start a batch</button
+                  onclick={() => setPaid(purchase.id, today())}
+                  >Mark paid</button
                 >
               {/if}
+              <button class="link-button" onclick={() => voidPurchase(purchase)}
+                >Void</button
+              >
             </div>
-          {/each}
-          {#each purchase.receiptIds as receipt, index (receipt)}
-            <a
-              href="/api/purchases/receipts/{receipt}"
-              target="_blank"
-              rel="noopener">Receipt {index + 1}</a
-            >
-          {/each}
-          <label class="photo-choice">
-            <Paperclip size={20} />
-            <span>Add a receipt (photo or PDF)</span>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,application/pdf"
-              onchange={(event) => addReceipt(purchase.id, event)}
-            />
-          </label>
-          <div class="row">
-            {#if purchase.paidOn}
-              <button
-                class="secondary"
-                onclick={() => setPaid(purchase.id, null)}
-                >Mark as not paid</button
-              >
-            {:else}
-              <button
-                class="secondary"
-                onclick={() => setPaid(purchase.id, today())}>Mark paid</button
-              >
-            {/if}
-            <button class="link-button" onclick={() => voidPurchase(purchase)}
-              >Void</button
-            >
           </div>
-        </div>
-      {:else}
-        <p class="muted">No purchases recorded yet.</p>
-      {/each}
+        {:else}
+          <p class="note-empty muted">No purchases recorded yet.</p>
+        {/each}
+      </div>
+      <div class="desktop-only">
+        {#if purchases.length > 0}
+          <div class="table-wrap">
+            <table class="data-table purchases-table">
+              <caption class="visually-hidden">Purchases</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Day</th>
+                  <th scope="col">Supplier</th>
+                  <th scope="col">What</th>
+                  <th scope="col" class="numeric">Total</th>
+                  <th scope="col">Paid</th>
+                  <th scope="col"
+                    ><span class="visually-hidden">Actions</span></th
+                  >
+                </tr>
+              </thead>
+              <tbody>
+                {#each purchases as purchase (purchase.id)}
+                  <tr>
+                    <td class="nowrap">{dayLabel(purchase.purchasedOn)}</td>
+                    <td>
+                      {purchase.supplierName}
+                      {#if purchase.reference}<span class="muted cell-note"
+                          >{purchase.reference}</span
+                        >{/if}
+                    </td>
+                    <td>
+                      <ul class="cell-lines">
+                        {#each purchase.lines as line (line.id)}
+                          <li>
+                            <span
+                              >{line.description}
+                              <span class="muted"
+                                >{money(Number(line.netCost))} + VAT {money(
+                                  Number(line.vat),
+                                )}</span
+                              ></span
+                            >
+                            {#if line.isPlants === false}
+                              <!-- Sundries such as compost never become batches. -->
+                            {:else if Number(line.batchCount) > 0}
+                              <span class="muted">Batch started</span>
+                            {:else}
+                              <button
+                                class="link-button"
+                                onclick={() =>
+                                  onStartBatch({
+                                    supplierId: purchase.supplierId,
+                                    quantity: Number(line.quantity ?? 1),
+                                    purchaseLineId: line.id,
+                                    description: line.description,
+                                    receivedOn: purchase.purchasedOn,
+                                  })}>Start a batch</button
+                              >
+                            {/if}
+                          </li>
+                        {/each}
+                      </ul>
+                    </td>
+                    <td class="numeric"
+                      >{money(
+                        Number(purchase.netTotal) + Number(purchase.vatTotal),
+                      )}</td
+                    >
+                    <td class="nowrap"
+                      >{purchase.paidOn
+                        ? dayLabel(purchase.paidOn)
+                        : "Not paid"}</td
+                    >
+                    <td>
+                      <div class="cell-actions">
+                        {#if purchase.paidOn}
+                          <button
+                            class="link-button"
+                            onclick={() => setPaid(purchase.id, null)}
+                            >Not paid</button
+                          >
+                        {:else}
+                          <button
+                            class="link-button"
+                            onclick={() => setPaid(purchase.id, today())}
+                            >Mark paid</button
+                          >
+                        {/if}
+                        {#each purchase.receiptIds as receipt, index (receipt)}
+                          <a
+                            href="/api/purchases/receipts/{receipt}"
+                            target="_blank"
+                            rel="noopener">Receipt {index + 1}</a
+                          >
+                        {/each}
+                        <label class="file-link">
+                          Add receipt
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,application/pdf"
+                            onchange={(event) => addReceipt(purchase.id, event)}
+                          />
+                        </label>
+                        <button
+                          class="link-button danger-link"
+                          onclick={() => voidPurchase(purchase)}>Void</button
+                        >
+                      </div>
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        {:else}
+          <p class="note-empty muted">No purchases recorded yet.</p>
+        {/if}
+      </div>
     </section>
   </div>
 

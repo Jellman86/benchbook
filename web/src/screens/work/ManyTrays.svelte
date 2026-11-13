@@ -25,6 +25,8 @@
   type Doing = "ready" | "move" | "treat" | null;
 
   let doing = $state<Doing>(null);
+  // On a phone the bar stays one line until its actions are wanted, so it doesn't hide the list being chosen from.
+  let expanded = $state(false);
   let places = $state<{ id: string; label: string }[]>([]);
   let placeId = $state("");
   let product = $state("");
@@ -59,6 +61,7 @@
 
     if (result.allDone) {
       doing = null;
+      expanded = false;
       onDone(result.message);
     } else {
       problem = result.message;
@@ -74,10 +77,20 @@
 
 <section
   class="many-trays form-card stack"
+  class:collapsed={!expanded && !doing && !problem}
   aria-label="Work on the chosen trays"
 >
   <div class="row many-trays-head">
     <strong>{count} chosen</strong>
+    {#if !doing}
+      <button
+        class="many-trays-toggle mobile-only"
+        aria-expanded={expanded}
+        aria-controls="many-trays-actions"
+        onclick={() => (expanded = !expanded)}
+        >{expanded ? "Hide" : "Actions"}</button
+      >
+    {/if}
     <button class="link-button" onclick={onClear}>Clear</button>
   </div>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
@@ -141,7 +154,7 @@
       <button class="secondary" onclick={() => (doing = null)}>Cancel</button>
     </div>
   {:else}
-    <div class="many-trays-actions">
+    <div class="many-trays-actions" id="many-trays-actions">
       <button onclick={() => (doing = "ready")}>Mark ready</button>
       <button onclick={() => (doing = "move")}>Move</button>
       <button onclick={() => (doing = "treat")}>Treated</button>

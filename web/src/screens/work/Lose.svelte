@@ -92,7 +92,7 @@
         />
       {/if}
     </div>
-    <div class="stack">
+    <div class="stack choices">
       <p>Why?</p>
       {#each lossReasons as option (option.reason)}
         <button

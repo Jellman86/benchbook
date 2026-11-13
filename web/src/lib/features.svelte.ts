@@ -109,7 +109,8 @@ export const featureInfo: FeatureInfo[] = [
   {
     feature: "Jobs",
     label: "Jobs",
-    hides: "Manage, Jobs, the jobs due on Record and the late jobs reminder.",
+    hides:
+      "Manage, Jobs, the jobs due on Record work and the late jobs reminder.",
   },
   {
     feature: "Invoices",

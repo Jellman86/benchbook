@@ -16,11 +16,14 @@
     batchId,
     containerId = null,
     kinds = [],
+    emptyText = null,
     onAsk,
   }: {
     batchId: string;
     containerId?: string | null;
     kinds?: BatchPhotoKind[];
+    /** Said when the batch has no photos; without it, nothing is shown. */
+    emptyText?: string | null;
     /** Asks Ask GrowLog about a photo, when this person can ask. */
     onAsk?: (photoId: string) => void;
   } = $props();
@@ -30,6 +33,7 @@
   let photos = $state<Photo[]>([]);
   let viewing = $state<Photo | null>(null);
   let adding = $state(false);
+  let loaded = $state(false);
   let problem = $state("");
   let dialog = $state<HTMLDialogElement>();
 
@@ -44,6 +48,7 @@
           params: { path: { id: batchId } },
         })
       ).data ?? [];
+    loaded = true;
   }
 
   onMount(async () => {
@@ -109,6 +114,9 @@
   }
 </script>
 
+{#if loaded && photos.length === 0 && emptyText}
+  <p class="note-empty muted">{emptyText}</p>
+{/if}
 {#if photos.length > 0}
   <ol class="photo-strip" aria-label="Photos of this batch">
     {#each photos as photo (photo.id)}

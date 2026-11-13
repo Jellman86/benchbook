@@ -300,7 +300,7 @@
           {/if}
         </div>
       {:else}
-        <p class="muted">
+        <p class="note-empty muted">
           No printers yet. Until one is added, labels open as PDFs to print
           through the print window.
         </p>

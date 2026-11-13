@@ -141,7 +141,7 @@
 
   {#if figures}
     {#if figures.plants.length === 0}
-      <p class="muted">Nothing recorded yet.</p>
+      <p class="note-empty muted">Nothing recorded yet.</p>
     {:else}
       <div class="desktop-only">
         <DataTable
