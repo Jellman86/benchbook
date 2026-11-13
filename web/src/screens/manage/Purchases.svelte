@@ -436,7 +436,7 @@
                         Number(purchase.netTotal) + Number(purchase.vatTotal),
                       )}</td
                     >
-                    <td class="nowrap"
+                    <td
                       >{purchase.paidOn
                         ? dayLabel(purchase.paidOn)
                         : "Not paid"}</td

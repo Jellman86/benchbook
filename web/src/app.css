@@ -3584,7 +3584,7 @@ button.production-row.chosen:hover:not(:disabled) {
     max-width: 100%;
   }
 
-  .with-sidebar .choices.choices > button {
+  .with-sidebar .choices > :is(button, a.button):not(.link-button, .back) {
     align-self: stretch;
   }
 
@@ -3887,7 +3887,7 @@ button:disabled:is(.link-button, .back, .danger-link):hover {
 }
 
 /* Pages whose list is a table: below a wide desk, the form sits above the table so every column fits. */
-@media (min-width: 900px) and (max-width: 1279px) {
+@media (min-width: 900px) and (max-width: 1439px) {
   .with-sidebar .split.wide-list {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -3897,9 +3897,20 @@ button:disabled:is(.link-button, .back, .danger-link):hover {
   }
 }
 
+/* Each purchase's actions stacked, so the table fits its column and What keeps room to read. */
 .purchases-table .cell-actions {
-  flex-wrap: nowrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
   white-space: nowrap;
+}
+
+.purchases-table td:nth-child(3) {
+  min-width: 11rem;
+}
+
+.purchases-table :is(th, td) {
+  padding-inline: 0.6rem;
 }
 
 /* Selects are drawn the same as other fields everywhere, rather than as iPhone's own grey box, with a small
@@ -3911,4 +3922,11 @@ select:not([multiple]) {
   background-position: right 0.85rem center;
   background-size: 0.75rem 0.5rem;
   background-repeat: no-repeat;
+}
+
+/* Settings pages sit beside their own menu, so a form and its list share the space evenly and stack when tight. */
+@media (min-width: 900px) {
+  .with-sidebar .settings-layout .split {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  }
 }
