@@ -352,8 +352,24 @@ internal sealed class EventStore(GrowLogDbContext db, TimeProvider clock, Device
     public async Task<AppendResult?> MatchRequestAsync(Guid id, Guid recordedBy, CancellationToken cancellationToken)
     {
         var stored = await db.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
-        return stored is null ? null : stored.RecordedBy == recordedBy && stored.RequestFingerprint is not null
-            && string.Equals(stored.RequestFingerprint, device?.RequestFingerprint, StringComparison.Ordinal)
+
+        if (stored is null)
+        {
+            return null;
+        }
+
+        if (stored.RecordedBy != recordedBy)
+        {
+            return AppendResult.IdInUse;
+        }
+
+        // Work saved before fingerprints were kept is left to the full comparison of its contents when appended.
+        if (stored.RequestFingerprint is null)
+        {
+            return null;
+        }
+
+        return string.Equals(stored.RequestFingerprint, device?.RequestFingerprint, StringComparison.Ordinal)
             ? AppendResult.AlreadyStored : AppendResult.IdInUse;
     }
 
