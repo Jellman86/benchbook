@@ -15,7 +15,7 @@ namespace GrowLog.Api.Assistant;
 /// chooses through their own OpenRouter key. It reads records through tools and never changes them. Nothing asked is
 /// kept on the server.
 /// </summary>
-internal static class AssistantEndpoints
+internal static partial class AssistantEndpoints
 {
     private const int MostTurns = 6;
     // The conversation kept for the model: the latest lines, older ones shortened. Only the new question is strict.
@@ -123,6 +123,7 @@ internal static class AssistantEndpoints
         AskLimiter limiter,
         IHttpClientFactory clients,
         TimeProvider clock,
+        ILoggerFactory logs,
         CancellationToken cancellationToken)
     {
         var settings = await db.GetNurserySettingsAsync(cancellationToken);
@@ -161,10 +162,15 @@ internal static class AssistantEndpoints
         catch (Exception problem) when (problem is HttpRequestException or JsonException or InvalidOperationException or FormatException
             || (problem is OperationCanceledException && !cancellationToken.IsCancellationRequested))
         {
-            // A timeout, or a reply that isn't what OpenRouter promises: the person is told to try again.
+            // A timeout, or a reply that isn't what OpenRouter promises: the person is told to try again, and what went wrong
+            // is logged. Neither the key nor the question is in it.
+            LogAskFailed(logs.CreateLogger("GrowLog.Assistant"), problem.GetType().Name, problem.Message);
             return TypedResults.Conflict(new AskRefused("Unavailable"));
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Ask GrowLog failed: {Kind}: {Reason}")]
+    private static partial void LogAskFailed(ILogger logger, string kind, string reason);
 
     private static bool IsSensible(AskRequest request) =>
         request.Messages is { Count: > 0 and <= MostMessages }
@@ -201,8 +207,9 @@ internal static class AssistantEndpoints
             images.Add($"data:{photo.ContentType};base64,{Convert.ToBase64String(photo.Content)}");
         }
 
-        // The latest lines only, older answers shortened, so a long conversation keeps working.
-        var kept = request.Messages.TakeLast(KeptMessages).ToList();
+        // The latest lines only, older answers shortened, so a long conversation keeps working. It starts with a
+        // question, as some models require.
+        var kept = request.Messages.TakeLast(KeptMessages).SkipWhile(message => !string.Equals(message.Role, "user", StringComparison.Ordinal)).ToList();
 
         for (var index = 0; index < kept.Count; index++)
         {
@@ -225,12 +232,13 @@ internal static class AssistantEndpoints
 
         for (var turn = 0; turn < MostTurns; turn++)
         {
-            // The last turn has no tools, so the model answers with what it has found.
-            var body = new JsonObject { ["model"] = model, ["messages"] = messages.DeepClone(), ["max_tokens"] = 1500 };
+            // On the last turn the tools stay listed, as some providers require once they've been used, but may not be
+            // called, so the model answers with what it has found.
+            var body = new JsonObject { ["model"] = model, ["messages"] = messages.DeepClone(), ["tools"] = tools.DeepClone(), ["max_tokens"] = 1500 };
 
-            if (turn < MostTurns - 1)
+            if (turn == MostTurns - 1)
             {
-                body["tools"] = tools.DeepClone();
+                body["tool_choice"] = "none";
             }
 
             var reply = await OpenRouter.AskAsync(client, key, body, context.Cancellation);
