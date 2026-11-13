@@ -198,12 +198,13 @@ Ask GrowLog is an optional AI assistant. It answers questions about plants and a
 
 - **The key and the model:**
   - The key is kept encrypted on the server and never sent back to any screen. The settings show only that there is one, and what it has spent of its limit as OpenRouter reports it.
-  - The models offered are OpenRouter's that can use GrowLog's lookups. Each shows its rough price per question and whether it reads photos.
+  - The models offered are OpenRouter's that can use GrowLog's lookups and answer straight away; batch versions, which answer hours later, are left out, and one chosen before then is asked as its ordinary version. Each shows its rough price per question and whether it reads photos.
+  - If OpenRouter refuses a question because no provider can take it for that model, the person is told the model can't answer here and the owner can choose another; OpenRouter's reason is logged, kept short and with the key taken out.
   - The owner pays OpenRouter directly. A spending limit is set on the key at openrouter.ai.
 - **Who can ask:** the owner, and staff too if the owner ticks "Staff can ask"; the owner signed in at a bench by PIN counts as staff. Each person can ask up to 40 questions an hour, a guard that resets when GrowLog restarts; the real cap on spending is the limit on the OpenRouter key.
 - **Where it's offered:**
   - From the sidebar on a desk, and from a card on Record work on a phone.
-  - "Ask about this tray" on a tray, "Ask about this plant" on a plant card, and "Ask about this photo" on a batch photo. These start the conversation with that tray, plant or photo.
+  - "Ask about this tray" on a tray, "Ask about this plant" on a plant's page, whether reached from a tray or from Plants, and "Ask about this photo" on a batch photo. These start the conversation with that tray, plant or photo.
 - **The screen:**
   - On a phone, the question box stays in reach at the foot of the screen, with a camera button when the model reads photos, up to four at a time.
   - On a desk, the conversation sits beside the records the answers looked at, suggested questions, and what is sent.

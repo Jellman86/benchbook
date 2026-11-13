@@ -1,5 +1,7 @@
 <script lang="ts">
+  import Sparkles from "@lucide/svelte/icons/sparkles";
   import PrintButton from "../PrintButton.svelte";
+  import type { AskAbout } from "../../lib/assistant.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { stopUsing } from "../../lib/archive";
@@ -16,9 +18,12 @@
   let {
     onBack,
     canManage = true,
+    onAsk,
   }: {
     onBack: () => void;
     canManage?: boolean;
+    /** Asks Ask GrowLog about a plant, when this person can ask. */
+    onAsk?: (about: AskAbout) => void;
   } = $props();
 
   type Plant = Schemas["PlantResponse"];
@@ -218,6 +223,16 @@
     }}
   >
     {#snippet actions()}
+      {#if onAsk && selected}
+        <button
+          class="secondary"
+          onclick={() =>
+            onAsk({
+              title: plantName(selected.commonName, selected.variety),
+              plantId: selected.id,
+            })}><Sparkles size={18} /> Ask about this plant</button
+        >
+      {/if}
       {#if canManage && selected}
         <div class="stack">
           <section class="stack tight" aria-labelledby="plant-print">

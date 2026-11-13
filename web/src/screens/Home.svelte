@@ -607,8 +607,16 @@
       window.removeEventListener("keydown", activity);
     };
   });
+
+  // Ask GrowLog about something on screen, when this person can ask and isn't at a shared bench.
+  const askAbout = $derived(
+    assistant.canAsk && !atBench
+      ? (about: AskAbout) => (view = { name: "ask", about })
+      : undefined,
+  );
 </script>
 
+<!-- Ask GrowLog about what's on screen, wherever it can be asked: one way in for trays, plants and photos. -->
 {#snippet screen()}
   {#if view.name === "manage"}
     <Manage
@@ -620,6 +628,7 @@
       onStartBatch={(prefill) => (view = { name: "start", prefill })}
       onOpenTray={(code) => open(code)}
       onMoveTraysHere={(id) => (view = { name: "moveMany", destination: id })}
+      onAsk={askAbout}
     />
   {:else if view.name === "start"}
     <StartBatch prefill={view.prefill} onDone={finishWork} onCancel={goHome} />
@@ -641,7 +650,7 @@
   {:else if view.name === "labelSheets"}
     <LabelSheets onBack={goHome} trayLabels={view.trays ?? []} />
   {:else if view.name === "plants"}
-    <Plants canManage={false} onBack={goHome} />
+    <Plants canManage={false} onBack={goHome} onAsk={askAbout} />
   {:else if view.name === "ask"}
     <Ask
       {me}
@@ -670,9 +679,7 @@
     {#key view.label}
       <ContainerView
         label={view.label}
-        onAsk={assistant.canAsk && !atBench
-          ? (about) => (view = { name: "ask", about })
-          : undefined}
+        onAsk={askAbout}
         onTrace={me.isOwner && !atBench ? trace : undefined}
         onDone={finishWork}
         onCancel={view.fromProduction

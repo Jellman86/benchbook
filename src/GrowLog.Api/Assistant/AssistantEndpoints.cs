@@ -61,7 +61,8 @@ internal static partial class AssistantEndpoints
         {
             // Without the list, photos are offered and the model says if it can't read them.
             var models = await OpenRouter.TryModelsAsync(clients.CreateClient(OpenRouter.ClientName), clock, cancellationToken);
-            readsImages = models?.Exists(model => string.Equals(model.Id, settings.AssistantModel, StringComparison.Ordinal) && model.ReadsImages) ?? true;
+            var chosen = OpenRouter.Instant(settings.AssistantModel!);
+            readsImages = models?.Exists(model => string.Equals(model.Id, chosen, StringComparison.Ordinal) && model.ReadsImages) ?? true;
         }
 
         return new AssistantStatus(ready && MayAsk(user, settings), ready, readsImages);
@@ -72,7 +73,8 @@ internal static partial class AssistantEndpoints
         var settings = await db.GetNurserySettingsAsync(cancellationToken);
         var key = keys.Read(settings.AssistantKey);
         var usage = key is null ? null : await OpenRouter.UsageAsync(clients.CreateClient(OpenRouter.ClientName), key, cancellationToken);
-        return new AssistantSettings(key is not null, settings.AssistantModel, settings.AssistantForStaff, usage?.Spent, usage?.Limit);
+        var model = settings.AssistantModel is { } chosen ? OpenRouter.Instant(chosen) : null;
+        return new AssistantSettings(key is not null, model, settings.AssistantForStaff, usage?.Spent, usage?.Limit);
     }
 
     private static async Task<IResult> SaveSettingsAsync(AssistantSettingsRequest request, GrowLogDbContext db, AssistantKeys keys, CancellationToken cancellationToken)
@@ -103,7 +105,7 @@ internal static partial class AssistantEndpoints
             settings.AssistantKey = keys.Protect(key);
         }
 
-        settings.AssistantModel = string.IsNullOrEmpty(model) ? null : model;
+        settings.AssistantModel = string.IsNullOrEmpty(model) ? null : OpenRouter.Instant(model);
         settings.AssistantForStaff = request.ForStaff;
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.NoContent();
@@ -153,11 +155,18 @@ internal static partial class AssistantEndpoints
         try
         {
             var messages = await ConversationAsync(request, context);
-            return TypedResults.Ok(await AnswerAsync(clients.CreateClient(OpenRouter.ClientName), key, model, messages, context));
+            return TypedResults.Ok(await AnswerAsync(clients.CreateClient(OpenRouter.ClientName), key, OpenRouter.Instant(model), messages, context));
         }
         catch (AssistantUnavailableException problem)
         {
-            return TypedResults.Conflict(new AskRefused(problem.Status is 401 or 402 or 403 ? "KeyRefused" : "Unavailable"));
+            // OpenRouter's reason is logged, short and with the key taken out, so a refusal can be explained.
+            LogAskFailed(logs.CreateLogger("GrowLog.Assistant"), nameof(AssistantUnavailableException), problem.Message);
+            return TypedResults.Conflict(new AskRefused(problem.Status switch
+            {
+                401 or 402 or 403 => "KeyRefused",
+                404 => "ModelUnavailable",
+                _ => "Unavailable",
+            }));
         }
         catch (Exception problem) when (problem is HttpRequestException or JsonException or InvalidOperationException or FormatException
             || (problem is OperationCanceledException && !cancellationToken.IsCancellationRequested))
@@ -349,6 +358,6 @@ internal static partial class AssistantEndpoints
     /// <summary>The answer, the records it looked at, and what it cost in US dollars.</summary>
     internal sealed record AskAnswer(string Answer, IReadOnlyList<ToolContext.AskSource> Sources, decimal Cost);
 
-    /// <summary>Why a question couldn't be answered: NotSetUp, TooMany, KeyRefused or Unavailable.</summary>
+    /// <summary>Why a question couldn't be answered: NotSetUp, TooMany, KeyRefused, ModelUnavailable or Unavailable.</summary>
     internal sealed record AskRefused(string Problem);
 }

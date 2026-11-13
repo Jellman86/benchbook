@@ -1576,6 +1576,9 @@ label.tick {
 }
 
 .plant-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
   padding-top: 1.25rem;
   border-top: 1px solid var(--line);
 }
@@ -3724,8 +3727,17 @@ button.secondary.destructive:hover:not(:disabled) {
 /* The plant page's labels and cards to print, side by side when there's room. */
 .print-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
   gap: 0.75rem;
+}
+
+/* A label's name stays on one line beside its copies. */
+.print-list .print-button :is(button, a.button) {
+  white-space: nowrap;
+}
+
+.print-list .print-button select {
+  min-width: 6.5rem;
 }
 
 /* An invoice line: a card of fields on a phone, one row of them on a desk. */

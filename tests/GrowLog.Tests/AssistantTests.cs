@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using GrowLog.Api.Data;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using static GrowLog.Tests.AccountHarness;
 
@@ -22,7 +24,8 @@ public sealed class AssistantTests(PostgresFixture database)
     {
         public List<(string Authorization, string Body)> Questions { get; } = [];
 
-        /// <summary>How it answers: "normal"; "parts" (arguments as an object, content as parts); "garbage"; "empty".</summary>
+        /// <summary>How it answers: "normal"; "parts" (arguments as an object, content as parts); "garbage"; "empty";
+        /// "no provider" (refused as not found, as for a model with no provider to take the question).</summary>
         public string Mode { get; set; } = "normal";
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -31,7 +34,7 @@ public sealed class AssistantTests(PostgresFixture database)
 
             if (path.EndsWith("/models", StringComparison.Ordinal))
             {
-                return Reply("""{"data":[{"id":"test/model","name":"Test model","pricing":{"prompt":"0.000001","completion":"0.000002"},"context_length":100000,"architecture":{"input_modalities":["text","image"]}}]}""");
+                return Reply("""{"data":[{"id":"test/model","name":"Test model","pricing":{"prompt":"0.000001","completion":"0.000002"},"context_length":100000,"architecture":{"input_modalities":["text","image"]}},{"id":"test/model:batch","name":"Test model (batch)","pricing":{"prompt":"0.0000005","completion":"0.000001"},"context_length":100000,"architecture":{"input_modalities":["text","image"]}}]}""");
             }
 
             if (path.EndsWith("/key", StringComparison.Ordinal))
@@ -42,6 +45,15 @@ public sealed class AssistantTests(PostgresFixture database)
             var body = await request.Content!.ReadAsStringAsync(cancellationToken);
             Questions.Add((request.Headers.Authorization?.ToString() ?? string.Empty, body));
             var askedForTools = JsonNode.Parse(body)!["messages"]!.AsArray().Any(message => string.Equals(message?["role"]?.GetValue<string>(), "tool", StringComparison.Ordinal));
+
+            // Like OpenRouter, a batch model never answers straight away.
+            if (JsonNode.Parse(body)!["model"]!.GetValue<string>().EndsWith(":batch", StringComparison.Ordinal) || string.Equals(Mode, "no provider", StringComparison.Ordinal))
+            {
+                return new HttpResponseMessage(HttpStatusCode.NotFound)
+                {
+                    Content = new StringContent("""{"error":{"code":404,"message":"No endpoints found matching your data policy"}}""", Encoding.UTF8, "application/json"),
+                };
+            }
 
             switch (Mode)
             {
@@ -222,5 +234,52 @@ public sealed class AssistantTests(PostgresFixture database)
         using var asked = await AskAsync(nursery.Staff, "What needs a look?");
         Assert.Equal(HttpStatusCode.OK, asked.StatusCode);
         Assert.DoesNotContain("needs_a_look", openRouter.Questions[0].Body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Batch_models_are_not_offered_and_one_already_chosen_is_asked_as_its_instant_self()
+    {
+        var openRouter = new PretendOpenRouter();
+        await using var nursery = await TwoPersonNursery.CreateAsync(database, outsideWorld: openRouter);
+
+        var models = await nursery.Owner.GetStringAsync(Route("/api/assistant/settings/models"), Cancellation);
+        Assert.Contains("\"test/model\"", models, StringComparison.Ordinal);
+        Assert.DoesNotContain(":batch", models, StringComparison.Ordinal);
+
+        using (var saved = await nursery.Owner.PutAsJsonAsync(Route("/api/assistant/settings"), new { key = Key, model = "test/model:batch", forStaff = false }, Cancellation))
+        {
+            Assert.Equal(HttpStatusCode.NoContent, saved.StatusCode);
+        }
+
+        var settings = await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/assistant/settings"), Cancellation);
+        Assert.Equal("test/model", settings.GetProperty("model").GetString());
+
+        // A batch model saved before they were left off the list is shown and asked as its instant self.
+        await using (var scope = nursery.App.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<GrowLogDbContext>();
+            var stored = await db.GetNurserySettingsAsync(Cancellation);
+            stored.AssistantModel = "test/model:batch";
+            await db.SaveChangesAsync(Cancellation);
+        }
+
+        Assert.Equal("test/model", (await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/assistant/settings"), Cancellation)).GetProperty("model").GetString());
+        Assert.True((await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/assistant/status"), Cancellation)).GetProperty("readsImages").GetBoolean());
+
+        using var answered = await AskAsync(nursery.Owner, "What's growing?");
+        Assert.Equal(HttpStatusCode.OK, answered.StatusCode);
+        Assert.All(openRouter.Questions, question => Assert.Equal("test/model", JsonNode.Parse(question.Body)!["model"]!.GetValue<string>()));
+    }
+
+    [Fact]
+    public async Task A_model_no_provider_can_answer_is_explained()
+    {
+        var openRouter = new PretendOpenRouter { Mode = "no provider" };
+        await using var nursery = await TwoPersonNursery.CreateAsync(database, outsideWorld: openRouter);
+        await SetUpAsync(nursery, openRouter);
+
+        using var refused = await AskAsync(nursery.Owner, "What's growing?");
+        Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
+        Assert.Equal("ModelUnavailable", Json(await refused.Content.ReadAsStringAsync(Cancellation)).GetProperty("problem").GetString());
     }
 }

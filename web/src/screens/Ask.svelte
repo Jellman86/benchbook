@@ -122,6 +122,8 @@
       "That's a lot of questions this hour. Please wait a while before asking more.",
     KeyRefused:
       "OpenRouter turned the key away: it may be out of credit or past its limit. The owner can check it at openrouter.ai.",
+    ModelUnavailable:
+      "The chosen AI model can't answer questions here. The owner can choose another under Settings, AI assistant.",
     Unavailable: "The AI service didn't answer. Please try again in a minute.",
   };
 

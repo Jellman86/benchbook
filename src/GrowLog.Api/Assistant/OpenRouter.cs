@@ -18,6 +18,10 @@ internal static class OpenRouter
     private static readonly Uri Key = new("https://openrouter.ai/api/v1/key");
     private static readonly Uri Chat = new("https://openrouter.ai/api/v1/chat/completions");
 
+    // Batch versions of models answer hours later through OpenRouter's batch API, never straight away, so a question
+    // sent to one is refused as not found.
+    private const string BatchSuffix = ":batch";
+
     private static readonly Lock CacheLock = new();
     private static (DateTimeOffset At, List<ModelChoice> Models)? cache;
     private static DateTimeOffset? failedAt;
@@ -39,6 +43,7 @@ internal static class OpenRouter
         var models = data
             .Select(ModelChoice.From)
             .OfType<ModelChoice>()
+            .Where(model => !model.Id.EndsWith(BatchSuffix, StringComparison.Ordinal))
             .OrderBy(model => model.PromptPerMillion + model.CompletionPerMillion)
             .ToList();
 
@@ -83,6 +88,11 @@ internal static class OpenRouter
         }
     }
 
+    /// <summary>The version of a model that answers straight away: a batch model chosen before they were left off the list
+    /// is asked as its ordinary self.</summary>
+    public static string Instant(string model) =>
+        model.EndsWith(BatchSuffix, StringComparison.Ordinal) ? model[..^BatchSuffix.Length] : model;
+
     /// <summary>What the key has spent and its limit, in US dollars as OpenRouter reports them, or null if unknown.</summary>
     public static async Task<KeyUsage?> UsageAsync(HttpClient client, string key, CancellationToken cancellationToken)
     {
@@ -125,10 +135,34 @@ internal static class OpenRouter
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new AssistantUnavailableException((int)response.StatusCode);
+            throw new AssistantUnavailableException((int)response.StatusCode, Reason(text, key));
         }
 
         return JsonNode.Parse(text);
+    }
+
+    /// <summary>
+    /// OpenRouter's own words for a refusal, such as no provider matching the data policy, for the log: kept short, with
+    /// the key taken out and on one line, so it can't pass for another log entry.
+    /// </summary>
+    private static string? Reason(string text, string key)
+    {
+        try
+        {
+            var message = JsonNode.Parse(text)?["error"]?["message"]?.GetValue<string>();
+
+            if (message is null)
+            {
+                return null;
+            }
+
+            var tidy = new string(message.Replace(key, "[key]", StringComparison.Ordinal).Select(letter => char.IsControl(letter) ? ' ' : letter).ToArray());
+            return tidy.Length > 300 ? tidy[..300] : tidy;
+        }
+        catch (Exception problem) when (problem is JsonException or InvalidOperationException or FormatException)
+        {
+            return null;
+        }
     }
 
     private static decimal? Number(JsonNode? node) =>
