@@ -22,6 +22,8 @@
   --problem-hover: #85190f;
   --on-problem: #ffffff;
   --success: #2a6b3c;
+  --warning: #8a5a00;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23566040' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --accent: #4a5cc0;
   --on-accent: #ffffff;
   --accent-surface: #e7eafb;
@@ -58,18 +60,20 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --background: #111a12;
-    --surface: #1a261b;
+    --surface: #1f2d20;
     --text: #e8eddc;
     --muted: #a8b497;
     --primary: #a6c888;
     --primary-hover: #badaa0;
     --on-primary: #14210f;
-    --line: #2c3b2c;
+    --line: #3a4d3a;
     --border: #74856c;
     --problem: #ff9e8f;
     --problem-hover: #ffb5a8;
     --on-problem: #3d0c07;
     --success: #8dd7a0;
+    --warning: #f0c060;
+    --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23a8b497' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     --accent: #a9b7f8;
     --on-accent: #141a42;
     --accent-surface: #232c4d;
@@ -96,18 +100,20 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   --background: #111a12;
-  --surface: #1a261b;
+  --surface: #1f2d20;
   --text: #e8eddc;
   --muted: #a8b497;
   --primary: #a6c888;
   --primary-hover: #badaa0;
   --on-primary: #14210f;
-  --line: #2c3b2c;
+  --line: #3a4d3a;
   --border: #74856c;
   --problem: #ff9e8f;
   --problem-hover: #ffb5a8;
   --on-problem: #3d0c07;
   --success: #8dd7a0;
+  --warning: #f0c060;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23a8b497' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --accent: #a9b7f8;
   --on-accent: #141a42;
   --accent-surface: #232c4d;
@@ -150,7 +156,8 @@ main {
 }
 
 h1,
-h2 {
+h2,
+h3 {
   margin: 0;
   font-family: var(--heading);
   font-weight: 700;
@@ -175,6 +182,18 @@ label {
   flex-direction: column;
   gap: 0.25rem;
   font-weight: 600;
+}
+
+/* A group of fields is laid out like any other part of the page; cards give it a frame when it needs one. */
+fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+legend {
+  padding: 0;
 }
 
 input,
@@ -259,7 +278,7 @@ button[aria-pressed="true"]:hover:not(:disabled) {
 button.back {
   order: -1;
   align-self: flex-start;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   padding: 0.25rem 0.5rem 0.25rem 0;
   border: 0;
   background: transparent;
@@ -284,8 +303,12 @@ button.back:hover:not(:disabled) {
   text-decoration: underline;
 }
 
-button:disabled {
-  opacity: 0.5;
+/* Plainly not pressable yet, with text that can still be read. */
+button:disabled,
+button:disabled:is(.secondary, .danger, .destructive, [aria-pressed]) {
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--line) 60%, var(--surface));
+  color: var(--muted);
   cursor: default;
 }
 
@@ -356,9 +379,22 @@ a {
   display: none;
 }
 
-/* Saved: clear at a glance, even in sunlight, and not the green of things to press. */
-.card.done {
-  border: 2px solid var(--accent);
+/* Notices share one shape: a card with a thick edge in the colour of what it says. Blue for saved or worth
+   knowing, amber for take care, red for a problem, and the plain border for anything else. Saved is clear at a
+   glance, even in sunlight, and not the green of things to press. */
+.notice,
+.card.done,
+.card.problem,
+.alert-card,
+.caution {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--border);
+}
+
+.card.done,
+.alert-card {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  border-left-color: var(--accent);
   background: var(--accent-surface);
 }
 
@@ -370,8 +406,36 @@ a {
 }
 
 .card.problem {
-  border: 2px solid var(--problem);
+  border-color: color-mix(in srgb, var(--problem) 35%, var(--line));
+  border-left-color: var(--problem);
   background: color-mix(in srgb, var(--problem) 8%, var(--surface));
+}
+
+/* A notice's one action is as wide as its words, beside the text when there's room. */
+:is(.notice, .card.done, .card.problem, .alert-card) > :is(button, a.button) {
+  align-self: flex-start;
+}
+
+@media (min-width: 640px) {
+  :is(.notice, .card.problem, .alert-card):has(
+    > :is(button, a.button):last-child
+  ) {
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+  }
+
+  :is(.notice, .card.problem, .alert-card):has(
+      > :is(button, a.button):last-child
+    )
+    > :first-child {
+    flex: 1 1 18rem;
+  }
+
+  :is(.notice, .card.problem, .alert-card) > :is(button, a.button):last-child {
+    align-self: center;
+  }
 }
 
 .row {
@@ -946,14 +1010,15 @@ button.place-row:hover:not(:disabled) {
 
 .caution {
   padding: 0.6rem 0.75rem;
-  border: 1px solid var(--line);
+  border-color: color-mix(in srgb, var(--warning) 35%, var(--line));
+  border-left-color: var(--warning);
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--line) 50%, transparent);
+  background: color-mix(in srgb, var(--warning) 9%, var(--surface));
   font-weight: 600;
 }
 
 .segmented.four {
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .printing-tips summary {
@@ -974,7 +1039,7 @@ button.place-row:hover:not(:disabled) {
 
 @media (min-width: 640px) {
   .segmented.four {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -1027,7 +1092,8 @@ button.place-row:hover:not(:disabled) {
 .print-choice select {
   width: auto;
   min-height: 0;
-  padding: 0.15rem 0.4rem;
+  padding: 0.15rem 1.75rem 0.15rem 0.4rem;
+  background-position: right 0.5rem center;
 }
 
 .print-choice a {
@@ -1445,8 +1511,9 @@ label.tick {
   clear: both;
 }
 
-.form-card input:not([type="checkbox"]) {
-  background: var(--background);
+/* Inside a card every field has the same fill, so none looks already filled in. */
+.form-card :is(input:not([type="checkbox"], [type="radio"]), select, textarea) {
+  background-color: var(--background);
 }
 
 .form-card input.suggested {
@@ -1462,6 +1529,12 @@ label.tick {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
   gap: 0.75rem;
+}
+
+/* A number and its unit stay side by side. */
+.field-grid.pair {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: end;
 }
 
 .tick-row {
@@ -1596,8 +1669,16 @@ label.tick {
 
 .segmented {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
+}
+
+/* A long choice wraps inside its button rather than running out of the card. */
+.segmented button {
+  min-width: 0;
+  padding-inline: 0.25rem;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .menu-item {
@@ -2103,7 +2184,7 @@ button.danger:hover:not(:disabled) {
 
   .settings-nav button[aria-current="page"],
   .settings-nav button[aria-current="page"]:hover:not(:disabled) {
-    border-radius: 999px;
+    border-radius: var(--radius);
     background: var(--accent-surface);
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
     color: var(--accent-text);
@@ -2541,10 +2622,27 @@ button.danger:hover:not(:disabled) {
   color: var(--accent-text);
 }
 
-/* Several trays chosen in Production: the work for them all waits at the foot of the screen. */
-.production-row.chosen {
+/* Several trays chosen in Production: the work for them all waits at the foot of the screen. A chosen row keeps
+   its own text colour whatever the pointer does, so it reads the same tapped, hovered or pressed. */
+button.production-row[aria-pressed],
+button.production-row[aria-pressed]:hover:not(:disabled) {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+}
+
+button.production-row.chosen,
+button.production-row.chosen:hover:not(:disabled) {
   border-color: var(--accent);
   background: var(--accent-surface);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  color: var(--text);
+}
+
+@media (hover: hover) {
+  button.production-row[aria-pressed]:not(.chosen):hover:not(:disabled) {
+    border-color: var(--primary);
+  }
 }
 
 .many-trays {
@@ -2558,6 +2656,10 @@ button.danger:hover:not(:disabled) {
 .many-trays-head {
   align-items: center;
   justify-content: space-between;
+}
+
+.many-trays-head .link-button {
+  margin-left: auto;
 }
 
 .many-trays-actions {
@@ -2576,11 +2678,6 @@ button.danger:hover:not(:disabled) {
   .many-trays {
     bottom: 1rem;
   }
-}
-
-.alert-card {
-  border-color: var(--accent);
-  background: var(--accent-surface);
 }
 
 .alert-card .link-button {
@@ -2870,7 +2967,8 @@ button.danger:hover:not(:disabled) {
   width: auto;
   min-width: 0;
   min-height: 2.75rem;
-  padding-inline: 0.5rem;
+  padding-inline: 0.5rem 1.75rem;
+  background-position: right 0.5rem center;
 }
 
 .calendar-month select.calendar-year {
@@ -3054,9 +3152,20 @@ button.danger:hover:not(:disabled) {
   cursor: pointer;
 }
 
-/* A pill that can be pressed, such as a record an answer looked at. */
+/* A pill that can be pressed, such as a record an answer looked at. It keeps its own colours when hovered. */
+.pill-button,
+.pill-button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-surface);
+  color: var(--accent-text);
+}
+
+.pill-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+}
+
 .pill-button {
-  min-height: 2rem;
+  min-height: 2.75rem;
   padding: 0.15rem 0.7rem;
   border: 1px solid var(--accent);
   border-radius: 999px;
@@ -3365,5 +3474,459 @@ button.danger:hover:not(:disabled) {
 @media (min-width: 900px) {
   .place-mini-map-canvas {
     height: 18rem;
+  }
+}
+
+/* One look everywhere.
+
+   Page widths: a page is either one task at a comfortable width (.page-form), a form or summary beside a list
+   (.split inside a plain page), or a table or dashboard using the whole width. Notices at the top of a page sit at
+   the form width, lined up with the page's left edge.
+
+   Buttons: on a phone a page's buttons run the width of the screen, easy to hit with a thumb. On a desk a button is
+   as wide as its words, except in a narrow column of controls, where they line up. Links that act as buttons never
+   grow. */
+.menu-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.menu-group .settings-heading {
+  margin-top: 0.25rem;
+}
+
+.row .link-button {
+  flex: 0 0 auto;
+}
+
+/* Breadcrumbs that run off the start of a phone's screen fade there, showing there's more. */
+.breadcrumbs ol.cut {
+  mask-image: linear-gradient(to right, transparent, #000 1.5rem);
+}
+
+/* Settings pages sit as close under their breadcrumbs as every other page. */
+.breadcrumbs + .settings-layout {
+  padding-top: 0;
+}
+
+.breadcrumbs + .settings-layout > main {
+  padding-top: 0.5rem;
+}
+
+@media (min-width: 900px) {
+  .with-sidebar main.page-form {
+    max-width: 44rem;
+  }
+
+  .with-sidebar
+    main
+    > :is(
+      .notice,
+      .card.done,
+      .card.problem,
+      .alert-card,
+      .caution,
+      [role="alert"],
+      [role="status"],
+      .ask-card
+    ) {
+    max-width: 44rem;
+  }
+
+  .with-sidebar
+    :is(main, .stack, .card, .form-card, form, section, fieldset, .line)
+    > :is(button, a.button):not(
+      .plant-card,
+      .place-row,
+      .climate-card,
+      .ask-card,
+      .menu-item,
+      .photo-strip-item,
+      .sort-button,
+      .pill-button,
+      .link-button,
+      .back,
+      .icon-button
+    ) {
+    align-self: flex-start;
+    min-width: 8rem;
+  }
+
+  .with-sidebar .card > .photo-choice {
+    align-self: flex-start;
+    padding-right: 1.25rem;
+  }
+
+  /* In the narrow column beside a list, controls line up at the column's width. */
+  .with-sidebar
+    .split
+    > :first-child
+    > :is(button, a.button):not(.link-button, .back),
+  .with-sidebar
+    .split
+    > :first-child
+    :is(form, .stack, section)
+    > :is(button, a.button):not(
+      .link-button,
+      .back,
+      .plant-card,
+      .place-row,
+      .menu-item
+    ) {
+    align-self: stretch;
+  }
+
+  /* A list to pick one from, such as why plants were lost or where they're going: one width for every choice. */
+  .with-sidebar .choices {
+    width: fit-content;
+    min-width: 16rem;
+    max-width: 100%;
+  }
+
+  .with-sidebar .choices > :is(button, a.button):not(.link-button, .back) {
+    align-self: stretch;
+  }
+
+  .with-sidebar .row > :is(button, a.button) {
+    flex: 0 1 auto;
+    min-width: 8rem;
+  }
+
+  .with-sidebar .row > .link-button {
+    min-width: 0;
+  }
+
+  .with-sidebar .form-actions > button,
+  .with-sidebar .form-actions > button[type="submit"],
+  .with-sidebar .form-actions > button.secondary {
+    flex: 0 1 auto;
+    min-width: 9rem;
+  }
+
+  /* Breadcrumbs lead back on a desk, so a page with them doesn't need a Back button too. */
+  .with-sidebar:has(.breadcrumbs) button.back {
+    display: none;
+  }
+
+  .with-sidebar .breadcrumbs + .settings-layout > main {
+    padding-top: 0.75rem;
+  }
+
+  .with-sidebar .breadcrumbs + .settings-layout > .settings-nav {
+    padding-top: 0.75rem;
+  }
+
+  /* The Manage menu as a grid of cards, rather than a long column repeating the sidebar. */
+  .with-sidebar .menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    max-width: 64rem;
+  }
+
+  /* The sidebar's foot stays in view; only the list of places to go scrolls. */
+  .sidebar {
+    overflow: hidden;
+  }
+
+  .sidebar nav {
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+}
+
+.table-heading {
+  margin: 1.5rem 0 0.6rem;
+}
+
+/* Small notes and lists inside a table cell. */
+.cell-note {
+  display: block;
+  font-size: 0.9em;
+}
+
+.cell-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cell-lines li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+}
+
+.cell-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+}
+
+.purchases-table td {
+  vertical-align: top;
+}
+
+.data-table .link-button,
+.data-table .file-link {
+  min-height: 2rem;
+}
+
+/* A file chooser that reads as a link, such as adding a receipt in a table. */
+.file-link {
+  position: relative;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.file-link:hover {
+  color: var(--primary-hover);
+}
+
+.file-link:focus-within {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.file-link input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+}
+
+/* Something that can't be undone, such as voiding: quiet, but in the problem colour. */
+button.link-button.danger-link:not(:disabled),
+button.secondary.destructive:not(:disabled) {
+  color: var(--problem);
+}
+
+button.secondary.destructive:hover:not(:disabled) {
+  border-color: var(--problem);
+  background: color-mix(in srgb, var(--problem) 8%, var(--surface));
+}
+
+/* The plant page's labels and cards to print, side by side when there's room. */
+.print-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: 0.75rem;
+}
+
+/* An invoice line: a card of fields on a phone, one row of them on a desk. */
+.line-total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 1rem;
+}
+
+/* The chosen-trays bar on a phone: one line until its actions are asked for. */
+.row > .many-trays-toggle {
+  flex: 0 0 auto;
+}
+
+.many-trays-toggle {
+  min-height: 2.75rem;
+  margin-left: auto;
+  padding: 0.25rem 1rem;
+}
+
+.many-trays-toggle + .link-button {
+  margin-left: 0;
+}
+
+.many-trays.collapsed .many-trays-actions {
+  display: none;
+}
+
+.many-trays.collapsed {
+  gap: 0;
+  padding-block: 0.5rem;
+}
+
+@media (min-width: 900px) {
+  .with-sidebar .many-trays.collapsed .many-trays-actions {
+    display: grid;
+  }
+
+  .with-sidebar .many-trays.collapsed {
+    gap: 0.75rem;
+    padding-block: 1rem;
+  }
+}
+
+/* From a wide desk, a new invoice's lines are one row each; narrower desks keep each line as a card. */
+@media (min-width: 1280px) {
+  .with-sidebar main.invoice-page {
+    max-width: 84rem;
+  }
+
+  /* Everything but the lines keeps to the form's width. */
+  .with-sidebar main.invoice-page > :not(form),
+  .with-sidebar main.invoice-page > form > :not(.invoice-line) {
+    max-width: 44rem;
+  }
+
+  .with-sidebar .invoice-line > .line-fields {
+    display: grid;
+    grid-template-columns:
+      [plant] minmax(9rem, 2fr) [tray] minmax(9rem, 2fr)
+      [description] minmax(11rem, 3fr) [quantity] 6rem [price] 7rem [vat] auto
+      [total] minmax(8rem, auto);
+    gap: 0.75rem;
+    align-items: end;
+  }
+
+  .with-sidebar .line-fields .field-grid {
+    display: contents;
+  }
+
+  .with-sidebar .line-fields .line-plant {
+    grid-area: 1 / plant;
+  }
+
+  .with-sidebar .line-fields .line-tray {
+    grid-area: 1 / tray;
+  }
+
+  .with-sidebar .line-fields .line-description {
+    grid-area: 1 / description;
+  }
+
+  .with-sidebar .line-fields .line-quantity {
+    grid-area: 1 / quantity;
+  }
+
+  .with-sidebar .line-fields .line-price {
+    grid-area: 1 / price;
+  }
+
+  .with-sidebar .line-fields .line-vat {
+    grid-area: 1 / vat;
+  }
+
+  .with-sidebar .line-fields .line-total {
+    grid-area: 1 / total;
+    flex-direction: column;
+    align-items: flex-start;
+    align-self: center;
+    gap: 0;
+    font-weight: 600;
+  }
+}
+
+/* A bench station on a tablet uses its width: the tray beside what to do next, and Record work in two columns. */
+@media (min-width: 700px) {
+  .bench-layout main,
+  .bench-layout .breadcrumbs {
+    max-width: 64rem;
+  }
+
+  .bench-layout main.action-frame {
+    max-width: 40rem;
+  }
+
+  .bench-layout main.action-frame:has(.action-columns) {
+    max-width: 56rem;
+  }
+
+  .bench-layout .tray-layout {
+    grid-template-areas:
+      "details actions"
+      "history actions";
+    grid-template-columns: minmax(0, 1.2fr) minmax(16rem, 1fr);
+    align-items: start;
+    gap: 1.5rem 2rem;
+  }
+
+  .bench-layout .tray-actions {
+    position: sticky;
+    top: 1rem;
+  }
+
+  .bench-layout .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 2rem;
+    align-items: start;
+  }
+}
+
+.data-table td.nowrap {
+  white-space: nowrap;
+}
+
+/* Links side by side, such as a tray's About this plant and Edit batch, keep clear of each other. */
+.row > .link-button + .link-button {
+  margin-left: 0.75rem;
+}
+
+/* Disabled links and Back stay links: no box, just the quieter colour. Last, so they win over every link style. */
+button:disabled:is(.link-button, .back, .danger-link),
+button:disabled:is(.link-button, .back, .danger-link):hover {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+/* Pages whose list is a table: below a wide desk, the form sits above the table so every column fits. */
+@media (min-width: 900px) and (max-width: 1439px) {
+  .with-sidebar .split.wide-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .with-sidebar .split.wide-list > :first-child {
+    max-width: 30rem;
+  }
+}
+
+/* Each purchase's actions stacked, so the table fits its column and What keeps room to read. */
+.purchases-table .cell-actions {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  white-space: nowrap;
+}
+
+.purchases-table td:nth-child(3) {
+  min-width: 11rem;
+}
+
+.purchases-table :is(th, td) {
+  padding-inline: 0.6rem;
+}
+
+/* Selects are drawn the same as other fields everywhere, rather than as iPhone's own grey box, with a small
+   chevron in each theme's quieter text colour. */
+select:not([multiple]) {
+  appearance: none;
+  padding-right: 2.25rem;
+  background-image: var(--chevron);
+  background-position: right 0.85rem center;
+  background-size: 0.75rem 0.5rem;
+  background-repeat: no-repeat;
+}
+
+/* Settings pages sit beside their own menu, so a form and its list share the space evenly and stack when tight. */
+@media (min-width: 900px) {
+  .with-sidebar .settings-layout .split {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
   }
 }

@@ -219,30 +219,37 @@
   >
     {#snippet actions()}
       {#if canManage && selected}
-        <div class="row">
-          <button class="secondary" onclick={() => edit(selected)}
-            >Change</button
-          >
-          <PrintButton
-            href="/api/labels/bench-cards/{selected.id}"
-            label="Bench card"
-          />
-          {#each selected.prices as price (price.potSizeId)}
-            <PrintButton
-              href="/api/labels/plants/{selected.id}?potSizeId={price.potSizeId}"
-              label="Plant label: {potSizes.find(
-                (size) => size.id === price.potSizeId,
-              )?.name}"
-            />
-          {:else}
-            <PrintButton
-              href="/api/labels/plants/{selected.id}"
-              label="Plant label"
-            />
-          {/each}
-          <button class="secondary" onclick={() => archive(selected)}
-            >No longer grown</button
-          >
+        <div class="stack">
+          <section class="stack tight" aria-labelledby="plant-print">
+            <h2 class="form-heading" id="plant-print">Print</h2>
+            <div class="print-list">
+              <PrintButton
+                href="/api/labels/bench-cards/{selected.id}"
+                label="Bench card"
+              />
+              {#each selected.prices as price (price.potSizeId)}
+                <PrintButton
+                  href="/api/labels/plants/{selected.id}?potSizeId={price.potSizeId}"
+                  label="{potSizes.find((size) => size.id === price.potSizeId)
+                    ?.name} plant label"
+                />
+              {:else}
+                <PrintButton
+                  href="/api/labels/plants/{selected.id}"
+                  label="Plant label"
+                />
+              {/each}
+            </div>
+          </section>
+          <div class="row">
+            <button class="secondary" onclick={() => edit(selected)}
+              >Change</button
+            >
+            <button
+              class="secondary destructive"
+              onclick={() => archive(selected)}>No longer grown</button
+            >
+          </div>
         </div>
       {/if}
     {/snippet}

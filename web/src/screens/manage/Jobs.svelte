@@ -8,7 +8,7 @@
   import { workPlaces } from "../../lib/work";
   import DayPicker from "../DayPicker.svelte";
 
-  // Repeating jobs: watering, feeding and spraying rotas. Anyone ticks them off on Record; they're set up here.
+  // Repeating jobs: watering, feeding and spraying rotas. Anyone ticks them off on Record work; they're set up here.
   let { onBack }: { onBack: () => void } = $props();
 
   type Job = Schemas["JobSummary"];
@@ -133,8 +133,8 @@
   <h1>Jobs</h1>
   <p class="muted">
     Jobs that come round again, such as watering, feeding or spraying. They show
-    on Record when due, and anyone can tick them off; the next date moves on by
-    itself.
+    on Record work when due, and anyone can tick them off; the next date moves
+    on by itself.
   </p>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   {#if saved}<p class="card done" role="status">{saved}</p>{/if}
@@ -151,7 +151,7 @@
             placeholder="Water house 1"
           /></label
         >
-        <div class="field-grid">
+        <div class="field-grid pair">
           <label
             >Every <input
               type="number"
@@ -163,7 +163,7 @@
             /></label
           >
           <label
-            >&nbsp;<select bind:value={form.unit}>
+            >&nbsp;<select bind:value={form.unit} aria-label="Days or weeks">
               <option value="days">days</option>
               <option value="weeks">weeks</option>
             </select></label
@@ -215,7 +215,7 @@
           </div>
         </div>
       {:else}
-        <p class="muted">No jobs yet.</p>
+        <p class="note-empty muted">No jobs yet.</p>
       {/each}
     </section>
   </div>

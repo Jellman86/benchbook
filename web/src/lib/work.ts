@@ -267,8 +267,14 @@ export interface BatchPrefill {
   receivedOn?: string;
 }
 
+const pounds = new Intl.NumberFormat("en-GB", {
+  style: "currency",
+  currency: "GBP",
+});
+
+/** Pounds and pence, with thousands separated: "£1,024.50". */
 export function money(value: number): string {
-  return `£${value.toFixed(2)}`;
+  return pounds.format(value);
 }
 
 export const lossReasons: { reason: Schemas["LossReason"]; label: string }[] = [

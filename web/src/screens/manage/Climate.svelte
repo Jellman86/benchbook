@@ -188,7 +188,7 @@
     </p>
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
     {#if loaded && places.length === 0}
-      <p class="muted">No sensors yet.</p>
+      <p class="note-empty muted">No sensors yet.</p>
     {/if}
     <div class="stack">
       {#each places as place (place.locationId)}

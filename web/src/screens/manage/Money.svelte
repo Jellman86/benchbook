@@ -2,7 +2,9 @@
   import { isOn } from "../../lib/features.svelte";
   import { isoDay } from "../../lib/days";
   import { onMount } from "svelte";
+  import DataTable from "../DataTable.svelte";
   import DayPicker from "../DayPicker.svelte";
+  import type { Column } from "../../lib/table";
   import { api } from "../../api/client";
   import { dayLabel } from "../../lib/dates";
   import { attempt, type Schemas } from "../../lib/types";
@@ -55,6 +57,51 @@
     }, setProblem);
   };
 
+  type Taking = Schemas["TakingResponse"];
+  type Month = Schemas["MoneySummary"]["months"][number];
+
+  // On a desk, takings and months are tables beside the form, sorted by any column.
+  const takingColumns: Column<Taking>[] = [
+    {
+      label: "Day",
+      value: (taking) => taking.takenOn,
+      text: (taking) => dayLabel(taking.takenOn),
+    },
+    {
+      label: "Taken",
+      value: (taking) => Number(taking.amount),
+      text: (taking) => money(Number(taking.amount)),
+      numeric: true,
+    },
+    { label: "Notes", value: (taking) => taking.notes ?? "" },
+  ];
+
+  const monthColumns: Column<Month>[] = [
+    {
+      label: "Month",
+      value: (month) => month.month,
+      text: (month) => monthName(month.month),
+    },
+    {
+      label: "Income",
+      value: (month) => Number(month.income),
+      text: (month) => money(Number(month.income)),
+      numeric: true,
+    },
+    {
+      label: "Spending",
+      value: (month) => Number(month.spending),
+      text: (month) => money(Number(month.spending)),
+      numeric: true,
+    },
+    {
+      label: "Difference",
+      value: (month) => Number(month.income) - Number(month.spending),
+      text: (month) => money(Number(month.income) - Number(month.spending)),
+      numeric: true,
+    },
+  ];
+
   const voidTaking = (taking: Schemas["TakingResponse"]) => {
     if (!confirm(`Void the takings for ${dayLabel(taking.takenOn)}?`)) {
       return;
@@ -69,10 +116,16 @@
   };
 </script>
 
+{#snippet takingActions(taking: Taking)}
+  <button class="link-button danger-link" onclick={() => voidTaking(taking)}
+    >Void</button
+  >
+{/snippet}
+
 <main>
   <h1>Money</h1>
 
-  <div class="split">
+  <div class="split wide-list">
     <section>
       <form class="stack" onsubmit={save}>
         <DayPicker bind:value={takenOn} label="Date" />
@@ -91,24 +144,27 @@
         >Download for accountant (CSV)</a
       >
 
-      <h2>Recent takings</h2>
-      {#each takings as taking (taking.id)}
-        <div class="card recent">
-          <span class="stack-tight">
-            <strong
-              >{dayLabel(taking.takenOn)}: {money(
-                Number(taking.amount),
-              )}</strong
+      <div class="mobile-only stack">
+        <h2>Recent takings</h2>
+        {#each takings as taking (taking.id)}
+          <div class="card recent">
+            <span class="stack-tight">
+              <strong
+                >{dayLabel(taking.takenOn)}: {money(
+                  Number(taking.amount),
+                )}</strong
+              >
+              {#if taking.notes}<span class="muted">{taking.notes}</span>{/if}
+            </span>
+            <button
+              class="link-button danger-link"
+              onclick={() => voidTaking(taking)}>Void</button
             >
-            {#if taking.notes}<span class="muted">{taking.notes}</span>{/if}
-          </span>
-          <button class="link-button" onclick={() => voidTaking(taking)}
-            >Void</button
-          >
-        </div>
-      {:else}
-        <p class="muted">No takings entered yet.</p>
-      {/each}
+          </div>
+        {:else}
+          <p class="note-empty muted">No takings entered yet.</p>
+        {/each}
+      </div>
     </section>
 
     <section>
@@ -131,14 +187,41 @@
             </div>
           {/if}
         </div>
-        {#each summary.months as month (month.month)}
-          <div class="card">
-            <strong>{monthName(month.month)}</strong>
-            <span>Income: {money(Number(month.income))}</span>
-            <span>Spending: {money(Number(month.spending))}</span>
+        <div class="mobile-only stack">
+          {#each summary.months as month (month.month)}
+            <div class="card">
+              <strong>{monthName(month.month)}</strong>
+              <span>Income: {money(Number(month.income))}</span>
+              <span>Spending: {money(Number(month.spending))}</span>
+            </div>
+          {/each}
+        </div>
+        {#if summary.months.length > 0}
+          <div class="desktop-only">
+            <DataTable
+              rows={summary.months}
+              columns={monthColumns}
+              key={(month) => month.month}
+              caption="Income and spending by month"
+            />
           </div>
-        {/each}
+        {/if}
       {/if}
+
+      <div class="desktop-only">
+        <h2 class="table-heading">Recent takings</h2>
+        {#if takings.length > 0}
+          <DataTable
+            rows={takings}
+            columns={takingColumns}
+            key={(taking) => taking.id}
+            caption="Recent takings"
+            actions={takingActions}
+          />
+        {:else}
+          <p class="note-empty muted">No takings entered yet.</p>
+        {/if}
+      </div>
     </section>
   </div>
 

@@ -689,7 +689,7 @@
       <h1>Hello, {me.name}</h1>
 
       {#if offline}
-        <p class="card" data-testid="offline">
+        <p class="card notice" data-testid="offline">
           No connection. Work you record is saved on this device.
         </p>
       {/if}
@@ -710,7 +710,7 @@
       {/if}
 
       {#if waiting > 0}
-        <p class="card" data-testid="waiting">
+        <p class="card notice" data-testid="waiting">
           {waiting}
           {waiting === 1 ? "thing" : "things"} waiting to send. Keep GrowLog open
           when you're back in signal.
@@ -718,7 +718,7 @@
       {/if}
 
       {#each failed as item (item.eventId)}
-        <div class="card" role="alert">
+        <div class="card problem" role="alert">
           <strong>Couldn't be saved: {item.description}</strong>
           <span>{item.reason}</span>
           <div class="row">
@@ -750,9 +750,9 @@
           >
         </div>
       {/if}
-      {#if notice}<p class="card" role="status">{notice}</p>{/if}
+      {#if notice}<p class="card notice" role="status">{notice}</p>{/if}
       {#each othersWaiting as other (other.owner)}
-        <p class="card">
+        <p class="card notice">
           {other.count}
           {other.count === 1 ? "thing" : "things"} recorded by {other.name}
           {other.count === 1 ? "is" : "are"} waiting on this device. They'll send
@@ -761,20 +761,20 @@
       {/each}
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
-      {#if assistant.canAsk && !atBench}
-        <button class="ask-card" onclick={() => (view = { name: "ask" })}>
-          <Sparkles size={22} aria-hidden="true" />
-          <span class="stack tight">
-            <strong>Ask GrowLog</strong>
-            <span class="muted"
-              >About plants, the trays, losses and photos of plants</span
-            >
-          </span>
-        </button>
-      {/if}
-
       <div class="split">
         <section>
+          {#if assistant.canAsk && !atBench}
+            <button class="ask-card" onclick={() => (view = { name: "ask" })}>
+              <Sparkles size={22} aria-hidden="true" />
+              <span class="stack tight">
+                <strong>Ask GrowLog</strong>
+                <span class="muted"
+                  >About plants, the trays, losses and photos of plants</span
+                >
+              </span>
+            </button>
+          {/if}
+
           <form class="stack" onsubmit={scan}>
             <label>
               Scan a label
@@ -881,8 +881,10 @@
 {/snippet}
 
 {#if atBench}
-  <Breadcrumbs />
-  {#key fresh}{@render screen()}{/key}
+  <div class="bench-layout">
+    <Breadcrumbs />
+    {#key fresh}{@render screen()}{/key}
+  </div>
 {:else}
   <div class="with-sidebar" class:collapsed>
     <Sidebar

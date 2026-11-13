@@ -128,7 +128,7 @@ jobs:
       - name: Build the web app
         run: npm run build
       - name: Install the browser
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
       - name: Test in a real browser
         run: npm run e2e
 

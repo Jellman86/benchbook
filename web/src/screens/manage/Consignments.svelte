@@ -357,30 +357,34 @@
     <button class="back" onclick={() => (opened = null)}>Back</button>
   </main>
 {:else if writing}
-  <main>
-    <h1>Send plants</h1>
+  <main class="page-form">
+    <h1>New consignment</h1>
     <p class="caution">
       If these are ornamental propagating material (including seeds, plugs,
       cuttings or liners), prepare a separate supplier document to travel with
       them. A passport does not replace it.
     </p>
     <form class="stack" onsubmit={record}>
-      <fieldset class="form-card stack">
+      <fieldset class="form-card">
         <legend class="field-label">How are they going?</legend>
-        <div class="segmented two">
-          {#each kindChoices as item (item.kind)}
-            <button
-              type="button"
-              class={kind === item.kind ? "" : "secondary"}
-              aria-pressed={kind === item.kind}
-              onclick={() => (kind = item.kind)}>{item.label}</button
+        <div class="stack">
+          <div class="segmented two">
+            {#each kindChoices as item (item.kind)}
+              <button
+                type="button"
+                class={kind === item.kind ? "" : "secondary"}
+                aria-pressed={kind === item.kind}
+                onclick={() => (kind = item.kind)}>{item.label}</button
+              >
+            {/each}
+          </div>
+          <p class={choice.needed ? "card" : "muted"} role="status">
+            <strong
+              >{choice.needed ? "Passport needed." : "No passport."}</strong
             >
-          {/each}
+            {choice.why}
+          </p>
         </div>
-        <p class={choice.needed ? "card" : "muted"} role="status">
-          <strong>{choice.needed ? "Passport needed." : "No passport."}</strong>
-          {choice.why}
-        </p>
       </fieldset>
 
       <div class="form-card stack">
@@ -418,76 +422,78 @@
       </div>
 
       {#each packages as lines, index (index)}
-        <fieldset class="form-card stack">
+        <fieldset class="form-card">
           <legend>Package {index + 1}</legend>
-          {#if trays.length === 0 && invoiced.length === 0}
-            <p class="muted">No counted trays to send from.</p>
-          {/if}
-          {#each lines as line, lineIndex (lineIndex)}
-            <div class="consignment-line">
-              <label
-                >Tray <select
-                  bind:value={line.tray}
-                  required
-                  onchange={() => fromInvoice(line.tray)}
-                >
-                  <option value="">Choose…</option>
-                  <optgroup label="In the trays">
-                    {#each trays as row (trayKey(row))}
-                      <option value={trayKey(row)}>{trayWords(row)}</option>
-                    {/each}
-                  </optgroup>
-                  {#if invoiced.length > 0}
-                    <optgroup label="Already invoiced">
-                      {#each invoiced as row (row.invoiceLineId)}
-                        <option value={invoicedKey(row)}
-                          >Invoice {row.invoiceNumber} · {row.left}
-                          {row.plantName} · {row.customerName}</option
-                        >
+          <div class="stack">
+            {#if trays.length === 0 && invoiced.length === 0}
+              <p class="muted">No counted trays to send from.</p>
+            {/if}
+            {#each lines as line, lineIndex (lineIndex)}
+              <div class="consignment-line">
+                <label
+                  >Tray <select
+                    bind:value={line.tray}
+                    required
+                    onchange={() => fromInvoice(line.tray)}
+                  >
+                    <option value="">Choose…</option>
+                    <optgroup label="In the trays">
+                      {#each trays as row (trayKey(row))}
+                        <option value={trayKey(row)}>{trayWords(row)}</option>
                       {/each}
                     </optgroup>
-                  {/if}
-                </select></label
+                    {#if invoiced.length > 0}
+                      <optgroup label="Already invoiced">
+                        {#each invoiced as row (row.invoiceLineId)}
+                          <option value={invoicedKey(row)}
+                            >Invoice {row.invoiceNumber} · {row.left}
+                            {row.plantName} · {row.customerName}</option
+                          >
+                        {/each}
+                      </optgroup>
+                    {/if}
+                  </select></label
+                >
+                <label
+                  >Plants <input
+                    type="number"
+                    inputmode="numeric"
+                    min="1"
+                    bind:value={line.quantity}
+                    required
+                  /></label
+                >
+                {#if lines.length > 1}
+                  <button
+                    type="button"
+                    class="link-button"
+                    onclick={() => lines.splice(lineIndex, 1)}>Remove</button
+                  >
+                {/if}
+              </div>
+              {#if tooMany.includes(line.tray)}
+                <p class="problem">
+                  That tray holds {holds(line.tray)}, fewer than asked for
+                  across the packages.
+                </p>
+              {/if}
+            {/each}
+            <div class="row">
+              <button
+                type="button"
+                class="secondary"
+                onclick={() => lines.push({ tray: "", quantity: 1 })}
+                >Another tray</button
               >
-              <label
-                >Plants <input
-                  type="number"
-                  inputmode="numeric"
-                  min="1"
-                  bind:value={line.quantity}
-                  required
-                /></label
-              >
-              {#if lines.length > 1}
+              {#if packages.length > 1}
                 <button
                   type="button"
                   class="link-button"
-                  onclick={() => lines.splice(lineIndex, 1)}>Remove</button
+                  onclick={() => packages.splice(index, 1)}
+                  >Remove the package</button
                 >
               {/if}
             </div>
-            {#if tooMany.includes(line.tray)}
-              <p class="problem">
-                That tray holds {holds(line.tray)}, fewer than asked for across
-                the packages.
-              </p>
-            {/if}
-          {/each}
-          <div class="row">
-            <button
-              type="button"
-              class="secondary"
-              onclick={() => lines.push({ tray: "", quantity: 1 })}
-              >Another tray</button
-            >
-            {#if packages.length > 1}
-              <button
-                type="button"
-                class="link-button"
-                onclick={() => packages.splice(index, 1)}
-                >Remove the package</button
-              >
-            {/if}
           </div>
         </fieldset>
       {/each}

@@ -89,7 +89,7 @@
   }
 </script>
 
-<ActionFrame title="Move to" {problem} {onCancel} {container}>
+<ActionFrame title="Move" {problem} {onCancel} {container}>
   <form class="stack" onsubmit={scanned}>
     <label>
       Scan the place's label
@@ -112,7 +112,7 @@
     >
   {/if}
   <p class="muted">Or choose:</p>
-  <div class="stack">
+  <div class="stack choices">
     {#each places as place (place.id)}
       <button class="secondary" disabled={busy} onclick={() => move(place)}
         >{place.label}</button

@@ -13,7 +13,7 @@
 </script>
 
 {#if lines.length > 1}
-  <div class="stack">
+  <div class="stack choices">
     <p>Which plants?</p>
     {#each lines as line (line.batchId)}
       <button

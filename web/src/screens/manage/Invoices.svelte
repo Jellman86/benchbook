@@ -259,8 +259,8 @@
   {/if}
 {/snippet}
 
-<main>
-  <h1>Invoices</h1>
+<main class:page-form={writing} class:invoice-page={writing}>
+  <h1>{writing ? "New invoice" : "Invoices"}</h1>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   {#if issued}
     <div class="card done" role="status">
@@ -295,90 +295,96 @@
       {#each lines as line, index (index)}
         <fieldset class="form-card invoice-line">
           <legend>Line {index + 1}</legend>
-          <div class="field-grid">
-            <label>
-              From the plant list (optional)
-              <select
-                onchange={(event) =>
-                  choosePlant(index, event.currentTarget.value)}
-              >
-                <option value="">Something else</option>
-                {#each plantChoices as choice (choice.value)}
-                  <option value={choice.value}>{choice.label}</option>
-                {/each}
-              </select>
-            </label>
-            {#if traysOf(line.plantId).length > 0}
-              <label>
-                Take from a tray (optional)
+          <div class="stack line-fields">
+            <div class="field-grid">
+              <label class="line-plant">
+                From the plant list (optional)
                 <select
                   onchange={(event) =>
-                    chooseTray(index, event.currentTarget.value)}
+                    choosePlant(index, event.currentTarget.value)}
                 >
-                  <option value="">Not from a tray</option>
-                  {#each traysOf(line.plantId) as tray (tray.containerId)}
-                    <option value="{tray.containerId}|{tray.batchId}"
-                      >{tray.labelCode} · {tray.quantity} there{tray.locationName
-                        ? ` · ${tray.locationName}`
-                        : ""}</option
-                    >
+                  <option value="">Something else</option>
+                  {#each plantChoices as choice (choice.value)}
+                    <option value={choice.value}>{choice.label}</option>
                   {/each}
                 </select>
               </label>
-            {/if}
-          </div>
-          <label
-            >Description <input bind:value={line.description} required /></label
-          >
-          <div class="field-grid">
-            <label
-              >Quantity <input
-                type="number"
-                min="1"
-                bind:value={line.quantity}
+              {#if traysOf(line.plantId).length > 0}
+                <label class="line-tray">
+                  Take from a tray (optional)
+                  <select
+                    onchange={(event) =>
+                      chooseTray(index, event.currentTarget.value)}
+                  >
+                    <option value="">Not from a tray</option>
+                    {#each traysOf(line.plantId) as tray (tray.containerId)}
+                      <option value="{tray.containerId}|{tray.batchId}"
+                        >{tray.labelCode} · {tray.quantity} there{tray.locationName
+                          ? ` · ${tray.locationName}`
+                          : ""}</option
+                      >
+                    {/each}
+                  </select>
+                </label>
+              {/if}
+            </div>
+            <label class="line-description"
+              >Description <input
+                bind:value={line.description}
                 required
               /></label
             >
-            <label
-              >Price each (£) <input
-                type="number"
-                min="0"
-                step="0.01"
-                bind:value={line.unitPrice}
-                oninput={() => (line.catalogueGross = null)}
-                required
-              /></label
-            >
-            {#if vatRegistered}
-              <label>
-                VAT
-                <select
-                  value={line.vatRate}
-                  onchange={(event) =>
-                    (lines[index] = changeRate(
-                      line,
-                      Number(event.currentTarget.value),
-                      vatRegistered,
-                    ))}
-                >
-                  {#each vatRates as rate (rate)}<option value={rate}
-                      >{rate}%</option
-                    >{/each}
-                </select>
-              </label>
-            {/if}
-          </div>
-          <p class="muted">
-            {money(line.quantity * line.unitPrice)}
-            {#if lines.length > 1}
-              · <button
-                type="button"
-                class="link-button"
-                onclick={() => (lines = lines.filter((_, at) => at !== index))}
-                >Remove this line</button
+            <div class="field-grid">
+              <label class="line-quantity"
+                >Quantity <input
+                  type="number"
+                  min="1"
+                  bind:value={line.quantity}
+                  required
+                /></label
               >
-            {/if}
-          </p>
+              <label class="line-price"
+                >Price each (£) <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  bind:value={line.unitPrice}
+                  oninput={() => (line.catalogueGross = null)}
+                  required
+                /></label
+              >
+              {#if vatRegistered}
+                <label class="line-vat">
+                  VAT
+                  <select
+                    value={line.vatRate}
+                    onchange={(event) =>
+                      (lines[index] = changeRate(
+                        line,
+                        Number(event.currentTarget.value),
+                        vatRegistered,
+                      ))}
+                  >
+                    {#each vatRates as rate (rate)}<option value={rate}
+                        >{rate}%</option
+                      >{/each}
+                  </select>
+                </label>
+              {/if}
+            </div>
+            <p class="muted line-total">
+              <span>{money(line.quantity * line.unitPrice)}</span>
+              {#if lines.length > 1}
+                <button
+                  type="button"
+                  class="link-button"
+                  onclick={() =>
+                    (lines = lines.filter((_, at) => at !== index))}
+                  >Remove this line</button
+                >
+              {/if}
+            </p>
+          </div>
         </fieldset>
       {/each}
 
@@ -402,7 +408,7 @@
         {:else}
           <p class="muted">
             No VAT: the nursery isn't registered for VAT (change this under
-            Nursery and labels).
+            Settings, Nursery details).
           </p>
         {/if}
         <strong>Total {money(sums.total)}</strong>

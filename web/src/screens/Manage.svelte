@@ -74,20 +74,22 @@
 {:else}
   <main>
     <h1>Manage</h1>
-    <div class="stack">
-      {#each groups as group (group.heading)}
+    {#each groups as group (group.heading)}
+      <section class="stack menu-group">
         <h2 class="settings-heading">{group.heading}</h2>
-        {#each group.items as item (item.section)}
-          <button
-            class="secondary menu-item"
-            onclick={() => onSection(item.section)}
-          >
-            <item.icon size={20} />
-            {item.label}
-          </button>
-        {/each}
-      {/each}
-    </div>
+        <div class="menu-grid">
+          {#each group.items as item (item.section)}
+            <button
+              class="secondary menu-item"
+              onclick={() => onSection(item.section)}
+            >
+              <item.icon size={20} />
+              {item.label}
+            </button>
+          {/each}
+        </div>
+      </section>
+    {/each}
     <p class="muted">
       The nursery's details, labels, pot sizes, staff and signing in are under
       Settings.
