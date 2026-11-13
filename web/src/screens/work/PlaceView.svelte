@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isOn } from "../../lib/features.svelte";
   import { lineAmount } from "../../lib/sowing";
   import PrintButton from "../PrintButton.svelte";
   import { onMount } from "svelte";
@@ -12,6 +13,7 @@
     trayPlaces,
     withEverythingInside,
     type Place,
+    type AddedPlace,
   } from "../../lib/places";
   import { recordWork } from "../../lib/queue";
   import { attempt, type Schemas } from "../../lib/types";
@@ -27,9 +29,12 @@
     onOpenTray,
     onOpenPlace,
     onMoveTraysHere,
+    onDrawOnMap,
   }: {
     placeId: string;
     canManage?: boolean;
+    /** Opens the map to draw a place, when the places map is on. */
+    onDrawOnMap?: (place: AddedPlace) => void;
     onBack: () => void;
     onOpenTray: (label: string) => void;
     onOpenPlace: (id: string) => void;
@@ -285,6 +290,18 @@
             <button class="secondary" onclick={() => (task = "add")}
               >Add inside</button
             >
+            {#if onDrawOnMap && isOn("PlacesMap")}
+              <button
+                class="secondary"
+                onclick={() =>
+                  onDrawOnMap({
+                    id: place!.id,
+                    name: place!.name,
+                    kind: place!.kind,
+                    parentId: place!.parentId ?? null,
+                  })}>On the map</button
+              >
+            {/if}
             <button class="secondary" onclick={retire}>No longer used</button>
           </div>
           {#if task === "rename"}
@@ -323,9 +340,13 @@
               <AddPlaces
                 {places}
                 inside={place.id}
-                onAdded={async () => {
+                onAdded={async (added) => {
                   task = null;
                   await load();
+
+                  if (added && onDrawOnMap && isOn("PlacesMap")) {
+                    onDrawOnMap(added);
+                  }
                 }}
               />
             </div>

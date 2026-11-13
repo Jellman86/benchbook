@@ -91,7 +91,8 @@ export const featureInfo: FeatureInfo[] = [
   {
     feature: "PlacesMap",
     label: "Places map",
-    hides: "The map in Places and Settings, Map, with its satellite pictures.",
+    hides:
+      "The map step when adding a place, On the map on each place, and Settings, Map, with its satellite pictures.",
   },
   {
     feature: "Passports",

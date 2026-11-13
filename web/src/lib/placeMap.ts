@@ -78,3 +78,43 @@ export function corners(points: { lat: number; lng: number }[]): Point[] {
     ? all.slice(0, -1)
     : all;
 }
+
+/**
+ * Where an address is, from Esri's address search with the nursery's map key, or null if it isn't found or the key
+ * can't search. The result only moves the map; it's never kept.
+ */
+export async function geocodeAddress(
+  address: string,
+  key: string,
+): Promise<Point | null> {
+  const query = new URLSearchParams({
+    SingleLine: address,
+    countryCode: "GBR",
+    maxLocations: "1",
+    forStorage: "false",
+    f: "json",
+    token: key,
+  });
+
+  try {
+    const response = await fetch(
+      `https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?${query}`,
+    );
+    const found = response.ok
+      ? (
+          (await response.json()) as {
+            candidates?: {
+              location?: { x: number; y: number };
+              score?: number;
+            }[];
+          }
+        ).candidates?.[0]
+      : undefined;
+
+    return found?.location && (found.score ?? 0) >= 70
+      ? [found.location.y, found.location.x]
+      : null;
+  } catch {
+    return null;
+  }
+}

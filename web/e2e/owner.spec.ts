@@ -154,21 +154,52 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(page.getByText("Hillside Plants")).toBeVisible();
   await leaveManage(page);
 
-  // Places: a site, a greenhouse in it, then numbered benches in one go.
+  // Places: a site, a greenhouse in it, then numbered benches in one go. A single new place goes on the map next,
+  // drawn by tapping its corners. Map pictures aren't fetched in tests.
+  await page.route(
+    (url) =>
+      url.hostname === "tile.openstreetmap.org" ||
+      url.hostname === "api.postcodes.io",
+    (route) => route.abort(),
+  );
   await openManage(page, "Places");
   await page.getByLabel("Type").selectOption("Site");
   await page.getByLabel("Name", { exact: true }).fill("Croft");
   await button(page, "Add").click();
   await expect(
+    page.getByRole("heading", { name: "Where is Croft?" }),
+  ).toBeVisible();
+  await button(page, "Skip the map for now").click();
+  await expect(
     page.locator(".place-row strong", { hasText: "Croft" }),
   ).toBeVisible();
+  // On a phone the form waits behind its button again.
+  await button(page, "Add a place").click();
   await page.getByLabel("Type").selectOption("Greenhouse");
   await page.getByLabel("Inside").selectOption({ label: "Croft" });
   await page.getByLabel("Name", { exact: true }).fill("Greenhouse 2");
   await button(page, "Add").click();
   await expect(
+    page.getByRole("heading", { name: "Where is Greenhouse 2?" }),
+  ).toBeVisible();
+  await expect(button(page, "Finish")).toBeEnabled();
+  const canvas = page.locator(".place-map-canvas");
+  const area = (await canvas.boundingBox())!;
+  for (const [x, y] of [
+    [0.3, 0.3],
+    [0.7, 0.3],
+    [0.7, 0.7],
+    [0.3, 0.7],
+  ]) {
+    await page.mouse.click(area.x + area.width * x, area.y + area.height * y);
+  }
+  await button(page, "Finish").click();
+  await expect(page.getByText("Is that the right shape?")).toBeVisible();
+  await button(page, "Save the outline").click();
+  await expect(
     page.locator(".place-row strong", { hasText: "Greenhouse 2" }),
   ).toBeVisible();
+  await button(page, "Add a place").click();
   await page.getByLabel("Type").selectOption("Bench");
   await page.getByLabel("Inside").selectOption({ label: "Greenhouse 2" });
   await page.getByLabel("Add several, numbered").check();
@@ -191,34 +222,18 @@ test("the owner sets up the nursery and staff can sign in", async ({
   ).toBeVisible();
   await button(page, "Back").click();
 
-  // The greenhouse is drawn on the map by tapping its corners. Map pictures aren't fetched in tests.
-  await page.route(
-    (url) =>
-      url.hostname === "tile.openstreetmap.org" ||
-      url.hostname === "api.postcodes.io",
-    (route) => route.abort(),
-  );
-  await button(page, "Map").click();
+  // A place's own page opens it on the map again, outline and all.
   await page.locator(".place-row", { hasText: "Greenhouse 2" }).click();
-  await button(page, "Draw its outline").click();
-  const canvas = page.locator(".place-map-canvas");
-  const area = (await canvas.boundingBox())!;
-  for (const [x, y] of [
-    [0.3, 0.3],
-    [0.7, 0.3],
-    [0.7, 0.7],
-    [0.3, 0.7],
-  ]) {
-    await page.mouse.click(area.x + area.width * x, area.y + area.height * y);
-  }
-  await button(page, "Finish").click();
-  await expect(button(page, "Change outline")).toBeVisible();
-  await button(page, "Open").click();
+  await button(page, "On the map").click();
+  await expect(
+    page.getByRole("heading", { name: "Where is Greenhouse 2?" }),
+  ).toBeVisible();
+  await expect(button(page, "Adjust corners")).toBeVisible();
+  await button(page, "Cancel").click();
   await expect(
     page.getByRole("heading", { name: "Greenhouse 2" }),
   ).toBeVisible();
   await button(page, "Back").click();
-  await button(page, "List").click();
   await leaveManage(page);
 
   // Money out: a purchase with its VAT, then paying it.
