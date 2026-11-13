@@ -79,6 +79,8 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<NurserySettings> NurserySettings => Set<NurserySettings>();
 
+    public DbSet<MapPicture> MapPictures => Set<MapPicture>();
+
     public DbSet<Printer> Printers => Set<Printer>();
 
     public DbSet<Customer> Customers => Set<Customer>();
@@ -358,6 +360,12 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.ToTable(table => table.HasCheckConstraint("ck_external_sign_in_settings_single", "id = 1"));
         });
 
+        modelBuilder.Entity<MapPicture>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.ToTable(table => table.HasCheckConstraint("ck_map_pictures_single", "id = 1"));
+        });
+
         modelBuilder.Entity<NurserySettings>(entity =>
         {
             entity.Property(e => e.Id).ValueGeneratedNever();
@@ -579,6 +587,7 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.Property(e => e.Name).HasColumnType("citext");
             entity.Property(e => e.Kind).HasConversion<string>();
             entity.Property(e => e.Outline).HasColumnType("jsonb");
+            entity.Property(e => e.PictureOutline).HasColumnType("jsonb");
             entity.Property(e => e.LabelCode)
                 .HasDefaultValueSql("'P' || lpad(nextval('place_numbers')::text, 4, '0')")
                 .ValueGeneratedOnAdd();

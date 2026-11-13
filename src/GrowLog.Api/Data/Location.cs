@@ -18,5 +18,11 @@ internal sealed class Location : IAudited, IArchivable
     /// <summary>Its outline on the map, as JSON [[latitude, longitude], …], or null if it hasn't been drawn.</summary>
     public string? Outline { get; set; }
 
+    /// <summary>
+    /// Its outline on the nursery's own map picture, as JSON [[down, across], …] in fractions of the picture's height
+    /// and width, or null. Kept apart from <see cref="Outline"/> because a picture and the earth don't line up.
+    /// </summary>
+    public string? PictureOutline { get; set; }
+
     public DateTimeOffset? ArchivedAt { get; set; }
 }

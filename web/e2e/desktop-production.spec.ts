@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 // On a desk, Production is a table: choosing several picks trays by a click on the row or its tick box.
 test("production's table chooses trays on a desk", async ({ page }) => {

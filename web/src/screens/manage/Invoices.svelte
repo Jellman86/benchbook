@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { crumbs } from "../../lib/crumbs.svelte";
   import { isoDay } from "../../lib/days";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
@@ -28,6 +29,8 @@
   let stock = $state<Schemas["ProductionRow"][]>([]);
   let vatRegistered = $state(false);
   let writing = $state(false);
+
+  crumbs(() => (writing ? [{ label: "New invoice" }] : []));
   let customerId = $state("");
   let notes = $state("");
   let lines = $state<DraftLine[]>([]);

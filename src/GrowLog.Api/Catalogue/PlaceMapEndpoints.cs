@@ -27,14 +27,23 @@ internal static class PlaceMapEndpoints
     private static async Task<PlaceMap> GetMapAsync(GrowLogDbContext db, CancellationToken cancellationToken)
     {
         var settings = await db.GetNurserySettingsAsync(cancellationToken);
+        var picture = await db.MapPictures.AsNoTracking()
+            .Select(item => new { item.UpdatedAt })
+            .FirstOrDefaultAsync(cancellationToken);
+        var onPicture = settings.MapUsesPicture && picture is not null;
+
+        // Each map keeps its own outlines: the picture's are in fractions of the picture, the earth's in degrees.
         var outlines = await db.Locations.AsNoTracking()
-            .Where(place => place.ArchivedAt == null && place.Outline != null)
-            .Select(place => new { place.Id, place.Outline })
+            .Where(place => place.ArchivedAt == null)
+            .Select(place => new { place.Id, Outline = onPicture ? place.PictureOutline : place.Outline })
+            .Where(place => place.Outline != null)
             .ToListAsync(cancellationToken);
 
         return new PlaceMap(
             settings.MapImageryKey,
-            outlines.ConvertAll(place => new PlaceOutline(place.Id, JsonSerializer.Deserialize<double[][]>(place.Outline!)!)));
+            outlines.ConvertAll(place => new PlaceOutline(place.Id, JsonSerializer.Deserialize<double[][]>(place.Outline!)!)),
+            onPicture,
+            picture?.UpdatedAt);
     }
 
     private static async Task<IResult> SaveOutlineAsync(Guid id, OutlineRequest request, GrowLogDbContext db, CancellationToken cancellationToken)
@@ -44,30 +53,41 @@ internal static class PlaceMapEndpoints
             return TypedResults.NotFound();
         }
 
-        if (request.Points is null)
+        var points = request.Points is null ? null : Tidy(request.Points, request.OnPicture);
+
+        if (request.Points is not null && points is null)
         {
-            place.Outline = null;
+            return TypedResults.BadRequest();
         }
-        else if (Tidy(request.Points) is { } points)
+
+        var outline = points is null ? null : JsonSerializer.Serialize(points);
+
+        if (request.OnPicture)
         {
-            place.Outline = JsonSerializer.Serialize(points);
+            place.PictureOutline = outline;
         }
         else
         {
-            return TypedResults.BadRequest();
+            place.Outline = outline;
         }
 
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.NoContent();
     }
 
-    /// <summary>Points as [latitude, longitude], rounded to about a centimetre, or null if they can't make a shape.</summary>
-    internal static double[][]? Tidy(IReadOnlyList<double[]> points)
+    /// <summary>
+    /// Points as [latitude, longitude] rounded to about a centimetre, or on a picture as fractions of its height and
+    /// width, a little beyond its edges allowed; null if they can't make a shape.
+    /// </summary>
+    internal static double[][]? Tidy(IReadOnlyList<double[]> points, bool onPicture = false)
     {
+        var (most, mostAcross, least) = onPicture ? (1.1, 1.1, -0.1) : (90.0, 180.0, -180.0);
+
         if (points.Count is < FewestPoints or > MostPoints
-            || points.Any(point => point is not [var latitude, var longitude]
-                || !double.IsFinite(latitude) || !double.IsFinite(longitude)
-                || Math.Abs(latitude) > 90 || Math.Abs(longitude) > 180))
+            || points.Any(point => point is not [var down, var across]
+                || !double.IsFinite(down) || !double.IsFinite(across)
+                || down > most || down < Math.Max(least, -most)
+                || across > mostAcross || across < least))
         {
             return null;
         }
@@ -98,14 +118,17 @@ internal static class PlaceMapEndpoints
         return TypedResults.NoContent();
     }
 
-    /// <summary>The imagery key, which the browser needs to fetch pictures, and every place drawn so far.</summary>
-    internal sealed record PlaceMap(string? ImageryKey, IReadOnlyList<PlaceOutline> Outlines);
+    /// <summary>
+    /// The imagery key, which the browser needs to fetch pictures, and every place drawn so far on the map in use:
+    /// the nursery's own picture when <paramref name="OnPicture"/>, changed at <paramref name="PictureChangedAt"/>.
+    /// </summary>
+    internal sealed record PlaceMap(string? ImageryKey, IReadOnlyList<PlaceOutline> Outlines, bool OnPicture, DateTimeOffset? PictureChangedAt);
 
     /// <summary>A place's outline as [latitude, longitude] points.</summary>
     internal sealed record PlaceOutline(Guid Id, double[][] Points);
 
-    /// <summary>The outline to keep, or null to take the place off the map.</summary>
-    internal sealed record OutlineRequest(double[][]? Points);
+    /// <summary>The outline to keep, or null to take the place off the map; on the nursery's picture or the earth.</summary>
+    internal sealed record OutlineRequest(double[][]? Points, bool OnPicture = false);
 
     /// <summary>An ArcGIS Location Platform key, or empty to use the street map.</summary>
     internal sealed record MapSettingsRequest(string? ImageryKey);

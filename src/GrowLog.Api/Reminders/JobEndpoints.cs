@@ -37,7 +37,7 @@ internal static class JobEndpoints
         && request.EveryDays is >= 1 and <= 365;
 
     /// <summary>Jobs still in use, soonest first, each with when it was last done and by whom.</summary>
-    private static async Task<List<JobSummary>> ListAsync(GrowLogDbContext db, TimeProvider clock, CancellationToken cancellationToken)
+    internal static async Task<List<JobSummary>> ListAsync(GrowLogDbContext db, TimeProvider clock, CancellationToken cancellationToken)
     {
         var today = Today(clock);
         var paths = await PlacePaths.LoadAsync(db, cancellationToken);

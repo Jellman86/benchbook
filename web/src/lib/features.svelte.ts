@@ -128,6 +128,12 @@ export const featureInfo: FeatureInfo[] = [
     hides: "The strip of photos on trays, Edit batch and the trace report.",
   },
   {
+    feature: "Assistant",
+    label: "Ask GrowLog (AI)",
+    hides:
+      "Ask GrowLog everywhere and Settings, AI assistant. It also needs an OpenRouter key there before anyone can ask.",
+  },
+  {
     feature: "BenchStations",
     label: "Bench stations",
     hides:

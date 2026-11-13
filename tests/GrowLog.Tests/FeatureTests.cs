@@ -26,7 +26,7 @@ public sealed class FeatureTests(PostgresFixture database)
         await using var nursery = await TwoPersonNursery.CreateAsync(database);
 
         var features = await FeaturesAsync(nursery.Staff);
-        Assert.Equal(9, features.Count);
+        Assert.Equal(10, features.Count);
         Assert.All(features.Values, Assert.True);
 
         Assert.Equal(HttpStatusCode.Forbidden, await SetAsync(nursery.Staff, "Climate", on: false));

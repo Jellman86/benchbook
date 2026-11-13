@@ -33,8 +33,18 @@
     submit,
     work,
   } from "../lib/work";
-  import { isManageSection, type ManageSection } from "../lib/sections";
-  import { movedToSettings, type SettingsPage } from "../lib/settings";
+  import {
+    isManageSection,
+    sectionLabel,
+    type ManageSection,
+  } from "../lib/sections";
+  import {
+    movedToSettings,
+    settingsLabel,
+    type SettingsPage,
+  } from "../lib/settings";
+  import { crumbs, type Crumb } from "../lib/crumbs.svelte";
+  import Breadcrumbs from "./Breadcrumbs.svelte";
   import {
     applyTheme,
     nextTheme,
@@ -61,6 +71,13 @@
   import { findPlaceByCode, isPlaceCode, type Place } from "../lib/places";
   import { rememberedPlaces } from "../lib/offline";
   import StartBatch from "./work/StartBatch.svelte";
+  import Ask from "./Ask.svelte";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import {
+    assistant,
+    loadAssistant,
+    type AskAbout,
+  } from "../lib/assistant.svelte";
 
   let {
     me,
@@ -83,6 +100,7 @@
     labelSheets: "Labels on A4",
     plants: "Plants",
     manage: "Manage",
+    ask: "Ask GrowLog",
   };
   const sendEvery = 30 * 1000;
   const cameraAvailable = !!navigator.mediaDevices?.getUserMedia;
@@ -98,11 +116,87 @@
     | { name: "moveMany"; destination?: string | null }
     | { name: "labelSheets"; trays?: string[] }
     | { name: "plants" }
+    | { name: "ask"; about?: AskAbout | null }
     | {
         name: "manage";
         section: ManageSection | null;
         batchId?: string | null;
       };
+
+  // Bumped to show a screen afresh, from the top, when its breadcrumb is tapped.
+  let fresh = $state(0);
+
+  function again(next: View) {
+    view = next;
+    fresh += 1;
+  }
+
+  const recordWorkCrumb: Crumb = {
+    label: "Record work",
+    go: () => void goHome(),
+  };
+
+  // The top of the breadcrumb trail: the screens below add their own part.
+  crumbs((): Crumb[] => {
+    const current = view;
+
+    switch (current.name) {
+      case "home":
+        return [{ label: "Record work" }];
+      case "container":
+        return current.fromProduction
+          ? [
+              {
+                label: "Production",
+                go: () => again({ name: "production" }),
+              },
+            ]
+          : [recordWorkCrumb];
+      case "start":
+        return [recordWorkCrumb, { label: "New batch" }];
+      case "camera":
+        return [recordWorkCrumb, { label: "Scan" }];
+      case "production":
+        return [
+          { label: "Production", go: () => again({ name: "production" }) },
+        ];
+      case "place":
+        return [recordWorkCrumb];
+      case "moveMany":
+        return [recordWorkCrumb, { label: "Move several trays" }];
+      case "labelSheets":
+        return [recordWorkCrumb, { label: "Labels on A4" }];
+      case "plants":
+        return [{ label: "Plants", go: () => again({ name: "plants" }) }];
+      case "ask":
+        return [recordWorkCrumb, { label: "Ask GrowLog" }];
+      case "settings":
+        return [
+          {
+            label: "Settings",
+            go: () => again({ name: "settings", page: null }),
+          },
+          ...(current.page ? [{ label: settingsLabel(current.page) }] : []),
+        ];
+      case "manage": {
+        const section = current.section;
+        return [
+          {
+            label: "Manage",
+            go: () => again({ name: "manage", section: null }),
+          },
+          ...(section
+            ? [
+                {
+                  label: sectionLabel(section),
+                  go: () => again({ name: "manage", section }),
+                },
+              ]
+            : []),
+        ];
+      }
+    }
+  });
 
   // svelte-ignore state_referenced_locally
   const queue = useQueue(me.id, me.name);
@@ -443,8 +537,20 @@
   // A change the owner makes to Settings, Features reaches this device when the app comes back into view.
   onMount(watchFeatures);
 
+  // Whether Ask GrowLog can be offered, checked again whenever the app comes back into view.
   onMount(() => {
-    void loadFeatures();
+    const visible = () => {
+      if (document.visibilityState === "visible") {
+        void loadAssistant();
+      }
+    };
+
+    document.addEventListener("visibilitychange", visible);
+    return () => document.removeEventListener("visibilitychange", visible);
+  });
+
+  onMount(() => {
+    void loadFeatures().then(loadAssistant);
 
     if (location.search.includes("sso=")) {
       problem = externalSignInProblem(location.search);
@@ -536,6 +642,13 @@
     <LabelSheets onBack={goHome} trayLabels={view.trays ?? []} />
   {:else if view.name === "plants"}
     <Plants canManage={false} onBack={goHome} />
+  {:else if view.name === "ask"}
+    <Ask
+      {me}
+      about={view.about ?? null}
+      onOpenTray={(code) => open(code)}
+      onOpenPlace={(id) => (view = { name: "place", id })}
+    />
   {:else if view.name === "production"}
     <Production
       onOpen={(code) => open(code, true)}
@@ -557,6 +670,9 @@
     {#key view.label}
       <ContainerView
         label={view.label}
+        onAsk={assistant.canAsk && !atBench
+          ? (about) => (view = { name: "ask", about })
+          : undefined}
         onTrace={me.isOwner && !atBench ? trace : undefined}
         onDone={finishWork}
         onCancel={view.fromProduction
@@ -644,6 +760,18 @@
         </p>
       {/each}
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
+
+      {#if assistant.canAsk && !atBench}
+        <button class="ask-card" onclick={() => (view = { name: "ask" })}>
+          <Sparkles size={22} aria-hidden="true" />
+          <span class="stack tight">
+            <strong>Ask GrowLog</strong>
+            <span class="muted"
+              >About plants, the trays, losses and photos of plants</span
+            >
+          </span>
+        </button>
+      {/if}
 
       <div class="split">
         <section>
@@ -753,7 +881,8 @@
 {/snippet}
 
 {#if atBench}
-  {@render screen()}
+  <Breadcrumbs />
+  {#key fresh}{@render screen()}{/key}
 {:else}
   <div class="with-sidebar" class:collapsed>
     <Sidebar
@@ -767,6 +896,7 @@
             ? "production"
             : "home"
           : view.name === "home" ||
+              view.name === "ask" ||
               view.name === "start" ||
               view.name === "settings" ||
               view.name === "plants" ||
@@ -775,6 +905,7 @@
             : null}
       onHome={goHome}
       onNewBatch={() => (view = { name: "start" })}
+      onAsk={assistant.canAsk ? () => (view = { name: "ask" }) : undefined}
       onSection={(section) => (view = { name: "manage", section })}
       onToggleCollapsed={toggleCollapsed}
       onCycleTheme={() => setTheme(nextTheme(theme))}
@@ -788,7 +919,8 @@
         <img src="/logo-96.png" alt="" width="32" height="32" />
         GrowLog
       </div>
-      {@render screen()}
+      <Breadcrumbs />
+      {#key fresh}{@render screen()}{/key}
     </div>
     <BottomNav
       {me}

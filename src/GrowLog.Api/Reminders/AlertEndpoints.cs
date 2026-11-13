@@ -24,7 +24,7 @@ internal static class AlertEndpoints
 
     private static string Plural(int count, string one, string many) => count == 1 ? $"1 {one}" : $"{count} {many}";
 
-    private static async Task<List<Alert>> ListAsync(GrowLogDbContext db, EventStore store, TimeProvider clock, CancellationToken cancellationToken)
+    internal static async Task<List<Alert>> ListAsync(GrowLogDbContext db, EventStore store, TimeProvider clock, CancellationToken cancellationToken)
     {
         var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
         var alerts = new List<Alert>();

@@ -18,6 +18,7 @@ internal static class AccountHarness
         string? setupToken = SetupToken,
         TimeProvider? clock = null,
         bool demo = false,
+        HttpMessageHandler? outsideWorld = null,
         params (string Key, string? Value)[] settings)
     {
         var connectionString = await database.CreateDatabaseAsync();
@@ -32,6 +33,7 @@ internal static class AccountHarness
             ])
         {
             Clock = clock,
+            OutsideWorld = outsideWorld,
         };
     }
 

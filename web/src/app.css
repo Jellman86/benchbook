@@ -2951,3 +2951,419 @@ button.danger:hover:not(:disabled) {
 .feature-switch input[role="switch"]:disabled {
   opacity: 0.6;
 }
+
+/* Settings, Map: the nursery's own picture, small enough to check at a glance. */
+.map-picture-preview {
+  width: 100%;
+  max-height: 16rem;
+  object-fit: contain;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+/* Breadcrumbs: where the person is, above every screen. One quiet line, scrolling sideways on a phone if long. */
+.breadcrumbs {
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 0.85rem 1rem 0;
+  font-size: 0.9rem;
+}
+
+.breadcrumbs ol {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+
+.breadcrumbs li {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  color: var(--muted);
+}
+
+.breadcrumbs .crumb {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0 0.35rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+
+.breadcrumbs a.crumb {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+  cursor: pointer;
+}
+
+.breadcrumbs a.crumb:hover {
+  background: var(--accent-surface);
+}
+
+.breadcrumbs [aria-current="page"] {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* The page below sits close under its breadcrumbs. */
+.breadcrumbs + main,
+.breadcrumbs + .settings-layout {
+  padding-top: 0.5rem;
+}
+
+@media (min-width: 900px) {
+  .with-sidebar .breadcrumbs {
+    max-width: 96rem;
+    margin: 0;
+    padding: 1.25rem 2.5rem 0;
+  }
+
+  .with-sidebar .breadcrumbs + main,
+  .with-sidebar .breadcrumbs + .settings-layout {
+    padding-top: 0.75rem;
+  }
+}
+
+/* A small square button for an icon, such as removing a photo. */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--target);
+  min-width: var(--target);
+  height: var(--target);
+  min-height: var(--target);
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* A pill that can be pressed, such as a record an answer looked at. */
+.pill-button {
+  min-height: 2rem;
+  padding: 0.15rem 0.7rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent-surface);
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* Ask GrowLog: a conversation, with the question box kept in reach at the foot of a phone's screen. */
+.ask h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ask-layout,
+.ask-conversation {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ask-suggestions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.ask-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Scrolled to, a line stops clear of the question box and the bar below it. */
+.ask-line,
+.ask-conversation > .problem {
+  scroll-margin-bottom: 15rem;
+}
+
+.ask-line.user {
+  align-self: flex-end;
+  max-width: 85%;
+}
+
+.ask-question {
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius) var(--radius) 0.2rem var(--radius);
+  background: var(--accent-surface);
+  color: var(--accent-text);
+  white-space: pre-wrap;
+}
+
+.ask-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.ask-answer p,
+.ask-answer ul {
+  margin: 0;
+}
+
+.ask-answer ul {
+  padding-left: 1.25rem;
+  white-space: normal;
+}
+
+.ask-looked {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ask-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ask-cost {
+  font-size: 0.85rem;
+}
+
+.ask-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ask-photos img {
+  width: 5rem;
+  height: 5rem;
+  border-radius: var(--radius);
+  object-fit: cover;
+}
+
+.ask-photo {
+  position: relative;
+}
+
+.ask-photo .icon-button {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.2rem;
+  width: 1.75rem;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  min-height: 1.75rem;
+}
+
+.ask-composer {
+  position: sticky;
+  bottom: calc(4.75rem + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--paper-edge);
+}
+
+.ask-context {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.ask-context .icon-button {
+  width: 1.75rem;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  min-height: 1.75rem;
+}
+
+.ask-input {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.ask-input .grow {
+  flex: 1;
+}
+
+.ask-input textarea {
+  width: 100%;
+  min-height: var(--target);
+  max-height: 12rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  font-weight: 400;
+  resize: vertical;
+}
+
+.ask-camera input {
+  display: none;
+}
+
+.ask-send {
+  width: var(--target);
+  min-width: var(--target);
+  padding: 0;
+}
+
+.ask-suggestion {
+  text-align: left;
+}
+
+@media (min-width: 900px) {
+  .with-sidebar main.ask {
+    max-width: 84rem;
+  }
+
+  .ask-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    align-items: start;
+    gap: 2rem;
+  }
+
+  .ask-conversation {
+    max-width: 52rem;
+  }
+
+  .ask-composer {
+    bottom: 1rem;
+  }
+
+  .with-sidebar .ask-side {
+    position: sticky;
+    top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+/* Settings, AI assistant: the models to choose from, with their prices. */
+.model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 28rem;
+  overflow-y: auto;
+}
+
+.model-choice {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.model-choice.chosen {
+  border-color: var(--accent);
+  background: var(--accent-surface);
+}
+
+.model-choice input {
+  width: auto;
+  min-height: 0;
+  margin-top: 0.2rem;
+}
+
+/* Record work: Ask GrowLog, offered as a card when this person can ask. */
+.ask-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-surface);
+  color: var(--accent-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* A place's page: its outline on the map, and its photos large enough to see. */
+.place-mini-map {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.place-mini-map-canvas {
+  height: 14rem;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--line);
+}
+
+.entry-photos.gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.entry-photos.gallery .entry-photo,
+.entry-photos.gallery .entry-photo a {
+  display: block;
+}
+
+.entry-photos.gallery .plant-thumb {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.entry-photos.gallery .photo-remove {
+  top: 0.3rem;
+  right: 0.3rem;
+}
+
+.entry-photos.gallery .photo-add {
+  min-height: 6rem;
+}
+
+@media (min-width: 900px) {
+  .place-mini-map-canvas {
+    height: 18rem;
+  }
+}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { crumbs } from "../../lib/crumbs.svelte";
   import { isoDay } from "../../lib/days";
   import { showForm } from "../../lib/showForm";
   import { onMount } from "svelte";
@@ -19,6 +20,10 @@
   let plants = $state<Schemas["PlantResponse"][]>([]);
   let places = $state<{ id: string; label: string }[]>([]);
   let opened = $state<Schemas["MotherDetails"] | null>(null);
+
+  crumbs(() =>
+    opened ? [{ label: `${opened.name}, ${opened.plantName}` }] : [],
+  );
   let form = $state({ plantId: "", name: "", locationId: "", notes: "" });
   let editing = $state<string | null>(null);
   let problem = $state("");

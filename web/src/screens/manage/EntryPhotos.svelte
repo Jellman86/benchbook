@@ -5,12 +5,15 @@
     entry,
     id,
     photoIds,
+    gallery = false,
     onChanged,
     onProblem,
   }: {
     entry: "PotSize" | "Location";
     id: string;
     photoIds: string[];
+    /** Large photos in a grid, for a page about the place, rather than small ones in a row. */
+    gallery?: boolean;
     onChanged: () => Promise<void>;
     onProblem: (message: string) => void;
   } = $props();
@@ -68,7 +71,7 @@
   }
 </script>
 
-<div class="entry-photos">
+<div class="entry-photos" class:gallery>
   {#each photoIds as photoId (photoId)}
     <span class="entry-photo">
       <a href="/api/catalogue-photos/{photoId}" target="_blank" rel="noopener">

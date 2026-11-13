@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AssistantSettings from "./settings/AssistantSettings.svelte";
   import LogOut from "@lucide/svelte/icons/log-out";
   import { onMount } from "svelte";
   import type { Me } from "../lib/boot";
@@ -104,6 +105,8 @@
       <NurseryDetails onBack={toList} />
     {:else if shown === "features"}
       <Features onBack={toList} />
+    {:else if shown === "assistant"}
+      <AssistantSettings onBack={toList} />
     {:else if shown === "map"}
       <MapSettings onBack={toList} />
     {:else if shown === "printers"}

@@ -3399,6 +3399,179 @@
         }
       }
     },
+    "/api/settings/map/picture": {
+      "get": {
+        "tags": [
+          "MapPictureEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "MapPictureEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "MapPictureEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/settings/map/use-picture": {
+      "put": {
+        "tags": [
+          "MapPictureEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsePictureRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/assistant/status": {
+      "get": {
+        "tags": [
+          "AssistantEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assistant/ask": {
+      "post": {
+        "tags": [
+          "AssistantEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskAnswer"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskRefused"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assistant/settings": {
+      "get": {
+        "tags": [
+          "AssistantEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "AssistantEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssistantSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/assistant/settings/models": {
+      "get": {
+        "tags": [
+          "AssistantEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ModelChoice"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/printers": {
       "get": {
         "tags": [
@@ -5722,6 +5895,233 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "AskAbout": {
+        "required": [
+          "trayLabel",
+          "plantId",
+          "photoId"
+        ],
+        "type": "object",
+        "properties": {
+          "trayLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "plantId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "photoId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "AskAnswer": {
+        "required": [
+          "answer",
+          "sources",
+          "cost"
+        ],
+        "type": "object",
+        "properties": {
+          "answer": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AskSource"
+            }
+          },
+          "cost": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "AskMessage": {
+        "required": [
+          "role",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "AskRefused": {
+        "required": [
+          "problem"
+        ],
+        "type": "object",
+        "properties": {
+          "problem": {
+            "type": "string"
+          }
+        }
+      },
+      "AskRequest": {
+        "required": [
+          "messages",
+          "images",
+          "about"
+        ],
+        "type": "object",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AskMessage"
+            }
+          },
+          "images": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "about": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AskAbout"
+              }
+            ]
+          }
+        }
+      },
+      "AskSource": {
+        "required": [
+          "kind",
+          "key",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "AssistantSettings": {
+        "required": [
+          "hasKey",
+          "model",
+          "forStaff",
+          "spent",
+          "limit"
+        ],
+        "type": "object",
+        "properties": {
+          "hasKey": {
+            "type": "boolean"
+          },
+          "model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "forStaff": {
+            "type": "boolean"
+          },
+          "spent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "limit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "AssistantSettingsRequest": {
+        "required": [
+          "key",
+          "model",
+          "forStaff"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "forStaff": {
+            "type": "boolean"
+          },
+          "removeKey": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "AssistantStatus": {
+        "required": [
+          "canAsk",
+          "setUp",
+          "readsImages"
+        ],
+        "type": "object",
+        "properties": {
+          "canAsk": {
+            "type": "boolean"
+          },
+          "setUp": {
+            "type": "boolean"
+          },
+          "readsImages": {
+            "type": "boolean"
           }
         }
       },
@@ -8656,6 +9056,52 @@
           }
         }
       },
+      "ModelChoice": {
+        "required": [
+          "id",
+          "name",
+          "promptPerMillion",
+          "completionPerMillion",
+          "readsImages",
+          "contextLength"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "promptPerMillion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "completionPerMillion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "readsImages": {
+            "type": "boolean"
+          },
+          "contextLength": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "MoneySummary": {
         "required": [
           "months",
@@ -9069,7 +9515,8 @@
           "Invoices",
           "Purchases",
           "BatchPhotos",
-          "BenchStations"
+          "BenchStations",
+          "Assistant"
         ]
       },
       "OutlineRequest": {
@@ -9094,6 +9541,10 @@
                 "format": "double"
               }
             }
+          },
+          "onPicture": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -9693,7 +10144,9 @@
       "PlaceMap": {
         "required": [
           "imageryKey",
-          "outlines"
+          "outlines",
+          "onPicture",
+          "pictureChangedAt"
         ],
         "type": "object",
         "properties": {
@@ -9708,6 +10161,16 @@
             "items": {
               "$ref": "#/components/schemas/PlaceOutline"
             }
+          },
+          "onPicture": {
+            "type": "boolean"
+          },
+          "pictureChangedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -12708,6 +13171,17 @@
           }
         }
       },
+      "UsePictureRequest": {
+        "required": [
+          "use"
+        ],
+        "type": "object",
+        "properties": {
+          "use": {
+            "type": "boolean"
+          }
+        }
+      },
       "WorkRecorded": {
         "required": [
           "eventId"
@@ -12830,6 +13304,12 @@
     },
     {
       "name": "PlaceEndpoints"
+    },
+    {
+      "name": "MapPictureEndpoints"
+    },
+    {
+      "name": "AssistantEndpoints"
     },
     {
       "name": "PrinterEndpoints"

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { crumbs } from "../../lib/crumbs.svelte";
   import Droplets from "@lucide/svelte/icons/droplets";
   import Thermometer from "@lucide/svelte/icons/thermometer";
   import { onMount } from "svelte";
@@ -28,6 +29,8 @@
   let places = $state<Place[]>([]);
   let loaded = $state(false);
   let opened = $state<Place | null>(null);
+
+  crumbs(() => (opened ? [{ label: opened.place }] : []));
   let days = $state(7);
   let history = $state<Schemas["PlaceClimateHistory"] | null>(null);
   let problem = $state("");

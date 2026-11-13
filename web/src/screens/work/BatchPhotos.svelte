@@ -16,10 +16,13 @@
     batchId,
     containerId = null,
     kinds = [],
+    onAsk,
   }: {
     batchId: string;
     containerId?: string | null;
     kinds?: BatchPhotoKind[];
+    /** Asks Ask GrowLog about a photo, when this person can ask. */
+    onAsk?: (photoId: string) => void;
   } = $props();
 
   type Photo = Schemas["BatchPhotoSummary"];
@@ -130,6 +133,16 @@
     <p><strong>{photoCaption(viewing)}</strong></p>
     <div class="row">
       <button onclick={close}>Close</button>
+      {#if onAsk}
+        <button
+          class="secondary"
+          onclick={() => {
+            const id = viewing!.id;
+            close();
+            onAsk(id);
+          }}>Ask about this photo</button
+        >
+      {/if}
       {#if viewing.canRemove}
         <button class="secondary danger" onclick={() => remove(viewing!)}
           >Remove this photo</button

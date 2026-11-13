@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { crumbs } from "../../lib/crumbs.svelte";
   import { isOn } from "../../lib/features.svelte";
   import Printer from "@lucide/svelte/icons/printer";
   import { onMount } from "svelte";
@@ -40,6 +41,8 @@
   let searched = $state(false);
   let loaded = $state(false);
   let trace = $state<BatchTrace | null>(null);
+
+  crumbs(() => (trace ? [{ label: `Batch ${trace.traceabilityCode}` }] : []));
   let problem = $state("");
 
   const now = new Date();

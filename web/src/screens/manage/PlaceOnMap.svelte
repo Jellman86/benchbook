@@ -6,17 +6,17 @@
     alwaysNamed,
     corners,
     geocodeAddress,
-    imagery,
     outlineStyle,
     postcodeIn,
     type Point,
   } from "../../lib/placeMap";
   import { kindLabel, type Place, type PlaceKind } from "../../lib/places";
   import { attempt } from "../../lib/types";
+  import { loadLeaflet, openPlaceMap } from "../../lib/placeMapView";
 
-  // One place's outline on a satellite picture: find the address, then tap the place's corners. The places already
-  // drawn show faintly around it, so a greenhouse can be put beside the others. Used when adding a place and from
-  // the place itself.
+  // One place's outline on a satellite picture, or on the nursery's own picture of itself: find the address, then
+  // tap the place's corners. The places already drawn show faintly around it, so a greenhouse can be put beside the
+  // others. Used when adding a place and from the place itself.
   let {
     place,
     places,
@@ -46,6 +46,10 @@
   let ready = $state(false);
   let satellite = $state(true);
   let key = $state<string | null>(null);
+  let onPicture = $state(false);
+  // Converts between what's kept and the screen's map; the same until a picture is shown.
+  let toMap = (point: Point): Point => point;
+  let fromMap = (point: Point): Point => point;
 
   let L: typeof Leaflet;
   let map: Leaflet.Map | null = null;
@@ -102,13 +106,13 @@
       shape.pm.disable();
       const points = corners(
         (shape.getLatLngs() as Leaflet.LatLng[][])[0] ?? [],
-      );
+      ).map(fromMap);
       busy = true;
 
       try {
         const { response } = await api.PUT("/api/locations/{id}/outline", {
           params: { path: { id: place.id } },
-          body: { points },
+          body: { points, onPicture },
         });
 
         if (response.ok) {
@@ -180,7 +184,7 @@
         continue;
       }
 
-      const layer = L.polygon(points, {
+      const layer = L.polygon(points.map(toMap), {
         ...outlineStyle(other.kind),
         interactive: false,
         fillOpacity: 0.08,
@@ -201,23 +205,11 @@
     let stopped = false;
 
     void attempt(async () => {
-      const leaflet = await import("leaflet");
-      await import("leaflet/dist/leaflet.css");
-      L = leaflet.default;
-      // Geoman adds itself to the Leaflet it finds on the page.
-      (window as unknown as { L: typeof Leaflet }).L = L;
-      await import("@geoman-io/leaflet-geoman-free");
-      await import("@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css");
+      L = await loadLeaflet(true);
 
       if (stopped || !box) {
         return;
       }
-
-      map = L.map(box, { zoomControl: true, maxZoom: 22 }).setView(
-        [54.4, -2.6],
-        6,
-      );
-      others = L.featureGroup().addTo(map);
 
       const { data } = await api.GET("/api/locations/map");
       const outlines: Record<string, Point[]> = Object.fromEntries(
@@ -227,15 +219,18 @@
         ]),
       );
       key = data?.imageryKey ?? null;
-      const tiles = imagery(key);
-      satellite = tiles.satellite;
-      L.tileLayer(tiles.url, {
-        attribution: tiles.attribution,
-        maxNativeZoom: tiles.maxNativeZoom,
-        maxZoom: 22,
-      })
-        .addTo(map)
-        .bringToBack();
+      const view = await openPlaceMap(L, box, data ?? {});
+      map = view.map;
+      onPicture = view.onPicture;
+      satellite = view.satellite;
+      toMap = view.toMap;
+      fromMap = view.fromMap;
+
+      if (stopped) {
+        return;
+      }
+
+      others = L.featureGroup().addTo(map);
       drawOthers(outlines);
 
       map.on("locationerror", () => {
@@ -255,14 +250,18 @@
       const around = place.parentId ? outlines[place.parentId] : undefined;
 
       if (own) {
-        shape = L.polygon(own, outlineStyle(place.kind, true)).addTo(map);
+        shape = L.polygon(own.map(toMap), outlineStyle(place.kind, true)).addTo(
+          map,
+        );
         map.fitBounds(shape.getBounds(), { padding: [48, 48], maxZoom: 21 });
         mode = "drawn";
       } else if (around) {
-        map.fitBounds(L.polygon(around).getBounds(), {
+        map.fitBounds(L.polygon(around.map(toMap)).getBounds(), {
           padding: [24, 24],
           maxZoom: 20,
         });
+      } else if (onPicture) {
+        // The whole picture is already in view.
       } else if (others.getLayers().length > 0) {
         map.fitBounds(others.getBounds(), { padding: [24, 24], maxZoom: 20 });
       } else {
@@ -284,6 +283,9 @@
 
     return () => {
       stopped = true;
+      // Stopped first: removing a map mid-animation makes Leaflet throw.
+      map?.stop();
+      map?.off();
       map?.remove();
       map = null;
     };
@@ -304,14 +306,18 @@
       <p class="muted">{kindLabel(place.kind)}</p>
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
-      <form class="row" onsubmit={find}>
-        <label class="grow"
-          >{key ? "Find the address or postcode" : "Find a postcode"}
-          <input bind:value={search} autocomplete="street-address" /></label
-        >
-        <button type="submit" class="secondary">Go</button>
-      </form>
-      <button class="secondary" onclick={whereIAm}>Where I am</button>
+      {#if onPicture}
+        <p class="muted">On the nursery's own picture.</p>
+      {:else}
+        <form class="row" onsubmit={find}>
+          <label class="grow"
+            >{key ? "Find the address or postcode" : "Find a postcode"}
+            <input bind:value={search} autocomplete="street-address" /></label
+          >
+          <button type="submit" class="secondary">Go</button>
+        </form>
+        <button class="secondary" onclick={whereIAm}>Where I am</button>
+      {/if}
 
       {#if mode === "drawing"}
         <p>
@@ -345,10 +351,10 @@
       <button class="link-button" onclick={onSkip}>{skipLabel}</button>
     </div>
 
-    {#if !satellite}
+    {#if !satellite && !onPicture}
       <p class="muted">
         This is a street map. For satellite pictures, add an Esri key under
-        Settings, Map.
+        Settings, Map, or upload your own picture of the nursery there.
       </p>
     {/if}
   </aside>

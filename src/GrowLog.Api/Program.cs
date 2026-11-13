@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using GrowLog.Api;
 using GrowLog.Api.Accounts;
+using GrowLog.Api.Assistant;
 using GrowLog.Api.Buying;
 using GrowLog.Api.Catalogue;
 using GrowLog.Api.Climate;
@@ -47,6 +48,9 @@ builder.Services.AddScoped<EventStore>();
 builder.Services.AddSingleton<LabelPrinter>();
 builder.Services.AddSingleton<PrinterConnection>();
 builder.Services.AddSingleton<SpeciesThrottle>();
+builder.Services.AddSingleton<AssistantKeys>();
+builder.Services.AddSingleton<AskLimiter>();
+builder.Services.AddHttpClient(OpenRouter.ClientName, client => client.Timeout = TimeSpan.FromSeconds(90));
 builder.Services.AddHttpClient<SpeciesSources>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(6);
@@ -120,6 +124,8 @@ app.MapSeedlingGuessEndpoints();
 app.MapContainerHistoryEndpoints();
 app.MapPlaceEndpoints();
 app.MapPlaceMapEndpoints();
+app.MapMapPictureEndpoints();
+app.MapAssistantEndpoints();
 app.MapPrinterEndpoints();
 app.MapNurserySettingsEndpoints();
 app.MapFeatureEndpoints();
