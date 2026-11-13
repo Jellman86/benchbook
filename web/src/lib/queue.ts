@@ -23,6 +23,7 @@ const fallbackDescription = "Saved work";
  */
 export class WorkQueue {
   private readonly waitingKey: string;
+  stopped = false;
   private readonly failedKey: string;
 
   constructor(
@@ -33,22 +34,27 @@ export class WorkQueue {
     this.failedKey = `growlog.failed.${owner}`;
   }
 
-  // Storage that's full, blocked or damaged must not stop the app opening.
-  private read<T>(key: string): T[] {
+  private state(): { waiting: QueuedWork[]; failed: FailedWork[] } {
     try {
-      const items = JSON.parse(this.store.getItem(key) ?? "[]") as unknown;
-      return Array.isArray(items) ? (items as T[]) : [];
+      const stored = JSON.parse(this.store.getItem(this.waitingKey) ?? "[]");
+      // Earlier apps used separate keys. Upgrade on the first successful write.
+      if (Array.isArray(stored)) {
+        const failed = JSON.parse(this.store.getItem(this.failedKey) ?? "[]");
+        return { waiting: stored, failed: Array.isArray(failed) ? failed : [] };
+      }
+      return { waiting: stored.waiting ?? [], failed: stored.failed ?? [] };
     } catch {
-      return [];
+      return { waiting: [], failed: [] };
     }
   }
 
-  private write<T>(key: string, items: T[]) {
-    this.store.setItem(key, JSON.stringify(items));
+  private save(waiting: QueuedWork[], failed = this.failed) {
+    // One storage write makes a transition indivisible, including when storage is full.
+    this.store.setItem(this.waitingKey, JSON.stringify({ waiting, failed }));
   }
 
   private get items(): QueuedWork[] {
-    return this.read<QueuedWork>(this.waitingKey);
+    return this.state().waiting;
   }
 
   get waiting(): number {
@@ -56,7 +62,7 @@ export class WorkQueue {
   }
 
   get failed(): FailedWork[] {
-    return this.read<FailedWork>(this.failedKey);
+    return this.state().failed;
   }
 
   get next(): QueuedWork | undefined {
@@ -68,15 +74,11 @@ export class WorkQueue {
   }
 
   add(request: WorkRequest) {
-    this.write(this.waitingKey, [
-      ...this.items,
-      { request, description: fallbackDescription },
-    ]);
+    this.save([...this.items, { request, description: fallbackDescription }]);
   }
 
   describe(eventId: string, description: string) {
-    this.write(
-      this.waitingKey,
+    this.save(
       this.items.map((item) =>
         item.request.body.eventId === eventId ? { ...item, description } : item,
       ),
@@ -84,38 +86,40 @@ export class WorkQueue {
   }
 
   remove(eventId: string) {
-    this.write(
-      this.waitingKey,
+    this.save(
       this.items.filter((item) => item.request.body.eventId !== eventId),
     );
   }
 
   fail(item: QueuedWork, reason: string) {
-    this.remove(item.request.body.eventId);
-    this.write(this.failedKey, [
-      ...this.failed,
-      {
-        eventId: item.request.body.eventId,
-        description: item.description,
-        reason,
-        request: item.request,
-      },
-    ]);
+    this.save(
+      this.items.filter(
+        (other) => other.request.body.eventId !== item.request.body.eventId,
+      ),
+      [
+        ...this.failed,
+        {
+          eventId: item.request.body.eventId,
+          description: item.description,
+          reason,
+          request: item.request,
+        },
+      ],
+    );
   }
 
   /** Puts work that couldn't be saved back in line to send again. */
   retry(eventId: string) {
     const item = this.failed.find((failed) => failed.eventId === eventId);
-
-    if (!item?.request) {
-      return;
+    if (item?.request) {
+      this.save(
+        [
+          ...this.items,
+          { request: item.request, description: item.description },
+        ],
+        this.failed.filter((other) => other.eventId !== eventId),
+      );
     }
-
-    this.dismiss(eventId);
-    this.write(this.waitingKey, [
-      ...this.items,
-      { request: item.request, description: item.description },
-    ]);
   }
 
   /** Takes over work kept under another key, as queues once were kept by name. */
@@ -129,20 +133,26 @@ export class WorkQueue {
     const waiting = previous.items;
     const failed = previous.failed;
 
-    if (waiting.length > 0) {
-      this.write(this.waitingKey, [...this.items, ...waiting]);
-      previous.write(previous.waitingKey, []);
-    }
-
-    if (failed.length > 0) {
-      this.write(this.failedKey, [...this.failed, ...failed]);
-      previous.write(previous.failedKey, []);
-    }
+    // Copy before clearing; a failed clear is safe to retry without duplicating work.
+    this.save(
+      [
+        ...this.items,
+        ...waiting.filter((item) => !this.has(item.request.body.eventId)),
+      ],
+      [
+        ...this.failed,
+        ...failed.filter(
+          (item) =>
+            !this.failed.some((other) => other.eventId === item.eventId),
+        ),
+      ],
+    );
+    previous.save([], []);
   }
 
   dismiss(eventId: string) {
-    this.write(
-      this.failedKey,
+    this.save(
+      this.items,
       this.failed.filter((item) => item.eventId !== eventId),
     );
   }
@@ -154,7 +164,7 @@ export async function flush(
   send: (request: WorkRequest) => Promise<Outcome>,
   explain: (outcome: Outcome) => string,
 ): Promise<void> {
-  for (let item = queue.next; item; item = queue.next) {
+  for (let item = queue.next; item && !queue.stopped; item = queue.next) {
     const outcome = await send(item.request);
 
     if (outcome.kind === "stored") {
@@ -170,9 +180,15 @@ export async function flush(
 
 let active: WorkQueue | null = null;
 
+export function stopQueue() {
+  if (active) active.stopped = true;
+  active = null;
+}
+
 const nameKey = (owner: string) => `growlog.queueName.${owner}`;
 
 export function useQueue(owner: string, name?: string): WorkQueue {
+  stopQueue();
   active = new WorkQueue(localStorage, owner);
 
   try {
@@ -205,7 +221,9 @@ export function waitingByOthers(
       }
 
       const items = JSON.parse(store.getItem(key) ?? "[]") as unknown;
-      const count = Array.isArray(items) ? items.length : 0;
+      const count = Array.isArray(items)
+        ? items.length
+        : ((items as { waiting?: unknown[] })?.waiting?.length ?? 0);
 
       if (count > 0) {
         found.push({
@@ -224,10 +242,15 @@ export function waitingByOthers(
 
 /** Sends work now, or keeps it on this device if the server can't be reached. */
 export async function recordWork(item: WorkRequest): Promise<Outcome> {
+  const originating = active;
   const outcome = await submit(item);
 
-  if (outcome.kind === "unreachable" && active) {
-    active.add(item);
+  if (outcome.kind === "unreachable" && originating) {
+    try {
+      originating.add(item);
+    } catch {
+      return { kind: "storageFailed" };
+    }
     return { kind: "queued", eventId: item.body.eventId };
   }
 

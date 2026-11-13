@@ -2,7 +2,7 @@
   import CircleCheck from "@lucide/svelte/icons/circle-check";
   import { onMount, tick } from "svelte";
   import { focusHeading } from "../lib/steps";
-  import { api } from "../api/client";
+  import { api, sessionEnded } from "../api/client";
   import {
     externalSignInProblem,
     signInAsYourselfKey,
@@ -17,6 +17,7 @@
     flush,
     recordWork,
     useQueue,
+    stopQueue,
     waitingByOthers,
     type FailedWork,
   } from "../lib/queue";
@@ -106,7 +107,14 @@
   const queue = useQueue(me.id, me.name);
   // Work used to be kept under a person's name, which can change.
   // svelte-ignore state_referenced_locally
-  queue.adopt(me.name);
+  let queueProblem = "";
+  try {
+    // svelte-ignore state_referenced_locally
+    queue.adopt(me.name);
+  } catch {
+    queueProblem =
+      "This device could not update its waiting work. Check its storage and try again.";
+  }
 
   // A reload comes back to the screen it was on, including one kept before Settings had its own section.
   function upgrade(kept: unknown): View | undefined {
@@ -144,12 +152,13 @@
     eventId: string;
     newLabel?: string;
   } | null>(null);
-  let problem = $state("");
+  let problem = $state(queueProblem);
   let offline = $state(false);
   let waiting = $state(queue.waiting);
   let failed = $state<FailedWork[]>(queue.failed);
   // svelte-ignore state_referenced_locally
   const othersWaiting = waitingByOthers(me.id);
+  let backupNeverReported = $state(false);
   let backupStopped = $state(false);
   let collapsed = $state(savedCollapsed());
   let theme = $state<Theme>(savedTheme());
@@ -201,7 +210,8 @@
 
       if (me.isOwner) {
         const backups = (await api.GET("/api/backups/status")).data;
-        backupStopped = !!backups?.known && !backups.healthy;
+        backupNeverReported = !!backups && !backups.known;
+        backupStopped = !!backups && !backups.healthy;
       }
       // What the device keeps for no signal is refreshed every few minutes, not after every press.
       if (Date.now() - lastStockRefresh > stockRefreshEvery) {
@@ -248,6 +258,9 @@
       if (queue.waiting < before) {
         await refresh();
       }
+    } catch {
+      problem =
+        "This device could not update its waiting work. Keep GrowLog open and try again.";
     } finally {
       sending = false;
     }
@@ -272,7 +285,7 @@
     const saved = queue.has(eventId);
 
     if (saved) {
-      queue.describe(eventId, message);
+      updateQueue(() => queue.describe(eventId, message));
     }
 
     done = {
@@ -353,7 +366,7 @@
     notice = "";
 
     if (queue.has(eventId)) {
-      queue.remove(eventId);
+      if (!updateQueue(() => queue.remove(eventId))) return;
       done = null;
       notice = `Undone: ${words}`;
       showQueue();
@@ -383,15 +396,24 @@
     }
   }
 
+  function updateQueue(change: () => void): boolean {
+    try {
+      change();
+      showQueue();
+      return true;
+    } catch {
+      problem =
+        "This device could not update its waiting work. Check its storage and try again.";
+      return false;
+    }
+  }
+
   function dismiss(eventId: string) {
-    queue.dismiss(eventId);
-    showQueue();
+    updateQueue(() => queue.dismiss(eventId));
   }
 
   function retry(eventId: string) {
-    queue.retry(eventId);
-    showQueue();
-    void sendWaiting();
+    if (updateQueue(() => queue.retry(eventId))) void sendWaiting();
   }
 
   async function signOut() {
@@ -413,6 +435,7 @@
       }
     }
 
+    stopQueue();
     await api.POST("/api/account/sign-out");
     onSignedOut();
   }
@@ -443,7 +466,10 @@
     const timer = setInterval(send, sendEvery);
     window.addEventListener("online", send);
 
+    window.addEventListener(sessionEnded, stopQueue);
     const stopSending = () => {
+      stopQueue();
+      window.removeEventListener(sessionEnded, stopQueue);
       clearInterval(timer);
       window.removeEventListener("online", send);
       window.removeEventListener("popstate", stepBack);
@@ -550,8 +576,9 @@
       {#if backupStopped}
         <div class="card problem" role="alert">
           <span
-            >Backups may have stopped. Records aren't being protected until this
-            is fixed.</span
+            >{backupNeverReported
+              ? "Backups have never reported. Check that records are being protected."
+              : "Backups may have stopped. Records aren't being protected until this is fixed."}</span
           >
           <button
             class="secondary"

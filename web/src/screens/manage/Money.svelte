@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isoDay } from "../../lib/days";
   import { onMount } from "svelte";
   import DayPicker from "../DayPicker.svelte";
   import { api } from "../../api/client";
@@ -8,7 +9,7 @@
 
   let { onBack }: { onBack: () => void } = $props();
 
-  const today = () => new Date().toISOString().slice(0, 10);
+  const today = () => isoDay(new Date());
 
   const monthName = (month: string) =>
     new Date(`${month}-01T12:00:00Z`).toLocaleDateString("en-GB", {

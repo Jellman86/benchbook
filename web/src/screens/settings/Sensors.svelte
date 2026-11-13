@@ -17,7 +17,7 @@
   let shown = $state<{ name: string; key: string } | null>(null);
   let problem = $state("");
 
-  const now = new Date();
+  let now = $state(new Date());
   const setProblem = (message: string) => (problem = message);
   const placeName = (id: string) =>
     places.find((place) => place.id === id)?.label ?? "A place no longer used";
@@ -26,12 +26,24 @@
     sensors = (await api.GET("/api/sensors")).data ?? [];
   }
 
-  onMount(() =>
-    attempt(async () => {
-      places = workPlaces((await api.GET("/api/locations")).data ?? []);
-      await load();
-    }, setProblem),
-  );
+  onMount(() => {
+    const refresh = () =>
+      void attempt(async () => {
+        now = new Date();
+        places = workPlaces((await api.GET("/api/locations")).data ?? []);
+        await load();
+      }, setProblem);
+    const visible = () => {
+      if (!document.hidden) refresh();
+    };
+    refresh();
+    const timer = setInterval(refresh, 180_000);
+    document.addEventListener("visibilitychange", visible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", visible);
+    };
+  });
 
   function reset() {
     editing = null;

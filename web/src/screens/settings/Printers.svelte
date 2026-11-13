@@ -252,7 +252,8 @@
             or the settings label says which; many printers understand both.
           </li>
           <li>
-            <strong>Leave the port at 9100</strong> unless the manual says otherwise.
+            <strong>Leave the port at 9100</strong> unless the manual specifies 9101,
+            9102, 515 or 631.
           </li>
           <li>
             <strong>Match the head.</strong> The settings label or the model name

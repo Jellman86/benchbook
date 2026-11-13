@@ -14,6 +14,7 @@
     outcomeProblem,
     plantName,
     submit,
+    retainIdentity,
     work,
     workPlaces,
     type BatchPrefill,
@@ -574,6 +575,7 @@
     return failed;
   }
 
+  let pending: ReturnType<typeof work.startBatch> | null = null;
   const start = () =>
     attempt(async () => {
       busy = true;
@@ -588,7 +590,7 @@
         plantId = savedPlantId;
         plantMadeFor =
           picked?.kind === "species" ? `${picked.id}|${variety.trim()}` : "";
-        const outcome = await submit(
+        pending = retainIdentity(
           work.startBatch(
             {
               plantId: savedPlantId,
@@ -621,7 +623,9 @@
             },
             momentOn(startedOn),
           ),
+          pending,
         );
+        const outcome = await submit(pending);
 
         if (outcome.kind !== "stored") {
           problem = outcomeProblem(outcome);

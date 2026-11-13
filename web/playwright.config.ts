@@ -15,7 +15,7 @@ export default defineConfig({
   timeout: 120_000,
   use: {
     ...devices["Desktop Chrome"],
-    viewport: { width: 420, height: 900 },
+    viewport: { width: 390, height: 900 },
     baseURL: `http://localhost:${port}`,
   },
   webServer: [

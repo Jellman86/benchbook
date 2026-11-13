@@ -32,34 +32,57 @@
   let history = $state<Schemas["PlaceClimateHistory"] | null>(null);
   let problem = $state("");
 
-  const now = new Date();
+  let now = $state(new Date());
   const setProblem = (message: string) => (problem = message);
 
-  onMount(() =>
-    attempt(async () => {
-      places = (await api.GET("/api/climate")).data ?? [];
-      loaded = true;
-    }, setProblem),
-  );
+  onMount(() => {
+    const refresh = () =>
+      void attempt(async () => {
+        now = new Date();
+        places = (await api.GET("/api/climate")).data ?? [];
+        loaded = true;
+      }, setProblem);
+    const visible = () => {
+      if (!document.hidden) refresh();
+    };
+    refresh();
+    const timer = setInterval(refresh, 180_000);
+    document.addEventListener("visibilitychange", visible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", visible);
+    };
+  });
 
   $effect(() => {
     const place = opened;
     const span = days;
+    void now;
+    let current = true;
     history = null;
 
     if (place) {
-      void attempt(async () => {
-        history =
-          (
-            await api.GET("/api/climate/{locationId}", {
-              params: {
-                path: { locationId: place.locationId },
-                query: { days: span },
-              },
-            })
-          ).data ?? null;
-      }, setProblem);
+      void attempt(
+        async () => {
+          const result =
+            (
+              await api.GET("/api/climate/{locationId}", {
+                params: {
+                  path: { locationId: place.locationId },
+                  query: { days: span },
+                },
+              })
+            ).data ?? null;
+          if (current) history = result;
+        },
+        (message) => {
+          if (current) setProblem(message);
+        },
+      );
     }
+    return () => {
+      current = false;
+    };
   });
 
   const hours = $derived(history?.hours ?? []);

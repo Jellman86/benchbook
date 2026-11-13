@@ -78,7 +78,9 @@
         points,
         outlineStyle(place.kind, place.id === chosenId),
       );
-      layer.bindTooltip(place.name, {
+      const label = document.createElement("span");
+      label.textContent = place.name;
+      layer.bindTooltip(label, {
         permanent: alwaysNamed(place.kind) || place.id === chosenId,
         direction: "center",
         className: "place-map-label",

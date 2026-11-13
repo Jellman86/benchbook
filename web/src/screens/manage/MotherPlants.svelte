@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isoDay } from "../../lib/days";
   import { showForm } from "../../lib/showForm";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
@@ -175,7 +176,7 @@
           <span
             >{mother.cuttingsTaken === 0
               ? "No cuttings taken yet"
-              : `${mother.cuttingsTaken} batch${Number(mother.cuttingsTaken) === 1 ? "" : "es"} of cuttings${mother.lastTakenAt ? `, last ${dayLabel(mother.lastTakenAt.slice(0, 10))}` : ""}`}</span
+              : `${mother.cuttingsTaken} batch${Number(mother.cuttingsTaken) === 1 ? "" : "es"} of cuttings${mother.lastTakenAt ? `, last ${dayLabel(isoDay(new Date(mother.lastTakenAt)))}` : ""}`}</span
           >
           <div class="row">
             <button class="secondary" onclick={() => open(mother)}
@@ -196,7 +197,7 @@
                     >Cuttings {batch.round}: batch {batch.traceabilityCode}</span
                   >
                   <span class="muted credit"
-                    >{dayLabel(batch.startedAt.slice(0, 10))}</span
+                    >{dayLabel(isoDay(new Date(batch.startedAt)))}</span
                   >
                   <button
                     class="link-button"

@@ -44,14 +44,19 @@
   const now = new Date();
   const setProblem = (message: string) => (problem = message);
 
+  let searching = 0;
   const find = (event?: SubmitEvent) => {
+    const token = ++searching;
+    const text = query;
     event?.preventDefault();
 
     return attempt(async () => {
-      matches =
-        (await api.GET("/api/trace", { params: { query: { q: query } } }))
+      const result =
+        (await api.GET("/api/trace", { params: { query: { q: text } } }))
           .data ?? [];
-      searched = query.trim().length > 0;
+      if (token !== searching || query !== text) return;
+      matches = result;
+      searched = text.trim().length > 0;
       loaded = true;
     }, setProblem);
   };
@@ -60,17 +65,27 @@
 
   $effect(() => {
     const id = batchId;
+    let current = true;
     trace = null;
 
     if (id) {
-      void attempt(async () => {
-        const { data, response } = await api.GET("/api/batches/{id}/trace", {
-          params: { path: { id } },
-        });
-        trace = data ?? null;
-        problem = response.ok ? "" : "That batch couldn't be found.";
-      }, setProblem);
+      void attempt(
+        async () => {
+          const { data, response } = await api.GET("/api/batches/{id}/trace", {
+            params: { path: { id } },
+          });
+          if (!current) return;
+          trace = data ?? null;
+          problem = response.ok ? "" : "That batch couldn't be found.";
+        },
+        (message) => {
+          if (current) setProblem(message);
+        },
+      );
     }
+    return () => {
+      current = false;
+    };
   });
 
   const xylella = (host: boolean | null) =>
