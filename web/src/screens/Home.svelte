@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { loadFeatures } from "../lib/features.svelte";
   import CircleCheck from "@lucide/svelte/icons/circle-check";
   import { onMount, tick } from "svelte";
   import { focusHeading } from "../lib/steps";
@@ -440,6 +441,8 @@
   }
 
   onMount(() => {
+    void loadFeatures();
+
     if (location.search.includes("sso=")) {
       problem = externalSignInProblem(location.search);
       history.replaceState(null, "", location.pathname);

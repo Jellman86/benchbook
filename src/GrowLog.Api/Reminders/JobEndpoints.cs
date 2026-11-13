@@ -2,6 +2,7 @@ using System.Security.Claims;
 using GrowLog.Api.Accounts;
 using GrowLog.Api.Catalogue;
 using GrowLog.Api.Data;
+using GrowLog.Api.Settings;
 using Microsoft.EntityFrameworkCore;
 
 namespace GrowLog.Api.Reminders;
@@ -17,7 +18,7 @@ internal static class JobEndpoints
 
     public static void MapJobEndpoints(this IEndpointRouteBuilder app)
     {
-        var jobs = app.MapGroup("/api/jobs");
+        var jobs = app.MapGroup("/api/jobs").RequireFeature(NurseryFeature.Jobs);
         jobs.MapGet("/", ListAsync);
         jobs.MapPost("/", AddAsync).RequireAuthorization(AccountServices.OwnerPolicy).Produces<JobAdded>(StatusCodes.Status201Created);
         jobs.MapPut("/{id:guid}", ChangeAsync).RequireAuthorization(AccountServices.OwnerPolicy);

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isOn } from "../../lib/features.svelte";
   import ImageUp from "@lucide/svelte/icons/image-up";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
@@ -127,28 +128,31 @@
             bind:value={details.paymentTermsDays}
           /></label
         >
-        {#if renewsOn}
-          <DayPicker
-            bind:value={renewsOn}
-            label="Plant health authorisation renews on"
-            max={null}
-          />
-          <button
-            type="button"
-            class="link-button"
-            onclick={() => (renewsOn = "")}>No renewal date</button
-          >
-        {:else}
-          <button
-            type="button"
-            class="secondary"
-            onclick={() => (renewsOn = isoDay(new Date()))}
-            >Add the authorisation renewal date</button
-          >
+        {#if isOn("Passports")}
+          {#if renewsOn}
+            <DayPicker
+              bind:value={renewsOn}
+              label="Plant health authorisation renews on"
+              max={null}
+            />
+            <button
+              type="button"
+              class="link-button"
+              onclick={() => (renewsOn = "")}>No renewal date</button
+            >
+          {:else}
+            <button
+              type="button"
+              class="secondary"
+              onclick={() => (renewsOn = isoDay(new Date()))}
+              >Add the authorisation renewal date</button
+            >
+          {/if}
+          <p class="muted">
+            GrowLog reminds you six weeks before, so the inspection can be
+            booked.
+          </p>
         {/if}
-        <p class="muted">
-          GrowLog reminds you six weeks before, so the inspection can be booked.
-        </p>
         <button type="submit">Save details</button>
       </form>
     </section>

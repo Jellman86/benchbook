@@ -1,6 +1,7 @@
 using System.Text.Json;
 using GrowLog.Api.Accounts;
 using GrowLog.Api.Data;
+using GrowLog.Api.Settings;
 using Microsoft.EntityFrameworkCore;
 
 namespace GrowLog.Api.Catalogue;
@@ -17,10 +18,10 @@ internal static class PlaceMapEndpoints
 
     public static void MapPlaceMapEndpoints(this IEndpointRouteBuilder app)
     {
-        var map = app.MapGroup("/api/locations").RequireAuthorization(AccountServices.OwnerPolicy);
+        var map = app.MapGroup("/api/locations").RequireAuthorization(AccountServices.OwnerPolicy).RequireFeature(NurseryFeature.PlacesMap);
         map.MapGet("/map", GetMapAsync);
         map.MapPut("/{id:guid}/outline", SaveOutlineAsync);
-        app.MapPut("/api/settings/map", SaveSettingsAsync).RequireAuthorization(AccountServices.OwnerPolicy);
+        app.MapPut("/api/settings/map", SaveSettingsAsync).RequireAuthorization(AccountServices.OwnerPolicy).RequireFeature(NurseryFeature.PlacesMap);
     }
 
     private static async Task<PlaceMap> GetMapAsync(GrowLogDbContext db, CancellationToken cancellationToken)

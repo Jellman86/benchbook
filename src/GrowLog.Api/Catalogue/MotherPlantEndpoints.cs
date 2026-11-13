@@ -1,5 +1,6 @@
 using GrowLog.Api.Accounts;
 using GrowLog.Api.Data;
+using GrowLog.Api.Settings;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -16,7 +17,7 @@ internal static class MotherPlantEndpoints
 
     public static void MapMotherPlantEndpoints(this IEndpointRouteBuilder app)
     {
-        var mothers = app.MapGroup("/api/mother-plants");
+        var mothers = app.MapGroup("/api/mother-plants").RequireFeature(NurseryFeature.MotherPlants);
         mothers.MapGet("/", ListAsync);
         mothers.MapGet("/{id:guid}", GetAsync).Produces<MotherDetails>();
         mothers.MapPost("/", AddAsync).Produces<MotherAdded>(StatusCodes.Status201Created);

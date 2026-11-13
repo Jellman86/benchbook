@@ -7,6 +7,7 @@
   import About from "./settings/About.svelte";
   import Account from "./settings/Account.svelte";
   import DataAndBackups from "./settings/DataAndBackups.svelte";
+  import Features from "./settings/Features.svelte";
   import Labels from "./settings/Labels.svelte";
   import MapSettings from "./settings/MapSettings.svelte";
   import NurseryDetails from "./settings/NurseryDetails.svelte";
@@ -101,6 +102,8 @@
       <Account {me} {theme} {onTheme} onBack={toList} />
     {:else if shown === "nursery"}
       <NurseryDetails onBack={toList} />
+    {:else if shown === "features"}
+      <Features onBack={toList} />
     {:else if shown === "map"}
       <MapSettings onBack={toList} />
     {:else if shown === "printers"}

@@ -29,26 +29,36 @@ internal static class AlertEndpoints
         var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
         var alerts = new List<Alert>();
 
-        if (await RenewalAsync(db, today, cancellationToken) is { } renewal)
+        // Nothing is raised about a part of GrowLog the owner has turned off.
+        var off = (await db.GetNurserySettingsAsync(cancellationToken)).FeaturesOff;
+
+        if (!off.Contains(NurseryFeature.Passports) && await RenewalAsync(db, today, cancellationToken) is { } renewal)
         {
             alerts.Add(renewal);
         }
 
-        if (await OverdueInvoicesAsync(db, today, cancellationToken) is { } invoices)
+        if (!off.Contains(NurseryFeature.Invoices) && await OverdueInvoicesAsync(db, today, cancellationToken) is { } invoices)
         {
             alerts.Add(invoices);
         }
 
         alerts.AddRange(await TraysAsync(db, store, clock, cancellationToken));
 
-        var lateJobs = await db.Jobs.CountAsync(job => job.ArchivedAt == null && job.NextDue < today.AddDays(-JobLateDays), cancellationToken);
-
-        if (lateJobs > 0)
+        if (!off.Contains(NurseryFeature.Jobs) && await LateJobsAsync(db, today, cancellationToken) is { } lateJobs)
         {
-            alerts.Add(new Alert("JobsLate", $"{Plural(lateJobs, "job is", "jobs are")} late", $"Each was due more than {JobLateDays} days ago and hasn't been marked done.", "jobs"));
+            alerts.Add(lateJobs);
         }
 
         return alerts;
+    }
+
+    private static async Task<Alert?> LateJobsAsync(GrowLogDbContext db, DateOnly today, CancellationToken cancellationToken)
+    {
+        var late = await db.Jobs.CountAsync(job => job.ArchivedAt == null && job.NextDue < today.AddDays(-JobLateDays), cancellationToken);
+
+        return late == 0
+            ? null
+            : new Alert("JobsLate", $"{Plural(late, "job is", "jobs are")} late", $"Each was due more than {JobLateDays} days ago and hasn't been marked done.", "jobs");
     }
 
     private static async Task<Alert?> RenewalAsync(GrowLogDbContext db, DateOnly today, CancellationToken cancellationToken)

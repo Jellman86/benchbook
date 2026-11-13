@@ -2,6 +2,7 @@ using System.Security.Claims;
 using GrowLog.Api.Accounts;
 using GrowLog.Api.Data;
 using GrowLog.Api.Production;
+using GrowLog.Api.Settings;
 using Microsoft.EntityFrameworkCore;
 
 namespace GrowLog.Api.Lookup;
@@ -11,10 +12,10 @@ internal static class PhotoEndpoints
 {
     public static void MapPhotoEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/batches/{id:guid}/photos", AddBatchPhotoAsync).Produces<BatchPhotoSummary>(StatusCodes.Status201Created);
-        app.MapGet("/api/batches/{id:guid}/photos", ListBatchPhotosAsync);
-        app.MapGet("/api/batch-photos/{id:guid}", GetBatchPhotoAsync);
-        app.MapDelete("/api/batch-photos/{id:guid}", RemoveBatchPhotoAsync);
+        app.MapPost("/api/batches/{id:guid}/photos", AddBatchPhotoAsync).Produces<BatchPhotoSummary>(StatusCodes.Status201Created).RequireFeature(NurseryFeature.BatchPhotos);
+        app.MapGet("/api/batches/{id:guid}/photos", ListBatchPhotosAsync).RequireFeature(NurseryFeature.BatchPhotos);
+        app.MapGet("/api/batch-photos/{id:guid}", GetBatchPhotoAsync).RequireFeature(NurseryFeature.BatchPhotos);
+        app.MapDelete("/api/batch-photos/{id:guid}", RemoveBatchPhotoAsync).RequireFeature(NurseryFeature.BatchPhotos);
 
         app.MapPut("/api/plants/{id:guid}/photo", SetPlantPhotoAsync);
         app.MapGet("/api/plants/{id:guid}/photo", GetPlantPhotoAsync);

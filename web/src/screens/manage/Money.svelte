@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isOn } from "../../lib/features.svelte";
   import { isoDay } from "../../lib/days";
   import { onMount } from "svelte";
   import DayPicker from "../DayPicker.svelte";
@@ -115,16 +116,20 @@
 
       {#if summary}
         <div class="stat-tiles">
-          <div class="stat-tile">
-            <strong>{money(Number(summary.owed))}</strong><span
-              >still owed to suppliers</span
-            >
-          </div>
-          <div class="stat-tile">
-            <strong>{money(Number(summary.owedToUs))}</strong><span
-              >still owed by customers</span
-            >
-          </div>
+          {#if isOn("Purchases")}
+            <div class="stat-tile">
+              <strong>{money(Number(summary.owed))}</strong><span
+                >still owed to suppliers</span
+              >
+            </div>
+          {/if}
+          {#if isOn("Invoices")}
+            <div class="stat-tile">
+              <strong>{money(Number(summary.owedToUs))}</strong><span
+                >still owed by customers</span
+              >
+            </div>
+          {/if}
         </div>
         {#each summary.months as month (month.month)}
           <div class="card">

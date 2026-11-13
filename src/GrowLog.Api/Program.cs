@@ -122,6 +122,7 @@ app.MapPlaceEndpoints();
 app.MapPlaceMapEndpoints();
 app.MapPrinterEndpoints();
 app.MapNurserySettingsEndpoints();
+app.MapFeatureEndpoints();
 app.MapClearRecordsEndpoints();
 app.MapProductionEndpoints();
 app.MapLabelEndpoints();

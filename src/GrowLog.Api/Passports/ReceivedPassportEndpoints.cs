@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using GrowLog.Api.Data;
+using GrowLog.Api.Settings;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -14,7 +15,7 @@ internal static class ReceivedPassportEndpoints
     {
         app.MapGet("/api/batches/{id:guid}/received-passport-draft", GetDraftAsync).Produces<PassportDraft>();
 
-        var passports = app.MapGroup("/api/received-passports");
+        var passports = app.MapGroup("/api/received-passports").RequireFeature(NurseryFeature.Passports);
         passports.MapGet("/", ListAsync);
         passports.MapPost("/", AddAsync).Produces<PassportCreated>(StatusCodes.Status201Created);
         passports.MapPost("/{id:guid}/status", SetStatusAsync);

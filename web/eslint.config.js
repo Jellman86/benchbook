@@ -16,7 +16,7 @@ export default ts.config(
     languageOptions: { globals: globals.serviceworker },
   },
   {
-    files: ["**/*.svelte"],
+    files: ["**/*.svelte", "**/*.svelte.ts"],
     languageOptions: { parserOptions: { parser: ts.parser } },
   },
 );

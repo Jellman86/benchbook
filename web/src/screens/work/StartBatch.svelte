@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isOn } from "../../lib/features.svelte";
   import Camera from "@lucide/svelte/icons/camera";
   import { onDestroy, onMount } from "svelte";
   import {
@@ -111,7 +112,7 @@
     motherId = "";
     mothers = [];
 
-    if (id) {
+    if (id && isOn("MotherPlants")) {
       void api
         .GET("/api/mother-plants", { params: { query: { plantId: id } } })
         .then(({ data }) => (mothers = data ?? []))
@@ -333,6 +334,7 @@
     if (
       stage === 3 &&
       source === "Cuttings" &&
+      isOn("MotherPlants") &&
       plantId &&
       !motherId &&
       newMother.trim()
@@ -768,7 +770,7 @@
       {/each}
     </div>
     <DayPicker bind:value={startedOn} label={whenAsked[source]} />
-    {#if source === "Cuttings" && plantId}
+    {#if source === "Cuttings" && plantId && isOn("MotherPlants")}
       <label
         >Taken from <select bind:value={motherId}>
           <option value="">No mother plant recorded</option>

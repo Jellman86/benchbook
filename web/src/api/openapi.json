@@ -3697,6 +3697,60 @@
         }
       }
     },
+    "/api/settings/features": {
+      "get": {
+        "tags": [
+          "FeatureEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FeatureState"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/features/{feature}": {
+      "put": {
+        "tags": [
+          "FeatureEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "feature",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/NurseryFeature"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeatureChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/labels/containers/{label}": {
       "get": {
         "tags": [
@@ -7209,6 +7263,32 @@
           }
         }
       },
+      "FeatureChange": {
+        "required": [
+          "on"
+        ],
+        "type": "object",
+        "properties": {
+          "on": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FeatureState": {
+        "required": [
+          "feature",
+          "on"
+        ],
+        "type": "object",
+        "properties": {
+          "feature": {
+            "$ref": "#/components/schemas/NurseryFeature"
+          },
+          "on": {
+            "type": "boolean"
+          }
+        }
+      },
       "FieldType": {
         "enum": [
           "Text",
@@ -8978,6 +9058,18 @@
             "default": false
           }
         }
+      },
+      "NurseryFeature": {
+        "enum": [
+          "Climate",
+          "PlacesMap",
+          "Passports",
+          "MotherPlants",
+          "Jobs",
+          "Invoices",
+          "Purchases",
+          "BatchPhotos"
+        ]
       },
       "OutlineRequest": {
         "required": [
@@ -12743,6 +12835,9 @@
     },
     {
       "name": "NurserySettingsEndpoints"
+    },
+    {
+      "name": "FeatureEndpoints"
     },
     {
       "name": "LabelEndpoints"

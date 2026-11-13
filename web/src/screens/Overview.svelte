@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { isOn } from "../lib/features.svelte";
   import Clock from "@lucide/svelte/icons/clock";
   import PackageCheck from "@lucide/svelte/icons/package-check";
   import PoundSterling from "@lucide/svelte/icons/pound-sterling";
@@ -52,7 +53,9 @@
   onMount(async () => {
     try {
       rows = (await api.GET("/api/production")).data ?? [];
-      owed = Number((await api.GET("/api/money/summary")).data?.owed ?? 0);
+      owed = isOn("Purchases")
+        ? Number((await api.GET("/api/money/summary")).data?.owed ?? 0)
+        : 0;
       const startOfDay = new Date(
         now.getFullYear(),
         now.getMonth(),
@@ -83,9 +86,11 @@
       <div class="stat-tile">
         <strong>{ready.length}</strong><span>ready</span>
       </div>
-      <div class="stat-tile">
-        <strong>{money(owed)}</strong><span>owed to suppliers</span>
-      </div>
+      {#if isOn("Purchases")}
+        <div class="stat-tile">
+          <strong>{money(owed)}</strong><span>owed to suppliers</span>
+        </div>
+      {/if}
     </div>
 
     {#if rows.length > 0}

@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { manageGroups, type ManageSection } from "../lib/sections";
+  import {
+    isManageSectionOn,
+    visibleManageGroups,
+    type ManageSection,
+  } from "../lib/sections";
   import type { BatchPrefill } from "../lib/work";
   import Climate from "./manage/Climate.svelte";
   import Consignments from "./manage/Consignments.svelte";
@@ -36,39 +40,42 @@
   } = $props();
 
   const back = () => onSection(null);
+  // A section whose part of GrowLog is turned off isn't opened, even from a remembered screen.
+  const open = $derived(section && isManageSectionOn(section) ? section : null);
+  const groups = $derived(visibleManageGroups());
 </script>
 
-{#if section === "figures"}
+{#if open === "figures"}
   <Figures onBack={back} />
-{:else if section === "money"}
+{:else if open === "money"}
   <Money onBack={back} />
-{:else if section === "purchases"}
+{:else if open === "purchases"}
   <Purchases onBack={back} {onStartBatch} />
-{:else if section === "plants"}
+{:else if open === "plants"}
   <Plants onBack={back} />
-{:else if section === "suppliers"}
+{:else if open === "suppliers"}
   <Suppliers onBack={back} />
-{:else if section === "places"}
+{:else if open === "places"}
   <Locations onBack={back} {onOpenTray} {onMoveTraysHere} />
-{:else if section === "mothers"}
+{:else if open === "mothers"}
   <MotherPlants onBack={back} {onTrace} />
-{:else if section === "climate"}
+{:else if open === "climate"}
   <Climate onBack={back} />
-{:else if section === "jobs"}
+{:else if open === "jobs"}
   <Jobs onBack={back} />
-{:else if section === "trace"}
+{:else if open === "trace"}
   <Trace {batchId} onChoose={onTrace} onBack={back} {onOpenTray} />
-{:else if section === "invoices"}
+{:else if open === "invoices"}
   <Invoices onBack={back} />
-{:else if section === "consignments"}
+{:else if open === "consignments"}
   <Consignments onBack={back} />
-{:else if section === "customers"}
+{:else if open === "customers"}
   <Customers onBack={back} />
 {:else}
   <main>
     <h1>Manage</h1>
     <div class="stack">
-      {#each manageGroups as group (group.heading)}
+      {#each groups as group (group.heading)}
         <h2 class="settings-heading">{group.heading}</h2>
         {#each group.items as item (item.section)}
           <button

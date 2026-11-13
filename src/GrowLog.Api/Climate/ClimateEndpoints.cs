@@ -1,5 +1,6 @@
 using GrowLog.Api.Catalogue;
 using GrowLog.Api.Data;
+using GrowLog.Api.Settings;
 using Microsoft.EntityFrameworkCore;
 
 namespace GrowLog.Api.Climate;
@@ -9,8 +10,8 @@ internal static class ClimateEndpoints
 {
     public static void MapClimateEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/climate", ListAsync);
-        app.MapGet("/api/climate/{locationId:guid}", HistoryAsync).Produces<PlaceClimateHistory>();
+        app.MapGet("/api/climate", ListAsync).RequireFeature(NurseryFeature.Climate);
+        app.MapGet("/api/climate/{locationId:guid}", HistoryAsync).Produces<PlaceClimateHistory>().RequireFeature(NurseryFeature.Climate);
     }
 
     private static DateTimeOffset StartOfToday(TimeProvider clock)
