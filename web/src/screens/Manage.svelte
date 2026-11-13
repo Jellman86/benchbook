@@ -5,6 +5,7 @@
     type ManageSection,
   } from "../lib/sections";
   import type { BatchPrefill } from "../lib/work";
+  import type { AskAbout } from "../lib/assistant.svelte";
   import Climate from "./manage/Climate.svelte";
   import Consignments from "./manage/Consignments.svelte";
   import Customers from "./manage/Customers.svelte";
@@ -28,6 +29,7 @@
     onStartBatch,
     onOpenTray,
     onMoveTraysHere,
+    onAsk,
   }: {
     section: ManageSection | null;
     batchId?: string | null;
@@ -37,6 +39,8 @@
     onStartBatch: (prefill: BatchPrefill) => void;
     onOpenTray: (label: string) => void;
     onMoveTraysHere: (id: string) => void;
+    /** Asks Ask GrowLog about something, when this person can ask. */
+    onAsk?: (about: AskAbout) => void;
   } = $props();
 
   const back = () => onSection(null);
@@ -52,7 +56,7 @@
 {:else if open === "purchases"}
   <Purchases onBack={back} {onStartBatch} />
 {:else if open === "plants"}
-  <Plants onBack={back} />
+  <Plants onBack={back} {onAsk} />
 {:else if open === "suppliers"}
   <Suppliers onBack={back} />
 {:else if open === "places"}

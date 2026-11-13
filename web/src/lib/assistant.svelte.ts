@@ -12,7 +12,22 @@ export type AskAbout = {
 };
 export type AskSource = Schemas["AskSource"];
 
-export const assistant = $state({ canAsk: false, readsImages: false });
+export const assistant = $state({
+  canAsk: false,
+  readsImages: false,
+  // What this person's questions have cost the nursery, in US dollars as OpenRouter charges.
+  spentThisMonth: null as number | null,
+  spentInAll: null as number | null,
+});
+
+/** A cost in US dollars, as OpenRouter charges, in words a person can take in at a glance. */
+export function dollars(amount: number): string {
+  if (amount <= 0) {
+    return "$0.00";
+  }
+
+  return amount < 0.01 ? "under 1 cent" : `$${amount.toFixed(2)}`;
+}
 
 export async function loadAssistant() {
   if (!isOn("Assistant")) {
@@ -24,6 +39,10 @@ export async function loadAssistant() {
     const { data } = await api.GET("/api/assistant/status");
     assistant.canAsk = !!data?.canAsk;
     assistant.readsImages = !!data?.readsImages;
+    assistant.spentThisMonth =
+      data?.spent != null ? Number(data.spent.thisMonth) : null;
+    assistant.spentInAll =
+      data?.spent != null ? Number(data.spent.inAll) : null;
   } catch {
     // Offline: it can't be asked anyway.
     assistant.canAsk = false;

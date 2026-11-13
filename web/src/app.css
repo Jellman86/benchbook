@@ -1576,6 +1576,9 @@ label.tick {
 }
 
 .plant-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
   padding-top: 1.25rem;
   border-top: 1px solid var(--line);
 }
@@ -3724,8 +3727,17 @@ button.secondary.destructive:hover:not(:disabled) {
 /* The plant page's labels and cards to print, side by side when there's room. */
 .print-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
   gap: 0.75rem;
+}
+
+/* A label's name stays on one line beside its copies. */
+.print-list .print-button :is(button, a.button) {
+  white-space: nowrap;
+}
+
+.print-list .print-button select {
+  min-width: 6.5rem;
 }
 
 /* An invoice line: a card of fields on a phone, one row of them on a desk. */
@@ -3929,4 +3941,54 @@ select:not([multiple]) {
   .with-sidebar .settings-layout .split {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
   }
+}
+
+/* What Ask GrowLog's questions have cost: a quiet line on a phone, and each person's spend in Settings. */
+.ask-spend {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: -0.25rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.ask-spend strong {
+  color: var(--text);
+}
+
+.ask-spend svg {
+  flex: none;
+}
+
+.spend-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.spend-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 1rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.spend-list li:first-child {
+  border-top: 0;
+}
+
+.spend-list li strong {
+  grid-row: span 2;
+  align-self: center;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.spend-list li span {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }

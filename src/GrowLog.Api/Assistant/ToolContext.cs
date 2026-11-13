@@ -22,6 +22,9 @@ internal sealed class ToolContext(GrowLogDbContext db, EventStore store, TimePro
     /// <summary>Whether the owner is asking: some of the records, such as "Needs a look", are only theirs.</summary>
     public bool IsOwner { get; init; }
 
+    /// <summary>What the question has cost so far, in US dollars, kept as it goes so a failed answer is still counted.</summary>
+    public decimal Cost { get; set; }
+
     /// <summary>The parts of GrowLog turned off, whose tools aren't offered or run.</summary>
     public IReadOnlyCollection<NurseryFeature> FeaturesOff { get; init; } = [];
 

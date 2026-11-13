@@ -20,5 +20,8 @@ internal sealed class AssistantUnavailableException : Exception
     public AssistantUnavailableException(int status)
         : base($"OpenRouter answered {status}.") => Status = status;
 
+    public AssistantUnavailableException(int status, string? reason)
+        : base(reason is null ? $"OpenRouter answered {status}." : $"OpenRouter answered {status}: {reason}") => Status = status;
+
     public int Status { get; }
 }

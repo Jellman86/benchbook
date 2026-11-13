@@ -7409,6 +7409,10 @@ export interface components {
             sources: components["schemas"]["AskSource"][];
             /** Format: double */
             cost: number | string;
+            /** Format: double */
+            spentThisMonth?: number | string;
+            /** Format: double */
+            spentInAll?: number | string;
         };
         AskMessage: {
             role: string;
@@ -7435,6 +7439,7 @@ export interface components {
             spent: null | number | string;
             /** Format: double */
             limit: null | number | string;
+            people: components["schemas"]["PersonSpending"][];
         };
         AssistantSettingsRequest: {
             key: null | string;
@@ -7447,6 +7452,7 @@ export interface components {
             canAsk: boolean;
             setUp: boolean;
             readsImages: boolean;
+            spent: null | components["schemas"]["YourSpend"];
         };
         BackupHealth: {
             known: boolean;
@@ -8420,6 +8426,15 @@ export interface components {
             id: string;
             name: string;
         };
+        PersonSpending: {
+            name: string;
+            /** Format: double */
+            thisMonth: number | string;
+            /** Format: int32 */
+            thisMonthQuestions: number | string;
+            /** Format: double */
+            inAll: number | string;
+        };
         PhotoAdded: {
             /** Format: uuid */
             id: string;
@@ -9167,6 +9182,12 @@ export interface components {
         };
         WorkRefused: {
             problem: string;
+        };
+        YourSpend: {
+            /** Format: double */
+            thisMonth: number | string;
+            /** Format: double */
+            inAll: number | string;
         };
     };
     responses: never;

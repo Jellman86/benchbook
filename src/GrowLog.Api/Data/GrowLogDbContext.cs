@@ -81,6 +81,8 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
     public DbSet<MapPicture> MapPictures => Set<MapPicture>();
 
+    public DbSet<AssistantSpend> AssistantSpends => Set<AssistantSpend>();
+
     public DbSet<Printer> Printers => Set<Printer>();
 
     public DbSet<Customer> Customers => Set<Customer>();
@@ -145,22 +147,11 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
 
         ConfigureIssuedPassports(modelBuilder);
         ConfigureJobsAndMothers(modelBuilder);
+        ConfigureAssistant(modelBuilder);
         ConfigureConsignments(modelBuilder);
         ConfigureReviewRecords(modelBuilder);
         ConfigureSensors(modelBuilder);
         ConfigurePurchases(modelBuilder);
-
-        modelBuilder.Entity<BackupStatus>(entity =>
-        {
-            entity.ToTable("backup_status");
-            entity.Property(e => e.Id).ValueGeneratedNever();
-        });
-
-        modelBuilder.Entity<BenchStation>(entity =>
-        {
-            entity.Property(e => e.Id).ValueGeneratedNever();
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
-        });
     }
 
     private static void ConfigureReviewRecords(ModelBuilder modelBuilder)
@@ -239,6 +230,31 @@ internal sealed class GrowLogDbContext(DbContextOptions<GrowLogDbContext> option
             entity.HasIndex(e => new { e.SensorId, e.TakenAt });
             entity.HasOne<Sensor>().WithMany().HasForeignKey(e => e.SensorId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Location>().WithMany().HasForeignKey(e => e.LocationId).OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    /// <summary>Records about the service itself: backups, bench stations and what Ask GrowLog's questions cost.</summary>
+    private static void ConfigureAssistant(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<AssistantSpend>(entity =>
+        {
+            entity.ToTable("assistant_spend");
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Cost).HasPrecision(12, 6);
+            entity.HasIndex(e => new { e.AskedBy, e.AskedAt });
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(e => e.AskedBy).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<BackupStatus>(entity =>
+        {
+            entity.ToTable("backup_status");
+            entity.Property(e => e.Id).ValueGeneratedNever();
+        });
+
+        modelBuilder.Entity<BenchStation>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
         });
     }
 
