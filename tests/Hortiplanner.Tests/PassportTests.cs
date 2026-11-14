@@ -292,7 +292,7 @@ public sealed class PassportTests(PostgresFixture database)
         Assert.Equal(HttpStatusCode.Created, issued.StatusCode);
         var passport = (await nursery.Staff.GetFromJsonAsync<JsonElement>(Route($"/api/passports?batchId={batch}"), Cancellation))[0];
         Assert.Equal("GB", passport.GetProperty("partD").GetString());
-        Assert.Contains("Confirmed", passport.GetProperty("originRule").GetString(), StringComparison.Ordinal);
+        Assert.Contains("confirmed in active growth", passport.GetProperty("originRule").GetString(), StringComparison.Ordinal);
     }
 
 }

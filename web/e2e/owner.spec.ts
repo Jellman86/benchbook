@@ -300,6 +300,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(page.getByRole("status")).toContainText("Invoice 0001 issued");
   const invoicePdf = await page.request.get(
     (await page
+      .getByRole("status")
       .getByRole("link", { name: "Open the PDF" })
       .getAttribute("href"))!,
   );
