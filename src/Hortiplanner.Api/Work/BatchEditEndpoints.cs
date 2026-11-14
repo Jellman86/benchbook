@@ -269,9 +269,12 @@ internal static class BatchEditEndpoints
         again.Lines.Add(new EventLine { ContainerId = start.ContainerId, BatchId = batch.Id, QuantityChange = quantity });
 
         // The new start first, then the undo, so the stock never dips below what later work took from it.
-        if (await store.AppendAsync(again, cancellationToken) != AppendResult.Stored || await store.AppendAsync(undo, cancellationToken) != AppendResult.Stored)
+        var restarted = await store.AppendAsync(again, cancellationToken);
+        var undone = restarted == AppendResult.Stored ? await store.AppendAsync(undo, cancellationToken) : restarted;
+
+        if (restarted != AppendResult.Stored || undone != AppendResult.Stored)
         {
-            return TypedResults.Conflict(new EditRefused("StartLocked"));
+            return TypedResults.Conflict(new EditRefused(restarted == AppendResult.OnSite || undone == AppendResult.OnSite ? "OnSite" : "StartLocked"));
         }
 
         NoteStartChanges(changes, start.At, startedAt, start.Quantity, quantity);

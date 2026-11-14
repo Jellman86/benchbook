@@ -196,6 +196,8 @@ export function outcomeProblem(outcome: Outcome): string {
           return "A sale is cancelled with a credit note, under Invoices.";
         case "BeforeStart":
           return "That day is before this tray was started. Choose a later day.";
+        case "OnSite":
+          return "That would leave a tray on a site, and trays can't stand on a site. Move it to a greenhouse, bench or bed first.";
         case "NotCounted":
           return "Nobody has counted this tray yet. Open it again and say how many you took and how many are left.";
         case "NowCounted":

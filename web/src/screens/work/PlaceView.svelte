@@ -10,6 +10,7 @@
   import { stageLabel } from "../../lib/production";
   import {
     kindLabel,
+    placeKinds,
     possibleParents,
     byContainer,
     trayPlaces,
@@ -51,7 +52,10 @@
   let problem = $state("");
   let message = $state("");
   let busy = $state(false);
-  let task = $state<"move" | "moveAll" | "rename" | "add" | null>(null);
+  let task = $state<"move" | "moveAll" | "rename" | "kind" | "add" | null>(
+    null,
+  );
+  let newKind = $state<Schemas["LocationKind"]>("Bench");
   let newName = $state("");
   let newParent = $state("");
   let destination = $state("");
@@ -190,6 +194,123 @@
     lastMove = [];
     await load();
   }
+
+  // A site stands on its own, so anything that isn't one needs a place to sit in when it has none yet.
+  const needsParent = $derived(
+    !!place && newKind !== "Site" && !place.parentId,
+  );
+
+  // Plant passports count time under cover in a greenhouse, polytunnel or cold frame.
+  // A place is under cover if it, or any place it sits inside, is one of these. So the change can affect places
+  // inside this one too, through what they inherit.
+  const covered = ["Greenhouse", "Polytunnel", "ColdFrame"];
+
+  function underCover(
+    id: string,
+    changed: { id: string; kind: string; parentId: string | null } | null,
+  ): boolean {
+    let current: string | null = id;
+
+    for (let depth = 0; current && depth < 12; depth++) {
+      const at = places.find((item) => item.id === current);
+
+      if (!at) {
+        return false;
+      }
+
+      const kind = changed?.id === at.id ? changed.kind : at.kind;
+
+      if (covered.includes(kind)) {
+        return true;
+      }
+
+      current = changed?.id === at.id ? changed.parentId : at.parentId;
+    }
+
+    return false;
+  }
+
+  const coverChanges = $derived.by(() => {
+    if (!place) {
+      return false;
+    }
+
+    const proposed = {
+      id: place.id,
+      kind: newKind,
+      parentId:
+        newKind === "Site"
+          ? null
+          : needsParent
+            ? newParent || null
+            : place.parentId,
+    };
+
+    return [...withEverythingInside(place.id, places)].some(
+      (id) => underCover(id, null) !== underCover(id, proposed),
+    );
+  });
+
+  const changeKind = (event: SubmitEvent) => {
+    event.preventDefault();
+
+    return attempt(async () => {
+      const { response, error } = await api.PUT("/api/locations/{id}/kind", {
+        params: { path: { id: placeId } },
+        body: { kind: newKind, parentId: needsParent ? newParent : null },
+      });
+      problem = response.ok
+        ? ""
+        : error?.problem === "HasTrays"
+          ? "Trays can't stand on a site. Move the trays out first."
+          : response.status === 409
+            ? "There's already a place with that name there."
+            : response.status === 400
+              ? "It can't go there."
+              : "That didn't save. Please try again.";
+      task = response.ok ? null : task;
+      await load();
+    }, setProblem);
+  };
+
+  const whyKept: Record<string, string> = {
+    HasPlaces:
+      "It has places inside it, perhaps ones no longer used. Delete those first.",
+    HasWork:
+      "Work has been recorded there, so it's kept for the records. Mark it no longer used instead.",
+    HasSensors:
+      "A sensor is or was there, so it's kept for its readings. Mark it no longer used instead.",
+    HasRecords:
+      "Mother plants or jobs refer to it, so it's kept. Mark it no longer used instead.",
+    JustUsed: "Something has just been recorded there, so it's kept.",
+  };
+
+  // Only offered for a place that looks unused; the server still has the last word.
+  const mightDelete = $derived(
+    !!place && !place.lastUsedAt && inside.length === 0 && trays.length === 0,
+  );
+
+  const remove = () =>
+    attempt(async () => {
+      if (
+        !place ||
+        !confirm(`Delete ${place.name} for good? This can't be undone.`)
+      ) {
+        return;
+      }
+
+      const { response, error } = await api.DELETE("/api/locations/{id}", {
+        params: { path: { id: place.id } },
+      });
+
+      if (response.ok) {
+        onBack();
+      } else {
+        problem =
+          whyKept[error?.problem ?? ""] ??
+          "It couldn't be deleted. Please try again.";
+      }
+    }, setProblem);
 
   const retire = () =>
     attempt(async () => {
@@ -333,13 +454,77 @@
             <button class="secondary" onclick={() => (task = "add")}
               >Add inside</button
             >
+            <button
+              class="secondary"
+              onclick={() => {
+                task = "kind";
+                newKind = place!.kind;
+                newParent = place!.parentId ?? "";
+              }}>Change type</button
+            >
             <button class="secondary" onclick={retire}>No longer used</button>
+            {#if mightDelete}
+              <button class="secondary destructive" onclick={remove}
+                >Delete</button
+              >
+            {/if}
           </div>
           {#if task === "rename"}
             <form class="card stack" onsubmit={rename}>
               <label>Name <input bind:value={newName} required /></label>
               <div class="row">
                 <button type="submit">Save</button>
+                <button
+                  type="button"
+                  class="secondary"
+                  onclick={() => (task = null)}>Cancel</button
+                >
+              </div>
+            </form>
+          {:else if task === "kind"}
+            <form class="card stack" onsubmit={changeKind}>
+              <label>
+                Type
+                <select bind:value={newKind}>
+                  {#each placeKinds as option (option.kind)}
+                    <option value={option.kind}>{option.label}</option>
+                  {/each}
+                </select>
+              </label>
+              {#if needsParent && possibleParents(place.id, places).length === 0}
+                <p class="muted">
+                  Add another site first: it needs somewhere to sit.
+                </p>
+              {:else if needsParent}
+                <label>
+                  Put it inside
+                  <select bind:value={newParent} required>
+                    <option value="" disabled>Choose…</option>
+                    {#each possibleParents(place.id, places) as option (option.id)}
+                      <option value={option.id}>{option.path}</option>
+                    {/each}
+                  </select>
+                </label>
+              {:else if newKind === "Site" && place.parentId}
+                <p class="muted">
+                  A site stands on its own, so it will no longer sit inside
+                  another place. What's inside it stays put.
+                </p>
+              {/if}
+              <p class="muted">
+                Its label number stays the same, so labels already printed still
+                work.
+              </p>
+              {#if coverChanges}
+                <p class="muted">
+                  This changes whether trays here, or in places inside it, count
+                  as under cover for plant passports.
+                </p>
+              {/if}
+              <div class="row">
+                <button type="submit" disabled={newKind === place.kind}
+                  >Save</button
+                >
                 <button
                   type="button"
                   class="secondary"

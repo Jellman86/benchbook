@@ -254,6 +254,12 @@
               ? "Other work has been recorded on this tray since it was sown, so it can't change between counted and not. Use Count on the tray to give it a number."
               : "Say how many it started with.";
         } else if (
+          (error as { problem?: string } | undefined)?.problem === "OnSite"
+        ) {
+          checking = false;
+          problem =
+            "That would leave the tray on a site, and trays can't stand on a site. Move it to a greenhouse, bench or bed first.";
+        } else if (
           (error as { problem?: string } | undefined)?.problem === "StartLocked"
         ) {
           // Work was recorded meanwhile: the start stays as it was, and the form says so.

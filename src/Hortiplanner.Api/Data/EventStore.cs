@@ -210,11 +210,44 @@ internal sealed class EventStore(HortiplannerDbContext db, TimeProvider clock, D
             }
         }
 
+        return await SaveCheckedAsync(newEvent, keys, transaction, cancellationToken);
+    }
+
+    /// <summary>Saves the event, unless it would leave plants on a site; inside another transaction only this event is undone.</summary>
+    private async Task<AppendResult> SaveCheckedAsync(
+        Event newEvent,
+        List<StockKey> keys,
+        Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction,
+        CancellationToken cancellationToken)
+    {
+        var outer = transaction is null;
         db.Events.Add(newEvent);
+
+        // Inside someone else's transaction, a refusal must undo only this event.
+        const string BeforeEvent = "before_event";
+        if (outer)
+        {
+            await db.Database.CurrentTransaction!.CreateSavepointAsync(BeforeEvent, cancellationToken);
+        }
 
         try
         {
             await db.SaveChangesAsync(cancellationToken);
+
+            if (await LeavesPlantsOnASiteAsync(newEvent, keys, cancellationToken))
+            {
+                if (outer)
+                {
+                    await db.Database.CurrentTransaction!.RollbackToSavepointAsync(BeforeEvent, cancellationToken);
+                    Forget(newEvent);
+                }
+                else
+                {
+                    db.ChangeTracker.Clear();
+                }
+
+                return AppendResult.OnSite;
+            }
 
             if (transaction is not null)
             {
@@ -229,9 +262,30 @@ internal sealed class EventStore(HortiplannerDbContext db, TimeProvider clock, D
             ConstraintName: "pk_events",
         })
         {
-            db.ChangeTracker.Clear();
+            if (outer)
+            {
+                // Keeps the surrounding transaction usable after the failed insert.
+                await db.Database.CurrentTransaction!.RollbackToSavepointAsync(BeforeEvent, cancellationToken);
+                Forget(newEvent);
+            }
+            else
+            {
+                db.ChangeTracker.Clear();
+            }
+
             return await AlreadyStoredAsync(newEvent, cancellationToken) ?? AppendResult.AlreadyStored;
         }
+    }
+
+    /// <summary>Stops tracking one event and its lines, leaving anything else the surrounding work is saving.</summary>
+    private void Forget(Event newEvent)
+    {
+        foreach (var line in newEvent.Lines)
+        {
+            db.Entry(line).State = EntityState.Detached;
+        }
+
+        db.Entry(newEvent).State = EntityState.Detached;
     }
 
     private async Task<List<StockKey>> KeysAsync(Event newEvent, CancellationToken cancellationToken)
@@ -527,6 +581,59 @@ internal sealed class EventStore(HortiplannerDbContext db, TimeProvider clock, D
             .Where(e => e.Count is { } count && count.BatchId == key.BatchId)
             .Select(e => new TimedCount(e.Id, e.OccurredAt, e.Count!.Counted))
             .Concat(lostAll)];
+    }
+
+    /// <summary>
+    /// Whether work just saved, in this transaction, leaves a tray with plants in it standing on a site: by moving it
+    /// there, undoing a move away, or undoing a loss of a tray left on a place that has since become a site. Each place
+    /// the trays end up on is locked for sharing first, so a change of a place's sort either waits for this work and
+    /// then sees its trays, or finishes first and is seen here.
+    /// </summary>
+    private async Task<bool> LeavesPlantsOnASiteAsync(Event newEvent, List<StockKey> keys, CancellationToken cancellationToken)
+    {
+        var containers = keys.Select(key => key.ContainerId).ToHashSet();
+
+        if (newEvent.ContainerId is { } own)
+        {
+            containers.Add(own);
+        }
+
+        if (newEvent.CorrectsEventId is { } corrected
+            && await db.Events.Where(e => e.Id == corrected).Select(e => e.ContainerId).FirstOrDefaultAsync(cancellationToken) is { } undone)
+        {
+            containers.Add(undone);
+        }
+
+        if (containers.Count == 0)
+        {
+            return false;
+        }
+
+        var placements = await GetPlacementsAsync([.. containers], cancellationToken);
+        var placeIds = placements.Values.Select(placement => placement.LocationId).OfType<Guid>().Distinct().ToArray();
+
+        if (placeIds.Length == 0)
+        {
+            return false;
+        }
+
+        var sites = (await db.Locations
+                .FromSqlInterpolated($"SELECT * FROM locations WHERE id = ANY({placeIds}) ORDER BY id FOR SHARE")
+                .AsNoTracking()
+                .ToListAsync(cancellationToken))
+            .Where(place => place.Kind == LocationKind.Site)
+            .Select(place => place.Id)
+            .ToHashSet();
+
+        foreach (var (container, placement) in placements)
+        {
+            if (placement.LocationId is { } at && sites.Contains(at) && (await SumStockAsync(container, cancellationToken)).Count > 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private async Task<List<ContainerStock>> SumStockAsync(Guid? containerId, CancellationToken cancellationToken)
