@@ -308,12 +308,12 @@ test("the owner sets up the nursery and staff can sign in", async ({
 
   // Figures open, with nothing recorded yet.
   await openManage(page, "Figures");
-  await expect(page.getByText("Nothing recorded yet.")).toBeVisible();
+  await expect(page.getByText("Nothing has been recorded yet.")).toBeVisible();
   await leaveManage(page);
 
   // Tracing finds nothing before any batch is started.
   await openManage(page, "Trace a batch");
-  await expect(page.getByText("No batches yet.")).toBeVisible();
+  await expect(page.getByText("There are no batches yet.")).toBeVisible();
   await page.getByLabel("Batch, tray or plant").fill("B000001");
   await button(page, "Find").click();
   await expect(page.getByText("No batch matches that.")).toBeVisible();
@@ -334,7 +334,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   // An invitation opened on someone's own phone.
   await page
     .locator(".card", { hasText: "Alex Moss" })
-    .getByRole("button", { name: "Phone invitation" })
+    .getByRole("button", { name: "Invite by phone" })
     .click();
   const link = await page.getByTestId("invite-link").innerText();
 
@@ -429,7 +429,9 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await openSettings(page, "My account");
   await page.getByLabel("New password").fill("correct horse battery");
   await button(page, "Set a password").click();
-  await expect(page.getByRole("status")).toHaveText("Password saved.");
+  await expect(page.getByRole("status")).toHaveText(
+    "Your password has been saved.",
+  );
 
   // The owner chooses how much signing in the nursery wants, and can set someone to just tap their name.
   await openSettings(page, "Signing in");
@@ -491,7 +493,9 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await openManage(page, "Places");
   await page.locator(".place-row", { hasText: "Greenhouse 2" }).click();
   await expect(button(page, "Print place label")).toBeVisible();
-  await expect(page.getByRole("link", { name: "PDF instead" })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Open the PDF instead" }),
+  ).toBeVisible();
   await button(page, "Back").click();
   await leaveManage(page);
 
@@ -513,7 +517,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Leave out those rows").click();
   await button(page, "Bring in 2 plants").click();
   await expect(page.getByRole("status")).toContainText(
-    "Brought in 2 plants from plants.csv",
+    "2 plants were brought in from plants.csv",
   );
   const records = await page.request.get(
     (await page
@@ -525,13 +529,17 @@ test("the owner sets up the nursery and staff can sign in", async ({
 
   // Sending plants to a business says a passport is needed, and there's nothing counted to send yet.
   await openManage(page, "Consignments");
-  await expect(page.getByText("None yet.")).toBeVisible();
+  await expect(
+    page.getByText("No consignments have been recorded yet."),
+  ).toBeVisible();
   await button(page, "Send plants").click();
-  await expect(page.getByText("Passport needed.")).toBeVisible();
+  await expect(page.getByText("A passport is needed.")).toBeVisible();
   await button(page, "Sold in person").click();
-  await expect(page.getByText("No passport.")).toBeVisible();
-  await expect(page.getByText("No counted trays to send from.")).toBeVisible();
-  await expect(button(page, "Record it")).toBeDisabled();
+  await expect(page.getByText("No passport is needed.")).toBeVisible();
+  await expect(
+    page.getByText("There are no counted trays to send from."),
+  ).toBeVisible();
+  await expect(button(page, "Record the consignment")).toBeDisabled();
   await page.screenshot({
     path: "build/peek/consignment-new.png",
     fullPage: true,
@@ -619,7 +627,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(climateSwitch).toBeChecked();
   await climateSwitch.click();
   await expect(climateSwitch).not.toBeChecked();
-  await expect(page.getByText("Off, so hidden:")).toBeVisible();
+  await expect(page.getByText("It's off, so these are hidden:")).toBeVisible();
   await leaveManage(page);
   await button(page, "Manage").click();
   await expect(button(page, "Jobs")).toBeVisible();
@@ -717,7 +725,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(page.getByText("belongs to the server itself")).toBeVisible();
   const pdf = await page.request.get(
     (await page
-      .getByRole("link", { name: "PDF instead" })
+      .getByRole("link", { name: "Open the PDF instead" })
       .getAttribute("href"))!,
   );
   expect(pdf.status()).toBe(200);
@@ -884,7 +892,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await scan(label);
   await button(page, "Plant passports").click();
   await expect(
-    page.getByText("None issued for these plants yet."),
+    page.getByText("No passports have been issued for these plants yet."),
   ).toBeVisible();
   await button(page, "Issue a passport").click();
   await expect(page.locator(".passport").first()).toContainText(
@@ -895,7 +903,9 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await button(page, "Cancel").click();
 
   // A received passport, filled in from what's known and copied from the label.
-  await expect(page.getByText("No received passports recorded")).toBeVisible();
+  await expect(
+    page.getByText("No received passports have been recorded"),
+  ).toBeVisible();
   await button(page, "Add a received passport").click();
   await expect(page.getByLabel("A: Botanical name")).toHaveValue(
     "Lavandula angustifolia",
@@ -916,13 +926,13 @@ test("the owner sets up the nursery and staff can sign in", async ({
   // An unknown label says so and goes back to scanning.
   await scan("NOPE");
   await expect(page.getByRole("alert")).toContainText(
-    "No container has the label NOPE",
+    "No tray or pot has the label NOPE",
   );
 
   // One press repeats a recent action.
   await page
     .locator(".card", { hasText: "Sowed 40 Lavender 'Munstead'" })
-    .getByRole("button", { name: "Again" })
+    .getByRole("button", { name: "Do it again" })
     .click();
   await expect(page.getByRole("status")).toContainText("Again: Sowed 40");
   const repeated = /Label: (C\d+)/.exec(
@@ -986,13 +996,13 @@ test("the owner sets up the nursery and staff can sign in", async ({
     "Saved on this device",
   );
   await expect(phonePage.getByTestId("waiting")).toContainText(
-    "1 thing waiting",
+    "1 thing is waiting",
   );
 
   // Waiting work survives the app being closed and opened again.
   await phonePage.reload();
   await expect(phonePage.getByTestId("waiting")).toContainText(
-    "1 thing waiting",
+    "1 thing is waiting",
   );
 
   // Back in signal, it sends by itself.

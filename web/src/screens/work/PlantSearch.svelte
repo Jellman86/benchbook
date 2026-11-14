@@ -185,7 +185,7 @@
   {/if}
   {#if unavailable}
     <p class="muted">
-      Can't reach the online plant lists just now, so only saved plants are
+      We can't reach the online plant lists just now, so only saved plants are
       shown.
     </p>
   {/if}

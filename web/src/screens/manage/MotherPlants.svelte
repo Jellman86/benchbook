@@ -103,7 +103,9 @@
 
   const archive = (mother: Mother) => {
     if (
-      !confirm(`${mother.name} is no longer used? Its cuttings stay recorded.`)
+      !confirm(
+        `Stop using ${mother.name}? The cuttings taken from it stay recorded.`,
+      )
     ) {
       return;
     }
@@ -121,8 +123,8 @@
 <main>
   <h1>Mother plants</h1>
   <p class="muted">
-    Plants kept for cuttings. Each batch of cuttings taken from one is numbered
-    in turn, and leads back to it.
+    These are the plants kept for cuttings. Each batch of cuttings taken from
+    one is numbered in turn, and leads back to it.
   </p>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
@@ -192,7 +194,7 @@
               >Change</button
             >
             <button class="secondary" onclick={() => archive(mother)}
-              >No longer used</button
+              >Stop using</button
             >
           </div>
           {#if opened?.id === mother.id}
@@ -212,13 +214,17 @@
                   >
                 </li>
               {:else}
-                <li><span class="muted">None yet.</span></li>
+                <li>
+                  <span class="muted"
+                    >No cuttings have been taken from it yet.</span
+                  >
+                </li>
               {/each}
             </ol>
           {/if}
         </div>
       {:else}
-        <p class="muted">No mother plants yet.</p>
+        <p class="muted">There are no mother plants yet.</p>
       {/each}
     </section>
   </div>

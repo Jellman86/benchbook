@@ -22,12 +22,12 @@ internal static class PassportOrigin
     {
         if (facts.Source != BatchSource.BoughtIn)
         {
-            return new(GreatBritain, "Raised here from seed or cuttings, so grown in Great Britain.");
+            return new(GreatBritain, "They were raised here from seed or cuttings, so they were grown in Great Britain.");
         }
 
         if (string.Equals(facts.OriginCountry, GreatBritain, StringComparison.Ordinal))
         {
-            return new(GreatBritain, "Bought in from Great Britain.");
+            return new(GreatBritain, "They were bought in from Great Britain.");
         }
 
         var here = facts.Now - facts.ArrivedAt;
@@ -41,7 +41,7 @@ internal static class PassportOrigin
 
         if (facts.ChangedSince)
         {
-            return new(GreatBritain, "Potted on, pricked out or split here, so grown on in Great Britain.");
+            return new(GreatBritain, "They were potted on, pricked out or split here, so they were grown on in Great Britain.");
         }
 
         var underCover = facts.UnderCoverSince is { } since && facts.Now - since >= UnderCover;
@@ -50,10 +50,10 @@ internal static class PassportOrigin
         {
             var time = underCover ? "at least two weeks under cover without a break" : "at least four weeks outside without a break";
             return new(facts.ActiveGrowthConfirmed ? GreatBritain : facts.OriginCountry,
-                facts.ActiveGrowthConfirmed ? $"Confirmed in active growth for {time}, so grown on in Great Britain."
-                    : $"Confirm active growth for {time} to use GB; otherwise it keeps {facts.OriginCountry}.", true);
+                facts.ActiveGrowthConfirmed ? $"They were confirmed in active growth for {time}, so they were grown on in Great Britain."
+                    : $"Confirm active growth for {time} to use GB. Otherwise they keep {facts.OriginCountry}.", true);
         }
-        return new(facts.OriginCountry, $"Not grown on here yet, so it keeps {facts.OriginCountry}.");
+        return new(facts.OriginCountry, $"They haven't been grown on here yet, so they keep {facts.OriginCountry}.");
     }
 
     /// <summary>How a plant that waits a year is described, or null if it doesn't. One nobody has checked is treated as a host.</summary>
@@ -61,7 +61,7 @@ internal static class PassportOrigin
     {
         if (!facts.XylellaHost.HasValue)
         {
-            return "Not yet checked as a Xylella host, so treated as one: it";
+            return "This plant hasn't been checked as a Xylella host yet, so it is treated as one. It";
         }
 
         if (facts.XylellaHost.Value)

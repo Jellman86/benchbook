@@ -381,7 +381,9 @@
           </div>
           <p class={choice.needed ? "card" : "muted"} role="status">
             <strong
-              >{choice.needed ? "Passport needed." : "No passport."}</strong
+              >{choice.needed
+                ? "A passport is needed."
+                : "No passport is needed."}</strong
             >
             {choice.why}
           </p>
@@ -427,7 +429,7 @@
           <legend>Package {index + 1}</legend>
           <div class="stack">
             {#if trays.length === 0 && invoiced.length === 0}
-              <p class="muted">No counted trays to send from.</p>
+              <p class="muted">There are no counted trays to send from.</p>
             {/if}
             {#each lines as line, lineIndex (lineIndex)}
               <div class="consignment-line">
@@ -469,7 +471,7 @@
                     type="button"
                     class="link-button"
                     onclick={() => lines.splice(lineIndex, 1)}
-                    ><Trash2 size={16} aria-hidden="true" />Remove</button
+                    ><Trash2 size={16} aria-hidden="true" />Remove this tray</button
                   >
                 {/if}
               </div>
@@ -485,14 +487,14 @@
                 type="button"
                 class="secondary"
                 onclick={() => lines.push({ tray: "", quantity: 1 })}
-                >Another tray</button
+                >Add another tray</button
               >
               {#if packages.length > 1}
                 <button
                   type="button"
                   class="link-button"
                   onclick={() => packages.splice(index, 1)}
-                  ><Trash2 size={16} aria-hidden="true" />Remove the package</button
+                  ><Trash2 size={16} aria-hidden="true" />Remove this package</button
                 >
               {/if}
             </div>
@@ -503,7 +505,7 @@
         type="button"
         class="secondary"
         onclick={() => packages.push([{ tray: "", quantity: 1 }])}
-        >Another package</button
+        >Add another package</button
       >
       <p class="muted">
         Plants can come from the trays, or from an invoice if they've been
@@ -512,7 +514,9 @@
       </p>
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
       <div class="row">
-        <button type="submit" disabled={busy || !ready}>Record it</button>
+        <button type="submit" disabled={busy || !ready}
+          >Record the consignment</button
+        >
         <button
           type="button"
           class="secondary"
@@ -525,9 +529,9 @@
   <main>
     <h1>Consignments</h1>
     <p class="muted">
-      Plants going out together, packed in one or more packages. A package going
-      to a business, or by post or courier, gets one plant passport covering
-      everything in it.
+      A consignment is a set of plants going out together, packed in one or more
+      packages. A package going to a business, or by post or courier, gets one
+      plant passport covering everything in it.
     </p>
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
     <button onclick={start}>Send plants</button>
@@ -551,7 +555,7 @@
           </button>
         </li>
       {:else}
-        <li class="muted">None yet.</li>
+        <li class="muted">No consignments have been recorded yet.</li>
       {/each}
     </ul>
     <button class="back" onclick={onBack}>Back</button>

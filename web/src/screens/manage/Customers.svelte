@@ -155,7 +155,7 @@
         </div>
       {:else}
         <p class="note-empty muted">
-          No customers yet. Add the businesses you invoice.
+          There are no customers yet. Add the businesses you invoice.
         </p>
       {/each}
     </section>

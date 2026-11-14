@@ -183,7 +183,7 @@
       } else {
         problem =
           response.status === 413
-            ? "That file is over 10MB."
+            ? "That file is bigger than 10 MB. Please choose a smaller one."
             : "Please choose a photo (JPEG or PNG) or a PDF.";
       }
     }, setProblem);
@@ -374,7 +374,7 @@
             </div>
           </div>
         {:else}
-          <p class="note-empty muted">No purchases recorded yet.</p>
+          <p class="note-empty muted">No purchases have been recorded yet.</p>
         {/each}
       </div>
       <div class="desktop-only">
@@ -453,7 +453,8 @@
                           <button
                             class="link-button"
                             onclick={() => setPaid(purchase.id, null)}
-                            ><Coins size={16} aria-hidden="true" />Not paid</button
+                            ><Coins size={16} aria-hidden="true" />Mark as not
+                            paid</button
                           >
                         {:else}
                           <button
@@ -493,7 +494,7 @@
             </table>
           </div>
         {:else}
-          <p class="note-empty muted">No purchases recorded yet.</p>
+          <p class="note-empty muted">No purchases have been recorded yet.</p>
         {/if}
       </div>
     </section>

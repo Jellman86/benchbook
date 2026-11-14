@@ -214,7 +214,7 @@
       });
 
       if (!data) {
-        onNotFound(`No container has the label ${label}.`);
+        onNotFound(`No tray or pot has the label ${label}.`);
         return;
       }
 
@@ -230,7 +230,9 @@
       fromDevice = true;
 
       if (!container) {
-        onNotFound(`No connection, and ${label} isn't saved on this device.`);
+        onNotFound(
+          `There's no connection, and ${label} isn't saved on this device.`,
+        );
       }
     }
   }
@@ -354,7 +356,8 @@
       <section class="tray-details">
         {#if fromDevice}
           <p class="muted">
-            No connection: this is the tray as this device last saw it.
+            There's no connection, so this is the tray as this device last saw
+            it.
           </p>
         {/if}
         {#if container.stage && container.contents.length > 0}
@@ -417,7 +420,7 @@
             </div>
           </div>
         {:else}
-          <p class="note-empty muted">This container is empty.</p>
+          <p class="note-empty muted">This tray is empty.</p>
         {/each}
       </section>
 

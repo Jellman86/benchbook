@@ -167,7 +167,7 @@
               >Change</button
             >
             <button class="secondary" onclick={() => archive(supplier)}
-              >No longer used</button
+              >Stop using</button
             >
           </div>
         </div>

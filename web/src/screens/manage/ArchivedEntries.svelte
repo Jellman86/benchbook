@@ -41,9 +41,11 @@
         </div>
       </div>
     {:else}
-      <p class="muted">Nothing here.</p>
+      <p class="muted">There's nothing here at the moment.</p>
     {/each}
-    <button class="link-button" onclick={() => (open = false)}>Hide</button>
+    <button class="link-button" onclick={() => (open = false)}
+      >Hide these</button
+    >
   </section>
 {:else}
   <button class="link-button" onclick={show}

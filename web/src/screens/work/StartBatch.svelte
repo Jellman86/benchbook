@@ -678,7 +678,7 @@
     </div>
     {#if details?.suggestedPosition || details?.suggestedWatering || details?.suggestedHardiness}
       <p class="muted">
-        From Wikipedia, and saved with the plant:
+        These came from Wikipedia and are saved with the plant:
         {[
           details.suggestedPosition,
           details.suggestedWatering,
@@ -712,7 +712,7 @@
       <Stepper bind:value={quantity} presets={[10, 24, 40, 42, 84]} />
     {:else if sownAs === "About"}
       <p class="muted">
-        About how many seeds? A guess, or what the packet says.
+        About how many seeds? Give a guess, or what the packet says.
       </p>
       <Stepper bind:value={aboutSeeds} presets={[50, 100, 250, 500]} />
     {:else if sownAs === "Grams"}
@@ -742,8 +742,8 @@
     {/if}
     {#if !counting}
       <p class="muted">
-        The tray shows "not counted yet" until someone counts what's come up:
-        when it germinates, or when it's pricked out.
+        The tray shows "not counted yet" until someone counts what's come up,
+        either when it germinates or when it's pricked out.
       </p>
     {/if}
     <label>
@@ -881,7 +881,9 @@
     {/if}
     <button onclick={next} disabled={!whereFromDone}>Next</button>
   {:else if stage === 4}
-    <p class="muted">Take a photo of anything worth keeping. All optional.</p>
+    <p class="muted">
+      Take a photo of anything worth keeping. They're all optional.
+    </p>
     <div class="card-grid">
       {#each photoChoices.filter((choice) => choice.kind === "Plant" || isOn("BatchPhotos")) as choice (choice.kind)}
         <label class="photo-choice">

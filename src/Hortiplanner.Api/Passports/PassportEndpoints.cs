@@ -85,7 +85,7 @@ internal static class PassportEndpoints
         }
         else if (here?.NotCounted == true)
         {
-            problems.Add("Count these plants first: a passport says how many it covers.");
+            problems.Add("Count these plants first, because a passport says how many it covers.");
         }
         else if (available <= 0)
         {

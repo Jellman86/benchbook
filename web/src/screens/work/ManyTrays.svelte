@@ -46,7 +46,7 @@
 
   async function forEachTray(
     make: (id: string) => Parameters<typeof recordWork>[0],
-    done: (trays: string) => string,
+    done: (trays: string, count: number) => string,
   ) {
     busy = true;
     problem = "";
@@ -103,7 +103,7 @@
         onclick={() =>
           forEachTray(
             (id) => work.ready(id),
-            (n) => `Marked ${n} ready`,
+            (n, count) => `${n} ${count === 1 ? "was" : "were"} marked ready`,
           )}>Mark ready</button
       >
       <button class="secondary" onclick={() => (doing = null)}>Cancel</button>
@@ -123,7 +123,8 @@
         onclick={() =>
           forEachTray(
             (id) => work.move(id, { locationId: placeId }),
-            (n) => `Moved ${n} to ${place?.label ?? "the new place"}`,
+            (n, count) =>
+              `${n} ${count === 1 ? "was" : "were"} moved to ${place?.label ?? "the new place"}`,
           )}>Move them</button
       >
       <button class="secondary" onclick={() => (doing = null)}>Cancel</button>
@@ -148,7 +149,7 @@
                 dose: dose.trim(),
                 area: area.trim(),
               }),
-            (n) => `Recorded ${product.trim()} on ${n}`,
+            (n) => `${product.trim()} was recorded on ${n}`,
           )}>Record treatment</button
       >
       <button class="secondary" onclick={() => (doing = null)}>Cancel</button>

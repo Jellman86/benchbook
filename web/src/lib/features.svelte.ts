@@ -86,7 +86,7 @@ export const featureInfo: FeatureInfo[] = [
     feature: "Climate",
     label: "Sensors and climate",
     hides:
-      "Manage, Climate and Settings, Sensors. Sensors' readings are refused while it's off.",
+      "Manage, Climate and Settings, Sensors. Readings that sensors send in are turned away while it's off.",
   },
   {
     feature: "PlacesMap",

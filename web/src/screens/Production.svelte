@@ -131,7 +131,8 @@
     try {
       rows = (await api.GET("/api/production")).data ?? [];
     } catch {
-      problem = "Can't reach Hortiplanner. Check the connection and try again.";
+      problem =
+        "This device can't reach Hortiplanner. Please check the connection and try again.";
     } finally {
       loaded = true;
     }
@@ -220,7 +221,7 @@
   {#if loaded && shown.length === 0 && !problem}
     <p class="muted">
       {rows.length === 0
-        ? "Nothing growing yet. Start a new batch to see it here."
+        ? "Nothing is growing yet. Start a new batch to see it here."
         : "Nothing matches that."}
     </p>
   {/if}

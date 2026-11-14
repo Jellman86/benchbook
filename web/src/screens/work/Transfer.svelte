@@ -150,8 +150,8 @@
     <div class="stack">
       {#if potSizesUnavailable}
         <p class="problem">
-          Potting on needs a connection, to make the new label. Try again with
-          signal.
+          Potting on needs a connection, to make the new label. Try again when
+          you have signal.
         </p>
       {/if}
       <label>

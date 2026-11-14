@@ -83,7 +83,9 @@ test("Ask Hortiplanner answers on a phone, and lays out on a desk", async ({
   await page.screenshot({ path: "build/peek/ask-phone.png", fullPage: true });
 
   await page.setViewportSize({ width: 1280, height: 800 });
-  await expect(page.getByRole("heading", { name: "Looked at" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "What it looked at" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "What your questions cost" }),
   ).toBeVisible();

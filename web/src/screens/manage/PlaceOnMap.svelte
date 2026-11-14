@@ -166,8 +166,8 @@
         map.setView(found, 19);
       } else {
         problem = key
-          ? `Couldn't find "${wanted}". Try the postcode, or move the map by hand.`
-          : `Couldn't find "${wanted}". Try a postcode, or move the map by hand.`;
+          ? `We couldn't find "${wanted}". Try the postcode, or move the map by hand.`
+          : `We couldn't find "${wanted}". Try a postcode, or move the map by hand.`;
       }
     }, setProblem);
   };
@@ -308,16 +308,16 @@
       {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
       {#if onPicture}
-        <p class="muted">On the nursery's own picture.</p>
+        <p class="muted">This is the nursery's own picture.</p>
       {:else}
         <form class="row" onsubmit={find}>
           <label class="grow"
             >{key ? "Find the address or postcode" : "Find a postcode"}
             <input bind:value={search} autocomplete="street-address" /></label
           >
-          <button type="submit" class="secondary">Go</button>
+          <button type="submit" class="secondary">Find it</button>
         </form>
-        <button class="secondary" onclick={whereIAm}>Where I am</button>
+        <button class="secondary" onclick={whereIAm}>Go to where I am</button>
       {/if}
 
       {#if mode === "drawing"}

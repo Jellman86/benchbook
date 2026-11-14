@@ -41,11 +41,11 @@
       if (response.ok) {
         await onChanged();
       } else {
-        onProblem("That photo couldn't be saved. Please use a photo.");
+        onProblem("That couldn't be saved. Please choose a photo.");
       }
     } catch {
       onProblem(
-        "Can't reach Hortiplanner. Check the connection and try again.",
+        "This device can't reach Hortiplanner. Please check the connection and try again.",
       );
     } finally {
       busy = false;
@@ -69,7 +69,7 @@
       }
     } catch {
       onProblem(
-        "Can't reach Hortiplanner. Check the connection and try again.",
+        "This device can't reach Hortiplanner. Please check the connection and try again.",
       );
     }
   }

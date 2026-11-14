@@ -183,12 +183,12 @@
   <main>
     <h1>Climate</h1>
     <p class="muted">
-      How warm and damp each place is, from sensors sending readings in. The
-      owner adds sensors under Settings, Sensors.
+      This shows how warm and damp each place is, from the readings its sensors
+      send in. The owner adds sensors under Settings, Sensors.
     </p>
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
     {#if loaded && places.length === 0}
-      <p class="note-empty muted">No sensors yet.</p>
+      <p class="note-empty muted">There are no sensors yet.</p>
     {/if}
     <div class="stack">
       {#each places as place (place.locationId)}
@@ -216,11 +216,11 @@
               >
             {/if}
             <span class={age?.stale ? "problem" : "muted"}
-              >{age?.stale ? "Nothing heard since" : "Read"}
+              >{age?.stale ? "The last reading was" : "Read"}
               {age?.words}</span
             >
           {:else}
-            <span class="muted">No readings yet.</span>
+            <span class="muted">There are no readings yet.</span>
           {/if}
         </button>
       {/each}

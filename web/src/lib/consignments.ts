@@ -77,15 +77,15 @@ export const packagesReady = (packages: DraftLine[][]) =>
 export function consignmentProblem(status: number, problem?: string): string {
   switch (problem) {
     case "InvoiceCancelled":
-      return "The invoice was cancelled. These plants can no longer use that invoice for a passport.";
+      return "That invoice has been cancelled, so these plants can't use it for a passport any more.";
     case "IdInUse":
-      return "That identifier was already used for different work. Start a new form.";
+      return "This form has already been used to record something else. Please start a new one.";
     case "TooMany":
-      return "A tray doesn't hold that many now. Check the numbers.";
+      return "One of the trays doesn't hold that many plants now. Please check the numbers.";
     case "NotExamined":
       return "Examine the plants in this package first, and tick to say so.";
     case "Issued":
-      return "A passport has been issued for this consignment, so it's kept with it.";
+      return "A passport has been issued for this consignment, so it has to be kept and can't be removed.";
     case "CannotIssue":
       return "One of the trays in this package can't have a passport yet. Open the tray's plant passport to see what's missing, such as the nursery's registration number.";
     default:

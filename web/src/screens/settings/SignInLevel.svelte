@@ -34,7 +34,7 @@
       level: "Strict",
       title: "Strict",
       detail:
-        "A password, passkey or staff login for everyone, and a PIN at a bench.",
+        "Everyone needs a password, passkey or staff login, and a PIN at a bench.",
     },
   ];
 

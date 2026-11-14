@@ -407,8 +407,8 @@
       {/if}
       {#if measuredOtherwise}
         <p class="muted">
-          Sown without a count: the number comes from counting them, when they
-          germinate or are pricked out.
+          They were sown without counting, so the number will come from counting
+          them when they germinate or are pricked out.
         </p>
         {#if !uncounted}
           <p class="caution">
@@ -437,9 +437,10 @@
         max={before?.startedOn}
       />
       <p class="muted">
-        Started with {details.quantity}. Other work has been recorded on these
-        plants since, so the day can only move earlier, and how they started and
-        the number stay as they are. Use Count to correct the number.
+        This batch started with {details.quantity}. Other work has been recorded
+        on these plants since, so the day can only move earlier, and how they
+        started and the number stay as they are. Use Count to correct the
+        number.
       </p>
     {:else}
       <p class="muted">
@@ -451,7 +452,8 @@
     {#if form.source === "Cuttings"}
       {#if details.motherPlantId}
         <p class="muted">
-          Cuttings from {form.motherPlant}. They stay with that mother plant.
+          These cuttings came from {form.motherPlant}, and they stay with that
+          mother plant.
         </p>
       {:else}
         <label>Mother plant <input bind:value={form.motherPlant} /></label>

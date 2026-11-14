@@ -116,7 +116,7 @@
     return ways.length > 0
       ? `Signs in with ${ways.join(" or ")}`
       : member.hasPin
-        ? "Bench PIN only"
+        ? "Signs in with a bench PIN only"
         : "Can't sign in yet";
   }
 
@@ -311,7 +311,7 @@
 
   const archive = (member: Member) => {
     if (
-      !confirm(`${member.name} has left? They'll no longer be able to sign in.`)
+      !confirm(`Has ${member.name} left? They'll no longer be able to sign in.`)
     ) {
       return;
     }
@@ -445,8 +445,8 @@
             <div class="stack">
               <h3 class="form-heading">Picture</h3>
               <p class="muted">
-                Shown beside their name when signing in, at a bench and here.
-                They can change it themselves under My account.
+                It's shown beside their name when they sign in, at a bench and
+                here. They can change it themselves under My account.
               </p>
               <label class="photo-choice">
                 <Camera size={20} />
@@ -470,8 +470,9 @@
               {/if}
               <h3 class="form-heading">Sign-in tune</h3>
               <p class="muted">
-                Plays on {member.name}'s device each time they sign in. They can
-                turn it off. An MP3, M4A or WAV, up to 4 MB.
+                It plays on {member.name}'s device each time they sign in, and
+                they can turn it off. It can be an MP3, M4A or WAV file of up to
+                4 MB.
               </p>
               <label class="photo-choice">
                 <Music size={20} />
@@ -510,7 +511,7 @@
           {:else}
             <div class="row">
               <button class="secondary" onclick={() => invite(member.id)}
-                >Phone invitation</button
+                >Invite by phone</button
               >
               {#if isOn("BenchStations")}
                 <button
@@ -525,7 +526,7 @@
               >
               {#if allowNameOnly && !member.isOwner && !member.nameOnly}
                 <button class="secondary" onclick={() => makeNameOnly(member)}
-                  >Name only</button
+                  >Sign in by name only</button
                 >
               {/if}
               <button

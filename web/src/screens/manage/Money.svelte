@@ -52,7 +52,7 @@
       } else {
         problem =
           response.status === 409
-            ? "That day is already entered. Void it first to enter it again."
+            ? "Takings are already entered for that day. Void them first if you need to enter them again."
             : "Please check the date and amount.";
       }
     }, setProblem);
@@ -164,7 +164,7 @@
             >
           </div>
         {:else}
-          <p class="note-empty muted">No takings entered yet.</p>
+          <p class="note-empty muted">No takings have been entered yet.</p>
         {/each}
       </div>
     </section>
@@ -221,7 +221,7 @@
             actions={takingActions}
           />
         {:else}
-          <p class="note-empty muted">No takings entered yet.</p>
+          <p class="note-empty muted">No takings have been entered yet.</p>
         {/if}
       </div>
     </section>

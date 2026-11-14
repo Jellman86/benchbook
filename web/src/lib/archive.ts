@@ -16,11 +16,15 @@ export interface Archived {
 
 /** Plain words for why a place can't stop being used. */
 export function refusalWords(problem: string, count: number): string {
-  const many = count === 1 ? "" : "s";
+  if (problem === "HasPlaces") {
+    return count === 1
+      ? "It still has a place inside it. Move that place, or stop using it, first."
+      : `It still has ${count} places inside it. Move them, or stop using them, first.`;
+  }
 
-  return problem === "HasPlaces"
-    ? `It still has ${count} place${many} inside it. Move or stop using those first.`
-    : `It still has ${count} tray${many} on it. Move them somewhere else first.`;
+  return count === 1
+    ? "It still has a tray on it. Move the tray somewhere else first."
+    : `It still has ${count} trays on it. Move them somewhere else first.`;
 }
 
 /**
@@ -34,7 +38,7 @@ export async function stopUsing(
 ): Promise<string | null> {
   if (
     !confirm(
-      `Stop using ${name}? It won't be offered any more, but its records are kept and you can bring it back.`,
+      `Stop using ${name}? It won't be offered any more, but everything recorded about it is kept and you can bring it back.`,
     )
   ) {
     return null;
@@ -49,7 +53,7 @@ export async function stopUsing(
       problem: string;
       count: number;
     };
-    return `${name} can't stop being used. ${refusalWords(refused.problem, refused.count)}`;
+    return `You can't stop using ${name} yet.  ${refusalWords(refused.problem, refused.count)}`;
   }
 
   return response.ok ? null : "That didn't work. Please try again.";

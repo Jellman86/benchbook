@@ -707,7 +707,8 @@
 
       {#if offline}
         <p class="card notice" data-testid="offline">
-          No connection. Work you record is saved on this device.
+          There's no connection, so the work you record is being saved on this
+          device.
         </p>
       {/if}
 
@@ -715,8 +716,8 @@
         <div class="card problem" role="alert">
           <span
             >{backupNeverReported
-              ? "Backups have never reported. Check that records are being protected."
-              : "Backups may have stopped. Records aren't being protected until this is fixed."}</span
+              ? "Hortiplanner has never heard from the backups. Please check that the nursery's records are being backed up."
+              : "The backups may have stopped. The nursery's records aren't being protected until this is fixed."}</span
           >
           <button
             class="secondary"
@@ -729,14 +730,15 @@
       {#if waiting > 0}
         <p class="card notice" data-testid="waiting">
           {waiting}
-          {waiting === 1 ? "thing" : "things"} waiting to send. Keep Hortiplanner
-          open when you're back in signal.
+          {waiting === 1 ? "thing is" : "things are"} waiting to send. Keep Hortiplanner
+          open once you're back in signal and {waiting === 1 ? "it" : "they"}'ll
+          go.
         </p>
       {/if}
 
       {#each failed as item (item.eventId)}
         <div class="card problem" role="alert">
-          <strong>Couldn't be saved: {item.description}</strong>
+          <strong>This couldn't be saved: {item.description}</strong>
           <span>{item.reason}</span>
           <div class="row">
             {#if item.request}
@@ -786,7 +788,7 @@
               <span class="stack tight">
                 <strong>Ask Hortiplanner</strong>
                 <span class="muted"
-                  >About plants, the trays, losses and photos of plants</span
+                  >Ask about plants, the trays, losses and photos of plants.</span
                 >
               </span>
             </button>
@@ -802,7 +804,7 @@
                 autocapitalize="characters"
               />
             </label>
-            <button type="submit">Open</button>
+            <button type="submit">Open this label</button>
           </form>
 
           <FindTray onOpen={(code) => open(code)} />
@@ -870,7 +872,7 @@
                 <div class="row">
                   {#if repeatOf(action)}
                     <button class="secondary" onclick={() => repeat(action)}
-                      >Again</button
+                      >Do it again</button
                     >
                   {/if}
                   {#if action.type !== "Sold" && !(action.details as { forPassport?: boolean } | null)?.forPassport}
@@ -883,8 +885,8 @@
             {/each}
           {:else}
             <p class="muted desktop-only">
-              Nothing recorded yet. Scan a label, find a tray, or start a new
-              batch.
+              Nothing has been recorded yet. Scan a label, find a tray, or start
+              a new batch.
             </p>
           {/if}
         </section>

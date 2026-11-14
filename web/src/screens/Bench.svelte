@@ -74,14 +74,15 @@
         onSignedIn();
       } else if (response.status === 423) {
         problem =
-          "Too many wrong tries. Wait 15 minutes, or ask the owner to set a new PIN.";
+          "There have been too many wrong tries. Please wait 15 minutes, or ask the owner to set a new PIN.";
       } else {
         problem = needsPin
           ? "That PIN isn't right. Please try again."
           : "That didn't work. Please try again.";
       }
     } catch {
-      problem = "Can't reach Hortiplanner. Check the connection and try again.";
+      problem =
+        "This device can't reach Hortiplanner. Please check the connection and try again.";
     } finally {
       busy = false;
     }

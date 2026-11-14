@@ -15,15 +15,19 @@ describe("manyTraysResult", () => {
   it("says how many were done", () => {
     expect(
       manyTraysResult(
-        (n) => `Marked ${n} ready`,
+        (n, count) => `${n} ${count === 1 ? "was" : "were"} marked ready`,
         [on("C1", stored), on("C2", stored)],
       ),
-    ).toEqual({ message: "Marked 2 trays ready.", allDone: true, failed: [] });
+    ).toEqual({
+      message: "2 trays were marked ready.",
+      allDone: true,
+      failed: [],
+    });
   });
 
   it("names the trays that failed and keeps only those", () => {
     const result = manyTraysResult(
-      (n) => `Moved ${n}`,
+      (n) => `${n} were moved`,
       [
         on("C1", stored),
         on("C2", queued),
@@ -32,7 +36,7 @@ describe("manyTraysResult", () => {
       ],
     );
     expect(result.message).toBe(
-      "Moved 2 trays; 1 waiting on this device for a signal; C3 and C4 couldn't be done: open them to see why. Only those are still chosen.",
+      "2 trays were moved. 1 of them is waiting on this device for a signal. C3 and C4 couldn't be done, so open them to see why. Only those are still chosen.",
     );
     expect(result.failed).toEqual(["id-C3", "id-C4"]);
   });

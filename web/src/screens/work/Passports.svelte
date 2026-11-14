@@ -216,7 +216,9 @@
           </div>
         </div>
       {:else}
-        <p class="muted">No received passports recorded for these plants.</p>
+        <p class="muted">
+          No received passports have been recorded for these plants.
+        </p>
       {/each}
     </div>
   {/if}

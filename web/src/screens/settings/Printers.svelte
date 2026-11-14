@@ -92,7 +92,7 @@
         problem =
           response.status === 409
             ? "There's already a printer with that name."
-            : "Check the address: an IP address such as 192.168.1.50, or the printer's network name, without http://.";
+            : "Please check the address. It should be an IP address such as 192.168.1.50, or the printer's network name, without http://.";
       }
     }, setProblem);
   };
@@ -109,7 +109,7 @@
           ? {
               ok: true,
               message:
-                "Test label sent. If it prints off centre or across two labels, check the size under Labels matches the roll.",
+                "A test label has been sent. If it prints off centre or across two labels, check the size under Labels matches the roll.",
             }
           : {
               ok: false,
@@ -155,9 +155,9 @@
 <main>
   <h1>Printers</h1>
   <p class="muted">
-    Label printers on the nursery's network. Hortiplanner sends labels straight
-    to them, and every label can still be printed as a PDF through the print
-    window. What each label looks like, and its size, is under <button
+    These are the label printers on the nursery's network. Hortiplanner sends
+    labels straight to them, and every label can still be printed as a PDF
+    through the print window. What each label looks like, and its size, is under <button
       class="link-button"
       onclick={onLabels}
       ><ArrowRight size={16} aria-hidden="true" />Labels</button
@@ -280,7 +280,7 @@
             >{printer.address}:{printer.port} · {printer.language.toUpperCase()}
             · {printer.dotsPerInch} dpi</span
           >
-          <span>Prints {prints(printer)}.</span>
+          <span>It prints {prints(printer)}.</span>
           <div class="row">
             <button
               disabled={busyId === printer.id}
@@ -304,8 +304,8 @@
         </div>
       {:else}
         <p class="note-empty muted">
-          No printers yet. Until one is added, labels open as PDFs to print
-          through the print window.
+          There are no printers yet. Until one is added, labels open as PDFs to
+          print through the print window.
         </p>
       {/each}
     </section>

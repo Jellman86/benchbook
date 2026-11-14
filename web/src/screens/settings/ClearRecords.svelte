@@ -49,11 +49,11 @@
   <summary><h2 class="form-heading">Start afresh</h2></summary>
   <form class="stack" onsubmit={clear}>
     <p>
-      Clears every plant, batch, tray, place, pot size, supplier, purchase, till
-      taking, plant passport, customer and invoice, including example data.
+      This clears every plant, batch, tray, place, pot size, supplier, purchase,
+      till taking, plant passport, customer and invoice, including example data.
     </p>
     <p class="muted">
-      Kept: everyone's sign-in, staff, bench devices, the nursery's details,
+      It keeps everyone's sign-in, staff, bench devices, the nursery's details,
       logo and label designs. Plant passport records normally have to be kept
       for three years, so only do this before real records go in.
     </p>

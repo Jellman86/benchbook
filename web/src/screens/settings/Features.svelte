@@ -26,7 +26,8 @@
         problem = "That couldn't be changed. Please try again.";
       }
     } catch {
-      problem = "Can't reach Hortiplanner. Check the connection and try again.";
+      problem =
+        "This device can't reach Hortiplanner. Please check the connection and try again.";
     } finally {
       busy = null;
       // Shows what's really saved, whether or not the change went through.
@@ -60,7 +61,9 @@
           <span class="stack tight">
             <strong>{item.label}</strong>
             <span class="muted" id="feature-{item.feature}"
-              >{on ? "On. Turning it off hides:" : "Off, so hidden:"}
+              >{on
+                ? "It's on. Turning it off hides:"
+                : "It's off, so these are hidden:"}
               {item.hides}</span
             >
           </span>

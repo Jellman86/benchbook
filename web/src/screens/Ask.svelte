@@ -191,7 +191,8 @@
         photos = sent;
       }
     } catch {
-      problem = "Can't reach Hortiplanner. Check the connection and try again.";
+      problem =
+        "This device can't reach Hortiplanner. Please check the connection and try again.";
       lines = lines.slice(0, -1);
       question = wanted;
       photos = sent;
@@ -239,17 +240,18 @@
       <p class="ask-spend" role="status">
         <Coins size={16} aria-hidden="true" />
         <span
-          >Your questions this month: <strong
+          >Your questions have cost <strong
             >{dollars(assistant.spentThisMonth)}</strong
-          >, paid for by the nursery</span
+          > this month, and the nursery pays for them.</span
         >
       </p>
     {:else}
       <div class="card stack tight ask-spend-card">
         <h2 class="form-heading">What your questions cost</h2>
         <p>
-          This month <strong>{dollars(assistant.spentThisMonth)}</strong>, in
-          all <strong>{dollars(assistant.spentInAll ?? 0)}</strong>.
+          They have cost <strong>{dollars(assistant.spentThisMonth)}</strong>
+          this month and <strong>{dollars(assistant.spentInAll ?? 0)}</strong> in
+          all.
         </p>
         <p class="muted">
           The nursery pays for every question, and the owner can see this total
@@ -337,12 +339,14 @@
                 {/each}
                 {#if line.sources?.length}
                   <div class="ask-looked mobile-only">
-                    <span class="muted">Looked at</span>
+                    <span class="muted">It looked at</span>
                     {@render sourceList(line.sources)}
                   </div>
                 {/if}
                 {#if line.cost != null}
-                  <span class="muted ask-cost">Cost {money(line.cost)}</span>
+                  <span class="muted ask-cost"
+                    >This answer cost {money(line.cost)}.</span
+                  >
                 {/if}
               </div>
             {/if}
@@ -372,7 +376,7 @@
             <button
               type="button"
               class="icon-button"
-              aria-label="Not about {context.title}"
+              aria-label="Stop asking about {context.title}"
               onclick={() => (context = null)}><X size={16} /></button
             >
           </p>
@@ -444,7 +448,7 @@
       {@render spend(false)}
       {#if seen.length > 0}
         <div class="card stack tight">
-          <h2 class="form-heading">Looked at</h2>
+          <h2 class="form-heading">What it looked at</h2>
           {@render sourceList(seen)}
         </div>
       {/if}
@@ -458,13 +462,14 @@
         {/each}
       </div>
       <div class="card stack tight">
-        <h2 class="form-heading">What it's sent</h2>
+        <h2 class="form-heading">What is sent to it</h2>
         <p class="muted">
-          Plants, places, trays, work, losses, treatments, climate, notes as
-          they were typed, and the photos you add, to the model the owner chose
-          through OpenRouter, asking for providers that keep nothing. Never
-          customers, money or who recorded the work. Hortiplanner's server keeps
-          what each question cost, who asked and when, not what was asked.
+          Your question goes to the model the owner chose through OpenRouter,
+          asking for providers that keep nothing. With it go plants, places,
+          trays, work, losses, treatments, climate, notes as they were typed,
+          and the photos you add. It is never sent customers, money or who
+          recorded the work. Hortiplanner's server keeps what each question
+          cost, who asked and when, but not what was asked.
         </p>
       </div>
     </aside>

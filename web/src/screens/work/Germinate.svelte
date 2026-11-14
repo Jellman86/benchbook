@@ -85,7 +85,7 @@
 
 <ActionFrame title="Germinated" {problem} {onCancel} {container}>
   <p>
-    How many are up? Count them, or give your best guess: it becomes the number
+    How many are up? Count them, or give your best guess. It becomes the number
     in the tray until they're counted.
   </p>
   <Stepper bind:value={up} min={0} presets={[20, 50, 100, 200]} />
@@ -101,7 +101,7 @@
   {/if}
   <label class="tick">
     <input type="checkbox" bind:checked={rough} />
-    Just a rough guess: ask how many when they're pricked out
+    This is just a rough guess, so ask how many when they're pricked out
   </label>
   <button disabled={busy || up < 1} onclick={() => record(true)}
     >Save this number</button
