@@ -65,7 +65,7 @@ internal static partial class PersonPictureEndpoints
             return TypedResults.StatusCode(refusal);
         }
 
-        await SaveAsync(id, image, PersonPictureSource.Uploaded, sourceUrl: null, db, clock, cancellationToken);
+        await SaveUploadAsync(id, image, db, clock, cancellationToken);
         return TypedResults.NoContent();
     }
 
@@ -75,30 +75,27 @@ internal static partial class PersonPictureEndpoints
         return TypedResults.NoContent();
     }
 
-    private static async Task SaveAsync(Guid id, ImageFile image, PersonPictureSource source, string? sourceUrl, HortiplannerDbContext db, TimeProvider clock, CancellationToken cancellationToken)
+    /// <summary>
+    /// Saves an uploaded picture in one statement, replacing whatever is there, so a staff-login sign-in at the same
+    /// moment can never make the upload fail or win over it.
+    /// </summary>
+    private static async Task SaveUploadAsync(Guid id, ImageFile image, HortiplannerDbContext db, TimeProvider clock, CancellationToken cancellationToken)
     {
-        if (await db.PersonPictures.FirstOrDefaultAsync(picture => picture.UserId == id, cancellationToken) is { } existing)
-        {
-            existing.Content = image.Content;
-            existing.ContentType = image.ContentType;
-            existing.Source = source;
-            existing.SourceUrl = sourceUrl;
-            existing.UpdatedAt = clock.GetUtcNow();
-        }
-        else
-        {
-            db.PersonPictures.Add(new PersonPicture
-            {
-                UserId = id,
-                Content = image.Content,
-                ContentType = image.ContentType,
-                Source = source,
-                SourceUrl = sourceUrl,
-                UpdatedAt = clock.GetUtcNow(),
-            });
-        }
+        var uploaded = nameof(PersonPictureSource.Uploaded);
+        var now = clock.GetUtcNow();
 
-        await db.SaveChangesAsync(cancellationToken);
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            INSERT INTO person_picture (user_id, content_type, content, source, source_url, updated_at)
+            VALUES ({id}, {image.ContentType}, {image.Content}, {uploaded}, NULL, {now})
+            ON CONFLICT (user_id) DO UPDATE SET
+                content_type = EXCLUDED.content_type,
+                content = EXCLUDED.content,
+                source = EXCLUDED.source,
+                source_url = NULL,
+                updated_at = EXCLUDED.updated_at
+            """,
+            cancellationToken);
     }
 
     /// <summary>
@@ -204,6 +201,9 @@ internal static partial class PersonPictureEndpoints
     public static SocketsHttpHandler PublicOnlyHandler() => new()
     {
         AllowAutoRedirect = false,
+
+        // A proxy would make the destination its business, past the check below, so pictures never go through one.
+        UseProxy = false,
         ConnectCallback = async (context, cancellationToken) =>
         {
             var addresses = await Dns.GetHostAddressesAsync(context.DnsEndPoint.Host, cancellationToken);

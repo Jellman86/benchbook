@@ -65,6 +65,28 @@ public sealed class PersonPictureTests(PostgresFixture database)
         }
     }
 
+    [Fact]
+    public async Task Uploads_at_the_same_moment_all_succeed_and_one_picture_is_kept()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+
+        var replies = await Task.WhenAll(Enumerable.Range(0, 8).Select(async index =>
+        {
+            using var content = new ByteArrayContent([0xFF, 0xD8, 0xFF, 0xE0, (byte)index]);
+            return await nursery.Staff.PutAsync(Route("/api/account/picture"), content, Cancellation);
+        }));
+
+        Assert.All(replies, reply => Assert.Equal(HttpStatusCode.NoContent, reply.StatusCode));
+
+        foreach (var reply in replies)
+        {
+            reply.Dispose();
+        }
+
+        using var shown = await nursery.Staff.GetAsync(Route($"/api/people/{nursery.StaffId}/picture"), Cancellation);
+        Assert.Equal(HttpStatusCode.OK, shown.StatusCode);
+    }
+
     [Theory]
     [InlineData("8.8.8.8", true)]
     [InlineData("2606:4700:4700::1111", true)]
