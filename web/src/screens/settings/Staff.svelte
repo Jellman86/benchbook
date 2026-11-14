@@ -75,6 +75,8 @@
   let settingPasswordFor = $state<string | null>(null);
   let newPassword = $state("");
   let tuneFor = $state<string | null>(null);
+  let savingTune = $state(false);
+  const maxTuneBytes = 4 * 1024 * 1024;
   let preview: HTMLAudioElement | null = null;
 
   const pinProblem = "A PIN must be 4 to 6 digits.";
@@ -198,24 +200,38 @@
   const chooseTune = (event: Event, member: Member) => {
     const input = event.currentTarget as HTMLInputElement;
     const file = input.files?.[0];
+    input.value = "";
 
     if (!file) {
       return;
     }
 
-    return attempt(async () => {
-      const response = await fetch(`/api/staff/${member.id}/tune`, {
-        method: "PUT",
-        body: file,
-      });
+    // Checked here too: a phone sending a big file the server then refuses can look like a lost connection.
+    if (file.size > maxTuneBytes) {
+      problem = "That tune is too big. Use a clip under 4 MB.";
+      return;
+    }
 
-      input.value = "";
-      problem = response.ok
-        ? ""
-        : response.status === 413
-          ? "That tune is too big. Use a clip under 4 MB."
-          : "That file can't be played on a phone. Use an MP3, M4A or WAV.";
-      await load();
+    savingTune = true;
+
+    return attempt(async () => {
+      try {
+        const response = await fetch(`/api/staff/${member.id}/tune`, {
+          method: "PUT",
+          body: file,
+        });
+
+        problem = response.ok
+          ? ""
+          : response.status === 415
+            ? "That file can't be played on a phone. Use an MP3, M4A or WAV."
+            : response.status === 413
+              ? "That tune is too big. Use a clip under 4 MB."
+              : "The tune couldn't be saved. Please try again.";
+        await load();
+      } finally {
+        savingTune = false;
+      }
     }, setProblem);
   };
 
@@ -398,9 +414,13 @@
                 <input
                   type="file"
                   accept="audio/*"
+                  disabled={savingTune}
                   onchange={(event) => chooseTune(event, member)}
                 />
               </label>
+              {#if savingTune}<p class="muted" role="status">
+                  Saving the tune…
+                </p>{/if}
               {#if member.hasTune}
                 <div class="row">
                   <button class="secondary" onclick={() => playPreview(member)}
@@ -441,7 +461,12 @@
                   >Name only</button
                 >
               {/if}
-              <button class="secondary" onclick={() => (tuneFor = member.id)}
+              <button
+                class="secondary"
+                aria-label={member.hasTune
+                  ? "Sign-in tune, one is set"
+                  : "Sign-in tune"}
+                onclick={() => (tuneFor = member.id)}
                 >{member.hasTune ? "Sign-in tune ♪" : "Sign-in tune"}</button
               >
               {#if member.id !== myId}

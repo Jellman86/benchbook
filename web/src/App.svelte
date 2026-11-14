@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { api, sessionEnded } from "./api/client";
   import { rememberMe, rememberedMe } from "./lib/offline";
-  import { playTuneOnFirstTapIfReturning } from "./lib/tune";
+  import { forgetReturn, playTuneOnFirstTapIfReturning } from "./lib/tune";
   import {
     chooseStart,
     readInvite,
@@ -59,6 +59,8 @@
 
       if (start.screen === "home") {
         playTuneOnFirstTapIfReturning();
+      } else if (start.screen !== "signIn") {
+        forgetReturn();
       }
     } catch {
       unreachable = true;

@@ -26,6 +26,9 @@ internal static class SignInTuneEndpoints
         own.MapPut("/on", TurnOnOrOffAsync);
     }
 
+    /// <summary>MP4 brands that hold sound a phone plays: iTunes and Voice Memos audio, and plain MP4 files.</summary>
+    private static readonly string[] Mp4Brands = ["M4A ", "M4B ", "mp42", "mp41", "isom", "iso2"];
+
     /// <summary>What sort of audio the bytes are, if one a phone's browser can play: MP3, AAC, M4A or WAV.</summary>
     public static string? DetectType(ReadOnlySpan<byte> content)
     {
@@ -34,20 +37,42 @@ internal static class SignInTuneEndpoints
             return "audio/mpeg";
         }
 
-        if (content.Length >= 2 && content[0] == 0xFF && (content[1] & 0xE0) == 0xE0)
+        if (content.Length >= 4 && content[0] == 0xFF && (content[1] & 0xE0) == 0xE0)
         {
-            // An MPEG frame. Layer bits of zero mean AAC in an ADTS stream; anything else is MP3.
-            return (content[1] & 0x06) == 0 ? "audio/aac" : "audio/mpeg";
+            return MpegFrameType(content[1], content[2]);
         }
 
         if (content.Length >= 12 && content[4..8].SequenceEqual("ftyp"u8))
         {
-            return "audio/mp4";
+            var brand = System.Text.Encoding.ASCII.GetString(content[8..12]);
+            return Mp4Brands.Contains(brand, StringComparer.Ordinal) ? "audio/mp4" : null;
         }
 
         return content.Length >= 12 && content.StartsWith("RIFF"u8) && content[8..12].SequenceEqual("WAVE"u8)
             ? "audio/wav"
             : null;
+    }
+
+    /// <summary>
+    /// An MPEG frame header, read strictly enough that other files starting 0xFF (such as UTF-16 text) don't pass.
+    /// Layer bits of zero mean AAC in an ADTS stream; anything else is MP3.
+    /// </summary>
+    private static string? MpegFrameType(byte second, byte third)
+    {
+        var layer = (second >> 1) & 0x03;
+
+        if (layer == 0)
+        {
+            var sampleRate = (third >> 2) & 0x0F;
+            return sampleRate < 13 ? "audio/aac" : null;
+        }
+
+        var version = (second >> 3) & 0x03;
+        var bitrate = third >> 4;
+        var frequency = (third >> 2) & 0x03;
+
+        // Layer I (3) is left out: nobody uses it for music, and it is what a UTF-16 text file's FF FE looks like.
+        return layer != 3 && version != 1 && bitrate is not (0 or 0x0F) && frequency != 3 ? "audio/mpeg" : null;
     }
 
     private static async Task<IResult> SetAsync(Guid id, HttpRequest request, HortiplannerDbContext db, UserManager<AppUser> users, TimeProvider clock, CancellationToken cancellationToken)
@@ -94,9 +119,9 @@ internal static class SignInTuneEndpoints
         return TypedResults.NoContent();
     }
 
-    private static async Task<IResult> GetForOwnerAsync(Guid id, HortiplannerDbContext db, CancellationToken cancellationToken) =>
+    private static async Task<IResult> GetForOwnerAsync(Guid id, HttpContext context, HortiplannerDbContext db, CancellationToken cancellationToken) =>
         await db.SignInTunes.AsNoTracking().FirstOrDefaultAsync(tune => tune.UserId == id, cancellationToken) is { } tune
-            ? Play(tune)
+            ? Play(context, tune)
             : TypedResults.NotFound();
 
     private static async Task<IResult> RemoveAsync(Guid id, HortiplannerDbContext db, CancellationToken cancellationToken)
@@ -106,12 +131,12 @@ internal static class SignInTuneEndpoints
     }
 
     /// <summary>The signed-in person's own tune, unless they've turned it off.</summary>
-    private static async Task<IResult> GetOwnAsync(ClaimsPrincipal user, HortiplannerDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> GetOwnAsync(ClaimsPrincipal user, HttpContext context, HortiplannerDbContext db, CancellationToken cancellationToken)
     {
         var me = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         return await db.SignInTunes.AsNoTracking().FirstOrDefaultAsync(tune => tune.UserId == me && !tune.Off, cancellationToken) is { } tune
-            ? Play(tune)
+            ? Play(context, tune)
             : TypedResults.NotFound();
     }
 
@@ -125,9 +150,13 @@ internal static class SignInTuneEndpoints
         return changed == 0 ? TypedResults.NotFound() : TypedResults.NoContent();
     }
 
-    // Phones ask for music in ranges, so ranges must be answered.
-    private static Microsoft.AspNetCore.Http.HttpResults.FileContentHttpResult Play(SignInTune tune) =>
-        TypedResults.File(tune.Content, tune.ContentType, enableRangeProcessing: true);
+    // Phones ask for music in ranges, so ranges must be answered. Never kept: the owner can change it at any time.
+    private static Microsoft.AspNetCore.Http.HttpResults.FileContentHttpResult Play(HttpContext context, SignInTune tune)
+    {
+        context.Response.Headers.XContentTypeOptions = "nosniff";
+        context.Response.Headers.CacheControl = "private, no-store";
+        return TypedResults.File(tune.Content, tune.ContentType, enableRangeProcessing: true);
+    }
 
     internal sealed record TuneSwitch(bool On);
 }

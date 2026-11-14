@@ -30,6 +30,9 @@ public sealed class SignInTuneTests(PostgresFixture database)
     [InlineData(new byte[] { 0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x41, 0x56, 0x45 }, "audio/wav")]
     [InlineData(new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 }, null)]
     [InlineData(new byte[] { 0x4F, 0x67, 0x67, 0x53 }, null)]
+    [InlineData(new byte[] { 0xFF, 0xFE, 0x48, 0x00 }, null)]
+    [InlineData(new byte[] { 0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63, 0, 0, 0, 0 }, null)]
+    [InlineData(new byte[] { 0, 0, 0, 0x1C, 0x66, 0x74, 0x79, 0x70, 0x4D, 0x34, 0x41, 0x20, 0, 0, 0, 0 }, "audio/mp4")]
     public void Only_audio_a_phone_can_play_is_recognised(byte[] content, string? expected) =>
         Assert.Equal(expected, SignInTuneEndpoints.DetectType(content));
 
@@ -79,6 +82,45 @@ public sealed class SignInTuneTests(PostgresFixture database)
         }
 
         Assert.False((await nursery.Staff.GetFromJsonAsync<JsonElement>(Route("/api/account/settings"), Cancellation)).GetProperty("tuneOn").GetBoolean());
+    }
+
+    [Fact]
+    public async Task A_phone_can_ask_for_part_of_the_tune_and_nobody_else_can_hear_or_change_it()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+
+        using (var set = await PutTuneAsync(nursery.Owner, nursery.StaffId, M4a))
+        {
+            Assert.Equal(HttpStatusCode.NoContent, set.StatusCode);
+        }
+
+        using var part = new HttpRequestMessage(HttpMethod.Get, Route("/api/account/tune"));
+        part.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(0, 3);
+
+        using (var partial = await nursery.Staff.SendAsync(part, Cancellation))
+        {
+            Assert.Equal(HttpStatusCode.PartialContent, partial.StatusCode);
+            Assert.Equal(M4a[..4], await partial.Content.ReadAsByteArrayAsync(Cancellation));
+            Assert.Equal("nosniff", Assert.Single(partial.Headers.GetValues("X-Content-Type-Options")));
+            Assert.True(partial.Headers.CacheControl?.NoStore);
+        }
+
+        using (var peek = await nursery.Staff.GetAsync(Route($"/api/staff/{nursery.StaffId}/tune"), Cancellation))
+        {
+            Assert.Equal(HttpStatusCode.Forbidden, peek.StatusCode);
+        }
+
+        using (var remove = await nursery.Staff.DeleteAsync(Route($"/api/staff/{nursery.StaffId}/tune"), Cancellation))
+        {
+            Assert.Equal(HttpStatusCode.Forbidden, remove.StatusCode);
+        }
+
+        using var stranger = nursery.App.CreateClient();
+
+        using (var anonymous = await stranger.GetAsync(Route("/api/account/tune"), Cancellation))
+        {
+            Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
+        }
     }
 
     [Fact]

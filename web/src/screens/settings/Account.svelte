@@ -5,7 +5,7 @@
   import type { Me } from "../../lib/boot";
   import { createPasskey, passkeyProblem } from "../../lib/passkey";
   import { themes, type Theme } from "../../lib/theme";
-  import { playTune, stopTune } from "../../lib/tune";
+  import { playTune, stopTune, unlockTune } from "../../lib/tune";
   import { attempt, type Schemas } from "../../lib/types";
 
   let {
@@ -87,6 +87,9 @@
   const switchTune = (event: Event) => {
     const on = (event.currentTarget as HTMLInputElement).checked;
 
+    // Still inside the tap, so the tune may play once it's switched on.
+    unlockTune();
+
     return attempt(async () => {
       await api.PUT("/api/account/tune/on", { body: { on } });
 
@@ -156,7 +159,11 @@
         />
         Play my tune when I sign in
       </label>
-      <p class="muted">The owner chose it for you.</p>
+      <p class="muted">
+        {me.isOwner
+          ? "You can change it under Staff."
+          : "The owner chose it for you."}
+      </p>
     {/if}
 
     {#if me.isTeam}

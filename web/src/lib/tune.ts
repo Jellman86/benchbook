@@ -22,18 +22,21 @@ export function unlockTune() {
 }
 
 /** Plays the signed-in person's tune, if they have one switched on. */
-export function playTune() {
+export function playTune(): Promise<void> {
+  forgetReturn();
+
   try {
     player ??= new Audio();
     // A fresh address each time, so a tune the owner has just changed is the one heard.
     player.src = `/api/account/tune?at=${Date.now()}`;
-    void player.play().catch(() => {});
+    return player.play().catch(() => {});
   } catch {
     // As above.
+    return Promise.resolve();
   }
 }
 
-/** Stops a tune that's playing, for example when someone turns theirs off. */
+/** Stops a tune that's playing: when someone turns theirs off, or signs out on a shared device. */
 export function stopTune() {
   player?.pause();
 }
@@ -50,19 +53,37 @@ export function rememberTuneForReturn() {
   }
 }
 
+/** Forgets a staff-login sign-in that never came back, so a later sign-in doesn't play the tune twice. */
+export function forgetReturn() {
+  try {
+    sessionStorage.removeItem(pendingKey);
+  } catch {
+    // Nothing kept.
+  }
+}
+
 export function playTuneOnFirstTapIfReturning() {
   try {
     if (!sessionStorage.getItem(pendingKey)) {
       return;
     }
-
-    sessionStorage.removeItem(pendingKey);
   } catch {
     return;
   }
 
-  window.addEventListener("pointerdown", () => playTune(), {
-    once: true,
-    capture: true,
-  });
+  forgetReturn();
+
+  // A click, not the first touch: iPhones only count a finished tap as permission to play sound. One tap tries; only
+  // the phone refusing permission waits for the next, so a slow-loading tune never plays twice.
+  const onTap = () => {
+    window.removeEventListener("click", onTap, true);
+    player ??= new Audio();
+    player.src = `/api/account/tune?at=${Date.now()}`;
+    player.play().catch((error: unknown) => {
+      if (error instanceof DOMException && error.name === "NotAllowedError") {
+        window.addEventListener("click", onTap, true);
+      }
+    });
+  };
+  window.addEventListener("click", onTap, true);
 }

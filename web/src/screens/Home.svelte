@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { stopTune } from "../lib/tune";
   import { loadFeatures, watchFeatures } from "../lib/features.svelte";
   import CircleCheck from "@lucide/svelte/icons/circle-check";
   import { onMount, tick } from "svelte";
@@ -511,6 +512,7 @@
   }
 
   async function signOut() {
+    stopTune();
     if (
       queue.waiting > 0 &&
       !confirm(
