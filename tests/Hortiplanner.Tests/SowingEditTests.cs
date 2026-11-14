@@ -60,6 +60,35 @@ public sealed class SowingEditTests(PostgresFixture database)
     }
 
     [Fact]
+    public async Task A_tray_moved_after_sowing_can_still_be_recorded_as_about_so_many_and_stays_where_it_went()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (plant, batch, tray, label) = await SowCountedAsync(nursery);
+        var site = Json(await PostForTextAsync(nursery.Owner, "/api/locations", new { name = "Nursery", kind = "Site" })).GetProperty("id").GetGuid();
+        var house = Json(await PostForTextAsync(nursery.Owner, "/api/locations", new { name = "Greenhouse 2", kind = "Greenhouse", parentId = site })).GetProperty("id").GetGuid();
+        await PostForTextAsync(nursery.Staff, $"/api/containers/{tray}/move", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow.AddMinutes(-1), locationId = house });
+        await PostForTextAsync(nursery.Staff, $"/api/containers/{tray}/notes", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow, note = "Watered in" });
+
+        Assert.True((await nursery.Staff.GetFromJsonAsync<JsonElement>(Route($"/api/batches/{batch}"), Cancellation)).GetProperty("startCanChange").GetBoolean());
+
+        using (var about = await EditAsync(nursery.Staff, batch, plant, "About", sownAmount: 1250))
+        {
+            Assert.Equal(HttpStatusCode.NoContent, about.StatusCode);
+        }
+
+        var after = await nursery.Staff.GetFromJsonAsync<JsonElement>(Route($"/api/containers/by-label/{label}"), Cancellation);
+        Assert.True(after.GetProperty("contents")[0].GetProperty("notCounted").GetBoolean());
+        Assert.Equal("Greenhouse 2", after.GetProperty("locationName").GetString());
+
+        // Moving the day later would put the sowing after the move, so that still needs nothing recorded since.
+        using var later = await nursery.Staff.PutAsJsonAsync(
+            Route($"/api/batches/{batch}"),
+            new { plantId = plant, source = "SeedLot", originCountry = "GB", sownAs = "About", sownAmount = 1250, startedAt = DateTimeOffset.UtcNow },
+            Cancellation);
+        Assert.Equal(HttpStatusCode.Conflict, later.StatusCode);
+    }
+
+    [Fact]
     public async Task Once_other_work_is_recorded_counted_seed_stays_counted()
     {
         await using var nursery = await TwoPersonNursery.CreateAsync(database);

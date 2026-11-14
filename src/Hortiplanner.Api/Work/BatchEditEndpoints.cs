@@ -246,7 +246,9 @@ internal static class BatchEditEndpoints
         // Sown earlier than recorded is always safe: everything recorded since still comes after it.
         var onlyEarlier = startedAt < start.At && quantity == start.Quantity && type == start.Type;
 
-        if (!onlyEarlier && !await StartCanChangeAsync(db, batch.Id, start, cancellationToken))
+        // A later day needs nothing at all recorded since: re-recorded later, the start would come after a move or a
+        // note and undo where the tray had gone.
+        if (!onlyEarlier && !await StartCanChangeAsync(db, batch.Id, start, cancellationToken, anyWork: startedAt > start.At))
         {
             return TypedResults.Conflict(new EditRefused("StartLocked"));
         }
@@ -356,13 +358,18 @@ internal static class BatchEditEndpoints
         return uncounted ? 0 : quantity ?? start.Quantity;
     }
 
-    /// <summary>Only while nothing else has been recorded on the batch or its first container.</summary>
-    private static async Task<bool> StartCanChangeAsync(HortiplannerDbContext db, Guid id, Start start, CancellationToken cancellationToken)
+    /// <summary>
+    /// Only while nothing else has been recorded on the batch or its first container. A move or a note says nothing
+    /// about the plants, so a tray moved straight after sowing can still be corrected; germination, a treatment, a loss
+    /// or a count still lock it. With <paramref name="anyWork"/>, a move or a note counts too, as for a later start day.
+    /// </summary>
+    private static async Task<bool> StartCanChangeAsync(HortiplannerDbContext db, Guid id, Start start, CancellationToken cancellationToken, bool anyWork = false)
     {
         // An undo is not work; a correction that replaced work is.
         var standing = db.Events
             .Where(e => e.Id != start.Event.Id && !db.Events.Any(correction => correction.CorrectsEventId == e.Id))
-            .Where(e => e.Type != EventType.Corrected || e.Lines.Any() || e.LocationId != null);
+            .Where(e => e.Type != EventType.Corrected || e.Lines.Any() || e.LocationId != null)
+            .Where(e => anyWork || (e.Type != EventType.Moved && e.Type != EventType.Note));
         var onBatch = standing.Where(e => e.Lines.Any(line => line.BatchId == id));
         var onContainer = standing.Where(e => e.ContainerId == start.ContainerId || e.Lines.Any(line => line.ContainerId == start.ContainerId));
 

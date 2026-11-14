@@ -42,6 +42,8 @@
   let suppliers = $state<Schemas["SupplierResponse"][]>([]);
   let form = $state<BatchForm | null>(null);
   let before = $state<BatchForm | null>(null);
+  // Photos save as soon as they're taken; counted so the check page can say so.
+  let photosAdded = $state(0);
   let checking = $state(false);
   let problem = $state("");
   let busy = $state(false);
@@ -296,7 +298,11 @@
     <p class="muted">Loading…</p>
   {:else if checking}
     {#if changes.length === 0}
-      <p class="muted">Nothing has changed.</p>
+      <p class="muted">
+        {photosAdded > 0
+          ? `The ${photosAdded === 1 ? "photo is" : "photos are"} saved. Nothing else has changed.`
+          : "Nothing has changed."}
+      </p>
       <button class="secondary" onclick={() => (checking = false)}
         >Back to the batch</button
       >
@@ -324,7 +330,11 @@
     {/if}
   {:else}
     {#if isOn("BatchPhotos")}
-      <BatchPhotos {batchId} kinds={["Packet", "Label", "Packaging"]} />
+      <BatchPhotos
+        {batchId}
+        kinds={["Packet", "Label", "Packaging"]}
+        onAdded={() => (photosAdded += 1)}
+      />
       <p class="muted">Photos are saved as soon as they're taken.</p>
     {/if}
 

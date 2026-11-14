@@ -18,6 +18,7 @@
     kinds = [],
     emptyText = null,
     onAsk,
+    onAdded,
   }: {
     batchId: string;
     containerId?: string | null;
@@ -26,6 +27,8 @@
     emptyText?: string | null;
     /** Asks Ask Hortiplanner about a photo, when this person can ask. */
     onAsk?: (photoId: string) => void;
+    /** A photo was just saved. */
+    onAdded?: () => void;
   } = $props();
 
   type Photo = Schemas["BatchPhotoSummary"];
@@ -77,6 +80,11 @@
         { method: "POST", body: await shrinkPhoto(file) },
       );
       problem = response.ok ? "" : "That photo couldn't be saved.";
+
+      if (response.ok) {
+        onAdded?.();
+      }
+
       await load();
     } catch {
       problem = "That photo couldn't be saved. Check the connection.";
