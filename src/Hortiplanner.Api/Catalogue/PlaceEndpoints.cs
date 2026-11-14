@@ -15,8 +15,15 @@ internal static class PlaceEndpoints
         var places = app.MapGroup("/api/locations").RequireAuthorization(AccountServices.OwnerPolicy);
         places.MapPut("/{id:guid}/parent", MoveAsync);
         places.MapPost("/several", AddSeveralAsync).Produces<PlacesCreated>(StatusCodes.Status201Created);
-        places.MapPut("/{id:guid}/kind", ChangeKindAsync);
-        places.MapDelete("/{id:guid}", DeleteAsync).Produces<PlaceInUse>(StatusCodes.Status409Conflict);
+        places.MapPut("/{id:guid}/kind", ChangeKindAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces<PlaceInUse>(StatusCodes.Status409Conflict);
+        places.MapDelete("/{id:guid}", DeleteAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces<PlaceInUse>(StatusCodes.Status409Conflict);
     }
 
     /// <summary>Puts a place inside another, as long as that wouldn't put it inside itself.</summary>
@@ -50,7 +57,7 @@ internal static class PlaceEndpoints
     /// its history stay as they are. Only a site stands on its own, so becoming a site lifts it out of its parent, and a
     /// site becoming anything else needs a place to sit in.
     /// </summary>
-    private static async Task<IResult> ChangeKindAsync(Guid id, ChangePlaceKindRequest request, HortiplannerDbContext db, CancellationToken cancellationToken)
+    private static async Task<IResult> ChangeKindAsync(Guid id, ChangePlaceKindRequest request, HortiplannerDbContext db, EventStore store, CancellationToken cancellationToken)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await db.Database.ExecuteSqlRawAsync("LOCK TABLE locations IN SHARE ROW EXCLUSIVE MODE", cancellationToken);
@@ -62,6 +69,12 @@ internal static class PlaceEndpoints
 
         if (request.Kind == LocationKind.Site)
         {
+            // Trays never stand on a site, so they'd be stuck where nothing can move them back.
+            if (place.Kind != LocationKind.Site && await CatalogueEndpoints.TraysStandingInAsync(id, store, cancellationToken) > 0)
+            {
+                return TypedResults.Conflict(new PlaceInUse("HasTrays"));
+            }
+
             place.ParentId = null;
         }
         else if (place.Kind == LocationKind.Site || place.ParentId is null)
@@ -90,6 +103,10 @@ internal static class PlaceEndpoints
     /// </summary>
     private static async Task<IResult> DeleteAsync(Guid id, HortiplannerDbContext db, CancellationToken cancellationToken)
     {
+        // The same lock as moving and changing kind, so nothing is put inside it while it goes.
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.Database.ExecuteSqlRawAsync("LOCK TABLE locations IN SHARE ROW EXCLUSIVE MODE", cancellationToken);
+
         if (await db.Locations.FindAsync([id], cancellationToken) is not { } place)
         {
             return TypedResults.NotFound();
@@ -108,18 +125,20 @@ internal static class PlaceEndpoints
             return TypedResults.Conflict(new PlaceInUse(reason));
         }
 
-        db.CatalogueEntryPhotos.RemoveRange(db.CatalogueEntryPhotos.Where(photo => photo.Entry == CataloguePhotoEntry.Location && photo.EntryId == id));
-        db.Locations.Remove(place);
-
         try
         {
+            await db.CatalogueEntryPhotos
+                .Where(photo => photo.Entry == CataloguePhotoEntry.Location && photo.EntryId == id)
+                .ExecuteDeleteAsync(cancellationToken);
+            db.Locations.Remove(place);
             await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
             return TypedResults.NoContent();
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation })
         {
-            // Something else refers to it that the checks above don't know about: keep it.
-            return TypedResults.Conflict(new PlaceInUse("HasRecords"));
+            // Something was recorded there in the meantime: keep it.
+            return TypedResults.Conflict(new PlaceInUse("JustUsed"));
         }
     }
 

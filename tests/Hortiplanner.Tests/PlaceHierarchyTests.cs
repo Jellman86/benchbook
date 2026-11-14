@@ -142,4 +142,58 @@ public sealed class PlaceHierarchyTests(PostgresFixture database)
 
         Assert.DoesNotContain((await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/locations?includeArchived=true"), Cancellation)).EnumerateArray(), place => place.GetProperty("id").GetGuid() == mistake);
     }
+
+    [Fact]
+    public async Task A_place_with_trays_in_it_cannot_become_a_site_and_a_left_place_still_blocks_deleting()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var site = await AddAsync(nursery.Owner, "Nursery");
+        var bench = await AddAsync(nursery.Owner, "Bench with a tray", site);
+        var empty = await AddAsync(nursery.Owner, "Empty bench", site);
+        var gone = await AddAsync(nursery.Owner, "Bay no longer used", empty);
+        var plant = Json(await PostForTextAsync(nursery.Owner, "/api/plants", new { commonName = "Sage", xylellaHost = false, protectedVariety = false })).GetProperty("id").GetGuid();
+        await PostForTextAsync(nursery.Owner, "/api/batches", new
+        {
+            eventId = Guid.CreateVersion7(),
+            occurredAt = DateTimeOffset.UtcNow,
+            plantId = plant,
+            quantity = 10,
+            source = "SeedLot",
+            originCountry = "GB",
+            containerKind = "Tray",
+            locationId = bench,
+        });
+
+        using (var toSite = await nursery.Owner.PutAsJsonAsync(Route($"/api/locations/{bench}/kind"), new { kind = "Site" }, Cancellation))
+        {
+            Assert.Equal(HttpStatusCode.Conflict, toSite.StatusCode);
+            Assert.Equal("HasTrays", (await toSite.Content.ReadFromJsonAsync<JsonElement>(Cancellation)).GetProperty("problem").GetString());
+        }
+
+        using (var retired = await nursery.Owner.PostAsync(Route($"/api/locations/{gone}/archive"), null, Cancellation))
+        {
+            Assert.Equal(HttpStatusCode.NoContent, retired.StatusCode);
+        }
+
+        using (var blocked = await nursery.Owner.DeleteAsync(Route($"/api/locations/{empty}"), Cancellation))
+        {
+            Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
+            Assert.Equal("HasPlaces", (await blocked.Content.ReadFromJsonAsync<JsonElement>(Cancellation)).GetProperty("problem").GetString());
+        }
+
+        using (var deleteChild = await nursery.Owner.DeleteAsync(Route($"/api/locations/{gone}"), Cancellation))
+        {
+            Assert.Equal(HttpStatusCode.NoContent, deleteChild.StatusCode);
+        }
+
+        using (var deleteParent = await nursery.Owner.DeleteAsync(Route($"/api/locations/{empty}"), Cancellation))
+        {
+            Assert.Equal(HttpStatusCode.NoContent, deleteParent.StatusCode);
+        }
+
+        using (var missing = await nursery.Owner.DeleteAsync(Route($"/api/locations/{empty}"), Cancellation))
+        {
+            Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+        }
+    }
 }

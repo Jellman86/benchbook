@@ -381,6 +381,13 @@ internal static class CatalogueEndpoints
         kind == LocationKind.Site ? parent is null : parent is not null;
 
     /// <summary>A place still holding trays, or other places, can't stop being used, or they would be left nowhere.</summary>
+    /// <summary>How many trays with plants in them stand directly in this place now.</summary>
+    internal static async Task<int> TraysStandingInAsync(Guid id, EventStore store, CancellationToken cancellationToken)
+    {
+        var containerIds = (await store.GetStockAsync(cancellationToken)).Select(row => row.ContainerId).Distinct().ToList();
+        return (await store.GetPlacementsAsync(containerIds, cancellationToken)).Values.Count(placement => placement.LocationId == id);
+    }
+
     private static async Task<ArchiveRefused?> WhyPlaceIsInUseAsync(Guid id, HortiplannerDbContext db, EventStore store, CancellationToken cancellationToken)
     {
         var places = await db.Locations.CountAsync(location => location.ParentId == id && location.ArchivedAt == null, cancellationToken);
@@ -390,9 +397,7 @@ internal static class CatalogueEndpoints
             return new ArchiveRefused("HasPlaces", places);
         }
 
-        var containerIds = (await store.GetStockAsync(cancellationToken)).Select(row => row.ContainerId).Distinct().ToList();
-        var trays = (await store.GetPlacementsAsync(containerIds, cancellationToken)).Values.Count(placement => placement.LocationId == id);
-
+        var trays = await TraysStandingInAsync(id, store, cancellationToken);
         return trays > 0 ? new ArchiveRefused("HasTrays", trays) : null;
     }
 

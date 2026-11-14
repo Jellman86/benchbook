@@ -200,19 +200,29 @@
     !!place && newKind !== "Site" && !place.parentId,
   );
 
+  // Plant passports count time under cover in a greenhouse, polytunnel or cold frame.
+  const covered = ["Greenhouse", "Polytunnel", "ColdFrame"];
+  const coverChanges = $derived(
+    !!place && covered.includes(place.kind) !== covered.includes(newKind),
+  );
+
   const changeKind = (event: SubmitEvent) => {
     event.preventDefault();
 
     return attempt(async () => {
-      const { response } = await api.PUT("/api/locations/{id}/kind", {
+      const { response, error } = await api.PUT("/api/locations/{id}/kind", {
         params: { path: { id: placeId } },
         body: { kind: newKind, parentId: needsParent ? newParent : null },
       });
       problem = response.ok
         ? ""
-        : response.status === 409
-          ? "There's already a place with that name there."
-          : "It can't go there.";
+        : error?.problem === "HasTrays"
+          ? "Trays can't stand on a site. Move the trays out first."
+          : response.status === 409
+            ? "There's already a place with that name there."
+            : response.status === 400
+              ? "It can't go there."
+              : "That didn't save. Please try again.";
       task = response.ok ? null : task;
       await load();
     }, setProblem);
@@ -220,22 +230,26 @@
 
   const whyKept: Record<string, string> = {
     HasPlaces:
-      "It has places inside it. Move or delete those first, or mark it no longer used.",
+      "It has places inside it, perhaps ones no longer used. Delete those first.",
     HasWork:
       "Work has been recorded there, so it's kept for the records. Mark it no longer used instead.",
     HasSensors:
       "A sensor is or was there, so it's kept for its readings. Mark it no longer used instead.",
     HasRecords:
       "Mother plants or jobs refer to it, so it's kept. Mark it no longer used instead.",
+    JustUsed: "Something has just been recorded there, so it's kept.",
   };
+
+  // Only offered for a place that looks unused; the server still has the last word.
+  const mightDelete = $derived(
+    !!place && !place.lastUsedAt && inside.length === 0 && trays.length === 0,
+  );
 
   const remove = () =>
     attempt(async () => {
       if (
         !place ||
-        !confirm(
-          `Delete ${place.name} for good? Only a place added by mistake, with nothing ever recorded there, can be deleted.`,
-        )
+        !confirm(`Delete ${place.name} for good? This can't be undone.`)
       ) {
         return;
       }
@@ -404,9 +418,11 @@
               }}>Change type</button
             >
             <button class="secondary" onclick={retire}>No longer used</button>
-            <button class="secondary destructive" onclick={remove}
-              >Delete</button
-            >
+            {#if mightDelete}
+              <button class="secondary destructive" onclick={remove}
+                >Delete</button
+              >
+            {/if}
           </div>
           {#if task === "rename"}
             <form class="card stack" onsubmit={rename}>
@@ -423,14 +439,18 @@
           {:else if task === "kind"}
             <form class="card stack" onsubmit={changeKind}>
               <label>
-                What sort of place it is
+                Type
                 <select bind:value={newKind}>
                   {#each placeKinds as option (option.kind)}
                     <option value={option.kind}>{option.label}</option>
                   {/each}
                 </select>
               </label>
-              {#if needsParent}
+              {#if needsParent && possibleParents(place.id, places).length === 0}
+                <p class="muted">
+                  Add another site first: it needs somewhere to sit.
+                </p>
+              {:else if needsParent}
                 <label>
                   Put it inside
                   <select bind:value={newParent} required>
@@ -450,6 +470,12 @@
                 Its label number stays the same, so labels already printed still
                 work.
               </p>
+              {#if coverChanges}
+                <p class="muted">
+                  This changes whether trays here count as under cover for plant
+                  passports.
+                </p>
+              {/if}
               <div class="row">
                 <button type="submit" disabled={newKind === place.kind}
                   >Save</button
