@@ -8,8 +8,8 @@
 <main>
   <h1>Signing in</h1>
   <p class="muted">
-    How staff get into GrowLog. Each person's password, PIN and invitation are
-    under Staff.
+    How staff get into Hortiplanner. Each person's password, PIN and invitation
+    are under Staff.
   </p>
 
   <div class="split">

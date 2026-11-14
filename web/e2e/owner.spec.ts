@@ -69,7 +69,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   // Owner setup, refused with the wrong code first.
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "Set up GrowLog" }),
+    page.getByRole("heading", { name: "Set up Hortiplanner" }),
   ).toBeVisible();
   await page.getByLabel("Setup code").fill("wrong");
   await page.getByLabel("Your name").fill("Sam Fielding");
@@ -369,15 +369,15 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await sidebar.getByRole("button", { name: "Figures" }).click();
   await expect(page.getByRole("heading", { name: "Figures" })).toBeVisible();
 
-  // Settings keep their own list beside the page, and say which GrowLog this is.
+  // Settings keep their own list beside the page, and say which Hortiplanner this is.
   await button(page, "Settings").click();
   const settings = page.getByRole("navigation", { name: "Settings" });
   await expect(page.getByRole("heading", { name: "My account" })).toBeVisible();
-  await settings.getByRole("button", { name: "About GrowLog" }).click();
+  await settings.getByRole("button", { name: "About Hortiplanner" }).click();
   await expect(page.getByText("development", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Source code" })).toHaveAttribute(
     "href",
-    "https://github.com/Jellman86/growlog",
+    "https://github.com/Jellman86/hortiplanner",
   );
   await settings.getByRole("button", { name: "Signing in" }).click();
   await expect(page.getByTestId("redirect-uri")).toBeVisible();
@@ -396,7 +396,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
     page.getByRole("button", { name: "Expand sidebar" }),
   ).toBeVisible();
 
-  // GrowLog is light until someone chooses dark, or to follow the device.
+  // Hortiplanner is light until someone chooses dark, or to follow the device.
   const root = page.locator("html");
   await expect(root).toHaveAttribute("data-theme", "light");
   await page.getByRole("button", { name: "Theme: Light" }).click();
@@ -471,7 +471,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await expect(page.getByTestId("redirect-uri")).toContainText("/signin-oidc");
   await page.getByLabel("Offer this on the sign-in page").check();
   await page.getByLabel("Provider address").fill("http://not-secure.test");
-  await page.getByLabel("Client ID").fill("growlog");
+  await page.getByLabel("Client ID").fill("hortiplanner");
   await button(page, "Save").click();
   await expect(page.getByRole("alert")).toContainText("https address");
   await leaveManage(page);
@@ -967,7 +967,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
     phonePage.getByRole("heading", { name: "Hello, Alex Moss" }),
   ).toBeVisible();
   await phonePage.waitForFunction(() =>
-    (localStorage.getItem("growlog.containers") ?? "").includes("C"),
+    (localStorage.getItem("hortiplanner.containers") ?? "").includes("C"),
   );
 
   await phone.setOffline(true);

@@ -35,7 +35,7 @@ export type SettingsItem = {
   page: SettingsPage;
   label: string;
   icon: typeof Info;
-  /** Shown only while this part of GrowLog is on. */
+  /** Shown only while this part of Hortiplanner is on. */
   feature?: Feature;
 };
 
@@ -101,9 +101,9 @@ const groups: SettingsGroup[] = [
     items: [{ page: "data", label: "Data and backups", icon: DatabaseBackup }],
   },
   {
-    heading: "GrowLog",
+    heading: "Hortiplanner",
     ownerOnly: false,
-    items: [{ page: "about", label: "About GrowLog", icon: Info }],
+    items: [{ page: "about", label: "About Hortiplanner", icon: Info }],
   },
 ];
 

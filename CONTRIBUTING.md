@@ -16,7 +16,7 @@ The backend tests start a throwaway PostgreSQL container, so they need Docker. T
 To add a migration, run `dotnet tool restore`, then:
 
 ```sh
-ConnectionStrings__GrowLog=Host=localhost dotnet ef migrations add <Name> --project src/GrowLog.Api --output-dir Data/Migrations
+ConnectionStrings__Hortiplanner=Host=localhost dotnet ef migrations add <Name> --project src/Hortiplanner.Api --output-dir Data/Migrations
 ```
 
 The command only needs a connection string to be set. It does not connect to a database. The application applies migrations when it starts.
@@ -30,7 +30,7 @@ Once a migration is merged it may already have run somewhere, so never edit it: 
 Staff mostly use iPhones, so the phone specs (`iphone`, `ask` and `review-phone`) also run in WebKit, Safari's engine, at iPhone 15 size, as the `iphone` project. Check every screen change at iPhone width. Where WebKit can't run on the machine itself, start Playwright's server in its official image and point the tests at it:
 
 ```sh
-docker run -d --rm --name growlog-webkit --network host --init mcr.microsoft.com/playwright:v1.65.0-noble \
+docker run -d --rm --name hortiplanner-webkit --network host --init mcr.microsoft.com/playwright:v1.65.0-noble \
   /bin/sh -c "cd /tmp && npx -y playwright@1.65.0 run-server --port 3123 --host 127.0.0.1"
 PW_WEBKIT_WS=ws://127.0.0.1:3123/ npx playwright test --project=iphone
 ```
@@ -40,7 +40,7 @@ PW_WEBKIT_WS=ws://127.0.0.1:3123/ npx playwright test --project=iphone
 The web client is generated from the API. After changing an endpoint, refresh it, and commit both generated files in `web/src/api`:
 
 ```sh
-dotnet build src/GrowLog.Api -p:OpenApiGenerateDocumentsOnBuild=true
+dotnet build src/Hortiplanner.Api -p:OpenApiGenerateDocumentsOnBuild=true
 npm --prefix web run generate:api
 ```
 

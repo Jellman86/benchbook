@@ -24,7 +24,7 @@
     kinds?: BatchPhotoKind[];
     /** Said when the batch has no photos; without it, nothing is shown. */
     emptyText?: string | null;
-    /** Asks Ask GrowLog about a photo, when this person can ask. */
+    /** Asks Ask Hortiplanner about a photo, when this person can ask. */
     onAsk?: (photoId: string) => void;
   } = $props();
 

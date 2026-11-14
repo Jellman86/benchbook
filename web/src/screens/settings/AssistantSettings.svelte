@@ -4,7 +4,7 @@
   import { dollars, loadAssistant } from "../../lib/assistant.svelte";
   import { attempt, type Schemas } from "../../lib/types";
 
-  // Ask GrowLog's set-up: the owner's OpenRouter key, kept encrypted on the server and never shown again, the model it
+  // Ask Hortiplanner's set-up: the owner's OpenRouter key, kept encrypted on the server and never shown again, the model it
   // uses, and who can ask.
   let { onBack }: { onBack: () => void } = $props();
 
@@ -90,7 +90,7 @@
         : "That key doesn't look right. OpenRouter keys start sk-or-.";
       saved = response.ok
         ? takeKeyAway
-          ? "Key taken away. Ask GrowLog is off until a key is added."
+          ? "Key taken away. Ask Hortiplanner is off until a key is added."
           : "Saved."
         : "";
       key = "";
@@ -103,9 +103,9 @@
 <main>
   <h1>AI assistant</h1>
   <p class="muted">
-    Ask GrowLog answers questions about plants and the nursery's records, and
-    looks at photos of plants, using an AI model you choose through OpenRouter.
-    You pay OpenRouter for what it uses; GrowLog adds nothing.
+    Ask Hortiplanner answers questions about plants and the nursery's records,
+    and looks at photos of plants, using an AI model you choose through
+    OpenRouter. You pay OpenRouter for what it uses; Hortiplanner adds nothing.
   </p>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   {#if saved}<p class="card done" role="status">{saved}</p>{/if}
@@ -167,8 +167,8 @@
           Each person can ask up to 40 questions an hour. The real cap on
           spending is the limit you set on the key at openrouter.ai. It never
           sees customers, money or who recorded the work, though notes are sent
-          as typed. GrowLog keeps what each question cost, who asked and when,
-          not what was asked.
+          as typed. Hortiplanner keeps what each question cost, who asked and
+          when, not what was asked.
         </p>
       </div>
       <button type="submit">Save</button>

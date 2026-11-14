@@ -22,7 +22,7 @@
   }: {
     onBack: () => void;
     canManage?: boolean;
-    /** Asks Ask GrowLog about a plant, when this person can ask. */
+    /** Asks Ask Hortiplanner about a plant, when this person can ask. */
     onAsk?: (about: AskAbout) => void;
   } = $props();
 

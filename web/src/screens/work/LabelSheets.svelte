@@ -390,7 +390,7 @@
   {#if sent}
     <p class="card done" role="status">
       <Printer size={18} /> The labels open in a new tab, ready to print. If nothing
-      opened, allow pop-ups for GrowLog and make them again.
+      opened, allow pop-ups for Hortiplanner and make them again.
     </p>
   {/if}
   <div class="row">

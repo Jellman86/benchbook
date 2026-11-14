@@ -2,9 +2,9 @@ import type { Me } from "./boot";
 import type { Schemas } from "./types";
 
 const keys = {
-  me: "growlog.me",
-  containers: "growlog.containers",
-  places: "growlog.places",
+  me: "hortiplanner.me",
+  containers: "hortiplanner.containers",
+  places: "hortiplanner.places",
 };
 
 function read<T>(key: string): T | null {
@@ -23,7 +23,7 @@ export function rememberMe(me: Me | null) {
 /** The last person signed in, for working with no signal; never on a bench, where anyone could pick it up. */
 export const rememberedMe = () => (isBenchDevice() ? null : read<Me>(keys.me));
 
-const benchKey = "growlog.benchDevice";
+const benchKey = "hortiplanner.benchDevice";
 
 export function isBenchDevice(): boolean {
   try {

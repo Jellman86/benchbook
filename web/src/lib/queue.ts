@@ -30,8 +30,8 @@ export class WorkQueue {
     private readonly store: Store,
     owner: string,
   ) {
-    this.waitingKey = `growlog.queue.${owner}`;
-    this.failedKey = `growlog.failed.${owner}`;
+    this.waitingKey = `hortiplanner.queue.${owner}`;
+    this.failedKey = `hortiplanner.failed.${owner}`;
   }
 
   private state(): { waiting: QueuedWork[]; failed: FailedWork[] } {
@@ -185,7 +185,7 @@ export function stopQueue() {
   active = null;
 }
 
-const nameKey = (owner: string) => `growlog.queueName.${owner}`;
+const nameKey = (owner: string) => `hortiplanner.queueName.${owner}`;
 
 export function useQueue(owner: string, name?: string): WorkQueue {
   stopQueue();
@@ -212,8 +212,8 @@ export function waitingByOthers(
   try {
     for (let index = 0; index < store.length; index += 1) {
       const key = store.key(index) ?? "";
-      const owner = key.startsWith("growlog.queue.")
-        ? key.slice("growlog.queue.".length)
+      const owner = key.startsWith("hortiplanner.queue.")
+        ? key.slice("hortiplanner.queue.".length)
         : null;
 
       if (!owner || owner === me) {

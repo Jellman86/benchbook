@@ -3,7 +3,7 @@ import type { paths } from "./schema";
 
 export const api = createClient<paths>({ baseUrl: "" });
 
-export const sessionEnded = "growlog:session-ended";
+export const sessionEnded = "hortiplanner:session-ended";
 
 // Asking who is signed in is expected to answer 401, so it isn't a session ending.
 const probes = ["/api/account/me", "/api/bench/people"];

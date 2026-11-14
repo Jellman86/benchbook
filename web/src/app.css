@@ -1,4 +1,4 @@
-/* Colours are taken from the GrowLog artwork, a lacecap hydrangea. Its leaf green
+/* Colours are taken from the Hortiplanner artwork, a lacecap hydrangea. Its leaf green
    leads: green is for things to press. The florets are highlights with one job
    each: periwinkle blue (--accent) for where you are, what's chosen and what's
    just been saved; lilac (--badge) for stage badges; and blue, lilac and pink
@@ -2983,7 +2983,7 @@ button.production-row.chosen:hover:not(:disabled) {
   width: 6rem;
 }
 
-/* Settings, Features: a switch per optional part of GrowLog. */
+/* Settings, Features: a switch per optional part of Hortiplanner. */
 .feature-list {
   display: grid;
   gap: 0.75rem;
@@ -3179,7 +3179,7 @@ button.production-row.chosen:hover:not(:disabled) {
   cursor: pointer;
 }
 
-/* Ask GrowLog: a conversation, with the question box kept in reach at the foot of a phone's screen. */
+/* Ask Hortiplanner: a conversation, with the question box kept in reach at the foot of a phone's screen. */
 .ask h1 {
   display: flex;
   align-items: center;
@@ -3416,7 +3416,7 @@ button.production-row.chosen:hover:not(:disabled) {
   margin-top: 0.2rem;
 }
 
-/* Record work: Ask GrowLog, offered as a card when this person can ask. */
+/* Record work: Ask Hortiplanner, offered as a card when this person can ask. */
 .ask-card {
   display: flex;
   align-items: center;
@@ -3943,7 +3943,7 @@ select:not([multiple]) {
   }
 }
 
-/* What Ask GrowLog's questions have cost: a quiet line on a phone, and each person's spend in Settings. */
+/* What Ask Hortiplanner's questions have cost: a quiet line on a phone, and each person's spend in Settings. */
 .ask-spend {
   display: flex;
   align-items: center;

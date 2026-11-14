@@ -100,7 +100,7 @@
     labelSheets: "Labels on A4",
     plants: "Plants",
     manage: "Manage",
-    ask: "Ask GrowLog",
+    ask: "Ask Hortiplanner",
   };
   const sendEvery = 30 * 1000;
   const cameraAvailable = !!navigator.mediaDevices?.getUserMedia;
@@ -169,7 +169,7 @@
       case "plants":
         return [{ label: "Plants", go: () => again({ name: "plants" }) }];
       case "ask":
-        return [recordWorkCrumb, { label: "Ask GrowLog" }];
+        return [recordWorkCrumb, { label: "Ask Hortiplanner" }];
       case "settings":
         return [
           {
@@ -274,7 +274,7 @@
       }
     }
 
-    document.title = `${screenTitles[current.name]} · GrowLog`;
+    document.title = `${screenTitles[current.name]} · Hortiplanner`;
 
     // Someone using a screen reader or keyboard starts at the top of the new screen.
     if (current.name !== "home") {
@@ -354,7 +354,7 @@
       }
     } catch {
       problem =
-        "This device could not update its waiting work. Keep GrowLog open and try again.";
+        "This device could not update its waiting work. Keep Hortiplanner open and try again.";
     } finally {
       sending = false;
     }
@@ -537,7 +537,7 @@
   // A change the owner makes to Settings, Features reaches this device when the app comes back into view.
   onMount(watchFeatures);
 
-  // Whether Ask GrowLog can be offered, checked again whenever the app comes back into view.
+  // Whether Ask Hortiplanner can be offered, checked again whenever the app comes back into view.
   onMount(() => {
     const visible = () => {
       if (document.visibilityState === "visible") {
@@ -608,7 +608,7 @@
     };
   });
 
-  // Ask GrowLog about something on screen, when this person can ask and isn't at a shared bench.
+  // Ask Hortiplanner about something on screen, when this person can ask and isn't at a shared bench.
   const askAbout = $derived(
     assistant.canAsk && !atBench
       ? (about: AskAbout) => (view = { name: "ask", about })
@@ -616,7 +616,7 @@
   );
 </script>
 
-<!-- Ask GrowLog about what's on screen, wherever it can be asked: one way in for trays, plants and photos. -->
+<!-- Ask Hortiplanner about what's on screen, wherever it can be asked: one way in for trays, plants and photos. -->
 {#snippet screen()}
   {#if view.name === "manage"}
     <Manage
@@ -719,8 +719,8 @@
       {#if waiting > 0}
         <p class="card notice" data-testid="waiting">
           {waiting}
-          {waiting === 1 ? "thing" : "things"} waiting to send. Keep GrowLog open
-          when you're back in signal.
+          {waiting === 1 ? "thing" : "things"} waiting to send. Keep Hortiplanner
+          open when you're back in signal.
         </p>
       {/if}
 
@@ -774,7 +774,7 @@
             <button class="ask-card" onclick={() => (view = { name: "ask" })}>
               <Sparkles size={22} aria-hidden="true" />
               <span class="stack tight">
-                <strong>Ask GrowLog</strong>
+                <strong>Ask Hortiplanner</strong>
                 <span class="muted"
                   >About plants, the trays, losses and photos of plants</span
                 >
@@ -926,7 +926,7 @@
     <div class="content">
       <div class="topbar">
         <img src="/logo-96.png" alt="" width="32" height="32" />
-        GrowLog
+        Hortiplanner
       </div>
       <Breadcrumbs />
       {#key fresh}{@render screen()}{/key}

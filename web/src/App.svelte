@@ -80,9 +80,9 @@
 
 {#if unreachable}
   <main>
-    <h1>GrowLog</h1>
+    <h1>Hortiplanner</h1>
     <p class="problem">
-      Can't reach GrowLog. Check the connection and try again.
+      Can't reach Hortiplanner. Check the connection and try again.
     </p>
     <button onclick={() => load()}>Try again</button>
   </main>

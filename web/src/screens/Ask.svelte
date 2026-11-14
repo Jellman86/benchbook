@@ -16,7 +16,7 @@
   import { isOn } from "../lib/features.svelte";
   import { shrinkPhoto } from "../lib/photo";
 
-  // Ask GrowLog: questions about plants, the nursery's records and photos of plants. The conversation stays on this
+  // Ask Hortiplanner: questions about plants, the nursery's records and photos of plants. The conversation stays on this
   // device for the session; the server keeps only what each question cost, who asked and when.
   let {
     me,
@@ -38,7 +38,7 @@
     cost?: number;
   };
 
-  const storageKey = $derived(`growlog.ask.${me.id}`);
+  const storageKey = $derived(`hortiplanner.ask.${me.id}`);
   const finePointer = matchMedia("(pointer: fine)").matches;
   const mostPhotos = 4;
 
@@ -56,7 +56,7 @@
   function remembered(): Line[] {
     try {
       const kept: unknown = JSON.parse(
-        sessionStorage.getItem(`growlog.ask.${me.id}`) ?? "[]",
+        sessionStorage.getItem(`hortiplanner.ask.${me.id}`) ?? "[]",
       );
       return Array.isArray(kept) ? (kept as Line[]) : [];
     } catch {
@@ -119,7 +119,7 @@
 
   const refusals: Record<string, string> = {
     NotSetUp:
-      "Ask GrowLog isn't set up yet. The owner adds an OpenRouter key and chooses a model under Settings, AI assistant.",
+      "Ask Hortiplanner isn't set up yet. The owner adds an OpenRouter key and chooses a model under Settings, AI assistant.",
     TooMany:
       "That's a lot of questions this hour. Please wait a while before asking more.",
     KeyRefused:
@@ -182,7 +182,7 @@
         problem =
           (reason && refusals[reason]) ??
           (response.status === 403
-            ? "The owner hasn't let staff use Ask GrowLog."
+            ? "The owner hasn't let staff use Ask Hortiplanner."
             : "That couldn't be asked. Please try again.");
         // The question goes back in the box, so it isn't lost.
         lines = lines.slice(0, -1);
@@ -190,7 +190,7 @@
         photos = sent;
       }
     } catch {
-      problem = "Can't reach GrowLog. Check the connection and try again.";
+      problem = "Can't reach Hortiplanner. Check the connection and try again.";
       lines = lines.slice(0, -1);
       question = wanted;
       photos = sent;
@@ -280,7 +280,7 @@
   <div class="ask-layout">
     <section class="ask-conversation" aria-label="Conversation">
       <div class="title-row">
-        <h1><Sparkles size={26} aria-hidden="true" /> Ask GrowLog</h1>
+        <h1><Sparkles size={26} aria-hidden="true" /> Ask Hortiplanner</h1>
         {#if lines.length > 0}
           <button class="link-button" onclick={startAgain}>Start again</button>
         {/if}
@@ -460,8 +460,8 @@
           Plants, places, trays, work, losses, treatments, climate, notes as
           they were typed, and the photos you add, to the model the owner chose
           through OpenRouter, asking for providers that keep nothing. Never
-          customers, money or who recorded the work. GrowLog's server keeps what
-          each question cost, who asked and when, not what was asked.
+          customers, money or who recorded the work. Hortiplanner's server keeps
+          what each question cost, who asked and when, not what was asked.
         </p>
       </div>
     </aside>

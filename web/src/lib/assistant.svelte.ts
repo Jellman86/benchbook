@@ -2,7 +2,7 @@ import { api } from "../api/client";
 import { isOn } from "./features.svelte";
 import type { Schemas } from "./types";
 
-// Whether this person can use Ask GrowLog, and whether its model reads photos, for screens to offer it.
+// Whether this person can use Ask Hortiplanner, and whether its model reads photos, for screens to offer it.
 /** What a question is asked from: a tray, a plant or one of a batch's photos, with words to show for it. */
 export type AskAbout = {
   title: string;

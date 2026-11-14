@@ -8,7 +8,7 @@
   } from "../../lib/features.svelte";
   import { onMount } from "svelte";
 
-  // Parts of GrowLog a nursery may not use. Off hides them everywhere for everyone; their records are kept, so
+  // Parts of Hortiplanner a nursery may not use. Off hides them everywhere for everyone; their records are kept, so
   // turning one back on brings it all back.
   let { onBack }: { onBack: () => void } = $props();
 
@@ -26,7 +26,7 @@
         problem = "That couldn't be changed. Please try again.";
       }
     } catch {
-      problem = "Can't reach GrowLog. Check the connection and try again.";
+      problem = "Can't reach Hortiplanner. Check the connection and try again.";
     } finally {
       busy = null;
       // Shows what's really saved, whether or not the change went through.

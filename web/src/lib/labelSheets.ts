@@ -2,7 +2,7 @@ import type { Schemas } from "./types";
 
 export type SheetLayout = Schemas["SheetLayout"];
 
-const sheetKey = "growlog.labelSheet";
+const sheetKey = "hortiplanner.labelSheet";
 
 /** The sheet this device used last, so the usual one is already chosen. */
 export function rememberedSheet(): string | null {

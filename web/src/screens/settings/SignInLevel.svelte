@@ -3,7 +3,7 @@
   import { api } from "../../api/client";
   import { attempt, type Schemas } from "../../lib/types";
 
-  // How much signing in the nursery wants. Only GrowLog's own sign-in is affected.
+  // How much signing in the nursery wants. Only Hortiplanner's own sign-in is affected.
   let level = $state<Schemas["SignInLevel"] | null>(null);
   let problem = $state("");
 
@@ -61,8 +61,8 @@
         looser[chosen] < looser[level] &&
         !confirm(
           chosen === "Open"
-            ? "Let any device on the nursery's network straight in, with no signing in? Only do this if GrowLog can't be reached from outside the nursery."
-            : "Let staff sign in by tapping their name, with nothing to type? Only do this if GrowLog can't be reached from outside the nursery.",
+            ? "Let any device on the nursery's network straight in, with no signing in? Only do this if Hortiplanner can't be reached from outside the nursery."
+            : "Let staff sign in by tapping their name, with nothing to type? Only do this if Hortiplanner can't be reached from outside the nursery.",
         )
       ) {
         await load();

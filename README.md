@@ -1,8 +1,8 @@
-# GrowLog
+# Hortiplanner
 
-Simple, open-source record keeping for small plant nurseries.
+Simple, open-source record keeping for small plant nurseries. Formerly called GrowLog.
 
-GrowLog is for the people doing the work. Scan a label, press what happened, and get on with the day. Stock counts, survival figures, plant labels and plant health records come from that, with no separate paperwork.
+Hortiplanner is for the people doing the work. Scan a label, press what happened, and get on with the day. Stock counts, survival figures, plant labels and plant health records come from that, with no separate paperwork.
 
 **Status: early development.** Stage one, for recording work at the nursery, is being finished and is not yet ready for general use. The [product specification](docs/spec.md) describes what is being built.
 
@@ -15,7 +15,7 @@ GrowLog is for the people doing the work. Scan a label, press what happened, and
 - Keep the records needed for UK plant passports and plant health inspections.
 - Keep supplier details and simple records of buying and selling.
 - Show greenhouse temperature and humidity from sensors, and places on a map or the nursery's own picture.
-- Optionally, answer questions about plants and the nursery's records with an AI model the nursery chooses (Ask GrowLog), showing each person what their questions cost.
+- Optionally, answer questions about plants and the nursery's records with an AI model the nursery chooses (Ask Hortiplanner), showing each person what their questions cost.
 
 The first release targets nurseries in England and Wales.
 

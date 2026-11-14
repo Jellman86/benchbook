@@ -75,7 +75,7 @@
           : "That didn't work. Please try again.";
       }
     } catch {
-      problem = "Can't reach GrowLog. Check the connection and try again.";
+      problem = "Can't reach Hortiplanner. Check the connection and try again.";
     } finally {
       busy = false;
     }

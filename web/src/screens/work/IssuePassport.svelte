@@ -8,7 +8,7 @@
   import PassportCard from "./PassportCard.svelte";
   import Stepper from "./Stepper.svelte";
 
-  // Issuing a UK plant passport for plants of one batch in this tray. GrowLog fills in every part; the
+  // Issuing a UK plant passport for plants of one batch in this tray. Hortiplanner fills in every part; the
   // person examines the plants, says so, and says where they're going.
   let {
     containerId,

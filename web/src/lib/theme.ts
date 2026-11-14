@@ -1,7 +1,7 @@
 export type Theme = "system" | "light" | "dark";
 
-const themeKey = "growlog.theme";
-const sidebarKey = "growlog.sidebar";
+const themeKey = "hortiplanner.theme";
+const sidebarKey = "hortiplanner.sidebar";
 
 export const themes: { theme: Theme; label: string }[] = [
   { theme: "system", label: "Match device" },

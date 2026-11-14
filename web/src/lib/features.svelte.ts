@@ -1,10 +1,10 @@
 import { api } from "../api/client";
 import type { Schemas } from "./types";
 
-// Parts of GrowLog the owner can turn off under Settings, Features. Off means hidden everywhere; records are kept.
+// Parts of Hortiplanner the owner can turn off under Settings, Features. Off means hidden everywhere; records are kept.
 export type Feature = Schemas["NurseryFeature"];
 
-const storageKey = "growlog.featuresOff";
+const storageKey = "hortiplanner.featuresOff";
 
 function remembered(): Feature[] {
   try {
@@ -17,7 +17,7 @@ function remembered(): Feature[] {
 
 const state = $state({ off: remembered() });
 
-/** Whether a part of GrowLog is on. Everything is on until the owner turns it off. */
+/** Whether a part of Hortiplanner is on. Everything is on until the owner turns it off. */
 export const isOn = (feature: Feature) => !state.off.includes(feature);
 
 /** Whether any of these parts is on, for screens several parts share. */
@@ -130,9 +130,9 @@ export const featureInfo: FeatureInfo[] = [
   },
   {
     feature: "Assistant",
-    label: "Ask GrowLog (AI)",
+    label: "Ask Hortiplanner (AI)",
     hides:
-      "Ask GrowLog everywhere and Settings, AI assistant. It also needs an OpenRouter key there before anyone can ask.",
+      "Ask Hortiplanner everywhere and Settings, AI assistant. It also needs an OpenRouter key there before anyone can ask.",
   },
   {
     feature: "BenchStations",

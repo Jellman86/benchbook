@@ -32,16 +32,16 @@ jobs:
           tar -xJf /tmp/typst.tar.xz --strip-components=1 -C "$HOME/.local/bin" typst-x86_64-unknown-linux-musl/typst
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Restore, with dependency audit
-        run: dotnet restore GrowLog.slnx
+        run: dotnet restore Hortiplanner.slnx
       - name: Check formatting
-        run: dotnet format GrowLog.slnx --verify-no-changes --no-restore
+        run: dotnet format Hortiplanner.slnx --verify-no-changes --no-restore
       - name: Build, treating warnings and analyser findings as errors
-        run: dotnet build GrowLog.slnx --configuration Release --no-restore
+        run: dotnet build Hortiplanner.slnx --configuration Release --no-restore
       - name: Test
-        run: dotnet test --solution GrowLog.slnx --configuration Release --no-build
+        run: dotnet test --solution Hortiplanner.slnx --configuration Release --no-build
       - name: Check the API contract is current
         run: |
-          dotnet build src/GrowLog.Api --configuration Release --no-restore -p:OpenApiGenerateDocumentsOnBuild=true
+          dotnet build src/Hortiplanner.Api --configuration Release --no-restore -p:OpenApiGenerateDocumentsOnBuild=true
           git diff --exit-code web/src/api/openapi.json
 
   migrations:
@@ -55,7 +55,7 @@ jobs:
           persist-credentials: false
       - name: Refuse changes to migrations that are already merged
         run: |
-          changed=$(git diff --name-status --diff-filter=MDR "origin/$GITHUB_BASE_REF...HEAD" -- src/GrowLog.Api/Data/Migrations ':!src/GrowLog.Api/Data/Migrations/GrowLogDbContextModelSnapshot.cs')
+          changed=$(git diff --name-status --diff-filter=MDR "origin/$GITHUB_BASE_REF...HEAD" -- src/Hortiplanner.Api/Data/Migrations ':!src/Hortiplanner.Api/Data/Migrations/HortiplannerDbContextModelSnapshot.cs')
           if [ -n "$changed" ]; then
             echo "$changed"
             echo "::error::A merged migration may already have run. Add a new migration instead."
@@ -64,9 +64,9 @@ jobs:
       - name: Keep migrations in one straight line
         run: |
           ids() { sed -n 's#.*/\([0-9]\{14\}\)_.*#\1#p' | sort -u; }
-          newest=$(git ls-tree --name-only "origin/$GITHUB_BASE_REF" src/GrowLog.Api/Data/Migrations/ | ids | tail -1)
-          for id in $(git diff --name-only --diff-filter=A "origin/$GITHUB_BASE_REF...HEAD" -- src/GrowLog.Api/Data/Migrations | ids); do
-            if [ "$id" -le "$newest" ]; then
+          newest=$(git ls-tree --name-only "origin/$GITHUB_BASE_REF" src/Hortiplanner.Api/Data/Migrations/ | ids | tail -1)
+          for id in $(git diff --name-only --diff-filter=A "origin/$GITHUB_BASE_REF...HEAD" -- src/Hortiplanner.Api/Data/Migrations | ids); do
+            if [ -n "$newest" ] && [ "$id" -le "$newest" ]; then
               echo "::error::Migration $id is older than $newest on $GITHUB_BASE_REF. Update this branch and regenerate it."
               exit 1
             fi
@@ -140,4 +140,4 @@ jobs:
         with:
           persist-credentials: false
       - name: Build the container image
-        run: docker build --tag growlog:ci .
+        run: docker build --tag hortiplanner:ci .

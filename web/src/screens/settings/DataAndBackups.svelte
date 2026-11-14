@@ -52,7 +52,7 @@
         {#if !backups}
           <p class="muted">Checking…</p>
         {:else if !backups.known}
-          <p>GrowLog hasn't heard from its backups yet.</p>
+          <p>Hortiplanner hasn't heard from its backups yet.</p>
           <p class="muted">
             On a new server that's expected until the first hourly backup has
             run. If it carries on, ask whoever looks after the server.
@@ -79,7 +79,7 @@
             </dd>
           </dl>
           <p class="muted">
-            The server backs GrowLog up and copies the backup to another
+            The server backs Hortiplanner up and copies the backup to another
             computer. If either is more than a couple of hours late, the home
             screen says so.
           </p>
@@ -119,8 +119,8 @@
             >
           {:else}
             <p>
-              GrowLog already has plants or batches in it, so example data can't
-              be added. Start afresh below to empty it first.
+              Hortiplanner already has plants or batches in it, so example data
+              can't be added. Start afresh below to empty it first.
             </p>
           {/if}
         </div>
@@ -128,9 +128,9 @@
         <ClearRecords />
       {:else if demo}
         <p class="muted">
-          GrowLog is keeping real records, so example data and starting afresh
-          are switched off. Plant passport records have to be kept for three
-          years.
+          Hortiplanner is keeping real records, so example data and starting
+          afresh are switched off. Plant passport records have to be kept for
+          three years.
         </p>
       {/if}
     </section>

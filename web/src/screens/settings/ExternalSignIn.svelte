@@ -6,7 +6,8 @@
   // Single sign-on through the nursery's OpenID Connect provider, such as Authentik.
   const problems: Record<string, string> = {
     incomplete: "Enter an https address, a client ID and a client secret.",
-    unreachable: "GrowLog couldn't reach that provider. Check the address.",
+    unreachable:
+      "Hortiplanner couldn't reach that provider. Check the address.",
     "wrong-issuer":
       "That address answered, but as a different provider. Use the exact issuer address.",
     "last-way-in":
@@ -95,8 +96,8 @@
   <h2 class="form-heading">Staff login</h2>
   <p class="muted">
     Lets staff sign in with one shared login from an OpenID Connect provider,
-    such as Authentik. GrowLog's own passkeys, passwords and bench PINs keep
-    working alongside it.
+    such as Authentik. Hortiplanner's own passkeys, passwords and bench PINs
+    keep working alongside it.
   </p>
 
   {#if settings}
@@ -111,7 +112,7 @@
           bind:value={authority}
           inputmode="url"
           autocomplete="off"
-          placeholder="https://auth.example.com/application/o/growlog/"
+          placeholder="https://auth.example.com/application/o/hortiplanner/"
         />
       </label>
       <label>

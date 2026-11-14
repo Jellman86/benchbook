@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Hortiplanner.Api/Hortiplanner.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Hortiplanner.Tests/Hortiplanner.Tests.csproj" />
+  </Folder>
+</Solution>

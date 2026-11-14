@@ -149,7 +149,7 @@
             >
           {/if}
           <p class="muted">
-            GrowLog reminds you six weeks before, so the inspection can be
+            Hortiplanner reminds you six weeks before, so the inspection can be
             booked.
           </p>
         {/if}

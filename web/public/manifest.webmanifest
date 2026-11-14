@@ -1,6 +1,6 @@
 {
-  "name": "GrowLog",
-  "short_name": "GrowLog",
+  "name": "Hortiplanner",
+  "short_name": "Hortiplanner",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f5f4ea",

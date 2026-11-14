@@ -44,7 +44,9 @@
         onProblem("That photo couldn't be saved. Please use a photo.");
       }
     } catch {
-      onProblem("Can't reach GrowLog. Check the connection and try again.");
+      onProblem(
+        "Can't reach Hortiplanner. Check the connection and try again.",
+      );
     } finally {
       busy = false;
     }
@@ -66,7 +68,9 @@
         onProblem("That photo couldn't be removed.");
       }
     } catch {
-      onProblem("Can't reach GrowLog. Check the connection and try again.");
+      onProblem(
+        "Can't reach Hortiplanner. Check the connection and try again.",
+      );
     }
   }
 </script>

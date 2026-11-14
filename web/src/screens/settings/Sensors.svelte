@@ -119,7 +119,7 @@
   };
 
   const homeAssistant = (key: string) => `rest_command:
-  growlog_reading:
+  hortiplanner_reading:
     url: ${location.origin}/api/sensor-readings
     method: post
     headers:
@@ -130,12 +130,12 @@
        "humidity": {{ states('sensor.greenhouse_humidity') | float }}}
 
 automation:
-  - alias: Send greenhouse readings to GrowLog
+  - alias: Send greenhouse readings to Hortiplanner
     trigger:
       - platform: time_pattern
         minutes: "/5"
     action:
-      - service: rest_command.growlog_reading`;
+      - service: rest_command.hortiplanner_reading`;
 
   const example = '{"temperature": 18.5, "humidity": 72}';
 
@@ -146,7 +146,7 @@ automation:
 <main>
   <h1>Sensors</h1>
   <p class="muted">
-    Temperature and humidity sensors send readings to GrowLog, and Manage,
+    Temperature and humidity sensors send readings to Hortiplanner, and Manage,
     Climate charts them for each place. Home Assistant, or any small board that
     can send a web request, can send them.
   </p>
