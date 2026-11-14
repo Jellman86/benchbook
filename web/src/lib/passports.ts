@@ -8,7 +8,7 @@ export function passportProblems(status: number, problem?: string): string {
     case "Changed":
       return "Part D has changed since this was opened, so nothing was issued. Check the passport above, then issue it.";
     case "CannotIssue":
-      return "Something stops this passport being issued. Open it again to see what.";
+      return "Something is stopping this passport being issued. Open it again to see what it is.";
     default:
       return status === 400
         ? "Please say where the plants are going, in under 200 letters."

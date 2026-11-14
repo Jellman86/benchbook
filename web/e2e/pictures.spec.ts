@@ -61,7 +61,9 @@ test("your picture stays after leaving My account", async ({ page }) => {
     .locator(".photo-choice input[type=file]")
     .first()
     .setInputFiles({ name: "me.png", mimeType: "image/png", buffer: png });
-  await expect(page.getByRole("status")).toContainText("Picture saved.");
+  await expect(page.getByRole("status")).toContainText(
+    "Your picture has been saved.",
+  );
   await expect(
     page.getByRole("button", { name: "Remove your picture" }),
   ).toBeVisible();
@@ -79,6 +81,8 @@ test("your picture stays after leaving My account", async ({ page }) => {
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Remove your picture" }).click();
-  await expect(page.getByRole("status")).toContainText("Picture removed.");
+  await expect(page.getByRole("status")).toContainText(
+    "Your picture has been removed.",
+  );
   await expect(page.locator(".sidebar-foot img.avatar")).toHaveCount(0);
 });

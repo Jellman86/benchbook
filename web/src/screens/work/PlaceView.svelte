@@ -462,7 +462,7 @@
                 newParent = place!.parentId ?? "";
               }}>Change type</button
             >
-            <button class="secondary" onclick={retire}>No longer used</button>
+            <button class="secondary" onclick={retire}>Stop using</button>
             {#if mightDelete}
               <button class="secondary destructive" onclick={remove}
                 >Delete</button

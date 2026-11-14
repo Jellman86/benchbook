@@ -63,7 +63,7 @@ internal static class AlertEndpoints
                 $"{Plural(late, "job is", "jobs are")} running late",
                 late == 1
                     ? $"It was due more than {JobLateDays} days ago and nobody has ticked it off yet."
-                    : $"Each one was due more than {JobLateDays} days ago and nobody has ticked them off yet.",
+                    : $"Each one was due more than {JobLateDays} days ago and hasn't been ticked off yet.",
                 "jobs");
     }
 

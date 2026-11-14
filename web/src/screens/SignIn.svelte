@@ -12,7 +12,7 @@
   let { onSignedIn }: { onSignedIn: () => void } = $props();
 
   const offline =
-    "Can't reach Hortiplanner. Check the connection and try again.";
+    "This device can't reach Hortiplanner. Please check the connection and try again.";
 
   let people = $state<Person[]>([]);
   let external = $state<Schemas["ExternalSignInOptions"] | null>(null);
@@ -128,7 +128,7 @@
       } else {
         problem =
           response.status === 423
-            ? "Too many wrong tries. Wait 15 minutes, or ask the owner for a new password."
+            ? "There have been too many wrong tries. Please wait 15 minutes, or ask the owner for a new password."
             : "That password isn't right.";
       }
     });

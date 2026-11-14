@@ -63,7 +63,10 @@
       outcome = response.ok
         ? {
             ok: true,
-            message: `Sent to ${chosen.name}${copies > 1 ? `, ${copies} copies` : ""}.`,
+            message:
+              copies > 1
+                ? `${copies} copies have been sent to ${chosen.name}.`
+                : `It has been sent to ${chosen.name}.`,
           }
         : {
             ok: false,
@@ -75,7 +78,8 @@
     } catch {
       outcome = {
         ok: false,
-        message: "No connection, so it couldn't be sent. Try again shortly.",
+        message:
+          "There's no connection, so it couldn't be sent. Please try again shortly.",
       };
     } finally {
       sending = false;
@@ -120,13 +124,14 @@
           </select></label
         >
       {:else}
-        On {chosen.name}.
+        It will print on {chosen.name}.
       {/if}
       <a
         class="small-button"
         href={withCopies(href, copies)}
         target="_blank"
-        rel="noopener"><FileDown size={16} aria-hidden="true" /> PDF instead</a
+        rel="noopener"
+        ><FileDown size={16} aria-hidden="true" /> Open the PDF instead</a
       >
     </span>
   {/if}

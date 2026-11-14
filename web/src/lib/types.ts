@@ -3,7 +3,7 @@ import type { components } from "../api/schema";
 export type Schemas = components["schemas"];
 
 export const unreachable =
-  "Can't reach Hortiplanner. Check the connection and try again.";
+  "This device can't reach Hortiplanner. Please check the connection and try again.";
 
 /** Runs an action, turning a lost connection into a message for the screen. */
 export async function attempt(

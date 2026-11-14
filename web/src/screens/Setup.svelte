@@ -17,7 +17,8 @@
     try {
       await work();
     } catch {
-      problem = "Can't reach Hortiplanner. Check the connection and try again.";
+      problem =
+        "This device can't reach Hortiplanner. Please check the connection and try again.";
     } finally {
       busy = false;
     }

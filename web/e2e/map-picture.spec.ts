@@ -76,7 +76,9 @@ test("a place is drawn on the nursery's own picture", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Where is Croft?" }),
   ).toBeVisible();
-  await expect(page.getByText("On the nursery's own picture.")).toBeVisible();
+  await expect(
+    page.getByText("This is the nursery's own picture."),
+  ).toBeVisible();
   await expect(page.getByLabel(/Find a postcode/)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Finish" })).toBeEnabled();
 

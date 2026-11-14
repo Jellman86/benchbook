@@ -95,9 +95,9 @@
 <section class="form-card stack">
   <h2 class="form-heading">Staff login</h2>
   <p class="muted">
-    Lets staff sign in with one shared login from an OpenID Connect provider,
-    such as Authentik. Hortiplanner's own passkeys, passwords and bench PINs
-    keep working alongside it.
+    This lets staff sign in with one shared login from an OpenID Connect
+    provider, such as Authentik. Hortiplanner's own passkeys, passwords and
+    bench PINs keep working alongside it.
   </p>
 
   {#if settings}

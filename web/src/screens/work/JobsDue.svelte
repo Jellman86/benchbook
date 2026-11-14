@@ -74,7 +74,7 @@
       });
       problem = response.ok
         ? ""
-        : "That can't be undone now: it's only possible for a quarter of an hour.";
+        : "That can't be undone any more, because a job can only be undone for a quarter of an hour.";
       lastDone = null;
       await load();
     } catch {
@@ -108,7 +108,7 @@
 
 {#if lastDone}
   <p class="card done row" role="status">
-    <span class="grow">{lastDone.title}: done.</span>
+    <span class="grow">{lastDone.title} is done.</span>
     <button class="link-button" disabled={busyId === lastDone.id} onclick={undo}
       ><Undo2 size={16} aria-hidden="true" />Undo</button
     >

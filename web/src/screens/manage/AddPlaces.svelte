@@ -122,7 +122,7 @@
       <label>To <input type="number" min="0" bind:value={to} /></label>
     </div>
     <p class="muted">
-      Adds {name || "Bench"}
+      This adds {name || "Bench"}
       {from} to {name || "Bench"}
       {to}.
     </p>

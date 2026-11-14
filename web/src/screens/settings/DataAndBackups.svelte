@@ -31,7 +31,7 @@
         const { response } = await api.POST("/api/demo/load");
         problem = response.ok ? "" : "The example data couldn't be loaded.";
         saved = response.ok
-          ? "Example data loaded. Have a look round: every screen has something in it now."
+          ? "The example data has been loaded. Have a look round, because every screen has something in it now."
           : "";
         await load();
       } finally {
@@ -89,9 +89,9 @@
       <div class="form-card stack">
         <h2 class="form-heading">Take everything out</h2>
         <p class="muted">
-          Every record in one download: a spreadsheet file for each of plants,
-          batches, trays, all the work done, purchases, invoices, passports,
-          consignments and more. Photos stay in the backups.
+          This downloads every record at once, as a spreadsheet file for each of
+          plants, batches, trays, all the work done, purchases, invoices,
+          passports, consignments and more. Photos stay in the backups.
         </p>
         <a class="button secondary" href="/api/export" download
           >Download everything</a
@@ -110,8 +110,9 @@
         <div class="form-card stack">
           <h2 class="form-heading">Example data</h2>
           <p class="muted">
-            Made-up plants, batches, places, suppliers, purchases and invoices,
-            so you can see every screen filled in before real records go in.
+            This adds made-up plants, batches, places, suppliers, purchases and
+            invoices, so you can see every screen filled in before real records
+            go in.
           </p>
           {#if demo.available}
             <button disabled={loading} onclick={loadExampleData}

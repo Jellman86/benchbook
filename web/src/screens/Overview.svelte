@@ -150,7 +150,7 @@
           >
         </p>
       {:else}
-        <p class="muted">Nothing recorded yet today.</p>
+        <p class="muted">Nothing has been recorded yet today.</p>
       {/each}
     </div>
   </section>

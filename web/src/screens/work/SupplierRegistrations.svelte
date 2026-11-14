@@ -40,10 +40,10 @@
         editing = false;
         await onSaved();
       } else {
-        problem = "Those numbers couldn't be saved. Keep them shorter.";
+        problem = "Those numbers couldn't be saved. Please make them shorter.";
       }
     } catch {
-      problem = "Those numbers couldn't be saved. Check the connection.";
+      problem = "Those numbers couldn't be saved. Please check the connection.";
     } finally {
       busy = false;
     }
@@ -66,7 +66,7 @@
         rows="2"
         placeholder="Seed standards: 12345"></textarea></label
     >
-    <p class="muted">Saved for {supplier.name} straight away.</p>
+    <p class="muted">They're saved for {supplier.name} straight away.</p>
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
     <div class="row">
       <button type="button" disabled={busy} onclick={save}>Save numbers</button>
@@ -80,7 +80,7 @@
         {#if supplier.passportRegistrationNumber}Passport number {supplier.passportRegistrationNumber}.{/if}
         {#if supplier.otherRegistrations}{supplier.otherRegistrations}{/if}
       {:else}
-        No registration numbers for {supplier.name} yet.
+        There are no registration numbers for {supplier.name} yet.
       {/if}
     </p>
     <button type="button" class="link-button" onclick={start}

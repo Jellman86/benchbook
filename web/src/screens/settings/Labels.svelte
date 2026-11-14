@@ -168,8 +168,8 @@
 <main>
   <h1>Labels</h1>
   <p class="muted">
-    How each kind of label looks. A change applies to every label printed after
-    you save it. Which printer prints each kind is under <button
+    This sets how each kind of label looks. A change applies to every label
+    printed after you save it. Which printer prints each kind is under <button
       class="link-button"
       onclick={onPrinters}
       ><ArrowRight size={16} aria-hidden="true" />Printers</button
@@ -324,7 +324,7 @@
           </div>
           {#if changed}
             <p class="muted" role="status">
-              Not saved yet. Labels print the old way until you save.
+              This isn't saved yet, so labels print the old way until you save.
             </p>
           {/if}
         </div>
@@ -337,8 +337,8 @@
               style:width={pictureWidth}
             />
             <figcaption class="muted">
-              A sample {about.label.toLowerCase()}, {sizeLabel(size)}. It is
-              shown larger than it prints.
+              This is a sample {about.label.toLowerCase()}, {sizeLabel(size)}.
+              It is shown larger than it prints.
             </figcaption>
           {:else if advice.problem}
             <p class="muted">Choose a size to see a sample.</p>

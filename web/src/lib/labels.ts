@@ -26,7 +26,7 @@ export const kindsOfLabel: {
   {
     kind: "PlantLabel",
     label: "Plant label",
-    use: "Sticks on the pot, for customers: the name, and the price if you want it.",
+    use: "It sticks on the pot for customers to read, and shows the name, and the price if you want it.",
     sizes: [
       { width: 50, height: 25 },
       { width: 57, height: 32 },
@@ -44,7 +44,7 @@ export const kindsOfLabel: {
   {
     kind: "BenchCard",
     label: "Bench card",
-    use: "Stands on the sales bench, read from a step away: how to grow it and every pot size's price.",
+    use: "It stands on the sales bench to be read from a step away, and shows how to grow the plant and the price of every pot size.",
     sizes: [
       { width: 100, height: 150 },
       { width: 100, height: 100 },
@@ -62,7 +62,7 @@ export const kindsOfLabel: {
   {
     kind: "ContainerLabel",
     label: "Tray label",
-    use: "Goes on a tray or pot group, to scan when recording work.",
+    use: "It goes on a tray or pot group, and you scan it when recording work.",
     sizes: [
       { width: 50, height: 25 },
       { width: 57, height: 32 },
@@ -78,7 +78,7 @@ export const kindsOfLabel: {
   {
     kind: "PlaceLabel",
     label: "Place label",
-    use: "Goes on a bench or bed, to scan when moving trays. The tall size is a sign you can read from the path.",
+    use: "It goes on a bench or bed, and you scan it when moving trays. The tall size is a sign you can read from the path.",
     sizes: [
       { width: 100, height: 150 },
       { width: 100, height: 50 },
@@ -93,7 +93,7 @@ export const kindsOfLabel: {
   {
     kind: "PlantPassport",
     label: "Plant passport",
-    use: "A UK plant passport the nursery issues: parts A to E in their own border, kept apart from everything else on the plants.",
+    use: "This is the UK plant passport the nursery issues. Parts A to E sit in their own border, kept apart from everything else on the plants.",
     sizes: [
       { width: 50, height: 25 },
       { width: 57, height: 32 },

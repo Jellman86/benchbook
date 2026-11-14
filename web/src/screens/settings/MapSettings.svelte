@@ -59,7 +59,9 @@
         problem = response.ok
           ? ""
           : "That picture couldn't be used. Use a JPEG, PNG or WebP photo or plan.";
-        saved = response.ok ? "Picture saved. Places are drawn on it now." : "";
+        saved = response.ok
+          ? "The picture has been saved, and places are drawn on it now."
+          : "";
         await load();
       } finally {
         busy = false;
@@ -86,7 +88,7 @@
 
     return attempt(async () => {
       await api.DELETE("/api/settings/map/picture");
-      saved = "Picture removed. Places are drawn on the map.";
+      saved = "The picture has been removed, so places are drawn on the map.";
       await load();
     }, setProblem);
   };
@@ -102,8 +104,8 @@
       });
       saved = response.ok
         ? key
-          ? "Satellite key saved. The places map uses it now."
-          : "Satellite key removed. The places map shows a street map."
+          ? "The satellite key has been saved, and the places map uses it now."
+          : "The satellite key has been removed, so the places map shows a street map."
         : "";
       problem = response.ok ? "" : "That doesn't look like an Esri key.";
       mapKey = "";
@@ -115,8 +117,8 @@
 <main>
   <h1>Map</h1>
   <p class="muted">
-    The picture behind the map under Places, where the nursery's places are
-    drawn.
+    This sets the picture behind the map under Places, where the nursery's
+    places are drawn.
   </p>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   {#if saved}<p class="card done" role="status">{saved}</p>{/if}
@@ -126,8 +128,8 @@
       {onPicture
         ? "Places are drawn on your own picture."
         : hasMapKey
-          ? "Showing satellite pictures from Esri."
-          : "Showing a street map from OpenStreetMap. Add a satellite key or your own picture to draw around greenhouses."}
+          ? "The map is showing satellite pictures from Esri."
+          : "The map is showing a street map from OpenStreetMap. Add a satellite key or your own picture to draw around greenhouses."}
     </p>
     <form
       class="form-card stack"

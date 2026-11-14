@@ -342,8 +342,8 @@
                 <Loading text="Looking up how to grow it…" />
               {:else if details?.unavailable}
                 <p class="muted">
-                  Can't reach the online plant details just now. You can still
-                  add it.
+                  We can't reach the online plant details just now. You can
+                  still add it.
                 </p>
               {:else if suggested}
                 <p class="muted">
@@ -352,7 +352,8 @@
                 </p>
               {:else}
                 <p class="muted">
-                  Nothing to suggest for this one, so add what you know.
+                  There was nothing to suggest for this one, so add what you
+                  know.
                 </p>
               {/if}
             </div>
@@ -445,7 +446,7 @@
       <h2>All plants</h2>
     {:else}
       <p class="note-empty muted">
-        No plants yet. Search above to add the first one.
+        There are no plants yet. Search above to add the first one.
       </p>
     {/if}
     <div class="card-grid">

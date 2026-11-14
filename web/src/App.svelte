@@ -89,7 +89,8 @@
   <main>
     <h1>Hortiplanner</h1>
     <p class="problem">
-      Can't reach Hortiplanner. Check the connection and try again.
+      This device can't reach Hortiplanner. Please check the connection and try
+      again.
     </p>
     <button onclick={() => load()}>Try again</button>
   </main>

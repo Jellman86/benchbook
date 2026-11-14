@@ -144,7 +144,7 @@
 <figure class="climate-chart" bind:clientWidth={width}>
   <figcaption>{title}</figcaption>
   {#if points.length === 0}
-    <p class="muted">No readings in this time.</p>
+    <p class="muted">There are no readings for this time.</p>
   {:else}
     <svg
       {width}

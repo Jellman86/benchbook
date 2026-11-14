@@ -92,7 +92,7 @@
         : "That key doesn't look right. OpenRouter keys start sk-or-.";
       saved = response.ok
         ? takeKeyAway
-          ? "Key taken away. Ask Hortiplanner is off until a key is added."
+          ? "The key has been taken away, so Ask Hortiplanner is off until you add another."
           : "Saved."
         : "";
       key = "";
@@ -117,9 +117,10 @@
       <div class="form-card stack">
         <h2 class="form-heading">OpenRouter key</h2>
         <p class={settings?.hasKey ? "backup-ok" : "muted"} role="status">
-          {settings?.hasKey ? "A key is saved." : "No key yet."}
+          {settings?.hasKey ? "A key is saved." : "No key has been added yet."}
           {#if settings?.spent != null}
-            Spent ${Number(settings.spent).toFixed(2)}{settings.limit != null
+            It has spent ${Number(settings.spent).toFixed(2)}{settings.limit !=
+            null
               ? ` of its $${Number(settings.limit).toFixed(2)} limit`
               : ", with no limit set"}.
           {/if}
@@ -174,10 +175,10 @@
         </label>
         <p class="muted">
           Each person can ask up to 40 questions an hour. The real cap on
-          spending is the limit you set on the key at openrouter.ai. It never
-          sees customers, money or who recorded the work, though notes are sent
-          as typed. Hortiplanner keeps what each question cost, who asked and
-          when, not what was asked.
+          spending is the limit you set on the key at openrouter.ai. The AI
+          never sees customers, money or who recorded the work, though notes are
+          sent as typed. Hortiplanner keeps what each question cost, who asked
+          and when, but not what was asked.
         </p>
       </div>
       <button type="submit">Save</button>
@@ -205,8 +206,8 @@
           <p class="note-empty muted">Nobody has asked anything yet.</p>
         {/if}
         <p class="muted">
-          In US dollars, as OpenRouter charges. Everyone who can ask sees what
-          their own questions have cost.
+          These are in US dollars, because that's how OpenRouter charges.
+          Everyone who can ask sees what their own questions have cost.
         </p>
       </section>
     </section>
@@ -215,17 +216,17 @@
       <h2 class="form-heading">Model</h2>
       {#if chosen}
         <p>
-          Using <strong>{chosen.name}</strong>, {price(
+          You're using <strong>{chosen.name}</strong>, which costs {price(
             chosen,
           )}{chosen.readsImages
             ? ", and it reads photos."
             : ". It can't read photos."}
         </p>
       {:else if model}
-        <p>Using <strong>{model}</strong>.</p>
+        <p>You're using <strong>{model}</strong>.</p>
       {:else}
         <p class="muted">
-          Choose one, then Save. Every model listed can look things up.
+          Choose one, then press Save. Every model listed can look things up.
         </p>
       {/if}
       <div class="field-grid">
@@ -257,7 +258,7 @@
             </span>
           </label>
         {:else}
-          <p class="muted">No models match.</p>
+          <p class="muted">No models match that.</p>
         {/each}
       </div>
     </section>

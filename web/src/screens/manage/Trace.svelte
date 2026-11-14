@@ -225,7 +225,7 @@
                   >
                 </PassportCard>
               {:else}
-                <p class="muted">None recorded for this batch.</p>
+                <p class="muted">No passports were received with this batch.</p>
               {/each}
             </div>
 
@@ -256,7 +256,9 @@
                   </div>
                 </div>
               {:else}
-                <p class="muted">None issued for this batch.</p>
+                <p class="muted">
+                  No passports have been issued for this batch.
+                </p>
               {/each}
             </div>
           {/if}
@@ -370,9 +372,10 @@
   <main>
     <h1>Trace a batch</h1>
     <p class="muted">
-      Where a batch came from, every passport received with it, what was done to
-      it and who bought it: what a plant health inspector asks to see. Find it
-      by its batch code, a tray or pot it has been in, or the plant's name.
+      This shows where a batch came from, every passport received with it, what
+      was done to it and who bought it, which is what a plant health inspector
+      asks to see. Find a batch by its code, a tray or pot it has been in, or
+      the plant's name.
     </p>
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
     <form class="row trace-search" onsubmit={find}>
@@ -392,7 +395,7 @@
     {/if}
     {#if loaded && matches.length === 0}
       <p class="note-empty muted">
-        {searched ? "No batch matches that." : "No batches yet."}
+        {searched ? "No batch matches that." : "There are no batches yet."}
       </p>
     {/if}
     <ul class="place-tree">

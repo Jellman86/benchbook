@@ -90,7 +90,7 @@
         await load();
       } else {
         problem =
-          "Give the job a name, and how often: once a day to once a year.";
+          "Please give the job a name and say how often it comes round, from once a day to once a year.";
       }
     }, setProblem);
   };
@@ -98,7 +98,7 @@
   const stop = (job: Job) => {
     if (
       !confirm(
-        `Stop "${job.title}"? It won't come up again; what was done stays recorded.`,
+        `Stop "${job.title}"? It won't come up again, but what was done stays recorded.`,
       )
     ) {
       return;
@@ -133,8 +133,8 @@
   <h1>Jobs</h1>
   <p class="muted">
     Jobs that come round again, such as watering, feeding or spraying. They show
-    on Record work when due, and anyone can tick them off; the next date moves
-    on by itself.
+    on Record work when they're due, and anyone can tick them off. The next date
+    then moves on by itself.
   </p>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   {#if saved}<p class="card done" role="status">{saved}</p>{/if}
@@ -211,11 +211,13 @@
           {/if}
           <div class="row">
             <button class="secondary" onclick={() => edit(job)}>Change</button>
-            <button class="secondary" onclick={() => stop(job)}>Stop</button>
+            <button class="secondary" onclick={() => stop(job)}
+              >Stop the job</button
+            >
           </div>
         </div>
       {:else}
-        <p class="note-empty muted">No jobs yet.</p>
+        <p class="note-empty muted">There are no jobs yet.</p>
       {/each}
     </section>
   </div>

@@ -258,7 +258,7 @@
     class="small-button"
     href="/api/invoices/{invoice.id}/pdf"
     target="_blank"
-    rel="noopener"><FileDown size={16} aria-hidden="true" /> PDF</a
+    rel="noopener"><FileDown size={16} aria-hidden="true" /> Open the PDF</a
   >
   {#if invoice.kind === "Invoice" && !invoice.credited}
     {#if invoice.paidOn}
@@ -270,7 +270,9 @@
         ><Coins size={16} aria-hidden="true" />Mark paid</button
       >
     {/if}
-    <button class="link-button" onclick={() => credit(invoice)}>Cancel</button>
+    <button class="link-button" onclick={() => credit(invoice)}
+      >Cancel the invoice</button
+    >
   {/if}
 {/snippet}
 
@@ -422,8 +424,8 @@
             </p>{/each}
         {:else}
           <p class="muted">
-            No VAT: the nursery isn't registered for VAT (change this under
-            Settings, Nursery details).
+            No VAT is charged, because the nursery isn't registered for VAT. You
+            can change this under Settings, Nursery details.
           </p>
         {/if}
         <strong>Total {money(sums.total)}</strong>
@@ -475,7 +477,7 @@
         </div>
       </div>
     {:else}
-      <p class="note-empty muted">No invoices yet.</p>
+      <p class="note-empty muted">There are no invoices yet.</p>
     {/if}
   {/if}
 

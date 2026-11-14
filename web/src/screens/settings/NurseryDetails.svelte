@@ -52,7 +52,7 @@
           setsRenewal: true,
         },
       });
-      saved = response.ok ? "Nursery details saved." : "";
+      saved = response.ok ? "The nursery's details have been saved." : "";
       problem = response.ok ? "" : "Those details couldn't be saved.";
     }, setProblem);
   };
@@ -89,7 +89,7 @@
 
 <main>
   <h1>Nursery details</h1>
-  <p class="muted">Shown on invoices, labels and plant passports.</p>
+  <p class="muted">These are shown on invoices, labels and plant passports.</p>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   {#if saved}<p class="card done" role="status">{saved}</p>{/if}
 

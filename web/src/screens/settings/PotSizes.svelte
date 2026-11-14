@@ -170,7 +170,7 @@
                 }}>Rename</button
               >
               <button class="secondary" onclick={() => archive(size)}
-                >No longer used</button
+                >Stop using</button
               >
             </div>
           {/if}

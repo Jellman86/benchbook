@@ -231,7 +231,8 @@
 <main class="label-sheets">
   <h1>Print labels on A4</h1>
   <p class="muted">
-    For A4 sticker sheets in an ordinary printer: no label printer needed.
+    This prints on A4 sticker sheets in an ordinary printer, so you don't need a
+    label printer.
   </p>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
@@ -281,7 +282,7 @@
         </label>
       </li>
     {:else}
-      <p class="muted">Nothing to show.</p>
+      <p class="muted">There's nothing to show.</p>
     {/each}
   </ul>
 
@@ -383,8 +384,8 @@
 
   {#if labelCount > 300}
     <p class="problem">
-      That's {labelCount} labels: at most 300 can be made at once. Choose fewer, or
-      fewer copies of each.
+      That's {labelCount} labels, and at most 300 can be made at once. Choose fewer,
+      or fewer copies of each.
     </p>
   {/if}
   {#if sent}

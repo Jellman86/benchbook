@@ -123,11 +123,13 @@
           result = data;
           problem =
             response.status === 409
-              ? "Some of these were added by someone else just now. Check again."
+              ? "Some of these were added by someone else just now. Please check them again."
               : "";
 
           if (data.saved) {
-            onDone(`Brought in ${counted(data.adding)} from ${fileName}.`);
+            onDone(
+              `${counted(data.adding)} ${Number(data.adding) === 1 ? "was" : "were"} brought in from ${fileName}.`,
+            );
             header = [];
             body = [];
             result = null;
@@ -184,9 +186,9 @@
 
   {#if header.length > 0}
     <p>
-      <strong>{fileName}</strong>: {body.length} row{body.length === 1
+      <strong>{fileName}</strong> has {body.length} row{body.length === 1
         ? ""
-        : "s"}. Check which column each goes in.
+        : "s"}. Check which column each heading goes in.
     </p>
     <div class="field-grid">
       {#each shown as field (field.key)}
@@ -222,8 +224,9 @@
     {/if}
     {#if leftOut.length > 0}
       <p class="muted">
-        Leaving out row{leftOut.length === 1 ? "" : "s"}
-        {leftOut.join(", ")}.
+        {leftOut.length === 1 ? "Row" : "Rows"}
+        {leftOut.join(", ")}
+        {leftOut.length === 1 ? "is" : "are"} being left out.
       </p>
     {/if}
   {/if}
@@ -239,7 +242,9 @@
             : " to bring in"}.</strong
         >
         {#if result.alreadyThere.length > 0}
-          {result.alreadyThere.length} already recorded, left as they are.
+          {result.alreadyThere.length === 1
+            ? "1 is already recorded and will be left as it is."
+            : `${result.alreadyThere.length} are already recorded and will be left as they are.`}
         {/if}
       </p>
       {#if result.problems.length > 0}

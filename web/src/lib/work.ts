@@ -191,9 +191,9 @@ export function outcomeProblem(outcome: Outcome): string {
         case "NotInContainer":
           return "That plant isn't in this tray. Please start again from the label.";
         case "IdInUse":
-          return "That clashed with other work. Please record it again.";
+          return "That got mixed up with something else being recorded. Please record it again.";
         case "SoldByInvoice":
-          return "A sale is cancelled with a credit note, under Invoices.";
+          return "A sale can't be undone here. Cancel it with a credit note, under Invoices.";
         case "BeforeStart":
           return "That day is before this tray was started. Choose a later day.";
         case "OnSite":
@@ -203,14 +203,14 @@ export function outcomeProblem(outcome: Outcome): string {
         case "NowCounted":
           return "Someone has counted this tray since. Open it again and say how many were lost.";
         case "ExaminedForPassport":
-          return "That examination belongs to a plant passport, so it stays.";
+          return "That examination belongs to a plant passport, so it can't be undone.";
         default:
           return "That has already been corrected.";
       }
     case "storageFailed":
       return "This device could not save the work. Keep this screen open and try again with a connection.";
     case "unreachable":
-      return "Can't reach Hortiplanner. Check the connection and try again.";
+      return "This device can't reach Hortiplanner. Please check the connection and try again.";
     case "rejected":
       return "That wasn't accepted. Please check it and try again.";
   }

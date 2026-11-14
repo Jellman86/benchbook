@@ -198,7 +198,7 @@
       {/if}
       <p class="field-label">How many plants it covers</p>
       <Stepper bind:value={quantity} max={available} />
-      <p class="muted">{available} in this tray.</p>
+      <p class="muted">This tray has {available}.</p>
       <label
         >Going to <input
           bind:value={issuedTo}
@@ -227,7 +227,7 @@
       >
       <p class="muted">
         The examination is recorded on the tray with your name. A passport is
-        kept for at least three years and can't be changed: if something is
+        kept for at least three years and can't be changed, so if something is
         wrong, issue another.
       </p>
     {/if}
@@ -248,7 +248,7 @@
       <div class="stack tight" id="passport-{passport.id}">
         {#if justIssued === passport.id}
           <p class="card done" role="status">
-            Passport issued. Print it to go with the plants.
+            The passport has been issued. Print it to go with the plants.
           </p>
         {/if}
         <PassportCard
@@ -275,7 +275,9 @@
         />
       </div>
     {:else}
-      {#if !issuing}<p class="muted">None issued for these plants yet.</p>{/if}
+      {#if !issuing}<p class="muted">
+          No passports have been issued for these plants yet.
+        </p>{/if}
     {/each}
   </div>
 </section>

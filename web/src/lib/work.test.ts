@@ -204,7 +204,7 @@ describe("outcomeProblem", () => {
   });
 
   it("explains a lost connection", () => {
-    expect(outcomeProblem({ kind: "unreachable" })).toContain("Can't reach");
+    expect(outcomeProblem({ kind: "unreachable" })).toContain("can't reach");
   });
 });
 

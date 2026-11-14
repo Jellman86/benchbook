@@ -162,7 +162,8 @@
     {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
     {#if card.lookupUnavailable}
       <p class="muted">
-        Can't reach the online plant details just now, so some may be missing.
+        We can't reach the online plant details just now, so some may be
+        missing.
       </p>
     {/if}
 
@@ -211,7 +212,7 @@
             </article>
           {:else}
             <p class="note-empty muted">
-              No notes yet. Add what you've learned about growing it.
+              There are no notes yet. Add what you've learned about growing it.
             </p>
           {/each}
         </section>

@@ -182,7 +182,7 @@ automation:
         Anything else sends a POST to /api/sensor-readings with the header
         "Authorization: Bearer" and the key, and a body such as <code
           >{example}</code
-        >. Up to one reading a minute.
+        >. It can send up to one reading a minute.
       </p>
       <button
         onclick={() => {
@@ -247,7 +247,7 @@ automation:
               }}><Pencil size={16} aria-hidden="true" />Change</button
             >
             <button class="link-button" onclick={() => newKey(sensor)}
-              >New key</button
+              >Give it a new key</button
             >
             <button class="link-button" onclick={() => stop(sensor)}
               ><Trash2 size={16} aria-hidden="true" />Stop using</button
@@ -255,7 +255,7 @@ automation:
           </div>
         </div>
       {:else}
-        <p class="muted">No sensors yet.</p>
+        <p class="muted">There are no sensors yet.</p>
       {/each}
     </section>
   </div>

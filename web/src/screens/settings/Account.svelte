@@ -59,7 +59,7 @@
 
       report(
         response.ok,
-        "Password saved.",
+        "Your password has been saved.",
         response.status === 403
           ? "Your current password isn't right."
           : "A password must be at least 8 characters.",
@@ -81,7 +81,11 @@
         body: { pin },
       });
 
-      report(response.ok, "PIN saved.", "A PIN must be 4 to 6 digits.");
+      report(
+        response.ok,
+        "Your PIN has been saved.",
+        "A PIN must be 4 to 6 digits.",
+      );
 
       if (response.ok) {
         pin = "";
@@ -117,7 +121,7 @@
 
       if (response.ok) {
         await refreshPicture();
-        report(true, "Picture saved.", "");
+        report(true, "Your picture has been saved.", "");
       } else {
         report(
           false,
@@ -132,7 +136,7 @@
     attempt(async () => {
       await api.DELETE("/api/account/picture");
       await refreshPicture();
-      report(true, "Picture removed.", "");
+      report(true, "Your picture has been removed.", "");
     }, setProblem);
 
   const switchTune = (event: Event) => {
@@ -174,7 +178,7 @@
 
       report(
         response.ok,
-        "Passkey saved on this device.",
+        "A passkey has been saved on this device.",
         "That didn't finish. Please try again.",
       );
       await load();
@@ -205,7 +209,8 @@
       <div class="person-heading">
         <Avatar id={me.id} name={me.name} {pictureAt} size={64} />
         <span class="muted"
-          >Shown beside your name when signing in, at a bench and in Staff.</span
+          >It's shown beside your name when you sign in, at a bench and in
+          Staff.</span
         >
       </div>
       <label class="photo-choice">
