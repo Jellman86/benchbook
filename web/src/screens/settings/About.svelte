@@ -75,8 +75,13 @@
           {#if about.commit}
             <dt>Built from</dt>
             <dd>
-              <a href={about.sourceUrl} target="_blank" rel="noopener"
-                ><code>{about.commit.slice(0, 7)}</code></a
+              <a
+                class="small-button"
+                href={about.sourceUrl}
+                target="_blank"
+                rel="noopener"
+                ><code>{about.commit.slice(0, 7)}</code>
+                <ExternalLink size={16} aria-hidden="true" /></a
               >
             </dd>
           {/if}
@@ -95,11 +100,12 @@
         <h2 class="form-heading">Free software</h2>
         <p>
           Hortiplanner is free software. You can use, share and change it under
-          the
-          <a href={licence} target="_blank" rel="noopener"
-            >GNU Affero General Public License</a
-          >, version 3 or any later version. It comes with no warranty.
+          the GNU Affero General Public License, version 3 or any later version.
+          It comes with no warranty.
         </p>
+        <a class="small-button" href={licence} target="_blank" rel="noopener"
+          >Read the licence <ExternalLink size={16} aria-hidden="true" /></a
+        >
         <p class="muted">
           Anyone using Hortiplanner is entitled to its source code, including
           any changes made to this copy. The source of this exact version is

@@ -1,4 +1,7 @@
 <script lang="ts">
+  import FileDown from "@lucide/svelte/icons/file-down";
+  import Coins from "@lucide/svelte/icons/coins";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
   import { crumbs } from "../../lib/crumbs.svelte";
   import { isoDay } from "../../lib/days";
   import { onMount } from "svelte";
@@ -251,16 +254,20 @@
 </script>
 
 {#snippet rowActions(invoice: InvoiceSummary)}
-  <a href="/api/invoices/{invoice.id}/pdf" target="_blank" rel="noopener">PDF</a
+  <a
+    class="small-button"
+    href="/api/invoices/{invoice.id}/pdf"
+    target="_blank"
+    rel="noopener"><FileDown size={16} aria-hidden="true" /> PDF</a
   >
   {#if invoice.kind === "Invoice" && !invoice.credited}
     {#if invoice.paidOn}
       <button class="link-button" onclick={() => setPaid(invoice, false)}
-        >Mark as not paid</button
+        ><Coins size={16} aria-hidden="true" />Mark as not paid</button
       >
     {:else}
       <button class="link-button" onclick={() => setPaid(invoice, true)}
-        >Mark paid</button
+        ><Coins size={16} aria-hidden="true" />Mark paid</button
       >
     {/if}
     <button class="link-button" onclick={() => credit(invoice)}>Cancel</button>
@@ -388,7 +395,7 @@
                   class="link-button"
                   onclick={() =>
                     (lines = lines.filter((_, at) => at !== index))}
-                  >Remove this line</button
+                  ><Trash2 size={16} aria-hidden="true" />Remove this line</button
                 >
               {/if}
             </p>

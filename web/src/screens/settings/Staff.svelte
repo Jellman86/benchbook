@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Pencil from "@lucide/svelte/icons/pencil";
   import Camera from "@lucide/svelte/icons/camera";
   import Music from "@lucide/svelte/icons/music";
   import { shrinkPhoto } from "../../lib/photo";
@@ -401,7 +402,7 @@
       <p class="muted">
         {levels[level]}
         <button class="link-button" onclick={onSigningIn}
-          >Change under Signing in</button
+          ><Pencil size={16} aria-hidden="true" />Change under Signing in</button
         >
       </p>
 

@@ -1,4 +1,7 @@
 <script lang="ts">
+  import FileDown from "@lucide/svelte/icons/file-down";
+  import Coins from "@lucide/svelte/icons/coins";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
   import { isoDay } from "../../lib/days";
   import DayPicker from "../DayPicker.svelte";
   import FormPanel from "../FormPanel.svelte";
@@ -334,9 +337,12 @@
             {/each}
             {#each purchase.receiptIds as receipt, index (receipt)}
               <a
+                class="small-button"
                 href="/api/purchases/receipts/{receipt}"
                 target="_blank"
-                rel="noopener">Receipt {index + 1}</a
+                rel="noopener"
+                ><FileDown size={16} aria-hidden="true" /> Receipt {index +
+                  1}</a
               >
             {/each}
             <label class="photo-choice">
@@ -363,7 +369,7 @@
                 >
               {/if}
               <button class="link-button" onclick={() => voidPurchase(purchase)}
-                >Void</button
+                ><Trash2 size={16} aria-hidden="true" />Void</button
               >
             </div>
           </div>
@@ -447,20 +453,23 @@
                           <button
                             class="link-button"
                             onclick={() => setPaid(purchase.id, null)}
-                            >Not paid</button
+                            ><Coins size={16} aria-hidden="true" />Not paid</button
                           >
                         {:else}
                           <button
                             class="link-button"
                             onclick={() => setPaid(purchase.id, today())}
-                            >Mark paid</button
+                            ><Coins size={16} aria-hidden="true" />Mark paid</button
                           >
                         {/if}
                         {#each purchase.receiptIds as receipt, index (receipt)}
                           <a
+                            class="small-button"
                             href="/api/purchases/receipts/{receipt}"
                             target="_blank"
-                            rel="noopener">Receipt {index + 1}</a
+                            rel="noopener"
+                            ><FileDown size={16} aria-hidden="true" /> Receipt {index +
+                              1}</a
                           >
                         {/each}
                         <label class="file-link">
@@ -473,7 +482,8 @@
                         </label>
                         <button
                           class="link-button danger-link"
-                          onclick={() => voidPurchase(purchase)}>Void</button
+                          onclick={() => voidPurchase(purchase)}
+                          ><Trash2 size={16} aria-hidden="true" />Void</button
                         >
                       </div>
                     </td>

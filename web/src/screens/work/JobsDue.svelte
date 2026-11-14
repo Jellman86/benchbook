@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import Undo2 from "@lucide/svelte/icons/undo-2";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { dayLabel } from "../../lib/dates";
@@ -96,8 +98,9 @@
     <div class="card alert-card">
       <strong>{alert.title}</strong>
       <span class="muted">{alert.why}</span>
-      <button class="link-button" onclick={() => onGo(alert.where)}
-        >Open {where[alert.where] ?? alert.where}</button
+      <button class="secondary" onclick={() => onGo(alert.where)}
+        >Go to {where[alert.where] ?? alert.where}
+        <ArrowRight size={16} aria-hidden="true" /></button
       >
     </div>
   {/each}
@@ -107,7 +110,7 @@
   <p class="card done row" role="status">
     <span class="grow">{lastDone.title}: done.</span>
     <button class="link-button" disabled={busyId === lastDone.id} onclick={undo}
-      >Undo</button
+      ><Undo2 size={16} aria-hidden="true" />Undo</button
     >
   </p>
 {/if}

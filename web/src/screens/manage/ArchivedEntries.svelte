@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Archive from "@lucide/svelte/icons/archive";
   import {
     listArchived,
     restore,
@@ -45,5 +46,7 @@
     <button class="link-button" onclick={() => (open = false)}>Hide</button>
   </section>
 {:else}
-  <button class="link-button" onclick={show}>Show ones no longer used</button>
+  <button class="link-button" onclick={show}
+    ><Archive size={16} aria-hidden="true" />Show ones no longer used</button
+  >
 {/if}
