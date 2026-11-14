@@ -77,7 +77,7 @@
       })
       .catch(() => {
         problem =
-          "The camera isn't available. Check GrowLog is allowed to use it.";
+          "The camera isn't available. Check Hortiplanner is allowed to use it.";
       });
 
     return () => {

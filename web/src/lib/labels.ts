@@ -13,7 +13,7 @@ export type LabelSize = { width: number; height: number };
 /**
  * Each kind of label, what it's for, the roll sizes that suit it and the switches that make sense
  * on it. The sizes are stock that is easy to buy in weatherproof polypropylene, and the first is
- * the one GrowLog starts with. None is wider than 100 mm, because a desktop label printer prints
+ * the one Hortiplanner starts with. None is wider than 100 mm, because a desktop label printer prints
  * about 104 mm wide at most.
  */
 export const kindsOfLabel: {

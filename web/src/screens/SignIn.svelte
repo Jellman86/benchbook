@@ -9,7 +9,8 @@
 
   let { onSignedIn }: { onSignedIn: () => void } = $props();
 
-  const offline = "Can't reach GrowLog. Check the connection and try again.";
+  const offline =
+    "Can't reach Hortiplanner. Check the connection and try again.";
 
   let people = $state<Person[]>([]);
   let external = $state<Schemas["ExternalSignInOptions"] | null>(null);
@@ -129,7 +130,7 @@
 
 <main>
   <img class="hero-logo" src="/icon-192.png" alt="" />
-  <h1>GrowLog</h1>
+  <h1>Hortiplanner</h1>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
   {#if chosen}

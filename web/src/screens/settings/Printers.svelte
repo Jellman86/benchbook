@@ -12,7 +12,7 @@
   } from "../../lib/printing";
   import { attempt, type Schemas } from "../../lib/types";
 
-  // Network label printers that GrowLog sends labels straight to. A PDF through the print window always works too.
+  // Network label printers that Hortiplanner sends labels straight to. A PDF through the print window always works too.
   let { onBack, onLabels }: { onBack: () => void; onLabels: () => void } =
     $props();
 
@@ -154,8 +154,8 @@
 <main>
   <h1>Printers</h1>
   <p class="muted">
-    Label printers on the nursery's network. GrowLog sends labels straight to
-    them, and every label can still be printed as a PDF through the print
+    Label printers on the nursery's network. Hortiplanner sends labels straight
+    to them, and every label can still be printed as a PDF through the print
     window. What each label looks like, and its size, is under <button
       class="link-button"
       onclick={onLabels}>Labels</button
@@ -262,8 +262,9 @@
             too small.
           </li>
           <li>
-            <strong>Press Test print.</strong> GrowLog's server must be able to reach
-            the printer, so it needs to be on the same network, or connected to it.
+            <strong>Press Test print.</strong> Hortiplanner's server must be able
+            to reach the printer, so it needs to be on the same network, or connected
+            to it.
           </li>
         </ol>
       </details>

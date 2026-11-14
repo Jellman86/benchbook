@@ -5,10 +5,10 @@
   import { momentLabel } from "../../lib/dates";
   import { attempt, type Schemas } from "../../lib/types";
 
-  // GrowLog is under the GNU AGPL: everyone using it over the network is offered the source of this version.
+  // Hortiplanner is under the GNU AGPL: everyone using it over the network is offered the source of this version.
   let { onBack }: { onBack: () => void } = $props();
 
-  const project = "https://github.com/Jellman86/growlog";
+  const project = "https://github.com/Jellman86/hortiplanner";
 
   let about = $state<Schemas["About"] | null>(null);
   let problem = $state("");
@@ -49,7 +49,7 @@
 </script>
 
 <main>
-  <h1>About GrowLog</h1>
+  <h1>About Hortiplanner</h1>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
   <div class="split">
@@ -94,14 +94,16 @@
       <div class="form-card stack">
         <h2 class="form-heading">Free software</h2>
         <p>
-          GrowLog is free software. You can use, share and change it under the
+          Hortiplanner is free software. You can use, share and change it under
+          the
           <a href={licence} target="_blank" rel="noopener"
             >GNU Affero General Public License</a
           >, version 3 or any later version. It comes with no warranty.
         </p>
         <p class="muted">
-          Anyone using GrowLog is entitled to its source code, including any
-          changes made to this copy. The source of this exact version is here.
+          Anyone using Hortiplanner is entitled to its source code, including
+          any changes made to this copy. The source of this exact version is
+          here.
         </p>
         <div class="row">
           <a
@@ -124,7 +126,7 @@
       <div class="form-card stack">
         <h2 class="form-heading">Built with</h2>
         <p class="muted">
-          GrowLog stands on other people's open-source work. Thank you to
+          Hortiplanner stands on other people's open-source work. Thank you to
           everyone behind it.
         </p>
         <ul class="credits">

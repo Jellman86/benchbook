@@ -1,5 +1,5 @@
 // Lets the app open with no signal. Recording is handled by the work queue, so the API is never cached here.
-const cacheName = "growlog-v3";
+const cacheName = "hortiplanner-v3";
 
 async function precache() {
   const cache = await caches.open(cacheName);

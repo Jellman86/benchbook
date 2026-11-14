@@ -11,7 +11,7 @@ export default defineConfig({
   testDir: "e2e",
   workers: 1,
   forbidOnly: !!process.env.CI,
-  // One long story that grows with GrowLog, including a phone waiting for its signal back.
+  // One long story that grows with Hortiplanner, including a phone waiting for its signal back.
   timeout: 120_000,
   use: { baseURL: `http://localhost:${port}` },
   projects: [
@@ -40,20 +40,20 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `docker run --rm --name growlog-e2e -e POSTGRES_PASSWORD=e2e -p ${databasePort}:5432 ${postgres}`,
+      command: `docker run --rm --name hortiplanner-e2e -e POSTGRES_PASSWORD=e2e -p ${databasePort}:5432 ${postgres}`,
       port: databasePort,
       timeout: 180_000,
       gracefulShutdown: { signal: "SIGTERM", timeout: 10_000 },
     },
     {
       command:
-        "dotnet run --project ../src/GrowLog.Api --configuration Release --no-launch-profile",
+        "dotnet run --project ../src/Hortiplanner.Api --configuration Release --no-launch-profile",
       url: `http://localhost:${port}/api/health`,
       timeout: 240_000,
       env: {
         ASPNETCORE_URLS: `http://localhost:${port}`,
         ASPNETCORE_WEBROOT: resolve("dist"),
-        ConnectionStrings__GrowLog: `Host=localhost;Port=${databasePort};Username=postgres;Password=e2e;Database=postgres`,
+        ConnectionStrings__Hortiplanner: `Host=localhost;Port=${databasePort};Username=postgres;Password=e2e;Database=postgres`,
         Passkeys__ServerDomain: "localhost",
         Passkeys__Origin: `http://localhost:${port}`,
         Setup__Token: "e2e-setup-code",

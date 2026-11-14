@@ -1,7 +1,7 @@
 import { type Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 
-// Ask GrowLog against a pretend server: offered on Record and in the sidebar, answers shown as plain text with the
+// Ask Hortiplanner against a pretend server: offered on Record and in the sidebar, answers shown as plain text with the
 // records they looked at, and a desk using its width for them.
 async function pretend(page: Page, asked: unknown[]) {
   await page.route("**/api/**", async (route) => {
@@ -46,7 +46,7 @@ async function pretend(page: Page, asked: unknown[]) {
   });
 }
 
-test("Ask GrowLog answers on a phone, and lays out on a desk", async ({
+test("Ask Hortiplanner answers on a phone, and lays out on a desk", async ({
   page,
 }) => {
   const asked: unknown[] = [];
@@ -54,14 +54,16 @@ test("Ask GrowLog answers on a phone, and lays out on a desk", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
 
-  await page.getByRole("button", { name: /Ask GrowLog/ }).click();
+  await page.getByRole("button", { name: /Ask Hortiplanner/ }).click();
   await expect(
-    page.getByRole("heading", { name: "Ask GrowLog" }),
+    page.getByRole("heading", { name: "Ask Hortiplanner" }),
   ).toBeVisible();
   // The nursery pays for every question, so each person sees what theirs have cost.
   await expect(page.locator(".ask-spend")).toContainText("$0.42");
   const crumbs = page.getByRole("navigation", { name: "Breadcrumb" });
-  await expect(crumbs.locator("[aria-current=page]")).toHaveText("Ask GrowLog");
+  await expect(crumbs.locator("[aria-current=page]")).toHaveText(
+    "Ask Hortiplanner",
+  );
 
   await page
     .getByRole("button", { name: "What needs attention this week?" })

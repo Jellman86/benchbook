@@ -17,7 +17,7 @@
     try {
       await work();
     } catch {
-      problem = "Can't reach GrowLog. Check the connection and try again.";
+      problem = "Can't reach Hortiplanner. Check the connection and try again.";
     } finally {
       busy = false;
     }
@@ -80,7 +80,7 @@
 
 <main>
   <img class="hero-logo" src="/icon-192.png" alt="" />
-  <h1>Set up GrowLog</h1>
+  <h1>Set up Hortiplanner</h1>
   <p>
     You'll be the owner. Choose a password, or save a passkey on this phone or
     computer.

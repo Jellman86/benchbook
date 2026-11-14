@@ -20,7 +20,7 @@ jobs:
       contents: read
       packages: write
     env:
-      IMAGE: ghcr.io/jellman86/growlog
+      IMAGE: ghcr.io/jellman86/hortiplanner
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -30,12 +30,12 @@ jobs:
           version=dev
           if [ "$GITHUB_REF_TYPE" = tag ]; then version="${GITHUB_REF_NAME#v}"; fi
           docker build --tag "$IMAGE:$GITHUB_SHA" --tag "$IMAGE:$GITHUB_REF_NAME" \
-            --label "org.opencontainers.image.source=https://github.com/Jellman86/growlog" \
+            --label "org.opencontainers.image.source=https://github.com/Jellman86/hortiplanner" \
             --label "org.opencontainers.image.revision=$GITHUB_SHA" \
             --label "org.opencontainers.image.version=$version" \
-            --build-arg "GROWLOG_VERSION=$version" \
-            --build-arg "GROWLOG_COMMIT=$GITHUB_SHA" \
-            --build-arg "GROWLOG_BUILT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --build-arg "HORTIPLANNER_VERSION=$version" \
+            --build-arg "HORTIPLANNER_COMMIT=$GITHUB_SHA" \
+            --build-arg "HORTIPLANNER_BUILT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             .
       - name: Sign in to the registry
         run: echo "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin

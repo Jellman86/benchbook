@@ -1,0 +1,33 @@
+namespace Hortiplanner.Api.Data;
+
+internal sealed class Plant : IAudited, IArchivable
+{
+    public Guid Id { get; init; } = Guid.CreateVersion7();
+
+    public required string CommonName { get; set; }
+
+    public string? Variety { get; set; }
+
+    /// <summary>Optional while recording work. Validated before a passport is issued.</summary>
+    public string? BotanicalName { get; set; }
+
+    /// <summary>The species someone picked this from, if any. Holds the source and licence of its names and picture.</summary>
+    public Guid? SpeciesId { get; set; }
+
+    public string? Category { get; set; }
+
+    public string? Position { get; set; }
+
+    public string? Watering { get; set; }
+
+    public string? Hardiness { get; set; }
+
+    /// <summary>Whether it is a host of Xylella fastidiosa. Null until someone has checked.</summary>
+    public bool? XylellaHost { get; set; }
+
+    public bool ProtectedVariety { get; set; }
+
+    public DateTimeOffset? ArchivedAt { get; set; }
+
+    public ICollection<PlantPrice> Prices { get; } = new List<PlantPrice>();
+}

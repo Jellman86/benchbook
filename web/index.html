@@ -16,14 +16,14 @@
     <link rel="icon" type="image/png" href="/logo-96.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <title>GrowLog</title>
+    <title>Hortiplanner</title>
     <script>
       // Before anything is drawn, so the page never flashes the wrong theme. Light unless chosen otherwise.
       let theme = "light";
       try {
-        theme = localStorage.getItem("growlog.theme") || "light";
+        theme = localStorage.getItem("hortiplanner.theme") || "light";
       } catch {
-        // Storage can be refused. GrowLog is then light.
+        // Storage can be refused. Hortiplanner is then light.
       }
       if (theme === "light" || theme === "dark") {
         document.documentElement.dataset.theme = theme;

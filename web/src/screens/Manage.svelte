@@ -39,12 +39,12 @@
     onStartBatch: (prefill: BatchPrefill) => void;
     onOpenTray: (label: string) => void;
     onMoveTraysHere: (id: string) => void;
-    /** Asks Ask GrowLog about something, when this person can ask. */
+    /** Asks Ask Hortiplanner about something, when this person can ask. */
     onAsk?: (about: AskAbout) => void;
   } = $props();
 
   const back = () => onSection(null);
-  // A section whose part of GrowLog is turned off isn't opened, even from a remembered screen.
+  // A section whose part of Hortiplanner is turned off isn't opened, even from a remembered screen.
   const open = $derived(section && isManageSectionOn(section) ? section : null);
   const groups = $derived(visibleManageGroups());
 </script>

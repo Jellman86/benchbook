@@ -167,11 +167,11 @@ describe("WorkQueue", () => {
   it("finds work other people left waiting on the device", () => {
     const other = new WorkQueue(store, "kim");
     other.add(request("k"));
-    store.setItem("growlog.queueName.kim", "Kim Bower");
+    store.setItem("hortiplanner.queueName.kim", "Kim Bower");
     const keys = [
-      "growlog.queue.kim",
-      "growlog.queue.Alex",
-      "growlog.queueName.kim",
+      "hortiplanner.queue.kim",
+      "hortiplanner.queue.Alex",
+      "hortiplanner.queueName.kim",
     ];
     const listing = {
       getItem: store.getItem,
@@ -185,7 +185,7 @@ describe("WorkQueue", () => {
   });
 
   it("opens even when what's stored is damaged", () => {
-    store.setItem("growlog.queue.Alex", "not json");
+    store.setItem("hortiplanner.queue.Alex", "not json");
     expect(new WorkQueue(store, "Alex").waiting).toBe(0);
   });
 });
@@ -232,11 +232,11 @@ describe("queue storage transitions", () => {
   it("upgrades both old keys in one write", () => {
     const store = memoryStore();
     store.setItem(
-      "growlog.queue.Alex",
+      "hortiplanner.queue.Alex",
       JSON.stringify([{ request: request("a"), description: "a" }]),
     );
     store.setItem(
-      "growlog.failed.Alex",
+      "hortiplanner.failed.Alex",
       JSON.stringify([
         { eventId: "b", request: request("b"), description: "b", reason: "no" },
       ]),

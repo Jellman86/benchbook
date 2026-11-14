@@ -47,7 +47,7 @@
     onHome: () => void;
     onNewBatch: () => void;
     onProduction: () => void;
-    /** Opens Ask GrowLog, when this person can ask. */
+    /** Opens Ask Hortiplanner, when this person can ask. */
     onAsk?: () => void;
     onPlants: () => void;
     onSection: (section: ManageSection) => void;
@@ -71,7 +71,7 @@
 <aside class="sidebar">
   <div class="brand">
     <img src="/logo-96.png" alt="" width="40" height="40" />
-    <span class="nav-text">GrowLog</span>
+    <span class="nav-text">Hortiplanner</span>
   </div>
 
   <nav aria-label="Main">
@@ -107,12 +107,12 @@
     {#if onAsk}
       <button
         aria-current={here("ask")}
-        aria-label="Ask GrowLog"
-        title="Ask GrowLog"
+        aria-label="Ask Hortiplanner"
+        title="Ask Hortiplanner"
         onclick={onAsk}
       >
         <Sparkles size={20} />
-        <span class="nav-text">Ask GrowLog</span>
+        <span class="nav-text">Ask Hortiplanner</span>
       </button>
     {/if}
 

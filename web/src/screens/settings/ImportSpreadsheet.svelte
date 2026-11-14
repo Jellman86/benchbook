@@ -11,7 +11,7 @@
   import { attempt, type Schemas } from "../../lib/types";
 
   // Plants, suppliers or customers brought in from a spreadsheet saved as CSV. Its columns are matched to
-  // GrowLog's, every row is checked, and nothing is saved while any row has a problem.
+  // Hortiplanner's, every row is checked, and nothing is saved while any row has a problem.
   let { onDone }: { onDone: (message: string) => void } = $props();
 
   type Kind = Schemas["ImportKind"];
@@ -38,7 +38,7 @@
 
   const setProblem = (message: string) => (problem = message);
 
-  // A file can be chosen before GrowLog's columns have arrived; matching waits for them.
+  // A file can be chosen before Hortiplanner's columns have arrived; matching waits for them.
   let fieldsLoaded: Promise<unknown> = Promise.resolve();
 
   onMount(() => {

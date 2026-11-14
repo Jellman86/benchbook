@@ -33,7 +33,7 @@ export type ManageItem = {
   section: ManageSection;
   label: string;
   icon: typeof Flower2;
-  /** Shown while any of these parts of GrowLog is on; always shown without. */
+  /** Shown while any of these parts of Hortiplanner is on; always shown without. */
   features?: Feature[];
 };
 
@@ -102,7 +102,7 @@ export const manageSections = manageGroups.flatMap((group) => group.items);
 
 const shown = (item: ManageItem) => !item.features || anyOn(...item.features);
 
-/** The owner's sections, less any whose part of GrowLog is turned off. */
+/** The owner's sections, less any whose part of Hortiplanner is turned off. */
 export const visibleManageGroups = () =>
   manageGroups
     .map((group) => ({ ...group, items: group.items.filter(shown) }))

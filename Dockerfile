@@ -9,7 +9,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:fe0fd4e93bd2fbb47c883b7a6369e5c8d3
 WORKDIR /src
 COPY global.json Directory.Build.props Directory.Packages.props .editorconfig ./
 COPY src/ src/
-RUN dotnet publish src/GrowLog.Api/GrowLog.Api.csproj --configuration Release --output /app
+RUN dotnet publish src/Hortiplanner.Api/Hortiplanner.Api.csproj --configuration Release --output /app
 
 # Makes label PDFs. Update the version and checksum together.
 FROM alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf AS typst
@@ -25,11 +25,11 @@ COPY --from=typst /tmp/typst /usr/local/bin/typst
 COPY --from=typst /tmp/LICENSE /usr/share/licenses/typst/LICENSE
 ENV Typst__Path=/usr/local/bin/typst
 ENV ASPNETCORE_HTTP_PORTS=8080
-# Shown under Settings, About GrowLog, with a link to this exact source. Set by the publish workflow.
-ARG GROWLOG_VERSION=development
-ARG GROWLOG_COMMIT=
-ARG GROWLOG_BUILT=
-ENV Build__Version=$GROWLOG_VERSION Build__Commit=$GROWLOG_COMMIT Build__Date=$GROWLOG_BUILT
+# Shown under Settings, About Hortiplanner, with a link to this exact source. Set by the publish workflow.
+ARG HORTIPLANNER_VERSION=development
+ARG HORTIPLANNER_COMMIT=
+ARG HORTIPLANNER_BUILT=
+ENV Build__Version=$HORTIPLANNER_VERSION Build__Commit=$HORTIPLANNER_COMMIT Build__Date=$HORTIPLANNER_BUILT
 EXPOSE 8080
 USER $APP_UID
-ENTRYPOINT ["dotnet", "GrowLog.Api.dll"]
+ENTRYPOINT ["dotnet", "Hortiplanner.Api.dll"]

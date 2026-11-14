@@ -208,7 +208,7 @@ export function outcomeProblem(outcome: Outcome): string {
     case "storageFailed":
       return "This device could not save the work. Keep this screen open and try again with a connection.";
     case "unreachable":
-      return "Can't reach GrowLog. Check the connection and try again.";
+      return "Can't reach Hortiplanner. Check the connection and try again.";
     case "rejected":
       return "That wasn't accepted. Please check it and try again.";
   }

@@ -1,14 +1,14 @@
 {
   "openapi": "3.1.1",
   "info": {
-    "title": "GrowLog.Api | v1",
+    "title": "Hortiplanner.Api | v1",
     "version": "1.0.0"
   },
   "paths": {
     "/api/health/live": {
       "get": {
         "tags": [
-          "GrowLog.Api"
+          "Hortiplanner.Api"
         ],
         "responses": {
           "200": {
@@ -1553,7 +1553,7 @@
     "/api/staff/qr": {
       "post": {
         "tags": [
-          "GrowLog.Api"
+          "Hortiplanner.Api"
         ],
         "requestBody": {
           "content": {
@@ -2098,7 +2098,7 @@
     "/api/plants/{id}/archive": {
       "post": {
         "tags": [
-          "GrowLog.Api"
+          "Hortiplanner.Api"
         ],
         "parameters": [
           {
@@ -2128,7 +2128,7 @@
     "/api/plants/{id}/restore": {
       "post": {
         "tags": [
-          "GrowLog.Api"
+          "Hortiplanner.Api"
         ],
         "parameters": [
           {
@@ -2276,7 +2276,7 @@
     "/api/pot-sizes/{id}/archive": {
       "post": {
         "tags": [
-          "GrowLog.Api"
+          "Hortiplanner.Api"
         ],
         "parameters": [
           {
@@ -2306,7 +2306,7 @@
     "/api/pot-sizes/{id}/restore": {
       "post": {
         "tags": [
-          "GrowLog.Api"
+          "Hortiplanner.Api"
         ],
         "parameters": [
           {
@@ -2454,7 +2454,7 @@
     "/api/suppliers/{id}/archive": {
       "post": {
         "tags": [
-          "GrowLog.Api"
+          "Hortiplanner.Api"
         ],
         "parameters": [
           {
@@ -2484,7 +2484,7 @@
     "/api/suppliers/{id}/restore": {
       "post": {
         "tags": [
-          "GrowLog.Api"
+          "Hortiplanner.Api"
         ],
         "parameters": [
           {
@@ -2599,7 +2599,7 @@
     "/api/locations/{id}/archive": {
       "post": {
         "tags": [
-          "GrowLog.Api"
+          "Hortiplanner.Api"
         ],
         "parameters": [
           {
@@ -2629,7 +2629,7 @@
     "/api/locations/{id}/restore": {
       "post": {
         "tags": [
-          "GrowLog.Api"
+          "Hortiplanner.Api"
         ],
         "parameters": [
           {
@@ -4539,7 +4539,7 @@
     "/api/import/fields": {
       "get": {
         "tags": [
-          "GrowLog.Api"
+          "Hortiplanner.Api"
         ],
         "responses": {
           "200": {
@@ -5472,7 +5472,7 @@
     "/api/customers/{id}/archive": {
       "post": {
         "tags": [
-          "GrowLog.Api"
+          "Hortiplanner.Api"
         ],
         "parameters": [
           {
@@ -5495,7 +5495,7 @@
     "/api/customers/{id}/restore": {
       "post": {
         "tags": [
-          "GrowLog.Api"
+          "Hortiplanner.Api"
         ],
         "parameters": [
           {
@@ -13310,7 +13310,7 @@
   },
   "tags": [
     {
-      "name": "GrowLog.Api"
+      "name": "Hortiplanner.Api"
     },
     {
       "name": "HealthEndpoints"

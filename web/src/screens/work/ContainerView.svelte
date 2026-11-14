@@ -58,7 +58,7 @@
     onAsk,
   }: {
     label: string;
-    /** Opens Ask GrowLog about this tray, a plant in it or one of its photos, when this person can ask. */
+    /** Opens Ask Hortiplanner about this tray, a plant in it or one of its photos, when this person can ask. */
     onAsk?: (about: AskAbout) => void;
     /** Only for the owner: opens the batch's trace report. */
     onTrace?: (batchId: string) => void;

@@ -7,7 +7,7 @@ export interface Me {
 }
 
 /** Set on this device when someone chooses to sign in as themselves rather than as the nursery team. */
-export const signInAsYourselfKey = "growlog.signInAsYourself";
+export const signInAsYourselfKey = "hortiplanner.signInAsYourself";
 
 export interface Person {
   id: string;

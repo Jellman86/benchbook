@@ -19,7 +19,7 @@
     try {
       await work();
     } catch {
-      problem = "Can't reach GrowLog. Check the connection and try again.";
+      problem = "Can't reach Hortiplanner. Check the connection and try again.";
     } finally {
       busy = false;
     }
@@ -80,7 +80,7 @@
 
 <main>
   <img class="hero-logo" src="/icon-192.png" alt="" />
-  <h1>Welcome to GrowLog</h1>
+  <h1>Welcome to Hortiplanner</h1>
   <p>Save a passkey on your phone, or choose a password.</p>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
   <button onclick={setUpPasskey} disabled={busy}>Set up my passkey</button>

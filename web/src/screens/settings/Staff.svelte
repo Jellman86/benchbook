@@ -52,7 +52,10 @@
 
   async function shareLink() {
     try {
-      await navigator.share({ title: "Your GrowLog invitation", url: link });
+      await navigator.share({
+        title: "Your Hortiplanner invitation",
+        url: link,
+      });
     } catch {
       // They closed the share sheet.
     }
