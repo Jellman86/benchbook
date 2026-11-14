@@ -132,4 +132,59 @@ public sealed class PlaceSiteRuleTests(PostgresFixture database)
             }
         }
     }
+
+    [Fact]
+    public async Task A_credit_note_or_an_undone_germination_cannot_put_plants_back_on_a_site()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var site = await AddPlaceAsync(nursery.Owner, "Nursery");
+
+        // Sold out, the bench becomes a site, then the sale is credited: refused, and no credit note is made.
+        var sold = await AddPlaceAsync(nursery.Owner, "Sold bench", site);
+        var (batch, tray) = await StartTrayAsync(nursery.Owner, sold);
+        var customer = Json(await PostForTextAsync(nursery.Owner, "/api/customers", new { name = "Hilltop", address = "1 High Street", email = "buyer@example.com", phone = "", vatNumber = "" })).GetProperty("id").GetGuid();
+        var invoice = Json(await PostForTextAsync(nursery.Owner, "/api/invoices", new
+        {
+            customerId = customer,
+            notes = "",
+            lines = new[] { new { description = "Sage", quantity = 10, unitPrice = 3m, vatRate = 0m, containerId = (Guid?)tray, batchId = (Guid?)batch } },
+        })).GetProperty("id").GetGuid();
+
+        using (var promoted = await MakeSiteAsync(nursery.Owner, sold))
+        {
+            Assert.Equal(HttpStatusCode.NoContent, promoted.StatusCode);
+        }
+
+        using (var credit = await nursery.Owner.PostAsync(Route($"/api/invoices/{invoice}/credit"), null, Cancellation))
+        {
+            Assert.Equal(HttpStatusCode.Conflict, credit.StatusCode);
+            Assert.Equal("PlantsOnSite", (await credit.Content.ReadFromJsonAsync<JsonElement>(Cancellation)).GetProperty("problem").GetString());
+        }
+
+        var invoices = await nursery.Owner.GetFromJsonAsync<JsonElement>(Route("/api/invoices"), Cancellation);
+        Assert.DoesNotContain(invoices.EnumerateArray(), entry => string.Equals(entry.GetProperty("kind").GetString(), "CreditNote", StringComparison.Ordinal));
+
+        // Germination with a count of none, the bench becomes a site, then the germination is undone.
+        var sown = await AddPlaceAsync(nursery.Owner, "Germination bench", site);
+        var (sownBatch, sownTray) = await StartTrayAsync(nursery.Owner, sown);
+        var germinated = Guid.CreateVersion7();
+        await PostForTextAsync(nursery.Owner, $"/api/containers/{sownTray}/germinated", new
+        {
+            eventId = germinated,
+            occurredAt = DateTimeOffset.UtcNow.AddHours(-1),
+            countEventId = Guid.CreateVersion7(),
+            batchId = sownBatch,
+            counted = 0,
+        });
+
+        using (var promoted = await MakeSiteAsync(nursery.Owner, sown))
+        {
+            Assert.Equal(HttpStatusCode.NoContent, promoted.StatusCode);
+        }
+
+        using (var undo = await nursery.Owner.PostAsJsonAsync(Route($"/api/events/{germinated}/correct"), new { eventId = Guid.CreateVersion7(), occurredAt = DateTimeOffset.UtcNow }, Cancellation))
+        {
+            Assert.Equal("OnSite", await ProblemAsync(undo));
+        }
+    }
 }

@@ -224,7 +224,12 @@ internal static class InvoiceEndpoints
         if (original.SoldEventId is { } soldId)
         {
             var putBack = new Event { Id = Guid.CreateVersion7(), Type = EventType.Corrected, OccurredAt = clock.GetUtcNow(), RecordedBy = UserId(user), CorrectsEventId = soldId };
-            await store.AppendAsync(putBack, cancellationToken);
+
+            // The plants must go back, or there's no credit note: nothing is committed without them.
+            if (await store.AppendAsync(putBack, cancellationToken) is var putBackResult and not (AppendResult.Stored or AppendResult.AlreadyStored))
+            {
+                return TypedResults.Conflict(new IssueRefused(putBackResult == AppendResult.OnSite ? "PlantsOnSite" : "PlantsNotPutBack"));
+            }
         }
 
         var credit = new Invoice

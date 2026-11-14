@@ -608,9 +608,9 @@ internal static class WorkEndpoints
                 ContainerId = original.ContainerId,
                 CorrectsEventId = count.GetGuid(),
             };
-            if (await store.AppendAsync(undoCount, cancellationToken) is not (AppendResult.Stored or AppendResult.AlreadyStored))
+            if (await store.AppendAsync(undoCount, cancellationToken) is var undone and not (AppendResult.Stored or AppendResult.AlreadyStored))
             {
-                return Refused("BelowZero");
+                return Refused(undone == AppendResult.OnSite ? "OnSite" : "BelowZero");
             }
         }
         var result = await StoreSimpleAsync(store, correction, cancellationToken);

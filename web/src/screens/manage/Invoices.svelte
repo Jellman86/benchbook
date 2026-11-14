@@ -234,9 +234,17 @@
     }
 
     return attempt(async () => {
-      await api.POST("/api/invoices/{id}/credit", {
+      const { response, error } = await api.POST("/api/invoices/{id}/credit", {
         params: { path: { id: invoice.id } },
       });
+      const why = (error as { problem?: string } | undefined)?.problem;
+      problem = response.ok
+        ? ""
+        : why === "AlreadyCredited"
+          ? "That invoice already has a credit note."
+          : why === "PlantsOnSite"
+            ? "Its plants would go back to a tray on a site, and trays can't stand on a site. Move that tray to a greenhouse, bench or bed first."
+            : "The plants couldn't go back in their trays, so no credit note was made.";
       await load();
     }, setProblem);
   };
