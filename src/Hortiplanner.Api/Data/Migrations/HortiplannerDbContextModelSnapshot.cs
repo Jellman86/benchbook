@@ -1511,6 +1511,41 @@ namespace Hortiplanner.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Hortiplanner.Api.Data.PersonPicture", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("content");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content_type");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("source");
+
+                    b.Property<string>("SourceUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("source_url");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("UserId")
+                        .HasName("pk_person_picture");
+
+                    b.ToTable("person_picture", (string)null);
+                });
+
             modelBuilder.Entity("Hortiplanner.Api.Data.Plant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2982,6 +3017,16 @@ namespace Hortiplanner.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_package_lines_consignment_packages_package_id");
+                });
+
+            modelBuilder.Entity("Hortiplanner.Api.Data.PersonPicture", b =>
+                {
+                    b.HasOne("Hortiplanner.Api.Accounts.AppUser", null)
+                        .WithOne()
+                        .HasForeignKey("Hortiplanner.Api.Data.PersonPicture", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_person_picture_asp_net_users_user_id");
                 });
 
             modelBuilder.Entity("Hortiplanner.Api.Data.Plant", b =>

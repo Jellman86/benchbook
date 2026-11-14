@@ -1,6 +1,7 @@
 <script lang="ts">
   import { playTune, unlockTune } from "../lib/tune";
   import { api } from "../api/client";
+  import Avatar from "./Avatar.svelte";
   import { onMount } from "svelte";
   import type { Person } from "../lib/boot";
 
@@ -130,9 +131,10 @@
     {/if}
     <div class="stack">
       {#each people as entry (entry.id)}
-        <button class="secondary" onclick={() => choose(entry)}
-          >{entry.name}</button
-        >
+        <button class="secondary person-button" onclick={() => choose(entry)}>
+          <Avatar id={entry.id} name={entry.name} pictureAt={entry.pictureAt} />
+          <span>{entry.name}</span>
+        </button>
       {/each}
     </div>
   </main>

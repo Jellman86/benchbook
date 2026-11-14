@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Avatar from "./Avatar.svelte";
   import LogOut from "@lucide/svelte/icons/log-out";
   import Monitor from "@lucide/svelte/icons/monitor";
   import Flower2 from "@lucide/svelte/icons/flower-2";
@@ -148,7 +149,10 @@
   </nav>
 
   <div class="sidebar-foot">
-    <p class="signed-in nav-text">Signed in as {me.name}</p>
+    <p class="signed-in nav-text">
+      <Avatar id={me.id} name={me.name} pictureAt={me.pictureAt} size={28} />
+      <span>Signed in as {me.name}</span>
+    </p>
     <button
       aria-current={here("settings")}
       aria-label="Settings"

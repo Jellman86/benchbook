@@ -171,15 +171,18 @@ internal static class AccountEndpoints
     }
 
     // A PIN at a bench station is enough for recording work, not for the owner's settings.
-    private static async Task<CurrentUser> GetCurrentUserAsync(ClaimsPrincipal user, UserManager<AppUser> users)
+    private static async Task<CurrentUser> GetCurrentUserAsync(ClaimsPrincipal user, UserManager<AppUser> users, HortiplannerDbContext db, CancellationToken cancellationToken)
     {
         var person = await users.GetUserAsync(user);
+        var id = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var pictureAt = await db.PersonPictures.Where(picture => picture.UserId == id).Select(picture => (DateTimeOffset?)picture.UpdatedAt).FirstOrDefaultAsync(cancellationToken);
 
         return new CurrentUser(
-            Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!),
+            id,
             user.Identity?.Name ?? string.Empty,
             user.IsInRole(AccountServices.OwnerRole) && user.FindFirst(AccountServices.BenchSessionClaim) is null,
-            person?.IsTeamAccount ?? false);
+            person?.IsTeamAccount ?? false,
+            pictureAt);
     }
 
     private static async Task<bool> SetupIsOpenAsync(
@@ -206,5 +209,5 @@ internal static class AccountEndpoints
     internal sealed record SignInRequest(JsonElement Credential);
 
     /// <param name="IsTeam">Signed in as the nursery team, because the nursery chose no signing in.</param>
-    internal sealed record CurrentUser(Guid Id, string Name, bool IsOwner, bool IsTeam);
+    internal sealed record CurrentUser(Guid Id, string Name, bool IsOwner, bool IsTeam, DateTimeOffset? PictureAt);
 }

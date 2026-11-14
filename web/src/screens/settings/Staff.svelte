@@ -1,5 +1,8 @@
 <script lang="ts">
+  import Camera from "@lucide/svelte/icons/camera";
   import Music from "@lucide/svelte/icons/music";
+  import { shrinkPhoto } from "../../lib/photo";
+  import Avatar from "../Avatar.svelte";
   import { isOn } from "../../lib/features.svelte";
   import FormPanel from "../FormPanel.svelte";
   import { onMount, tick } from "svelte";
@@ -241,6 +244,36 @@
     void preview.play().catch(() => {});
   }
 
+  // A picture shown beside their name. Shrunk on the phone first: it's only ever shown small.
+  const choosePicture = (event: Event, member: Member) => {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    return attempt(async () => {
+      const response = await fetch(`/api/staff/${member.id}/picture`, {
+        method: "PUT",
+        body: await shrinkPhoto(file, 512),
+      });
+      problem = response.ok
+        ? ""
+        : "That picture couldn't be saved. Please use a photo.";
+      await load();
+    }, setProblem);
+  };
+
+  const removePicture = (member: Member) =>
+    attempt(async () => {
+      await api.DELETE("/api/staff/{id}/picture", {
+        params: { path: { id: member.id } },
+      });
+      await load();
+    }, setProblem);
+
   const removeTune = (member: Member) =>
     attempt(async () => {
       preview?.pause();
@@ -374,7 +407,14 @@
 
       {#each staff.filter((member) => !member.archived) as member (member.id)}
         <div class="card">
-          <strong>{member.name}</strong>
+          <strong class="person-heading">
+            <Avatar
+              id={member.id}
+              name={member.name}
+              pictureAt={member.pictureAt}
+            />
+            {member.name}
+          </strong>
           <span class="muted">{signsInWith(member)}</span>
           {#if changingPinFor === member.id}
             <form class="stack" onsubmit={(event) => savePin(event, member.id)}>
@@ -402,6 +442,32 @@
             </form>
           {:else if tuneFor === member.id}
             <div class="stack">
+              <h3 class="form-heading">Picture</h3>
+              <p class="muted">
+                Shown beside their name when signing in, at a bench and here.
+                They can change it themselves under My account.
+              </p>
+              <label class="photo-choice">
+                <Camera size={20} />
+                <span
+                  >{member.pictureAt
+                    ? "Change the picture"
+                    : "Choose a picture"}</span
+                >
+                <input
+                  type="file"
+                  accept="image/*"
+                  onchange={(event) => choosePicture(event, member)}
+                />
+              </label>
+              {#if member.pictureAt}
+                <button
+                  class="secondary destructive"
+                  onclick={() => removePicture(member)}
+                  >Remove the picture</button
+                >
+              {/if}
+              <h3 class="form-heading">Sign-in tune</h3>
               <p class="muted">
                 Plays on {member.name}'s device each time they sign in. They can
                 turn it off. An MP3, M4A or WAV, up to 4 MB.
@@ -464,10 +530,12 @@
               <button
                 class="secondary"
                 aria-label={member.hasTune
-                  ? "Sign-in tune, one is set"
-                  : "Sign-in tune"}
+                  ? "Picture and sign-in tune, a tune is set"
+                  : "Picture and sign-in tune"}
                 onclick={() => (tuneFor = member.id)}
-                >{member.hasTune ? "Sign-in tune ♪" : "Sign-in tune"}</button
+                >{member.hasTune
+                  ? "Picture and tune ♪"
+                  : "Picture and tune"}</button
               >
               {#if member.id !== myId}
                 <button class="secondary" onclick={() => archive(member)}

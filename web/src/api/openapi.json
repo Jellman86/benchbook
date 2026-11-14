@@ -46,6 +46,29 @@
         }
       }
     },
+    "/api/people/{id}/picture": {
+      "get": {
+        "tags": [
+          "PersonPictureEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/plants/from-species": {
       "post": {
         "tags": [
@@ -1737,6 +1760,72 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/account/picture": {
+      "put": {
+        "tags": [
+          "Hortiplanner.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Hortiplanner.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/staff/{id}/picture": {
+      "put": {
+        "tags": [
+          "Hortiplanner.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Hortiplanner.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -7535,7 +7624,8 @@
           "id",
           "name",
           "isOwner",
-          "isTeam"
+          "isTeam",
+          "pictureAt"
         ],
         "type": "object",
         "properties": {
@@ -7551,6 +7641,13 @@
           },
           "isTeam": {
             "type": "boolean"
+          },
+          "pictureAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -10293,7 +10390,8 @@
       "Person": {
         "required": [
           "id",
-          "name"
+          "name",
+          "pictureAt"
         ],
         "type": "object",
         "properties": {
@@ -10303,6 +10401,13 @@
           },
           "name": {
             "type": "string"
+          },
+          "pictureAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -12162,7 +12267,8 @@
           "id",
           "name",
           "nameOnly",
-          "hasPassword"
+          "hasPassword",
+          "pictureAt"
         ],
         "type": "object",
         "properties": {
@@ -12178,6 +12284,13 @@
           },
           "hasPassword": {
             "type": "boolean"
+          },
+          "pictureAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -12367,7 +12480,8 @@
           "hasPasskey",
           "hasExternalLogin",
           "hasPin",
-          "hasTune"
+          "hasTune",
+          "pictureAt"
         ],
         "type": "object",
         "properties": {
@@ -12401,6 +12515,13 @@
           },
           "hasTune": {
             "type": "boolean"
+          },
+          "pictureAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -13549,6 +13670,9 @@
     },
     {
       "name": "HealthEndpoints"
+    },
+    {
+      "name": "PersonPictureEndpoints"
     },
     {
       "name": "SpeciesEndpoints"

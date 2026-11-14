@@ -22,6 +22,10 @@ public sealed class ExternalSignInTests(PostgresFixture database)
     private const string OwnersGroup = "Hortiplanner owners";
     private const string Login = "/api/account/external/login";
 
+    private static readonly byte[] Png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3];
+
+    private static readonly byte[] Jpeg = [0xFF, 0xD8, 0xFF, 0xE0, 4, 5, 6];
+
     /// <summary>A stand-in identity provider that signs real tokens, so the whole handshake runs.</summary>
     private sealed class Provider : HttpMessageHandler
     {
@@ -38,6 +42,11 @@ public sealed class ExternalSignInTests(PostgresFixture database)
         public bool Down { get; set; }
 
         public string? ClaimedIssuer { get; set; }
+
+        /// <summary>The standard picture claim, if the login sends one.</summary>
+        public string? Picture { get; set; }
+
+        public int PictureFetches { get; private set; }
 
         private RsaSecurityKey Key => new(rsa) { KeyId = "test" };
 
@@ -59,6 +68,13 @@ public sealed class ExternalSignInTests(PostgresFixture database)
             }
 
             var path = request.RequestUri!.AbsolutePath;
+
+            if (path.EndsWith(".png", StringComparison.Ordinal))
+            {
+                PictureFetches++;
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(Png) });
+            }
+
             var body = path switch
             {
                 "/.well-known/openid-configuration" => $$"""
@@ -86,6 +102,11 @@ public sealed class ExternalSignInTests(PostgresFixture database)
             if (Name is not null)
             {
                 claims["name"] = Name;
+            }
+
+            if (Picture is not null)
+            {
+                claims["picture"] = Picture;
             }
 
             return new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
@@ -164,6 +185,61 @@ public sealed class ExternalSignInTests(PostgresFixture database)
         var me = await MeAsync(browser);
         Assert.Equal("Jo Reed", me.GetProperty("name").GetString());
         Assert.False(IsOwner(me));
+    }
+
+    private static async Task<byte[]?> PictureOfAsync(HttpClient client, Guid id)
+    {
+        using var response = await client.GetAsync(Route($"/api/people/{id}/picture"), Cancellation);
+        return response.IsSuccessStatusCode ? await response.Content.ReadAsByteArrayAsync(Cancellation) : null;
+    }
+
+    [Fact]
+    public async Task The_staff_logins_picture_is_kept_until_the_person_uploads_their_own()
+    {
+        var provider = new Provider { Picture = "https://idp.test/jo.png" };
+        await using var app = await CreateAsync(database, provider);
+        using var owner = Browser(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+
+        using var browser = Browser(app);
+        await GoThroughProviderAsync(browser, provider);
+        var me = await MeAsync(browser);
+        var id = me.GetProperty("id").GetGuid();
+        Assert.NotEqual(JsonValueKind.Null, me.GetProperty("pictureAt").ValueKind);
+
+        // Anyone on the sign-in screen sees it, as they see the name.
+        using var stranger = Browser(app);
+        Assert.Equal(Png, await PictureOfAsync(stranger, id));
+
+        // The same address isn't fetched again.
+        await GoThroughProviderAsync(browser, provider);
+        Assert.Equal(1, provider.PictureFetches);
+
+        using (var content = new ByteArrayContent(Jpeg))
+        using (var uploaded = await browser.PutAsync(Route("/api/account/picture"), content, Cancellation))
+        {
+            Assert.Equal(HttpStatusCode.NoContent, uploaded.StatusCode);
+        }
+
+        // An uploaded picture wins over the staff login's, even when the login sends a new one.
+        provider.Picture = "https://idp.test/jo-new.png";
+        await GoThroughProviderAsync(browser, provider);
+        Assert.Equal(Jpeg, await PictureOfAsync(stranger, id));
+
+        using (var removed = await browser.DeleteAsync(Route("/api/account/picture"), Cancellation))
+        {
+            Assert.Equal(HttpStatusCode.NoContent, removed.StatusCode);
+        }
+
+        Assert.Null(await PictureOfAsync(stranger, id));
+        await GoThroughProviderAsync(browser, provider);
+        Assert.Equal(Png, await PictureOfAsync(stranger, id));
+
+        // A login that stops sending a picture takes its copy away.
+        provider.Picture = null;
+        await GoThroughProviderAsync(browser, provider);
+        Assert.Null(await PictureOfAsync(stranger, id));
     }
 
     [Fact]
