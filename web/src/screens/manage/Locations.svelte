@@ -125,11 +125,30 @@
                   <em>{kindLabel(place.kind)} · {place.labelCode}</em>
                 </span>
                 {#if place.photoIds.length > 0}
-                  <span class="muted credit"
-                    >{place.photoIds.length} photo{place.photoIds.length === 1
-                      ? ""
-                      : "s"}</span
+                  {@const stack = place.photoIds.slice(-3).reverse()}
+                  <span
+                    class="photo-stack"
+                    style:--cards={stack.length}
+                    role="img"
+                    aria-label="{place.photoIds.length} photo{place.photoIds
+                      .length === 1
+                      ? ''
+                      : 's'}"
                   >
+                    {#each stack as photoId, index (photoId)}
+                      <img
+                        src="/api/catalogue-photos/{photoId}"
+                        alt=""
+                        loading="lazy"
+                        style:--card={index}
+                      />
+                    {/each}
+                    {#if place.photoIds.length > stack.length}
+                      <span class="photo-stack-more"
+                        >+{place.photoIds.length - stack.length}</span
+                      >
+                    {/if}
+                  </span>
                 {/if}
                 <ChevronRight size={18} />
               </button>

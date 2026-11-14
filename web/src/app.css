@@ -4054,3 +4054,40 @@ button.person-button {
   align-items: center;
   gap: 0.5rem;
 }
+
+/* A place's newest photos, fanned like a little stack of prints at the end of its row. */
+.photo-stack {
+  position: relative;
+  flex: none;
+  width: calc(2.75rem + (var(--cards) - 1) * 0.7rem);
+  height: 2.75rem;
+}
+
+.photo-stack img {
+  position: absolute;
+  top: 0;
+  left: calc(var(--card) * 0.7rem);
+  z-index: calc(3 - var(--card));
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 2px solid var(--surface);
+  border-radius: 0.45rem;
+  object-fit: cover;
+  background: var(--line);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  transform: rotate(calc(var(--card) * 5deg));
+}
+
+.photo-stack-more {
+  position: absolute;
+  right: -0.35rem;
+  bottom: -0.35rem;
+  z-index: 4;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.2rem;
+}
