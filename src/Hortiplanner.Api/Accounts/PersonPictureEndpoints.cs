@@ -1,8 +1,11 @@
+using System.Net;
+using System.Net.Sockets;
 using System.Security.Claims;
 using Hortiplanner.Api.Data;
 using Hortiplanner.Api.Lookup;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Hortiplanner.Api.Accounts;
 
@@ -16,6 +19,8 @@ internal static partial class PersonPictureEndpoints
 
     /// <summary>A picture is shown small, so the staff login's copy needn't be big.</summary>
     private const int MaxDownloadBytes = 2 * 1024 * 1024;
+
+    private static readonly TimeSpan DownloadDeadline = TimeSpan.FromSeconds(5);
 
     public static void MapPersonPictureEndpoints(this IEndpointRouteBuilder app)
     {
@@ -110,6 +115,10 @@ internal static partial class PersonPictureEndpoints
         ILogger logger,
         CancellationToken cancellationToken)
     {
+        // The whole download, not just its first reply, has a deadline: a slow picture never holds up signing in.
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(DownloadDeadline);
+
         try
         {
             var existing = await db.PersonPictures.AsNoTracking().FirstOrDefaultAsync(picture => picture.UserId == id, cancellationToken);
@@ -121,11 +130,10 @@ internal static partial class PersonPictureEndpoints
 
             if (!Uri.TryCreate(pictureUrl, UriKind.Absolute, out var url) || !string.Equals(url.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal))
             {
-                if (existing is not null)
-                {
-                    await RemoveAsync(id, db, cancellationToken);
-                }
-
+                // Only ever the login's own copy: an upload made meanwhile stays.
+                await db.PersonPictures
+                    .Where(picture => picture.UserId == id && picture.Source == PersonPictureSource.StaffLogin)
+                    .ExecuteDeleteAsync(cancellationToken);
                 return;
             }
 
@@ -134,15 +142,121 @@ internal static partial class PersonPictureEndpoints
                 return;
             }
 
-            if (await DownloadAsync(url, clients, cancellationToken) is { } image)
+            if (await DownloadAsync(url, clients, deadline.Token) is { } image)
             {
-                await SaveAsync(id, image, PersonPictureSource.StaffLogin, url.AbsoluteUri, db, clock, cancellationToken);
+                await SaveFromLoginAsync(id, image, url.AbsoluteUri, db, clock, cancellationToken);
             }
         }
-        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or IOException or DbUpdateException)
+        catch (Exception exception) when (exception is HttpRequestException or OperationCanceledException or IOException or DbUpdateException)
         {
             LogPictureNotTaken(logger, exception.GetType().Name);
         }
+    }
+
+    /// <summary>
+    /// Keeps the login's picture without ever replacing one the person uploaded, even one uploaded while this was
+    /// downloading: the update only touches a row the login owns, and a new row loses to one inserted meanwhile.
+    /// </summary>
+    private static async Task SaveFromLoginAsync(Guid id, ImageFile image, string sourceUrl, HortiplannerDbContext db, TimeProvider clock, CancellationToken cancellationToken)
+    {
+        var now = clock.GetUtcNow();
+        var updated = await db.PersonPictures
+            .Where(picture => picture.UserId == id && picture.Source == PersonPictureSource.StaffLogin)
+            .ExecuteUpdateAsync(
+                set => set
+                    .SetProperty(picture => picture.Content, image.Content)
+                    .SetProperty(picture => picture.ContentType, image.ContentType)
+                    .SetProperty(picture => picture.SourceUrl, sourceUrl)
+                    .SetProperty(picture => picture.UpdatedAt, now),
+                cancellationToken);
+
+        if (updated > 0 || await db.PersonPictures.AnyAsync(picture => picture.UserId == id, cancellationToken))
+        {
+            return;
+        }
+
+        db.PersonPictures.Add(new PersonPicture
+        {
+            UserId = id,
+            Content = image.Content,
+            ContentType = image.ContentType,
+            Source = PersonPictureSource.StaffLogin,
+            SourceUrl = sourceUrl,
+            UpdatedAt = now,
+        });
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            // An upload got there first, and it wins.
+            db.ChangeTracker.Clear();
+        }
+    }
+
+    /// <summary>
+    /// The picture client's connection: no redirects, and only to public addresses, checked on the address actually
+    /// connected to, so a name that later resolves somewhere private (DNS rebinding) is refused too. A picture link can
+    /// never be used to reach the nursery's own network or this server.
+    /// </summary>
+    public static SocketsHttpHandler PublicOnlyHandler() => new()
+    {
+        AllowAutoRedirect = false,
+        ConnectCallback = async (context, cancellationToken) =>
+        {
+            var addresses = await Dns.GetHostAddressesAsync(context.DnsEndPoint.Host, cancellationToken);
+            var target = addresses.FirstOrDefault(IsPublic)
+                ?? throw new HttpRequestException($"{context.DnsEndPoint.Host} isn't a public address.");
+
+            var socket = new Socket(target.AddressFamily, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+
+            try
+            {
+                await socket.ConnectAsync(new IPEndPoint(target, context.DnsEndPoint.Port), cancellationToken);
+                return new NetworkStream(socket, ownsSocket: true);
+            }
+            catch
+            {
+                socket.Dispose();
+                throw;
+            }
+        },
+    };
+
+    /// <summary>Whether an address is on the public internet: not loopback, private, link-local, shared or multicast.</summary>
+    public static bool IsPublic(IPAddress address)
+    {
+        if (address.IsIPv4MappedToIPv6)
+        {
+            address = address.MapToIPv4();
+        }
+
+        if (IPAddress.IsLoopback(address) || address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any))
+        {
+            return false;
+        }
+
+        if (address.AddressFamily == AddressFamily.InterNetworkV6)
+        {
+            var first = address.GetAddressBytes()[0];
+            return !(address.IsIPv6LinkLocal || address.IsIPv6SiteLocal || address.IsIPv6Multicast || (first & 0xFE) == 0xFC);
+        }
+
+        var bytes = address.GetAddressBytes();
+        return bytes[0] switch
+        {
+            0 or 10 or 127 => false,
+            100 when bytes[1] is >= 64 and <= 127 => false, // Shared address space, including Tailscale.
+            169 when bytes[1] == 254 => false,
+            172 when bytes[1] is >= 16 and <= 31 => false,
+            192 when bytes[1] == 168 => false,
+            192 when bytes[1] == 0 && bytes[2] is 0 or 2 => false,
+            198 when bytes[1] is 18 or 19 => false,
+            >= 224 => false,
+            _ => true,
+        };
     }
 
     private static async Task<ImageFile?> DownloadAsync(Uri url, IHttpClientFactory clients, CancellationToken cancellationToken)

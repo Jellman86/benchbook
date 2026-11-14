@@ -15,11 +15,14 @@
     me,
     theme,
     onTheme,
+    onPictureChanged = () => {},
     onBack,
   }: {
     me: Me;
     theme: Theme;
     onTheme: (theme: Theme) => void;
+    // Tells the rest of the app, so the sidebar and a later visit here show the new picture.
+    onPictureChanged?: (pictureAt: string | null) => void;
     onBack: () => void;
   } = $props();
 
@@ -90,6 +93,13 @@
   // Their own picture; shown beside their name. Kept here so it changes on this page straight away.
   let pictureAt = $derived<string | null>(me.pictureAt ?? null);
 
+  // The server's own timestamp, so the picture's address changes exactly when the picture does.
+  async function refreshPicture() {
+    const { data } = await api.GET("/api/account/me");
+    pictureAt = data?.pictureAt ?? null;
+    onPictureChanged(pictureAt);
+  }
+
   const choosePicture = (event: Event) => {
     const input = event.currentTarget as HTMLInputElement;
     const file = input.files?.[0];
@@ -106,7 +116,7 @@
       });
 
       if (response.ok) {
-        pictureAt = new Date().toISOString();
+        await refreshPicture();
         report(true, "Picture saved.", "");
       } else {
         report(
@@ -121,7 +131,7 @@
   const removePicture = () =>
     attempt(async () => {
       await api.DELETE("/api/account/picture");
-      pictureAt = null;
+      await refreshPicture();
       report(true, "Picture removed.", "");
     }, setProblem);
 

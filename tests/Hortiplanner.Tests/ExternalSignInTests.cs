@@ -48,6 +48,9 @@ public sealed class ExternalSignInTests(PostgresFixture database)
 
         public int PictureFetches { get; private set; }
 
+        /// <summary>Answers the picture's headers at once, then never sends the rest.</summary>
+        public bool StallPicture { get; set; }
+
         private RsaSecurityKey Key => new(rsa) { KeyId = "test" };
 
         protected override void Dispose(bool disposing)
@@ -72,7 +75,8 @@ public sealed class ExternalSignInTests(PostgresFixture database)
             if (path.EndsWith(".png", StringComparison.Ordinal))
             {
                 PictureFetches++;
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(Png) });
+                HttpContent content = StallPicture ? new StreamContent(new StalledStream()) : new ByteArrayContent(Png);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
             }
 
             var body = path switch
@@ -118,6 +122,38 @@ public sealed class ExternalSignInTests(PostgresFixture database)
                 SigningCredentials = new SigningCredentials(Key, SecurityAlgorithms.RsaSha256),
             });
         }
+    }
+
+    /// <summary>A body that never arrives.</summary>
+    private sealed class StalledStream : Stream
+    {
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position { get => 0; set => throw new NotSupportedException(); }
+
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+            return 0;
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override void Flush()
+        {
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
     private static async Task<TestApp> CreateAsync(PostgresFixture database, Provider provider, bool enabled = true)
@@ -236,10 +272,35 @@ public sealed class ExternalSignInTests(PostgresFixture database)
         await GoThroughProviderAsync(browser, provider);
         Assert.Equal(Png, await PictureOfAsync(stranger, id));
 
-        // A login that stops sending a picture takes its copy away.
+        // A login that stops sending a picture takes its own copy away, never an upload.
         provider.Picture = null;
         await GoThroughProviderAsync(browser, provider);
         Assert.Null(await PictureOfAsync(stranger, id));
+
+        using (var content = new ByteArrayContent(Jpeg))
+        using (var uploaded = await browser.PutAsync(Route("/api/account/picture"), content, Cancellation))
+        {
+            Assert.Equal(HttpStatusCode.NoContent, uploaded.StatusCode);
+        }
+
+        await GoThroughProviderAsync(browser, provider);
+        Assert.Equal(Jpeg, await PictureOfAsync(stranger, id));
+    }
+
+    [Fact]
+    public async Task A_picture_that_never_finishes_downloading_does_not_hold_up_signing_in()
+    {
+        var provider = new Provider { Picture = "https://idp.test/slow.png", StallPicture = true };
+        await using var app = await CreateAsync(database, provider);
+        using var owner = Browser(app);
+        using var key = new TestAuthenticator();
+        await SetUpOwnerAsync(owner, key);
+
+        using var browser = Browser(app);
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        Assert.Equal("/", await GoThroughProviderAsync(browser, provider));
+        Assert.InRange(timer.Elapsed, TimeSpan.Zero, TimeSpan.FromSeconds(20));
+        Assert.Equal(JsonValueKind.Null, (await MeAsync(browser)).GetProperty("pictureAt").ValueKind);
     }
 
     [Fact]

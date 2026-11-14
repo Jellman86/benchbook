@@ -64,4 +64,21 @@ public sealed class PersonPictureTests(PostgresFixture database)
             Assert.Equal(HttpStatusCode.NoContent, removed.StatusCode);
         }
     }
+
+    [Theory]
+    [InlineData("8.8.8.8", true)]
+    [InlineData("2606:4700:4700::1111", true)]
+    [InlineData("127.0.0.1", false)]
+    [InlineData("10.1.2.3", false)]
+    [InlineData("172.20.0.1", false)]
+    [InlineData("192.168.213.103", false)]
+    [InlineData("169.254.169.254", false)]
+    [InlineData("100.100.100.100", false)]
+    [InlineData("0.0.0.0", false)]
+    [InlineData("::1", false)]
+    [InlineData("fd7a:115c:a1e0::1", false)]
+    [InlineData("fe80::1", false)]
+    [InlineData("::ffff:192.168.1.1", false)]
+    public void Pictures_are_only_fetched_from_the_public_internet(string address, bool allowed) =>
+        Assert.Equal(allowed, Hortiplanner.Api.Accounts.PersonPictureEndpoints.IsPublic(System.Net.IPAddress.Parse(address)));
 }

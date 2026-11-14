@@ -84,7 +84,14 @@
     me,
     atBench,
     onSignedOut,
-  }: { me: Me; atBench: boolean; onSignedOut: () => void } = $props();
+    onMeChanged = () => {},
+  }: {
+    me: Me;
+    atBench: boolean;
+    onSignedOut: () => void;
+    // The signed-in person changed something about themselves, such as their picture.
+    onMeChanged?: (me: Me) => void;
+  } = $props();
 
   const benchIdleLimit = 5 * 60 * 1000;
   const stockRefreshEvery = 5 * 60 * 1000;
@@ -669,6 +676,7 @@
   {:else if view.name === "settings"}
     <Settings
       {me}
+      onPictureChanged={(pictureAt) => onMeChanged({ ...me, pictureAt })}
       page={view.page}
       {theme}
       onPage={(page) => (view = { name: "settings", page })}

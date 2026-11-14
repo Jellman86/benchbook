@@ -25,6 +25,7 @@
     theme,
     onPage,
     onTheme,
+    onPictureChanged = () => {},
     onBack,
     onSignOut,
     onBecameStation,
@@ -34,6 +35,7 @@
     theme: Theme;
     onPage: (page: SettingsPage | null) => void;
     onTheme: (theme: Theme) => void;
+    onPictureChanged?: (pictureAt: string | null) => void;
     onBack: () => void;
     onSignOut: () => void;
     onBecameStation: () => void;
@@ -100,7 +102,7 @@
     {/if}
 
     {#if shown === "account"}
-      <Account {me} {theme} {onTheme} onBack={toList} />
+      <Account {me} {theme} {onTheme} {onPictureChanged} onBack={toList} />
     {:else if shown === "nursery"}
       <NurseryDetails onBack={toList} />
     {:else if shown === "features"}

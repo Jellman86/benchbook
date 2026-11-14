@@ -34,7 +34,14 @@ internal sealed class TestApp(params (string Key, string? Value)[] settings) : W
 
         if (OutsideWorld is not null)
         {
-            builder.ConfigureTestServices(services => services.ConfigureHttpClientDefaults(client => client.ConfigurePrimaryHttpMessageHandler(() => OutsideWorld)));
+            builder.ConfigureTestServices(services =>
+            {
+                services.ConfigureHttpClientDefaults(client => client.ConfigurePrimaryHttpMessageHandler(() => OutsideWorld));
+
+                // The picture client sets its own public-only handler, so it's pointed at the stand-in by name.
+                services.AddHttpClient(Hortiplanner.Api.Accounts.PersonPictureEndpoints.ClientName)
+                    .ConfigurePrimaryHttpMessageHandler(() => OutsideWorld);
+            });
         }
     }
 }
