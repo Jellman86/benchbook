@@ -1190,6 +1190,7 @@ button.sort-button {
   color: inherit;
   font: inherit;
   font-weight: 700;
+  box-shadow: none;
 }
 
 button.sort-button:hover:not(:disabled) {
@@ -4110,4 +4111,10 @@ button.person-button {
   font-size: 0.7rem;
   font-weight: 700;
   line-height: 1.2rem;
+}
+
+/* Last, so it wins over every button style above: anything that can't be pressed sits flat on the page. */
+button:disabled,
+button.link-button:disabled {
+  box-shadow: none;
 }

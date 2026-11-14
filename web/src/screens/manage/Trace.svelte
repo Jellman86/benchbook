@@ -178,8 +178,7 @@
       <button
         class="link-button trace-print no-print"
         onclick={() => window.print()}
-        ><Printer size={18} />
-        <Printer size={16} aria-hidden="true" />Print this report</button
+        ><Printer size={16} aria-hidden="true" />Print this report</button
       >
 
       <div class="split trace">
