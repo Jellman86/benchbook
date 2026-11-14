@@ -66,7 +66,7 @@ jobs:
           ids() { sed -n 's#.*/\([0-9]\{14\}\)_.*#\1#p' | sort -u; }
           newest=$(git ls-tree --name-only "origin/$GITHUB_BASE_REF" src/Hortiplanner.Api/Data/Migrations/ | ids | tail -1)
           for id in $(git diff --name-only --diff-filter=A "origin/$GITHUB_BASE_REF...HEAD" -- src/Hortiplanner.Api/Data/Migrations | ids); do
-            if [ "$id" -le "$newest" ]; then
+            if [ -n "$newest" ] && [ "$id" -le "$newest" ]; then
               echo "::error::Migration $id is older than $newest on $GITHUB_BASE_REF. Update this branch and regenerate it."
               exit 1
             fi

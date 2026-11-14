@@ -35,7 +35,8 @@ internal static class SensorEndpoints
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    /// <summary>A new key, shown once. "glk_" marks it as a Hortiplanner key wherever it ends up.</summary>
+    /// <summary>A new key, shown once. "glk_" (from the old name, GrowLog) marks it as one of
+    /// this app's keys wherever it ends up. Keys already handed out start with it, so it stays.</summary>
     private static (string Key, byte[] Hash) NewKey()
     {
         var key = $"glk_{Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)).TrimEnd('=').Replace('+', '-').Replace('/', '_')}";
