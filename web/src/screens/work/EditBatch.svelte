@@ -43,7 +43,9 @@
   let form = $state<BatchForm | null>(null);
   let before = $state<BatchForm | null>(null);
   // Photos save as soon as they're taken; counted so the check page can say so.
-  let photosAdded = $state(0);
+  // Only photos added on this visit that are still there.
+  let addedPhotos = $state<string[]>([]);
+  const photosAdded = $derived(addedPhotos.length);
   let checking = $state(false);
   let problem = $state("");
   let busy = $state(false);
@@ -333,7 +335,9 @@
       <BatchPhotos
         {batchId}
         kinds={["Packet", "Label", "Packaging"]}
-        onAdded={() => (photosAdded += 1)}
+        onAdded={(id) => (addedPhotos = [...addedPhotos, id])}
+        onRemoved={(id) =>
+          (addedPhotos = addedPhotos.filter((added) => added !== id))}
       />
       <p class="muted">Photos are saved as soon as they're taken.</p>
     {/if}

@@ -88,6 +88,59 @@ public sealed class SowingEditTests(PostgresFixture database)
         Assert.Equal(HttpStatusCode.Conflict, later.StatusCode);
     }
 
+    private static async Task<(Guid Plant, Guid Batch, Guid Tray, string Label, Guid First, Guid Second, Guid Third)> SowAtAPlaceAsync(TwoPersonNursery nursery)
+    {
+        var site = Json(await PostForTextAsync(nursery.Owner, "/api/locations", new { name = "Nursery", kind = "Site" })).GetProperty("id").GetGuid();
+        var places = new List<Guid>();
+
+        foreach (var name in new[] { "Greenhouse 1", "Greenhouse 2", "Greenhouse 3" })
+        {
+            places.Add(Json(await PostForTextAsync(nursery.Owner, "/api/locations", new { name, kind = "Greenhouse", parentId = site })).GetProperty("id").GetGuid());
+        }
+
+        var plant = Json(await PostForTextAsync(nursery.Owner, "/api/plants", new { commonName = "Lavender", xylellaHost = false, protectedVariety = false })).GetProperty("id").GetGuid();
+        var started = Json(await PostForTextAsync(nursery.Staff, "/api/batches", new { eventId = Guid.NewGuid(), occurredAt = Sown, plantId = plant, quantity = 26, source = "SeedLot", originCountry = "GB", containerKind = "Tray", locationId = places[0] }));
+        return (plant, started.GetProperty("batchId").GetGuid(), started.GetProperty("containerId").GetGuid(), started.GetProperty("labelCode").GetString()!, places[0], places[1], places[2]);
+    }
+
+    private static async Task<string?> WhereAsync(HttpClient client, string label) =>
+        (await client.GetFromJsonAsync<JsonElement>(Route($"/api/containers/by-label/{label}"), Cancellation)).GetProperty("locationName").GetString();
+
+    [Fact]
+    public async Task A_move_at_the_very_moment_of_sowing_still_locks_the_start_so_the_tray_stays_put()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (plant, batch, tray, label, _, second, _) = await SowAtAPlaceAsync(nursery);
+        await PostForTextAsync(nursery.Staff, $"/api/containers/{tray}/move", new { eventId = Guid.NewGuid(), occurredAt = Sown, locationId = second });
+
+        using var refused = await EditAsync(nursery.Staff, batch, plant, "About", sownAmount: 500);
+        Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
+        Assert.Equal("Greenhouse 2", await WhereAsync(nursery.Staff, label));
+    }
+
+    [Fact]
+    public async Task A_corrected_move_after_sowing_leaves_the_start_open_and_the_tray_where_the_correction_put_it()
+    {
+        await using var nursery = await TwoPersonNursery.CreateAsync(database);
+        var (plant, batch, tray, label, _, second, third) = await SowAtAPlaceAsync(nursery);
+        var move = Guid.NewGuid();
+        await PostForTextAsync(nursery.Staff, $"/api/containers/{tray}/move", new { eventId = move, occurredAt = Sown.AddMinutes(30), locationId = second });
+        await PostForTextAsync(nursery.Staff, $"/api/events/{move}/correct", new { eventId = Guid.NewGuid(), occurredAt = DateTimeOffset.UtcNow, locationId = third });
+        Assert.Equal("Greenhouse 3", await WhereAsync(nursery.Staff, label));
+
+        using (var counted = await EditAsync(nursery.Staff, batch, plant, "Counted", quantity: 30))
+        {
+            Assert.Equal(HttpStatusCode.NoContent, counted.StatusCode);
+        }
+
+        using (var about = await EditAsync(nursery.Staff, batch, plant, "About", sownAmount: 500))
+        {
+            Assert.Equal(HttpStatusCode.NoContent, about.StatusCode);
+        }
+
+        Assert.Equal("Greenhouse 3", await WhereAsync(nursery.Staff, label));
+    }
+
     [Fact]
     public async Task Once_other_work_is_recorded_counted_seed_stays_counted()
     {
