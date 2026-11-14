@@ -18,6 +18,8 @@
     kinds = [],
     emptyText = null,
     onAsk,
+    onAdded,
+    onRemoved,
   }: {
     batchId: string;
     containerId?: string | null;
@@ -26,6 +28,10 @@
     emptyText?: string | null;
     /** Asks Ask Hortiplanner about a photo, when this person can ask. */
     onAsk?: (photoId: string) => void;
+    /** A photo was just saved, with its id. */
+    onAdded?: (photoId: string) => void;
+    /** A photo was just removed, with its id. */
+    onRemoved?: (photoId: string) => void;
   } = $props();
 
   type Photo = Schemas["BatchPhotoSummary"];
@@ -77,6 +83,12 @@
         { method: "POST", body: await shrinkPhoto(file) },
       );
       problem = response.ok ? "" : "That photo couldn't be saved.";
+
+      if (response.ok) {
+        const saved = (await response.json()) as { id: string };
+        onAdded?.(saved.id);
+      }
+
       await load();
     } catch {
       problem = "That photo couldn't be saved. Check the connection.";
@@ -106,6 +118,11 @@
         method: "DELETE",
       });
       problem = response.ok ? "" : "That photo couldn't be removed.";
+
+      if (response.ok) {
+        onRemoved?.(photo.id);
+      }
+
       close();
       await load();
     } catch {
