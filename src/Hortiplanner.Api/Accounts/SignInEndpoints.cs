@@ -49,13 +49,14 @@ internal static class SignInEndpoints
                 user.NameOnlySignIn,
                 HasPassword = user.PasswordHash != null,
                 HasPasskey = db.UserPasskeys.Any(passkey => passkey.UserId == user.Id),
+                PictureAt = db.PersonPictures.Where(picture => picture.UserId == user.Id).Select(picture => (DateTimeOffset?)picture.UpdatedAt).FirstOrDefault(),
             })
             .ToListAsync(cancellationToken);
 
         return people
             .Select(person => (Person: person, Tap: SignInRules.CanTapName(level, person.NameOnlySignIn, owners.Contains(person.Id))))
             .Where(row => row.Tap || row.Person.HasPassword || row.Person.HasPasskey)
-            .Select(row => new SignInPerson(row.Person.Id, row.Person.Name, row.Tap, row.Person.HasPassword))
+            .Select(row => new SignInPerson(row.Person.Id, row.Person.Name, row.Tap, row.Person.HasPassword, row.Person.PictureAt))
             .ToList();
     }
 
@@ -251,7 +252,7 @@ internal static class SignInEndpoints
         return TypedResults.NoContent();
     }
 
-    internal sealed record SignInPerson(Guid Id, string Name, bool NameOnly, bool HasPassword);
+    internal sealed record SignInPerson(Guid Id, string Name, bool NameOnly, bool HasPassword, DateTimeOffset? PictureAt);
 
     internal sealed record NameSignInRequest(Guid UserId);
 

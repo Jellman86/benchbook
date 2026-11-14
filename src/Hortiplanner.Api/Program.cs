@@ -56,6 +56,11 @@ builder.Services.AddHttpClient<SpeciesSources>(client =>
     client.Timeout = TimeSpan.FromSeconds(6);
     client.DefaultRequestHeaders.UserAgent.ParseAdd("Hortiplanner/1.0 (+https://github.com/Jellman86/hortiplanner)");
 });
+builder.Services.AddHttpClient(PersonPictureEndpoints.ClientName, client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(5);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("Hortiplanner/1.0 (+https://github.com/Jellman86/hortiplanner)");
+}).ConfigurePrimaryHttpMessageHandler(PersonPictureEndpoints.PublicOnlyHandler);
 builder.Services.AddHortiplannerAccounts();
 
 var app = builder.Build();
@@ -100,6 +105,7 @@ app.MapExternalSignInEndpoints();
 app.MapExternalSignInSettingsEndpoints();
 app.MapStaffEndpoints();
 app.MapSignInTuneEndpoints();
+app.MapPersonPictureEndpoints();
 app.MapBenchEndpoints();
 app.MapSpeciesEndpoints();
 app.MapPhotoEndpoints();

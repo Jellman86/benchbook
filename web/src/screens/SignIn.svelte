@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import Avatar from "./Avatar.svelte";
   import { api } from "../api/client";
   import { externalSignInProblem, signInAsYourselfKey } from "../lib/boot";
   import { passkeyProblem, usePasskey } from "../lib/passkey";
@@ -141,7 +142,15 @@
 
   {#if chosen}
     {@const person = chosen}
-    <h2>{person.name}</h2>
+    <h2 class="person-heading">
+      <Avatar
+        id={person.id}
+        name={person.name}
+        pictureAt={person.pictureAt}
+        size={48}
+      />
+      <span>{person.name}</span>
+    </h2>
     <form class="stack" onsubmit={(event) => signInWithPassword(event, person)}>
       <!-- Lets a password manager tell people apart on a shared device. -->
       <input hidden autocomplete="username" value={person.name} readonly />
@@ -170,10 +179,17 @@
       <div class="card-grid">
         {#each people as person (person.id)}
           <button
-            class="secondary"
+            class="secondary person-button"
             disabled={busy}
-            onclick={() => choose(person)}>{person.name}</button
+            onclick={() => choose(person)}
           >
+            <Avatar
+              id={person.id}
+              name={person.name}
+              pictureAt={person.pictureAt}
+            />
+            <span>{person.name}</span>
+          </button>
         {/each}
       </div>
     {/if}

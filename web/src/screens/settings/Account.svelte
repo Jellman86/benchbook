@@ -6,17 +6,23 @@
   import { createPasskey, passkeyProblem } from "../../lib/passkey";
   import { themes, type Theme } from "../../lib/theme";
   import { playTune, stopTune, unlockTune } from "../../lib/tune";
+  import Camera from "@lucide/svelte/icons/camera";
+  import { shrinkPhoto } from "../../lib/photo";
+  import Avatar from "../Avatar.svelte";
   import { attempt, type Schemas } from "../../lib/types";
 
   let {
     me,
     theme,
     onTheme,
+    onPictureChanged = () => {},
     onBack,
   }: {
     me: Me;
     theme: Theme;
     onTheme: (theme: Theme) => void;
+    // Tells the rest of the app, so the sidebar and a later visit here show the new picture.
+    onPictureChanged?: (pictureAt: string | null) => void;
     onBack: () => void;
   } = $props();
 
@@ -84,6 +90,51 @@
     }, setProblem);
   };
 
+  // Their own picture; shown beside their name. Kept here so it changes on this page straight away.
+  let pictureAt = $derived<string | null>(me.pictureAt ?? null);
+
+  // The server's own timestamp, so the picture's address changes exactly when the picture does.
+  async function refreshPicture() {
+    const { data } = await api.GET("/api/account/me");
+    pictureAt = data?.pictureAt ?? null;
+    onPictureChanged(pictureAt);
+  }
+
+  const choosePicture = (event: Event) => {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    return attempt(async () => {
+      const response = await fetch("/api/account/picture", {
+        method: "PUT",
+        body: await shrinkPhoto(file, 512),
+      });
+
+      if (response.ok) {
+        await refreshPicture();
+        report(true, "Picture saved.", "");
+      } else {
+        report(
+          false,
+          "",
+          "That picture couldn't be saved. Please use a photo.",
+        );
+      }
+    }, setProblem);
+  };
+
+  const removePicture = () =>
+    attempt(async () => {
+      await api.DELETE("/api/account/picture");
+      await refreshPicture();
+      report(true, "Picture removed.", "");
+    }, setProblem);
+
   const switchTune = (event: Event) => {
     const on = (event.currentTarget as HTMLInputElement).checked;
 
@@ -148,6 +199,26 @@
         >
       {/each}
     </div>
+
+    {#if !me.isTeam}
+      <h2>Your picture</h2>
+      <div class="person-heading">
+        <Avatar id={me.id} name={me.name} {pictureAt} size={64} />
+        <span class="muted"
+          >Shown beside your name when signing in, at a bench and in Staff.</span
+        >
+      </div>
+      <label class="photo-choice">
+        <Camera size={20} />
+        <span>{pictureAt ? "Change your picture" : "Choose a picture"}</span>
+        <input type="file" accept="image/*" onchange={choosePicture} />
+      </label>
+      {#if pictureAt}
+        <button class="secondary destructive" onclick={removePicture}
+          >Remove your picture</button
+        >
+      {/if}
+    {/if}
 
     {#if settings?.hasTune && !me.isTeam}
       <h2>Sign-in tune</h2>

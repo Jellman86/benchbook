@@ -81,6 +81,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/people/{id}/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/plants/from-species": {
         parameters: {
             query?: never;
@@ -2572,6 +2607,110 @@ export interface paths {
         };
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/staff/{id}/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -7986,6 +8125,8 @@ export interface components {
             name: string;
             isOwner: boolean;
             isTeam: boolean;
+            /** Format: date-time */
+            pictureAt: null | string;
         };
         CustomerCreated: {
             /** Format: uuid */
@@ -8672,6 +8813,8 @@ export interface components {
             /** Format: uuid */
             id: string;
             name: string;
+            /** Format: date-time */
+            pictureAt: null | string;
         };
         PersonSpending: {
             name: string;
@@ -9117,6 +9260,8 @@ export interface components {
             name: string;
             nameOnly: boolean;
             hasPassword: boolean;
+            /** Format: date-time */
+            pictureAt: null | string;
         };
         SignInRequest: {
             credential: components["schemas"]["JsonElement"];
@@ -9166,6 +9311,8 @@ export interface components {
             hasExternalLogin: boolean;
             hasPin: boolean;
             hasTune: boolean;
+            /** Format: date-time */
+            pictureAt: null | string;
         };
         StartBatchRequest: {
             /** Format: uuid */

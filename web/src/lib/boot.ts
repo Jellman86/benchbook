@@ -4,6 +4,8 @@ export interface Me {
   isOwner: boolean;
   /** Signed in as the nursery team, because the nursery chose no signing in. */
   isTeam?: boolean;
+  /** When their picture last changed, or null if they have none. */
+  pictureAt?: string | null;
 }
 
 /** Set on this device when someone chooses to sign in as themselves rather than as the nursery team. */
@@ -12,6 +14,7 @@ export const signInAsYourselfKey = "hortiplanner.signInAsYourself";
 export interface Person {
   id: string;
   name: string;
+  pictureAt?: string | null;
 }
 
 export interface Invite {

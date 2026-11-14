@@ -107,7 +107,7 @@ internal static class BenchEndpoints
         var people = await users.Users
             .Where(user => user.ArchivedAt == null && !user.IsTeamAccount && !owners.Contains(user.Id) && (!needsPin || user.PinHash != null))
             .OrderBy(user => user.UserName)
-            .Select(user => new Person(user.Id, user.UserName!))
+            .Select(user => new Person(user.Id, user.UserName!, db.PersonPictures.Where(picture => picture.UserId == user.Id).Select(picture => (DateTimeOffset?)picture.UpdatedAt).FirstOrDefault()))
             .ToListAsync(cancellationToken);
 
         return TypedResults.Ok(people);
@@ -196,7 +196,7 @@ internal static class BenchEndpoints
 
     internal sealed record RegisterStationRequest(string Name);
 
-    internal sealed record Person(Guid Id, string Name);
+    internal sealed record Person(Guid Id, string Name, DateTimeOffset? PictureAt);
 
     internal sealed record BenchSignInRequest(Guid UserId, string Pin);
 }

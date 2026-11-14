@@ -70,7 +70,11 @@ internal static class ExternalSignInEndpoints
         UserManager<AppUser> users,
         RoleManager<IdentityRole<Guid>> roles,
         SignInManager<AppUser> signIn,
-        ExternalSignInStore store)
+        ExternalSignInStore store,
+        HortiplannerDbContext db,
+        IHttpClientFactory clients,
+        TimeProvider clock,
+        ILoggerFactory logs)
     {
         if (!store.Current.IsOn || await signIn.GetExternalLoginInfoAsync() is not { } info)
         {
@@ -115,6 +119,10 @@ internal static class ExternalSignInEndpoints
 
         await MatchOwnerRoleAsync(person, info, users, roles, store);
         await AccountServices.SignInAsync(signIn, person, "oidc");
+
+        // The standard OpenID Connect picture, used when they haven't uploaded their own.
+        await PersonPictureEndpoints.TakeFromStaffLoginAsync(
+            person.Id, info.Principal.FindFirstValue("picture"), db, clients, clock, logs.CreateLogger("Hortiplanner.Pictures"), context.RequestAborted);
         return TypedResults.Redirect("/");
     }
 

@@ -4000,3 +4000,94 @@ select:not([multiple]) {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+/* People's pictures, round, with initials in a colour of their own when there's no picture. */
+.avatar {
+  flex: none;
+  width: var(--avatar-size, 40px);
+  height: var(--avatar-size, 40px);
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--surface);
+}
+
+.avatar.initials {
+  display: inline-grid;
+  place-items: center;
+  background: hsl(var(--avatar-hue, 120) 32% 86%);
+  color: hsl(var(--avatar-hue, 120) 45% 22%);
+  font-size: calc(var(--avatar-size, 40px) * 0.38);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .avatar.initials {
+    background: hsl(var(--avatar-hue, 120) 25% 28%);
+    color: hsl(var(--avatar-hue, 120) 40% 88%);
+  }
+}
+
+:root[data-theme="dark"] .avatar.initials {
+  background: hsl(var(--avatar-hue, 120) 25% 28%);
+  color: hsl(var(--avatar-hue, 120) 40% 88%);
+}
+
+/* A name button with the person's picture beside it, on the sign-in screen and at a bench. */
+button.person-button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.65rem;
+  text-align: left;
+}
+
+.person-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.signed-in {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* A place's newest photos, fanned like a little stack of prints at the end of its row. */
+.photo-stack {
+  position: relative;
+  flex: none;
+  width: calc(2.75rem + (var(--cards) - 1) * 0.7rem);
+  height: 2.75rem;
+}
+
+.photo-stack img {
+  position: absolute;
+  top: 0;
+  left: calc(var(--card) * 0.7rem);
+  z-index: calc(3 - var(--card));
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 2px solid var(--surface);
+  border-radius: 0.45rem;
+  object-fit: cover;
+  background: var(--line);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  transform: rotate(calc(var(--card) * 5deg));
+}
+
+.photo-stack-more {
+  position: absolute;
+  right: -0.35rem;
+  bottom: -0.35rem;
+  z-index: 4;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.2rem;
+}

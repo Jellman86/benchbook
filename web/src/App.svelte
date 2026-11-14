@@ -95,7 +95,17 @@
   </main>
 {:else if start?.screen === "home"}
   {#key start.me.id}
-    <Home me={start.me} atBench={start.atBench} onSignedOut={finished} />
+    <Home
+      me={start.me}
+      atBench={start.atBench}
+      onSignedOut={finished}
+      onMeChanged={(updated) => {
+        if (start?.screen === "home") {
+          start = { ...start, me: updated };
+          rememberMe(updated);
+        }
+      }}
+    />
   {/key}
 {:else if start?.screen === "bench"}
   <Bench people={start.people} onSignedIn={finished} />
