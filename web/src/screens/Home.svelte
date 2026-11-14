@@ -893,7 +893,7 @@
       </div>
 
       {#if atBench}
-        <button class="secondary" onclick={signOut}>Finished</button>
+        <button class="secondary" onclick={signOut}>Sign out</button>
       {/if}
     </main>
   {/if}

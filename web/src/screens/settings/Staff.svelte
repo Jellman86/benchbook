@@ -541,7 +541,7 @@
               >
               {#if member.id !== myId}
                 <button class="secondary" onclick={() => archive(member)}
-                  >Has left</button
+                  >Mark as left</button
                 >
               {/if}
             </div>
@@ -557,7 +557,7 @@
               <span>{member.name}</span>
               <div class="row">
                 <button class="secondary" onclick={() => welcomeBack(member)}
-                  >Has come back</button
+                  >Welcome back</button
                 >
               </div>
             </div>

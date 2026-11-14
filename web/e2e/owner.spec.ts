@@ -1017,7 +1017,7 @@ test("the owner sets up the nursery and staff can sign in", async ({
   await phone.close();
 
   // Finishing returns to the name list, not to sign-in.
-  await button(page, "Finished").click();
+  await button(page, "Sign out").click();
   await expect(
     page.getByRole("heading", { name: "Who's working?" }),
   ).toBeVisible();
