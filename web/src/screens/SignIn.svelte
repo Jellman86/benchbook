@@ -149,7 +149,7 @@
         pictureAt={person.pictureAt}
         size={48}
       />
-      {person.name}
+      <span>{person.name}</span>
     </h2>
     <form class="stack" onsubmit={(event) => signInWithPassword(event, person)}>
       <!-- Lets a password manager tell people apart on a shared device. -->

@@ -413,7 +413,7 @@
               name={member.name}
               pictureAt={member.pictureAt}
             />
-            {member.name}
+            <span>{member.name}</span>
           </strong>
           <span class="muted">{signsInWith(member)}</span>
           {#if changingPinFor === member.id}
