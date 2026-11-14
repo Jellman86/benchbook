@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Music from "@lucide/svelte/icons/music";
   import { isOn } from "../../lib/features.svelte";
   import FormPanel from "../FormPanel.svelte";
   import { onMount, tick } from "svelte";
@@ -73,6 +74,10 @@
   let newPin = $state("");
   let settingPasswordFor = $state<string | null>(null);
   let newPassword = $state("");
+  let tuneFor = $state<string | null>(null);
+  let savingTune = $state(false);
+  const maxTuneBytes = 4 * 1024 * 1024;
+  let preview: HTMLAudioElement | null = null;
 
   const pinProblem = "A PIN must be 4 to 6 digits.";
   const passwordProblem = "A password must be at least 8 characters.";
@@ -190,6 +195,60 @@
       }
     }, setProblem);
   };
+
+  // A sign-in tune: a bit of fun the owner chooses, played on that person's device when they sign in.
+  const chooseTune = (event: Event, member: Member) => {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    // Checked here too: a phone sending a big file the server then refuses can look like a lost connection.
+    if (file.size > maxTuneBytes) {
+      problem = "That tune is too big. Use a clip under 4 MB.";
+      return;
+    }
+
+    savingTune = true;
+
+    return attempt(async () => {
+      try {
+        const response = await fetch(`/api/staff/${member.id}/tune`, {
+          method: "PUT",
+          body: file,
+        });
+
+        problem = response.ok
+          ? ""
+          : response.status === 415
+            ? "That file can't be played on a phone. Use an MP3, M4A or WAV."
+            : response.status === 413
+              ? "That tune is too big. Use a clip under 4 MB."
+              : "The tune couldn't be saved. Please try again.";
+        await load();
+      } finally {
+        savingTune = false;
+      }
+    }, setProblem);
+  };
+
+  function playPreview(member: Member) {
+    preview?.pause();
+    preview = new Audio(`/api/staff/${member.id}/tune?at=${Date.now()}`);
+    void preview.play().catch(() => {});
+  }
+
+  const removeTune = (member: Member) =>
+    attempt(async () => {
+      preview?.pause();
+      await api.DELETE("/api/staff/{id}/tune", {
+        params: { path: { id: member.id } },
+      });
+      await load();
+    }, setProblem);
 
   const makeNameOnly = (member: Member) => {
     if (
@@ -341,6 +400,46 @@
               </label>
               <button type="submit">Save password</button>
             </form>
+          {:else if tuneFor === member.id}
+            <div class="stack">
+              <p class="muted">
+                Plays on {member.name}'s device each time they sign in. They can
+                turn it off. An MP3, M4A or WAV, up to 4 MB.
+              </p>
+              <label class="photo-choice">
+                <Music size={20} />
+                <span
+                  >{member.hasTune ? "Change the tune" : "Choose a tune"}</span
+                >
+                <input
+                  type="file"
+                  accept="audio/*"
+                  disabled={savingTune}
+                  onchange={(event) => chooseTune(event, member)}
+                />
+              </label>
+              {#if savingTune}<p class="muted" role="status">
+                  Saving the tune…
+                </p>{/if}
+              {#if member.hasTune}
+                <div class="row">
+                  <button class="secondary" onclick={() => playPreview(member)}
+                    >Play it</button
+                  >
+                  <button
+                    class="secondary destructive"
+                    onclick={() => removeTune(member)}>Remove the tune</button
+                  >
+                </div>
+              {/if}
+              <button
+                class="link-button"
+                onclick={() => {
+                  preview?.pause();
+                  tuneFor = null;
+                }}>Done</button
+              >
+            </div>
           {:else}
             <div class="row">
               <button class="secondary" onclick={() => invite(member.id)}
@@ -362,6 +461,14 @@
                   >Name only</button
                 >
               {/if}
+              <button
+                class="secondary"
+                aria-label={member.hasTune
+                  ? "Sign-in tune, one is set"
+                  : "Sign-in tune"}
+                onclick={() => (tuneFor = member.id)}
+                >{member.hasTune ? "Sign-in tune ♪" : "Sign-in tune"}</button
+              >
               {#if member.id !== myId}
                 <button class="secondary" onclick={() => archive(member)}
                   >Has left</button

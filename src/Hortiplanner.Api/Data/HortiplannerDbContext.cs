@@ -83,6 +83,8 @@ internal sealed class HortiplannerDbContext(DbContextOptions<HortiplannerDbConte
 
     public DbSet<AssistantSpend> AssistantSpends => Set<AssistantSpend>();
 
+    public DbSet<SignInTune> SignInTunes => Set<SignInTune>();
+
     public DbSet<Printer> Printers => Set<Printer>();
 
     public DbSet<Customer> Customers => Set<Customer>();
@@ -255,6 +257,13 @@ internal sealed class HortiplannerDbContext(DbContextOptions<HortiplannerDbConte
         {
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+        });
+
+        modelBuilder.Entity<SignInTune>(entity =>
+        {
+            entity.ToTable("sign_in_tune");
+            entity.HasKey(e => e.UserId);
+            entity.HasOne<AppUser>().WithOne().HasForeignKey<SignInTune>(e => e.UserId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 

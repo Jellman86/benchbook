@@ -3432,6 +3432,14 @@ button.production-row.chosen:hover:not(:disabled) {
   cursor: pointer;
 }
 
+/* Like the other card buttons, hovering only strengthens the edge: the card keeps its own colours, so its words stay
+   readable. */
+button.ask-card:hover:not(:disabled) {
+  border-color: var(--accent-text);
+  background: color-mix(in srgb, var(--accent-surface) 85%, var(--accent));
+  color: var(--accent-text);
+}
+
 /* A place's page: its outline on the map, and its photos large enough to see. */
 .place-mini-map {
   display: flex;

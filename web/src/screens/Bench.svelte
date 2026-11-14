@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { playTune, unlockTune } from "../lib/tune";
   import { api } from "../api/client";
   import { onMount } from "svelte";
   import type { Person } from "../lib/boot";
@@ -53,6 +54,9 @@
       return;
     }
 
+    // Still inside the tap, so a sign-in tune is allowed to play once the PIN is accepted.
+    unlockTune();
+
     // Taken now, so digits pressed while it's checked start the next try rather than being wiped.
     const entered = pin;
     pin = "";
@@ -65,6 +69,7 @@
       });
 
       if (response.ok) {
+        playTune();
         onSignedIn();
       } else if (response.status === 423) {
         problem =

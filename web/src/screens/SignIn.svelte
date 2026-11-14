@@ -3,6 +3,7 @@
   import { api } from "../api/client";
   import { externalSignInProblem, signInAsYourselfKey } from "../lib/boot";
   import { passkeyProblem, usePasskey } from "../lib/passkey";
+  import { playTune, rememberTuneForReturn, unlockTune } from "../lib/tune";
   import type { Schemas } from "../lib/types";
 
   type Person = Schemas["SignInPerson"];
@@ -33,7 +34,9 @@
     }
   });
 
+  // Every way of signing in here starts from a tap, which is what lets a sign-in tune play afterwards.
   async function during(work: () => Promise<void>) {
+    unlockTune();
     busy = true;
     problem = "";
 
@@ -76,6 +79,7 @@
       });
 
       if (response.ok) {
+        playTune();
         onSignedIn();
       } else {
         problem = "That passkey wasn't recognised.";
@@ -89,6 +93,7 @@
       });
 
       if (response.ok) {
+        playTune();
         onSignedIn();
       } else {
         problem = "That didn't work. Ask the owner to check your account.";
@@ -117,6 +122,7 @@
       });
 
       if (response.ok) {
+        playTune();
         onSignedIn();
       } else {
         problem =
@@ -153,8 +159,10 @@
     <button class="back" onclick={() => (chosen = null)}>Back</button>
   {:else}
     {#if external?.enabled}
-      <a class="button" href="/api/account/external/login"
-        >Sign in with {external.name}</a
+      <a
+        class="button"
+        href="/api/account/external/login"
+        onclick={rememberTuneForReturn}>Sign in with {external.name}</a
       >
     {/if}
     {#if people.length > 0}

@@ -1645,6 +1645,105 @@
         }
       }
     },
+    "/api/staff/{id}/tune": {
+      "put": {
+        "tags": [
+          "SignInTuneEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "SignInTuneEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "SignInTuneEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/account/tune": {
+      "get": {
+        "tags": [
+          "SignInTuneEndpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/account/tune/on": {
+      "put": {
+        "tags": [
+          "SignInTuneEndpoints"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TuneSwitch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/bench/stations": {
       "get": {
         "tags": [
@@ -5739,7 +5838,9 @@
           "hasPasskey",
           "hasExternalLogin",
           "externalSignInName",
-          "nameOnly"
+          "nameOnly",
+          "hasTune",
+          "tuneOn"
         ],
         "type": "object",
         "properties": {
@@ -5762,6 +5863,12 @@
             ]
           },
           "nameOnly": {
+            "type": "boolean"
+          },
+          "hasTune": {
+            "type": "boolean"
+          },
+          "tuneOn": {
             "type": "boolean"
           }
         }
@@ -12146,7 +12253,8 @@
           "hasPassword",
           "hasPasskey",
           "hasExternalLogin",
-          "hasPin"
+          "hasPin",
+          "hasTune"
         ],
         "type": "object",
         "properties": {
@@ -12176,6 +12284,9 @@
             "type": "boolean"
           },
           "hasPin": {
+            "type": "boolean"
+          },
+          "hasTune": {
             "type": "boolean"
           }
         }
@@ -13243,6 +13354,17 @@
           }
         }
       },
+      "TuneSwitch": {
+        "required": [
+          "on"
+        ],
+        "type": "object",
+        "properties": {
+          "on": {
+            "type": "boolean"
+          }
+        }
+      },
       "UsePictureRequest": {
         "required": [
           "use"
@@ -13389,6 +13511,9 @@
     },
     {
       "name": "StaffEndpoints"
+    },
+    {
+      "name": "SignInTuneEndpoints"
     },
     {
       "name": "BenchEndpoints"

@@ -54,7 +54,8 @@ internal static class StaffEndpoints
                 user.PasswordHash != null,
                 db.UserPasskeys.Any(passkey => passkey.UserId == user.Id),
                 db.UserLogins.Any(login => login.UserId == user.Id),
-                user.PinHash != null))
+                user.PinHash != null,
+                db.SignInTunes.Any(tune => tune.UserId == user.Id)))
             .ToListAsync(cancellationToken);
 
         return [.. staff.Select(member => member with { IsOwner = owners.Contains(member.Id) })];
@@ -359,7 +360,7 @@ internal static class StaffEndpoints
         return TypedResults.NoContent();
     }
 
-    internal sealed record StaffMember(Guid Id, string Name, bool Archived, bool IsOwner, bool NameOnly, bool HasPassword, bool HasPasskey, bool HasExternalLogin, bool HasPin);
+    internal sealed record StaffMember(Guid Id, string Name, bool Archived, bool IsOwner, bool NameOnly, bool HasPassword, bool HasPasskey, bool HasExternalLogin, bool HasPin, bool HasTune);
 
     internal sealed record AddStaffRequest(string Name, string? Pin, string? Password, bool NameOnly);
 

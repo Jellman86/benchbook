@@ -136,7 +136,7 @@ internal static class SignInEndpoints
         return TypedResults.NoContent();
     }
 
-    private static async Task<IResult> GetSettingsAsync(ClaimsPrincipal principal, UserManager<AppUser> users, ExternalSignInStore store)
+    private static async Task<IResult> GetSettingsAsync(ClaimsPrincipal principal, UserManager<AppUser> users, ExternalSignInStore store, HortiplannerDbContext db, CancellationToken cancellationToken)
     {
         if (await users.GetUserAsync(principal) is not { } me)
         {
@@ -147,7 +147,9 @@ internal static class SignInEndpoints
         var logins = await users.GetLoginsAsync(me);
         var externalName = store.Current.IsOn ? store.Current.DisplayName : null;
 
-        return TypedResults.Ok(new AccountSettings(me.PasswordHash is not null, me.PinHash is not null, passkeys.Count > 0, logins.Count > 0, externalName, me.NameOnlySignIn));
+        var tuneOff = await db.SignInTunes.Where(tune => tune.UserId == me.Id).Select(tune => (bool?)tune.Off).FirstOrDefaultAsync(cancellationToken);
+
+        return TypedResults.Ok(new AccountSettings(me.PasswordHash is not null, me.PinHash is not null, passkeys.Count > 0, logins.Count > 0, externalName, me.NameOnlySignIn, tuneOff is not null, tuneOff == false));
     }
 
     private static async Task<IResult> SetOwnPasswordAsync(
@@ -257,7 +259,7 @@ internal static class SignInEndpoints
 
     internal sealed record PasswordSignInRequest(Guid UserId, string Password);
 
-    internal sealed record AccountSettings(bool HasPassword, bool HasPin, bool HasPasskey, bool HasExternalLogin, string? ExternalSignInName, bool NameOnly);
+    internal sealed record AccountSettings(bool HasPassword, bool HasPin, bool HasPasskey, bool HasExternalLogin, string? ExternalSignInName, bool NameOnly, bool HasTune, bool TuneOn);
 
     internal sealed record SetOwnPasswordRequest(string? CurrentPassword, string NewPassword);
 
