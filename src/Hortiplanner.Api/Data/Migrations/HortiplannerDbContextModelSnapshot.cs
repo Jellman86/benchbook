@@ -2054,6 +2054,36 @@ namespace Hortiplanner.Api.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Hortiplanner.Api.Data.SignInTune", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("content");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content_type");
+
+                    b.Property<bool>("Off")
+                        .HasColumnType("boolean")
+                        .HasColumnName("off");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("UserId")
+                        .HasName("pk_sign_in_tune");
+
+                    b.ToTable("sign_in_tune", (string)null);
+                });
+
             modelBuilder.Entity("Hortiplanner.Api.Data.Species", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3100,6 +3130,16 @@ namespace Hortiplanner.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_sensor_readings_sensors_sensor_id");
+                });
+
+            modelBuilder.Entity("Hortiplanner.Api.Data.SignInTune", b =>
+                {
+                    b.HasOne("Hortiplanner.Api.Accounts.AppUser", null)
+                        .WithOne()
+                        .HasForeignKey("Hortiplanner.Api.Data.SignInTune", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_sign_in_tune_asp_net_users_user_id");
                 });
 
             modelBuilder.Entity("Hortiplanner.Api.Data.SpeciesDetails", b =>

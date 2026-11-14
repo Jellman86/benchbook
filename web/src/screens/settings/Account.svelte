@@ -5,6 +5,7 @@
   import type { Me } from "../../lib/boot";
   import { createPasskey, passkeyProblem } from "../../lib/passkey";
   import { themes, type Theme } from "../../lib/theme";
+  import { playTune, stopTune } from "../../lib/tune";
   import { attempt, type Schemas } from "../../lib/types";
 
   let {
@@ -83,6 +84,22 @@
     }, setProblem);
   };
 
+  const switchTune = (event: Event) => {
+    const on = (event.currentTarget as HTMLInputElement).checked;
+
+    return attempt(async () => {
+      await api.PUT("/api/account/tune/on", { body: { on } });
+
+      if (on) {
+        playTune();
+      } else {
+        stopTune();
+      }
+
+      await load();
+    }, setProblem);
+  };
+
   const addPasskey = () =>
     attempt(async () => {
       const options = await api.POST("/api/account/settings/passkey-options", {
@@ -128,6 +145,19 @@
         >
       {/each}
     </div>
+
+    {#if settings?.hasTune && !me.isTeam}
+      <h2>Sign-in tune</h2>
+      <label class="tick">
+        <input
+          type="checkbox"
+          checked={settings.tuneOn}
+          onchange={switchTune}
+        />
+        Play my tune when I sign in
+      </label>
+      <p class="muted">The owner chose it for you.</p>
+    {/if}
 
     {#if me.isTeam}
       <p class="muted">

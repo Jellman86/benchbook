@@ -27,7 +27,7 @@ export default defineConfig({
       // Staff mostly use iPhones: the phone screens again in Safari's engine, at an iPhone's size and touch. Where
       // WebKit can't run locally, PW_WEBKIT_WS points at a Playwright server in its official Docker image.
       name: "iphone",
-      testMatch: /(iphone|ask|review-phone)\.spec\.ts$/,
+      testMatch: /(iphone|ask|review-phone|tune)\.spec\.ts$/,
       use: {
         ...devices["iPhone 15"],
         // The app's service worker would answer before the tests' stand-in server could.

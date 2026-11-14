@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Music from "@lucide/svelte/icons/music";
   import { isOn } from "../../lib/features.svelte";
   import FormPanel from "../FormPanel.svelte";
   import { onMount, tick } from "svelte";
@@ -73,6 +74,8 @@
   let newPin = $state("");
   let settingPasswordFor = $state<string | null>(null);
   let newPassword = $state("");
+  let tuneFor = $state<string | null>(null);
+  let preview: HTMLAudioElement | null = null;
 
   const pinProblem = "A PIN must be 4 to 6 digits.";
   const passwordProblem = "A password must be at least 8 characters.";
@@ -190,6 +193,46 @@
       }
     }, setProblem);
   };
+
+  // A sign-in tune: a bit of fun the owner chooses, played on that person's device when they sign in.
+  const chooseTune = (event: Event, member: Member) => {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    return attempt(async () => {
+      const response = await fetch(`/api/staff/${member.id}/tune`, {
+        method: "PUT",
+        body: file,
+      });
+
+      input.value = "";
+      problem = response.ok
+        ? ""
+        : response.status === 413
+          ? "That tune is too big. Use a clip under 4 MB."
+          : "That file can't be played on a phone. Use an MP3, M4A or WAV.";
+      await load();
+    }, setProblem);
+  };
+
+  function playPreview(member: Member) {
+    preview?.pause();
+    preview = new Audio(`/api/staff/${member.id}/tune?at=${Date.now()}`);
+    void preview.play().catch(() => {});
+  }
+
+  const removeTune = (member: Member) =>
+    attempt(async () => {
+      preview?.pause();
+      await api.DELETE("/api/staff/{id}/tune", {
+        params: { path: { id: member.id } },
+      });
+      await load();
+    }, setProblem);
 
   const makeNameOnly = (member: Member) => {
     if (
@@ -341,6 +384,42 @@
               </label>
               <button type="submit">Save password</button>
             </form>
+          {:else if tuneFor === member.id}
+            <div class="stack">
+              <p class="muted">
+                Plays on {member.name}'s device each time they sign in. They can
+                turn it off. An MP3, M4A or WAV, up to 4 MB.
+              </p>
+              <label class="photo-choice">
+                <Music size={20} />
+                <span
+                  >{member.hasTune ? "Change the tune" : "Choose a tune"}</span
+                >
+                <input
+                  type="file"
+                  accept="audio/*"
+                  onchange={(event) => chooseTune(event, member)}
+                />
+              </label>
+              {#if member.hasTune}
+                <div class="row">
+                  <button class="secondary" onclick={() => playPreview(member)}
+                    >Play it</button
+                  >
+                  <button
+                    class="secondary destructive"
+                    onclick={() => removeTune(member)}>Remove the tune</button
+                  >
+                </div>
+              {/if}
+              <button
+                class="link-button"
+                onclick={() => {
+                  preview?.pause();
+                  tuneFor = null;
+                }}>Done</button
+              >
+            </div>
           {:else}
             <div class="row">
               <button class="secondary" onclick={() => invite(member.id)}
@@ -362,6 +441,9 @@
                   >Name only</button
                 >
               {/if}
+              <button class="secondary" onclick={() => (tuneFor = member.id)}
+                >{member.hasTune ? "Sign-in tune ♪" : "Sign-in tune"}</button
+              >
               {#if member.id !== myId}
                 <button class="secondary" onclick={() => archive(member)}
                   >Has left</button

@@ -99,6 +99,7 @@ app.MapSignInEndpoints();
 app.MapExternalSignInEndpoints();
 app.MapExternalSignInSettingsEndpoints();
 app.MapStaffEndpoints();
+app.MapSignInTuneEndpoints();
 app.MapBenchEndpoints();
 app.MapSpeciesEndpoints();
 app.MapPhotoEndpoints();
