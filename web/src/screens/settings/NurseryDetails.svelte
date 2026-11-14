@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Trash2 from "@lucide/svelte/icons/trash-2";
   import { isOn } from "../../lib/features.svelte";
   import ImageUp from "@lucide/svelte/icons/image-up";
   import { onMount } from "svelte";
@@ -183,7 +184,7 @@
         </label>
         {#if details.hasLogo}
           <button class="link-button" onclick={removeLogo}
-            >Remove the logo</button
+            ><Trash2 size={16} aria-hidden="true" />Remove the logo</button
           >
         {/if}
       </div>

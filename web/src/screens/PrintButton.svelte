@@ -122,8 +122,11 @@
       {:else}
         On {chosen.name}.
       {/if}
-      <a href={withCopies(href, copies)} target="_blank" rel="noopener"
-        ><FileDown size={16} /> PDF instead</a
+      <a
+        class="small-button"
+        href={withCopies(href, copies)}
+        target="_blank"
+        rel="noopener"><FileDown size={16} aria-hidden="true" /> PDF instead</a
       >
     </span>
   {/if}

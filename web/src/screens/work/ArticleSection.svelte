@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ExternalLink from "@lucide/svelte/icons/external-link";
   import type { Schemas } from "../../lib/types";
 
   let { title, article }: { title: string; article: Schemas["Credited"] } =
@@ -38,8 +39,12 @@
   <p class="muted credit">
     From
     {#if article.url}
-      <a href={article.url} target="_blank" rel="noopener noreferrer"
-        >{credit}</a
+      <a
+        class="small-button"
+        href={article.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        >{credit} <ExternalLink size={16} aria-hidden="true" /></a
       >
     {:else}
       {credit}

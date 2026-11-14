@@ -58,7 +58,13 @@ internal static class AlertEndpoints
 
         return late == 0
             ? null
-            : new Alert("JobsLate", $"{Plural(late, "job is", "jobs are")} late", $"Each was due more than {JobLateDays} days ago and hasn't been marked done.", "jobs");
+            : new Alert(
+                "JobsLate",
+                $"{Plural(late, "job is", "jobs are")} running late",
+                late == 1
+                    ? $"It was due more than {JobLateDays} days ago and nobody has ticked it off yet."
+                    : $"Each one was due more than {JobLateDays} days ago and nobody has ticked them off yet.",
+                "jobs");
     }
 
     private static async Task<Alert?> RenewalAsync(HortiplannerDbContext db, DateOnly today, CancellationToken cancellationToken)
@@ -72,10 +78,10 @@ internal static class AlertEndpoints
 
         var days = date.DayNumber - today.DayNumber;
         var why = days < 0
-            ? $"It was due on {Day(date)}. Renew it, then put the next date in Nursery details."
-            : $"It renews on {Day(date)}, in {Plural(days, "day", "days")}. Book the inspection, then put the next date in Nursery details.";
+            ? $"It was due on {Day(date)}. Once you've renewed it, add the next renewal date in Nursery details."
+            : $"It's due on {Day(date)}, which is in {Plural(days, "day", "days")}. Book the inspection, and once it's renewed, add the next date in Nursery details.";
 
-        return new Alert("Authorisation", "Plant health authorisation renewal", why, "nursery");
+        return new Alert("Authorisation", "Your plant health authorisation needs renewing", why, "nursery");
     }
 
     private static async Task<Alert?> OverdueInvoicesAsync(HortiplannerDbContext db, DateOnly today, CancellationToken cancellationToken)
@@ -91,7 +97,13 @@ internal static class AlertEndpoints
 
         return overdue.Count == 0
             ? null
-            : new Alert("InvoicesOverdue", $"{Plural(overdue.Count, "invoice is", "invoices are")} overdue", $"Not marked paid, and due since {Day(overdue.Min())} at the earliest.", "invoices");
+            : new Alert(
+                "InvoicesOverdue",
+                $"{Plural(overdue.Count, "invoice is", "invoices are")} overdue",
+                overdue.Count == 1
+                    ? $"It hasn't been marked as paid, and it was due on {Day(overdue.Min())}."
+                    : $"They haven't been marked as paid. The oldest was due on {Day(overdue.Min())}.",
+                "invoices");
     }
 
     /// <summary>Trays ready for a while, which may need selling or potting on, and seed nobody has counted for weeks.</summary>
@@ -106,7 +118,13 @@ internal static class AlertEndpoints
 
         if (ready > 0)
         {
-            alerts.Add(new Alert("ReadyTooLong", $"{Plural(ready, "tray has", "trays have")} been ready over four weeks", "Marked ready for sale more than four weeks ago. They may want selling, potting on or a price check.", "production"));
+            alerts.Add(new Alert(
+                "ReadyTooLong",
+                $"{Plural(ready, "tray has", "trays have")} been ready for over four weeks",
+                ready == 1
+                    ? "It was marked ready for sale more than four weeks ago. It might need selling, potting on, or a look at its price."
+                    : "They were marked ready for sale more than four weeks ago. They might need selling, potting on, or a look at their prices.",
+                "production"));
         }
 
         var uncounted = stock
@@ -117,7 +135,13 @@ internal static class AlertEndpoints
 
         if (uncounted > 0)
         {
-            alerts.Add(new Alert("NotCountedLong", $"{Plural(uncounted, "tray hasn't", "trays haven't")} been counted for three weeks", "Sown without a count and not counted since. A count when they're pricked out, or now, keeps the figures right.", "production"));
+            alerts.Add(new Alert(
+                "NotCountedLong",
+                $"{Plural(uncounted, "tray hasn't", "trays haven't")} been counted in three weeks",
+                uncounted == 1
+                    ? "It was sown without counting the seeds, so we don't know how many plants are in it yet. Counting it when you prick it out, or now if you have a minute, keeps the figures accurate."
+                    : "They were sown without counting the seeds, so we don't know how many plants are in them yet. Counting them when you prick them out, or now if you have a minute, keeps the figures accurate.",
+                "production"));
         }
 
         return alerts;

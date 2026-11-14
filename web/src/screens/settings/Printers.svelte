@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import { isOn } from "../../lib/features.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
@@ -158,7 +159,8 @@
     to them, and every label can still be printed as a PDF through the print
     window. What each label looks like, and its size, is under <button
       class="link-button"
-      onclick={onLabels}>Labels</button
+      onclick={onLabels}
+      ><ArrowRight size={16} aria-hidden="true" />Labels</button
     >.
   </p>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}

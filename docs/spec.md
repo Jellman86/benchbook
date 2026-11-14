@@ -17,7 +17,7 @@ Small nurseries keep propagation records in spreadsheets. A spreadsheet row cann
 ## Principles
 
 1. **Scan, then tap.** Scan a label, choose what happened, confirm. No menus to learn.
-2. **One action per screen,** large targets, plain words. Quantities use large steppers and presets such as full tray or half tray, not a keyboard.
+2. **One action per screen,** large targets, plain words in whole sentences, as a person would say them (see CONTRIBUTING.md, Words on screen). Quantities use large steppers and presets such as full tray or half tray, not a keyboard.
 3. **Choose, don't type.** Plants, suppliers, greenhouses, pot sizes and loss reasons are drop-down lists, with the most recently used first.
 4. **One press to do it again.** Anything recorded before can be repeated with a single press, then adjusted if needed. Every screen offers a short list of recent actions.
 5. **Nothing is overwritten.** Every change is a permanent event with who and when.

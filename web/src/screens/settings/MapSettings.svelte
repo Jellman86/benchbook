@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ExternalLink from "@lucide/svelte/icons/external-link";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { shrinkPhoto } from "../../lib/photo";
@@ -140,11 +142,14 @@
         <summary>Getting a key</summary>
         <ol>
           <li>
-            Sign up for a free ArcGIS Location Platform account at <a
+            Sign up for a free ArcGIS Location Platform account.
+            <a
+              class="small-button"
               href="https://location.arcgis.com"
               target="_blank"
-              rel="noopener">location.arcgis.com</a
-            >.
+              rel="noopener"
+              >Go to ArcGIS <ExternalLink size={16} aria-hidden="true" /></a
+            >
           </li>
           <li>
             Create an API key and tick its basemap privileges, and geocoding to
@@ -224,7 +229,7 @@
       >
       {#if pictureChangedAt}
         <button type="button" class="link-button" onclick={removePicture}
-          >Remove the picture</button
+          ><Trash2 size={16} aria-hidden="true" />Remove the picture</button
         >
       {/if}
     </div>

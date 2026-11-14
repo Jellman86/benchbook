@@ -1,4 +1,5 @@
 <script lang="ts">
+  import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
   import Camera from "@lucide/svelte/icons/camera";
   import Coins from "@lucide/svelte/icons/coins";
   import SendHorizontal from "@lucide/svelte/icons/send-horizontal";
@@ -282,7 +283,9 @@
       <div class="title-row">
         <h1><Sparkles size={26} aria-hidden="true" /> Ask Hortiplanner</h1>
         {#if lines.length > 0}
-          <button class="link-button" onclick={startAgain}>Start again</button>
+          <button class="link-button" onclick={startAgain}
+            ><RotateCcw size={16} aria-hidden="true" />Start again</button
+          >
         {/if}
       </div>
       {#if assistant.spentThisMonth !== null}

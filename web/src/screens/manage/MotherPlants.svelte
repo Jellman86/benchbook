@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Route from "@lucide/svelte/icons/route";
   import { crumbs } from "../../lib/crumbs.svelte";
   import { isoDay } from "../../lib/days";
   import { showForm } from "../../lib/showForm";
@@ -206,7 +207,8 @@
                   >
                   <button
                     class="link-button"
-                    onclick={() => onTrace(batch.batchId)}>Trace</button
+                    onclick={() => onTrace(batch.batchId)}
+                    ><Route size={16} aria-hidden="true" />Trace</button
                   >
                 </li>
               {:else}

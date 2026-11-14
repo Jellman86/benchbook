@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ExternalLink from "@lucide/svelte/icons/external-link";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
   import { dollars, loadAssistant } from "../../lib/assistant.svelte";
@@ -126,11 +128,17 @@
           <summary>Getting a key</summary>
           <ol>
             <li>
-              Sign up at <a
+              Sign up at OpenRouter and add some credit.
+              <a
+                class="small-button"
                 href="https://openrouter.ai"
                 target="_blank"
-                rel="noopener">openrouter.ai</a
-              > and add some credit.
+                rel="noopener"
+                >Go to OpenRouter <ExternalLink
+                  size={16}
+                  aria-hidden="true"
+                /></a
+              >
             </li>
             <li>
               Create a key, and give it a monthly limit you're happy with.
@@ -152,7 +160,8 @@
           <button
             type="button"
             class="link-button"
-            onclick={() => save(null, true)}>Take the key away</button
+            onclick={() => save(null, true)}
+            ><Trash2 size={16} aria-hidden="true" />Take the key away</button
           >
         {/if}
       </div>

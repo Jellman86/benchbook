@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Trash2 from "@lucide/svelte/icons/trash-2";
   import { isOn } from "../../lib/features.svelte";
   import { isoDay } from "../../lib/days";
   import { onMount } from "svelte";
@@ -118,7 +119,7 @@
 
 {#snippet takingActions(taking: Taking)}
   <button class="link-button danger-link" onclick={() => voidTaking(taking)}
-    >Void</button
+    ><Trash2 size={16} aria-hidden="true" />Void</button
   >
 {/snippet}
 
@@ -158,7 +159,8 @@
             </span>
             <button
               class="link-button danger-link"
-              onclick={() => voidTaking(taking)}>Void</button
+              onclick={() => voidTaking(taking)}
+              ><Trash2 size={16} aria-hidden="true" />Void</button
             >
           </div>
         {:else}

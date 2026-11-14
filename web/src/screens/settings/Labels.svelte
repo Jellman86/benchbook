@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import { isOn } from "../../lib/features.svelte";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
@@ -170,7 +171,8 @@
     How each kind of label looks. A change applies to every label printed after
     you save it. Which printer prints each kind is under <button
       class="link-button"
-      onclick={onPrinters}>Printers</button
+      onclick={onPrinters}
+      ><ArrowRight size={16} aria-hidden="true" />Printers</button
     >.
   </p>
   {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
@@ -291,7 +293,8 @@
               <p class="muted">
                 Add a logo under <button
                   class="link-button"
-                  onclick={onNurseryDetails}>Nursery details</button
+                  onclick={onNurseryDetails}
+                  ><ArrowRight size={16} aria-hidden="true" />Nursery details</button
                 > for it to show on the label.
               </p>
             {/if}
@@ -299,7 +302,8 @@
               <p class="muted">
                 Fill in the nursery's name under <button
                   class="link-button"
-                  onclick={onNurseryDetails}>Nursery details</button
+                  onclick={onNurseryDetails}
+                  ><ArrowRight size={16} aria-hidden="true" />Nursery details</button
                 > for it to show on the label.
               </p>
             {/if}

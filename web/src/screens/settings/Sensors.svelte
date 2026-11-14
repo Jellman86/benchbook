@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Pencil from "@lucide/svelte/icons/pencil";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
   import { showForm } from "../../lib/showForm";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
@@ -242,13 +244,13 @@ automation:
                 editing = sensor.id;
                 form = { name: sensor.name, locationId: sensor.locationId };
                 void showForm();
-              }}>Change</button
+              }}><Pencil size={16} aria-hidden="true" />Change</button
             >
             <button class="link-button" onclick={() => newKey(sensor)}
               >New key</button
             >
             <button class="link-button" onclick={() => stop(sensor)}
-              >Stop using</button
+              ><Trash2 size={16} aria-hidden="true" />Stop using</button
             >
           </div>
         </div>

@@ -1,4 +1,7 @@
 <script lang="ts">
+  import Pencil from "@lucide/svelte/icons/pencil";
+  import Route from "@lucide/svelte/icons/route";
+  import Undo2 from "@lucide/svelte/icons/undo-2";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import type { AskAbout } from "../../lib/assistant.svelte";
   import { crumbs } from "../../lib/crumbs.svelte";
@@ -400,13 +403,15 @@
               {#if !fromDevice}
                 <button
                   class="link-button"
-                  onclick={() => openEdit(line.batchId)}>Edit batch</button
+                  onclick={() => openEdit(line.batchId)}
+                  ><Pencil size={16} aria-hidden="true" />Edit batch</button
                 >
               {/if}
               {#if onTrace}
                 <button
                   class="link-button"
-                  onclick={() => onTrace(line.batchId)}>Trace this batch</button
+                  onclick={() => onTrace(line.batchId)}
+                  ><Route size={16} aria-hidden="true" />Trace this batch</button
                 >
               {/if}
             </div>
@@ -494,7 +499,8 @@
                   <button
                     class="link-button"
                     disabled={busy}
-                    onclick={() => undo(entry)}>Undo</button
+                    onclick={() => undo(entry)}
+                    ><Undo2 size={16} aria-hidden="true" />Undo</button
                   >
                 {/if}
               </li>

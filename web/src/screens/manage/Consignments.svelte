@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Trash2 from "@lucide/svelte/icons/trash-2";
   import { crumbs } from "../../lib/crumbs.svelte";
   import { isOn } from "../../lib/features.svelte";
   import { onMount } from "svelte";
@@ -467,7 +468,8 @@
                   <button
                     type="button"
                     class="link-button"
-                    onclick={() => lines.splice(lineIndex, 1)}>Remove</button
+                    onclick={() => lines.splice(lineIndex, 1)}
+                    ><Trash2 size={16} aria-hidden="true" />Remove</button
                   >
                 {/if}
               </div>
@@ -490,7 +492,7 @@
                   type="button"
                   class="link-button"
                   onclick={() => packages.splice(index, 1)}
-                  >Remove the package</button
+                  ><Trash2 size={16} aria-hidden="true" />Remove the package</button
                 >
               {/if}
             </div>

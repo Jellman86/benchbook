@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Pencil from "@lucide/svelte/icons/pencil";
   import type * as Leaflet from "leaflet";
   import { onMount } from "svelte";
   import { api } from "../../api/client";
@@ -344,7 +345,8 @@
             >Adjust corners</button
           >
         </div>
-        <button class="link-button" onclick={startDrawing}>Draw it again</button
+        <button class="link-button" onclick={startDrawing}
+          ><Pencil size={16} aria-hidden="true" />Draw it again</button
         >
       {/if}
 
