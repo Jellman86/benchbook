@@ -87,6 +87,7 @@ internal static class WorkEndpoints
                 AppendResult.IdInUse => Refused("IdInUse"),
                 AppendResult.NotInContainer => Refused("NotInContainer"),
                 AppendResult.BeforeStart => Refused("BeforeStart"),
+                AppendResult.OnSite => Refused("OnSite"),
                 _ => Refused("BelowZero"),
             };
         }

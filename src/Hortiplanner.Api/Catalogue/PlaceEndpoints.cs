@@ -62,6 +62,10 @@ internal static class PlaceEndpoints
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await db.Database.ExecuteSqlRawAsync("LOCK TABLE locations IN SHARE ROW EXCLUSIVE MODE", cancellationToken);
 
+        // The place's own row too: work saved meanwhile shares this lock, so it either finishes first and is seen, or
+        // waits and sees the change.
+        await db.Database.ExecuteSqlRawAsync("SELECT 1 FROM locations WHERE id = {0} FOR UPDATE", [id], cancellationToken);
+
         if (await db.Locations.FindAsync([id], cancellationToken) is not { } place)
         {
             return TypedResults.NotFound();
@@ -106,6 +110,10 @@ internal static class PlaceEndpoints
         // The same lock as moving and changing kind, so nothing is put inside it while it goes.
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await db.Database.ExecuteSqlRawAsync("LOCK TABLE locations IN SHARE ROW EXCLUSIVE MODE", cancellationToken);
+
+        // The place's own row too: work saved meanwhile shares this lock, so it either finishes first and is seen, or
+        // waits and sees the change.
+        await db.Database.ExecuteSqlRawAsync("SELECT 1 FROM locations WHERE id = {0} FOR UPDATE", [id], cancellationToken);
 
         if (await db.Locations.FindAsync([id], cancellationToken) is not { } place)
         {

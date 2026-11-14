@@ -18,4 +18,7 @@ internal enum AppendResult
 
     /// <summary>Nothing was stored: the work is dated before the container was started.</summary>
     BeforeStart,
+
+    /// <summary>Nothing was stored: it would leave a tray with plants in it on a site, where trays never stand.</summary>
+    OnSite,
 }

@@ -50,8 +50,23 @@ internal static class CataloguePhotoEndpoints
             UploadedBy = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!),
         };
 
+        // Checked again under a shared lock once the photo has arrived: a place deleted while it uploaded must not be
+        // left with a photo nobody can reach. Deleting a place locks its row first, so one of the two waits.
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+
+        if (entry == CataloguePhotoEntry.Location)
+        {
+            await db.Database.ExecuteSqlRawAsync("SELECT 1 FROM locations WHERE id = {0} FOR SHARE", [id], cancellationToken);
+        }
+
+        if (!await EntryExistsAsync(entry, id, db, cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
         db.CatalogueEntryPhotos.Add(photo);
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return TypedResults.Created($"/api/catalogue-photos/{photo.Id}", new PhotoAdded(photo.Id));
     }
 

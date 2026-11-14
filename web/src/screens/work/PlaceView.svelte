@@ -201,10 +201,55 @@
   );
 
   // Plant passports count time under cover in a greenhouse, polytunnel or cold frame.
+  // A place is under cover if it, or any place it sits inside, is one of these. So the change can affect places
+  // inside this one too, through what they inherit.
   const covered = ["Greenhouse", "Polytunnel", "ColdFrame"];
-  const coverChanges = $derived(
-    !!place && covered.includes(place.kind) !== covered.includes(newKind),
-  );
+
+  function underCover(
+    id: string,
+    changed: { id: string; kind: string; parentId: string | null } | null,
+  ): boolean {
+    let current: string | null = id;
+
+    for (let depth = 0; current && depth < 12; depth++) {
+      const at = places.find((item) => item.id === current);
+
+      if (!at) {
+        return false;
+      }
+
+      const kind = changed?.id === at.id ? changed.kind : at.kind;
+
+      if (covered.includes(kind)) {
+        return true;
+      }
+
+      current = changed?.id === at.id ? changed.parentId : at.parentId;
+    }
+
+    return false;
+  }
+
+  const coverChanges = $derived.by(() => {
+    if (!place) {
+      return false;
+    }
+
+    const proposed = {
+      id: place.id,
+      kind: newKind,
+      parentId:
+        newKind === "Site"
+          ? null
+          : needsParent
+            ? newParent || null
+            : place.parentId,
+    };
+
+    return [...withEverythingInside(place.id, places)].some(
+      (id) => underCover(id, null) !== underCover(id, proposed),
+    );
+  });
 
   const changeKind = (event: SubmitEvent) => {
     event.preventDefault();
@@ -472,8 +517,8 @@
               </p>
               {#if coverChanges}
                 <p class="muted">
-                  This changes whether trays here count as under cover for plant
-                  passports.
+                  This changes whether trays here, or in places inside it, count
+                  as under cover for plant passports.
                 </p>
               {/if}
               <div class="row">
