@@ -15,6 +15,8 @@ internal static class PlaceEndpoints
         var places = app.MapGroup("/api/locations").RequireAuthorization(AccountServices.OwnerPolicy);
         places.MapPut("/{id:guid}/parent", MoveAsync);
         places.MapPost("/several", AddSeveralAsync).Produces<PlacesCreated>(StatusCodes.Status201Created);
+        places.MapPut("/{id:guid}/kind", ChangeKindAsync);
+        places.MapDelete("/{id:guid}", DeleteAsync).Produces<PlaceInUse>(StatusCodes.Status409Conflict);
     }
 
     /// <summary>Puts a place inside another, as long as that wouldn't put it inside itself.</summary>
@@ -41,6 +43,84 @@ internal static class PlaceEndpoints
         var result = await SaveAsync(db, TypedResults.NoContent(), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return result;
+    }
+
+    /// <summary>
+    /// Corrects what sort of place it is, such as a greenhouse added as a bench. Its label number, what's inside it and
+    /// its history stay as they are. Only a site stands on its own, so becoming a site lifts it out of its parent, and a
+    /// site becoming anything else needs a place to sit in.
+    /// </summary>
+    private static async Task<IResult> ChangeKindAsync(Guid id, ChangePlaceKindRequest request, HortiplannerDbContext db, CancellationToken cancellationToken)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.Database.ExecuteSqlRawAsync("LOCK TABLE locations IN SHARE ROW EXCLUSIVE MODE", cancellationToken);
+
+        if (await db.Locations.FindAsync([id], cancellationToken) is not { } place)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (request.Kind == LocationKind.Site)
+        {
+            place.ParentId = null;
+        }
+        else if (place.Kind == LocationKind.Site || place.ParentId is null)
+        {
+            if (request.ParentId is not { } parentId
+                || parentId == id
+                || !await IsUsableParentAsync(parentId, db, cancellationToken)
+                || await IsInsideAsync(parentId, id, db, cancellationToken))
+            {
+                return TypedResults.BadRequest();
+            }
+
+            place.ParentId = parentId;
+        }
+
+        place.Kind = request.Kind;
+        var result = await SaveAsync(db, TypedResults.NoContent(), cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return result;
+    }
+
+    /// <summary>
+    /// Removes a place added by mistake. Only one nothing has ever used: no places inside it (even ones no longer used),
+    /// no work recorded there, and no sensors, mother plants or jobs. A place that has been used is kept for the
+    /// records, and is marked no longer used instead.
+    /// </summary>
+    private static async Task<IResult> DeleteAsync(Guid id, HortiplannerDbContext db, CancellationToken cancellationToken)
+    {
+        if (await db.Locations.FindAsync([id], cancellationToken) is not { } place)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var reason = await db.Locations.AnyAsync(inside => inside.ParentId == id, cancellationToken) ? "HasPlaces"
+            : await db.Events.AnyAsync(e => e.LocationId == id, cancellationToken) ? "HasWork"
+            : await db.Sensors.AnyAsync(sensor => sensor.LocationId == id, cancellationToken)
+                || await db.SensorReadings.AnyAsync(reading => reading.LocationId == id, cancellationToken) ? "HasSensors"
+            : await db.MotherPlants.AnyAsync(mother => mother.LocationId == id, cancellationToken)
+                || await db.Jobs.AnyAsync(job => job.LocationId == id, cancellationToken) ? "HasRecords"
+            : null;
+
+        if (reason is not null)
+        {
+            return TypedResults.Conflict(new PlaceInUse(reason));
+        }
+
+        db.CatalogueEntryPhotos.RemoveRange(db.CatalogueEntryPhotos.Where(photo => photo.Entry == CataloguePhotoEntry.Location && photo.EntryId == id));
+        db.Locations.Remove(place);
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            return TypedResults.NoContent();
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation })
+        {
+            // Something else refers to it that the checks above don't know about: keep it.
+            return TypedResults.Conflict(new PlaceInUse("HasRecords"));
+        }
     }
 
     /// <summary>Adds numbered places in one go, such as Bench 1 to Bench 12. All are added, or none.</summary>
@@ -110,4 +190,8 @@ internal static class PlaceEndpoints
     internal sealed record AddPlacesRequest(LocationKind Kind, Guid ParentId, string Prefix, int From, int To);
 
     internal sealed record PlacesCreated(IReadOnlyList<Guid> Ids);
+
+    internal sealed record ChangePlaceKindRequest(LocationKind Kind, Guid? ParentId);
+
+    internal sealed record PlaceInUse(string Problem);
 }

@@ -10,6 +10,7 @@
   import { stageLabel } from "../../lib/production";
   import {
     kindLabel,
+    placeKinds,
     possibleParents,
     byContainer,
     trayPlaces,
@@ -51,7 +52,10 @@
   let problem = $state("");
   let message = $state("");
   let busy = $state(false);
-  let task = $state<"move" | "moveAll" | "rename" | "add" | null>(null);
+  let task = $state<"move" | "moveAll" | "rename" | "kind" | "add" | null>(
+    null,
+  );
+  let newKind = $state<Schemas["LocationKind"]>("Bench");
   let newName = $state("");
   let newParent = $state("");
   let destination = $state("");
@@ -190,6 +194,64 @@
     lastMove = [];
     await load();
   }
+
+  // A site stands on its own, so anything that isn't one needs a place to sit in when it has none yet.
+  const needsParent = $derived(
+    !!place && newKind !== "Site" && !place.parentId,
+  );
+
+  const changeKind = (event: SubmitEvent) => {
+    event.preventDefault();
+
+    return attempt(async () => {
+      const { response } = await api.PUT("/api/locations/{id}/kind", {
+        params: { path: { id: placeId } },
+        body: { kind: newKind, parentId: needsParent ? newParent : null },
+      });
+      problem = response.ok
+        ? ""
+        : response.status === 409
+          ? "There's already a place with that name there."
+          : "It can't go there.";
+      task = response.ok ? null : task;
+      await load();
+    }, setProblem);
+  };
+
+  const whyKept: Record<string, string> = {
+    HasPlaces:
+      "It has places inside it. Move or delete those first, or mark it no longer used.",
+    HasWork:
+      "Work has been recorded there, so it's kept for the records. Mark it no longer used instead.",
+    HasSensors:
+      "A sensor is or was there, so it's kept for its readings. Mark it no longer used instead.",
+    HasRecords:
+      "Mother plants or jobs refer to it, so it's kept. Mark it no longer used instead.",
+  };
+
+  const remove = () =>
+    attempt(async () => {
+      if (
+        !place ||
+        !confirm(
+          `Delete ${place.name} for good? Only a place added by mistake, with nothing ever recorded there, can be deleted.`,
+        )
+      ) {
+        return;
+      }
+
+      const { response, error } = await api.DELETE("/api/locations/{id}", {
+        params: { path: { id: place.id } },
+      });
+
+      if (response.ok) {
+        onBack();
+      } else {
+        problem =
+          whyKept[error?.problem ?? ""] ??
+          "It couldn't be deleted. Please try again.";
+      }
+    }, setProblem);
 
   const retire = () =>
     attempt(async () => {
@@ -333,13 +395,65 @@
             <button class="secondary" onclick={() => (task = "add")}
               >Add inside</button
             >
+            <button
+              class="secondary"
+              onclick={() => {
+                task = "kind";
+                newKind = place!.kind;
+                newParent = place!.parentId ?? "";
+              }}>Change type</button
+            >
             <button class="secondary" onclick={retire}>No longer used</button>
+            <button class="secondary destructive" onclick={remove}
+              >Delete</button
+            >
           </div>
           {#if task === "rename"}
             <form class="card stack" onsubmit={rename}>
               <label>Name <input bind:value={newName} required /></label>
               <div class="row">
                 <button type="submit">Save</button>
+                <button
+                  type="button"
+                  class="secondary"
+                  onclick={() => (task = null)}>Cancel</button
+                >
+              </div>
+            </form>
+          {:else if task === "kind"}
+            <form class="card stack" onsubmit={changeKind}>
+              <label>
+                What sort of place it is
+                <select bind:value={newKind}>
+                  {#each placeKinds as option (option.kind)}
+                    <option value={option.kind}>{option.label}</option>
+                  {/each}
+                </select>
+              </label>
+              {#if needsParent}
+                <label>
+                  Put it inside
+                  <select bind:value={newParent} required>
+                    <option value="" disabled>Choose…</option>
+                    {#each possibleParents(place.id, places) as option (option.id)}
+                      <option value={option.id}>{option.path}</option>
+                    {/each}
+                  </select>
+                </label>
+              {:else if newKind === "Site" && place.parentId}
+                <p class="muted">
+                  A site stands on its own, so it will no longer sit inside
+                  another place. What's inside it stays put.
+                </p>
+              {/if}
+              <p class="muted">
+                Its label number stays the same, so labels already printed still
+                work.
+              </p>
+              <div class="row">
+                <button type="submit" disabled={newKind === place.kind}
+                  >Save</button
+                >
                 <button
                   type="button"
                   class="secondary"

@@ -3738,7 +3738,28 @@ export interface paths {
             };
         };
         post?: never;
-        delete?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlaceInUse"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -4529,6 +4550,45 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/locations/{id}/kind": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ChangePlaceKindRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -7701,6 +7761,11 @@ export interface components {
         };
         /** @enum {unknown} */
         CataloguePhotoEntry: "PotSize" | "Location";
+        ChangePlaceKindRequest: {
+            kind: components["schemas"]["LocationKind"];
+            /** Format: uuid */
+            parentId: null | string;
+        };
         ClearRecordsRequest: {
             confirmation: null | string;
         };
@@ -8598,6 +8663,9 @@ export interface components {
             /** Format: date-time */
             since: string;
             hours: components["schemas"]["ClimateHour"][];
+        };
+        PlaceInUse: {
+            problem: string;
         };
         PlaceMap: {
             imageryKey: null | string;

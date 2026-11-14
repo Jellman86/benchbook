@@ -2693,6 +2693,34 @@
             "description": "OK"
           }
         }
+      },
+      "delete": {
+        "tags": [
+          "PlaceEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceInUse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/locations/{id}/archive": {
@@ -3442,6 +3470,39 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/locations/{id}/kind": {
+      "put": {
+        "tags": [
+          "PlaceEndpoints"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePlaceKindRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -6746,6 +6807,25 @@
           "PotSize",
           "Location"
         ]
+      },
+      "ChangePlaceKindRequest": {
+        "required": [
+          "kind",
+          "parentId"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/LocationKind"
+          },
+          "parentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
       },
       "ClearRecordsRequest": {
         "required": [
@@ -10317,6 +10397,17 @@
             "items": {
               "$ref": "#/components/schemas/ClimateHour"
             }
+          }
+        }
+      },
+      "PlaceInUse": {
+        "required": [
+          "problem"
+        ],
+        "type": "object",
+        "properties": {
+          "problem": {
+            "type": "string"
           }
         }
       },

@@ -7,7 +7,7 @@ internal sealed class Location : IAudited, IArchivable
 
     public required string Name { get; set; }
 
-    public required LocationKind Kind { get; init; }
+    public required LocationKind Kind { get; set; }
 
     /// <summary>The place this one sits in. Null only for a site.</summary>
     public Guid? ParentId { get; set; }
